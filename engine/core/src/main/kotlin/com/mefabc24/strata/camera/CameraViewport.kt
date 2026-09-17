@@ -39,6 +39,8 @@ class CameraViewport(
         if (width <= 0 || height <= 0) return
 
         val currentZoom = camera.zoom
+        val currentX = camera.position.x
+        val currentY = camera.position.y
 
         val viewportHeight = when (mode) {
             ViewportMode.FIXED_HEIGHT -> virtualHeight
@@ -60,6 +62,7 @@ class CameraViewport(
         )
 
         camera.zoom = currentZoom
+        camera.position.set(currentX, currentY, 0f)
 
         bounds?.clamp(camera)
         camera.update()
