@@ -5,4 +5,5 @@ interface StrataGame {
     fun update(delta: Float)
     fun render()
     fun dispose()
+    fun resize(width: Int, height: Int)
 }

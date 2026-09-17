@@ -13,6 +13,10 @@ class StrataEngine(
         game.create()
     }
 
+    override fun resize(width: Int, height: Int) {
+        game.resize(width, height)
+    }
+
     override fun render() {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
