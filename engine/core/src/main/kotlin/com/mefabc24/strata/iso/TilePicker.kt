@@ -1,0 +1,27 @@
+package com.mefabc24.strata.iso
+
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.math.Vector3
+import com.mefabc24.strata.world.World
+
+class TilePicker(
+    private val camera: OrthographicCamera,
+    private val projection: IsoProjection,
+    private val world: World
+) {
+    private val position = Vector3()
+
+    fun pick(screenX: Float, screenY: Float): Pair<Int, Int>? {
+        position.set(screenX, screenY, 0f)
+        camera.unproject(position)
+
+        val (x, y) = projection.worldToTile(
+            position.x,
+            position.y
+        )
+
+        return if (world.getTile(x, y) != null) {
+            x to y
+        } else null
+    }
+}
