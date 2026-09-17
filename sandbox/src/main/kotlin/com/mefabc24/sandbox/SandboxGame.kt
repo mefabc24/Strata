@@ -1,26 +1,35 @@
 package com.mefabc24.sandbox
 
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.StrataGame
+import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.render.IsoGridRenderer
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
+    private lateinit var camera: OrthographicCamera
+    private lateinit var renderer: IsoGridRenderer
+    private lateinit var projection: IsoProjection
 
     override fun create() {
         world = World(10, 10) { _, _ ->
             SandboxTile(TerrainType.GRASS)
         }
 
-        println("World created: ${world.width} x ${world.height}")
+        camera = OrthographicCamera().apply {
+            setToOrtho(false, 1280f, 720f)
+            position.set(0f, -160f, 0f)
+            update()
+        }
 
-        println("Before: ${world.getTile(2, 3)}")
+        projection = IsoProjection(
+            tileWidth = 64f,
+            tileHeight = 32f
+        )
 
-        world.setTile(2, 3, SandboxTile(TerrainType.WATER))
-
-        println("After: ${world.getTile(2, 3)}")
-
-        println("Outside: ${world.getTile(20, 20)}")
+        renderer = IsoGridRenderer(projection)
     }
 
     override fun update(delta: Float) {
@@ -28,10 +37,10 @@ class SandboxGame : StrataGame {
     }
 
     override fun render() {
-        // render game world
+        renderer.render(world, camera)
     }
 
     override fun dispose() {
-        println("Strata sandbox disposed")
+        renderer.dispose()
     }
 }
