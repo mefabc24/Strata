@@ -10,7 +10,12 @@ repositories {
 }
 
 dependencies {
+    val gdxVersion = "1.14.2"
+
     testImplementation(kotlin("test"))
+
+    implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
+    implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
 }
 
 kotlin {
