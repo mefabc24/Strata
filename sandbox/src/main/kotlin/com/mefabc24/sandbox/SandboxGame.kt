@@ -10,6 +10,7 @@ import com.mefabc24.strata.camera.CameraBounds
 import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
 import com.mefabc24.strata.camera.ViewportMode
+import com.mefabc24.strata.input.TileInputProcessor
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TilePicker
 import com.mefabc24.strata.render.IsoGridRenderer
@@ -80,27 +81,8 @@ class SandboxGame : StrataGame {
         )
 
         Gdx.input.inputProcessor = InputMultiplexer(
-            object : InputAdapter() {
-                override fun touchDown(
-                    screenX: Int,
-                    screenY: Int,
-                    pointer: Int,
-                    button: Int
-                ): Boolean {
-                    if (button != Input.Buttons.LEFT &&
-                        button != Input.Buttons.RIGHT
-                    ) {
-                        return false
-                    }
-
-                    val tile = tilePicker.pick(
-                        screenX.toFloat(),
-                        screenY.toFloat()
-                    ) ?: return false
-
-                    handleTileClick(tile, button)
-                    return true
-                }
+            TileInputProcessor(tilePicker) { x, y, button ->
+                handleTileClick(x to y, button)
             },
             cameraController.inputProcessor
         )
@@ -141,15 +123,19 @@ class SandboxGame : StrataGame {
     private fun handleTileClick(
         tile: Pair<Int, Int>,
         button: Int
-    ) {
-        when (button) {
+    ): Boolean {
+        return when (button) {
             Input.Buttons.LEFT -> {
                 selectedTile = tile
+                true
             }
 
             Input.Buttons.RIGHT -> {
                 println("Inspect tile: $tile")
+                true
             }
+
+            else -> false
         }
     }
 }
