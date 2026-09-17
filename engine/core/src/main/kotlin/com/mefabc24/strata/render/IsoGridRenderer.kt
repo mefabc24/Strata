@@ -11,9 +11,10 @@ class IsoGridRenderer(
     private val shapes = ShapeRenderer()
 
     fun render(
-    world: World,
-    camera: OrthographicCamera,
-    hoveredTile: Pair<Int, Int>? = null
+        world: World,
+        camera: OrthographicCamera,
+        hoveredTile: Pair<Int, Int>? = null,
+        selectedTile: Pair<Int, Int>? = null
     ) {
         shapes.projectionMatrix = camera.combined
 
@@ -23,22 +24,32 @@ class IsoGridRenderer(
             for (x in 0 until world.width) {
                 val position = projection.tileToWorld(x, y)
 
-                val isHovered = hoveredTile == (x to y)
+                val coordinates = x to y
 
-                drawTile(position.x, position.y, isHovered)
+                drawTile(
+                    position.x,
+                    position.y,
+                    isHovered = hoveredTile == coordinates,
+                    isSelected = selectedTile == coordinates
+                )
             }
         }
         shapes.end()
     }
 
-    private fun drawTile(x: Float, y: Float, isHovered: Boolean) {
+    private fun drawTile(
+        x: Float,
+        y: Float,
+        isHovered: Boolean,
+        isSelected: Boolean
+    ) {
         val halfWidth = projection.tileWidth / 2f
         val halfHeight = projection.tileHeight / 2f
 
-        if (isHovered) {
-            shapes.setColor(1f, 0.85f, 0.2f, 1f)
-        } else {
-            shapes.setColor(0.4f, 0.8f, 0.5f, 1f)
+        when {
+            isHovered -> shapes.setColor(1f, 0.85f, 0.2f, 1f)
+            isSelected -> shapes.setColor(0.3f, 0.6f, 1f, 1f)
+            else -> shapes.setColor(0.4f, 0.8f, 0.5f, 1f)
         }
 
         shapes.line(x, y, x + halfWidth, y - halfHeight)

@@ -1,6 +1,9 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.camera.CameraBounds
@@ -8,7 +11,7 @@ import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
 import com.mefabc24.strata.camera.ViewportMode
 import com.mefabc24.strata.iso.IsoProjection
-import com.badlogic.gdx.math.Vector3
+import com.mefabc24.strata.iso.TilePicker
 import com.mefabc24.strata.render.IsoGridRenderer
 import com.mefabc24.strata.world.World
 
@@ -21,9 +24,10 @@ class SandboxGame : StrataGame {
     private lateinit var cameraController: CameraController
     private lateinit var viewport: CameraViewport
     private lateinit var bounds: CameraBounds
+    private lateinit var tilePicker: TilePicker
 
-    private val mousePosition = Vector3()
     private var hoveredTile: Pair<Int, Int>? = null
+    private var selectedTile: Pair<Int, Int>? = null
 
     override fun create() {
         world = World(50, 50) { _, _ ->
@@ -38,6 +42,12 @@ class SandboxGame : StrataGame {
         camera = OrthographicCamera().apply {
             setToOrtho(false, 1280f, 720f)
         }
+
+        tilePicker = TilePicker(
+            camera = camera,
+            projection = projection,
+            world = world
+        )
 
         val worldBounds = projection.worldBounds(
             width = world.width,
@@ -69,7 +79,26 @@ class SandboxGame : StrataGame {
             bounds = bounds
         )
 
-        Gdx.input.inputProcessor = cameraController.inputProcessor
+        Gdx.input.inputProcessor = InputMultiplexer(
+            object : InputAdapter() {
+                override fun touchDown(
+                    screenX: Int,
+                    screenY: Int,
+                    pointer: Int,
+                    button: Int
+                ): Boolean {
+                    if (button != Input.Buttons.LEFT) return false
+
+                    selectedTile = tilePicker.pick(
+                        screenX.toFloat(),
+                        screenY.toFloat()
+                    )
+
+                    return true
+                }
+            },
+            cameraController.inputProcessor
+        )
 
         renderer = IsoGridRenderer(projection)
     }
@@ -84,31 +113,18 @@ class SandboxGame : StrataGame {
     override fun update(delta: Float) {
         cameraController.update(delta)
 
-        mousePosition.set(
+        hoveredTile = tilePicker.pick(
             Gdx.input.x.toFloat(),
-            Gdx.input.y.toFloat(),
-            0f
+            Gdx.input.y.toFloat()
         )
-
-        camera.unproject(mousePosition)
-
-        val (x, y) = projection.worldToTile(
-            mousePosition.x,
-            mousePosition.y
-        )
-
-        hoveredTile = if (world.getTile(x, y) != null) {
-            x to y
-        } else {
-            null
-        }
     }
 
     override fun render() {
         renderer.render(
             world = world,
             camera = camera,
-            hoveredTile = hoveredTile
+            hoveredTile = hoveredTile,
+            selectedTile = selectedTile
         )
     }
 
