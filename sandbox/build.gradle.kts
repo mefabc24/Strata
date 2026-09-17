@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-group = "com.mefabc24.citybuilder"
+group = "com.mefabc24.sandbox"
 version = "0.1.0"
 
 dependencies {
@@ -18,7 +18,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("com.mefabc24.citybuilder.MainKt")
+    mainClass.set("com.mefabc24.sandbox.MainKt")
 }
 
 tasks.test {
