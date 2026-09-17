@@ -87,13 +87,18 @@ class SandboxGame : StrataGame {
                     pointer: Int,
                     button: Int
                 ): Boolean {
-                    if (button != Input.Buttons.LEFT) return false
+                    if (button != Input.Buttons.LEFT &&
+                        button != Input.Buttons.RIGHT
+                    ) {
+                        return false
+                    }
 
-                    selectedTile = tilePicker.pick(
+                    val tile = tilePicker.pick(
                         screenX.toFloat(),
                         screenY.toFloat()
-                    )
+                    ) ?: return false
 
+                    handleTileClick(tile, button)
                     return true
                 }
             },
@@ -131,5 +136,20 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         Gdx.input.inputProcessor = null
         renderer.dispose()
+    }
+
+    private fun handleTileClick(
+        tile: Pair<Int, Int>,
+        button: Int
+    ) {
+        when (button) {
+            Input.Buttons.LEFT -> {
+                selectedTile = tile
+            }
+
+            Input.Buttons.RIGHT -> {
+                println("Inspect tile: $tile")
+            }
+        }
     }
 }
