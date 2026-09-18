@@ -9,6 +9,7 @@ import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
 import com.mefabc24.strata.camera.ViewportMode
 import com.mefabc24.strata.input.TileInputProcessor
+import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TilePicker
 import com.badlogic.gdx.graphics.Texture
@@ -32,8 +33,11 @@ class SandboxGame : StrataGame {
     private var hoveredTile: Pair<Int, Int>? = null
     private var selectedTile: Pair<Int, Int>? = null
 
+    // Debug
+    private val worldSize = 10
+
     override fun create() {
-        world = World(10, 10) { _, _ ->
+        world = World(worldSize, worldSize) { _, _ ->
             SandboxTile(TerrainType.GRASS)
         }
 
@@ -79,8 +83,17 @@ class SandboxGame : StrataGame {
 
         cameraController = CameraController(
             camera = camera,
-            bounds = bounds
+            bounds = bounds,
+            zoomMode = ZoomMode.WORLD_BASED,
+            worldZoomBounds = projection.worldBounds(
+                width = world.width,
+                height = world.height,
+                padding = 0f
+            ),
+            worldFill = 0.85f
         )
+
+        cameraController.refreshZoomBounds()
 
         Gdx.input.inputProcessor = InputMultiplexer(
             TileInputProcessor(
@@ -118,6 +131,10 @@ class SandboxGame : StrataGame {
         if (!::viewport.isInitialized) return
 
         viewport.resize(width, height)
+
+        if (::cameraController.isInitialized) {
+            cameraController.refreshZoomBounds()
+        }
     }
 
     override fun update(delta: Float) {

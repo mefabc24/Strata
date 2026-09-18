@@ -5,7 +5,24 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
+
+/**
+ * Defines how the maximum zoom-out level is determined.
+ */
+enum class ZoomMode {
+    /**
+     * Uses a fixed maximum zoom value.
+     */
+    FIXED,
+
+    /**
+     * Calculates the maximum zoom from the world dimensions
+     * and the current camera viewport.
+     */
+    WORLD_BASED
+}
 
 class CameraController(
     private val camera: OrthographicCamera,
@@ -13,8 +30,22 @@ class CameraController(
     var moveSpeed: Float = 500f,
     var zoomSpeed: Float = 0.1f,
     var minZoom: Float = 0.25f,
-    var maxZoom: Float = 3f
+    var maxZoom: Float = 3f,
+    private val zoomMode: ZoomMode = ZoomMode.FIXED,
+    private val worldZoomBounds: Rectangle? = null,
+    private val worldFill: Float = 0.85f
 ) {
+    init {
+        require(minZoom > 0f && minZoom.isFinite())
+        require(maxZoom >= minZoom && maxZoom.isFinite())
+        require(worldFill > 0f && worldFill <= 1f)
+
+        if (zoomMode == ZoomMode.WORLD_BASED) {
+            require(worldZoomBounds != null)
+            require(worldZoomBounds.width > 0f && worldZoomBounds.height > 0f)
+        }
+    }
+
     private var isDragging = false
     private var dragPointer = -1
 
@@ -125,11 +156,39 @@ class CameraController(
         applyBounds()
     }
 
+    private fun effectiveMaxZoom(): Float {
+        if (zoomMode == ZoomMode.FIXED) {
+            return maxZoom
+        }
+
+        val world = requireNotNull(worldZoomBounds)
+
+        val zoomX = world.width / camera.viewportWidth
+        val zoomY = world.height / camera.viewportHeight
+
+        val fitZoom = maxOf(zoomX, zoomY) / worldFill
+
+        return maxOf(minZoom, fitZoom)
+    }
+
     fun zoom(amount: Float) {
         camera.zoom = MathUtils.clamp(
             camera.zoom + amount * zoomSpeed,
             minZoom,
-            maxZoom
+            effectiveMaxZoom()
+        )
+
+        applyBounds()
+    }
+
+    /**
+     * Reapplies the zoom limits after the camera viewport changes.
+     */
+    fun refreshZoomBounds() {
+        camera.zoom = MathUtils.clamp(
+            camera.zoom,
+            minZoom,
+            effectiveMaxZoom()
         )
 
         applyBounds()
