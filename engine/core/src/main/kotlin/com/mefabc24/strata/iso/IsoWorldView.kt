@@ -20,7 +20,8 @@ import com.mefabc24.strata.world.World
  */
 class IsoWorldView(
     private val world: World,
-    private val projection: IsoProjection,
+    tileWidth: Float = 64f,
+    tileHeight: Float = 32f,
     viewportMode: ViewportMode = ViewportMode.FIXED_HEIGHT,
     virtualHeight: Float = 720f,
     zoomMode: ZoomMode = ZoomMode.WORLD_BASED,
@@ -32,6 +33,12 @@ class IsoWorldView(
     onRightClick: ((x: Int, y: Int) -> Boolean)? = null
 ) {
     val camera = OrthographicCamera()
+
+    private val projection = IsoProjection(
+        tileWidth = tileWidth,
+        tileHeight = tileHeight
+    )
+
 
     private val worldBounds = projection.worldBounds(
         width = world.width,

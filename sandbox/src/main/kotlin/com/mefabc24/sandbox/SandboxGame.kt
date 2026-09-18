@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.camera.ZoomMode
-import com.mefabc24.strata.iso.IsoProjection
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.ZoomAnchor
@@ -13,7 +12,6 @@ import com.mefabc24.strata.world.World
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
-    private lateinit var projection: IsoProjection
     private lateinit var worldView: IsoWorldView
     private lateinit var grassTexture: Texture
     private lateinit var grassRegion: TextureRegion
@@ -29,14 +27,10 @@ class SandboxGame : StrataGame {
             SandboxTile(TerrainType.GRASS)
         }
 
-        projection = IsoProjection(
-            tileWidth = 64f,
-            tileHeight = 32f
-        )
-
         worldView = IsoWorldView(
             world = world,
-            projection = projection,
+            tileWidth = 64f,
+            tileHeight = 32f,
             zoomMode = ZoomMode.WORLD_BASED,
             zoomAnchor = ZoomAnchor.CURSOR,
             zoomEdgeAllowance = 0.2f,
