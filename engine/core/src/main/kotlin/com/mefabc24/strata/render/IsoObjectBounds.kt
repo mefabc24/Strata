@@ -28,10 +28,14 @@ object IsoObjectBounds {
         val footprintWidth =
             (widthInTiles + heightInTiles) * projection.tileWidth / 2f
 
-        val scale = footprintWidth / visual.texture.regionWidth
+        val baseWidth = visual.width ?: footprintWidth
 
-        val spriteWidth = visual.texture.regionWidth * scale
-        val spriteHeight = visual.texture.regionHeight * scale
+        val baseHeight = visual.height
+            ?: (baseWidth * visual.texture.regionHeight /
+                    visual.texture.regionWidth)
+
+        val spriteWidth = baseWidth * visual.scale
+        val spriteHeight = baseHeight * visual.scale
 
         val left = projection.tileToWorld(minX, maxY).x -
                 projection.tileWidth / 2f
@@ -39,7 +43,7 @@ object IsoObjectBounds {
         val front = projection.tileToWorld(maxX, maxY)
 
         return result.set(
-            left + visual.offsetX,
+            left + (footprintWidth - spriteWidth) / 2f + visual.offsetX,
             front.y - projection.tileHeight + visual.offsetY,
             spriteWidth,
             spriteHeight

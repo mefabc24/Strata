@@ -15,6 +15,10 @@ import kotlin.reflect.KClass
 class ObjectSpriteSettings {
     var offsetX: Float = 0f
     var offsetY: Float = 0f
+
+    var width: Float? = null
+    var height: Float? = null
+    var scale: Float = 1f
 }
 
 /**
@@ -77,7 +81,10 @@ class ObjectRegistry(
             texture = TextureRegion(texture),
             offsetX = settings.offsetX,
             offsetY = settings.offsetY,
-            alphaMask = alphaMask
+            alphaMask = alphaMask,
+            width = settings.width,
+            height = settings.height,
+            scale = settings.scale
         )
     }
 
