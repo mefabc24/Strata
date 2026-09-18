@@ -8,7 +8,6 @@ import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.ObjectRegistry
-import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
