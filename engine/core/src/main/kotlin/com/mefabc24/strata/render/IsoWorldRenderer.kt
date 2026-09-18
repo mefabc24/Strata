@@ -12,7 +12,7 @@ import com.mefabc24.strata.world.World
  * Renders terrain and world objects in isometric depth order.
  */
 class IsoWorldRenderer(
-    private val projection: IsoProjection
+    projection: IsoProjection
 ) {
     private val batch = SpriteBatch()
 
@@ -94,42 +94,6 @@ class IsoWorldRenderer(
         }
 
         batch.end()
-    }
-
-    private fun drawObject(
-        placed: PlacedObject,
-        visual: ObjectVisual
-    ) {
-        val occupied = placed.occupiedTiles()
-
-        val minX = occupied.minOf { it.first }
-        val maxX = occupied.maxOf { it.first }
-        val minY = occupied.minOf { it.second }
-        val maxY = occupied.maxOf { it.second }
-
-        val widthInTiles = maxX - minX + 1
-        val heightInTiles = maxY - minY + 1
-
-        val footprintWidth =
-            (widthInTiles + heightInTiles) * projection.tileWidth / 2f
-
-        val scale = footprintWidth / visual.texture.regionWidth
-
-        val spriteWidth = visual.texture.regionWidth * scale
-        val spriteHeight = visual.texture.regionHeight * scale
-
-        val left = projection.tileToWorld(minX, maxY).x -
-                projection.tileWidth / 2f
-
-        val front = projection.tileToWorld(maxX, maxY)
-
-        batch.draw(
-            visual.texture,
-            left + visual.offsetX,
-            front.y - projection.tileHeight + visual.offsetY,
-            spriteWidth,
-            spriteHeight
-        )
     }
 
     fun dispose() {
