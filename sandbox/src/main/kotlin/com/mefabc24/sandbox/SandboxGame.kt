@@ -7,6 +7,7 @@ import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.PlacedObject
@@ -22,11 +23,7 @@ class SandboxGame : StrataGame {
     private var selectedTile: Pair<Int, Int>? = null
     private var activeTerrain: TerrainType? = null
 
-    private lateinit var oakTexture: Texture
-    private lateinit var houseTexture: Texture
-
-    private lateinit var oakRegion: TextureRegion
-    private lateinit var houseRegion: TextureRegion
+    private lateinit var objectRegistry: ObjectRegistry
 
     // Debug
     private val worldSize = 50
@@ -99,26 +96,15 @@ class SandboxGame : StrataGame {
             register(TerrainType.SAND, sprite = "grass.png")
         }
 
-        oakTexture = Texture(
-            Gdx.files.classpath("objects/oak.png")
+        objectRegistry = ObjectRegistry(
+            directory = "objects"
         ).apply {
-            setFilter(
-                Texture.TextureFilter.Nearest,
-                Texture.TextureFilter.Nearest
-            )
-        }
+            register<OakTree>("oak.png") {
+                offsetY = 5f
+            }
 
-        houseTexture = Texture(
-            Gdx.files.classpath("objects/house3.png")
-        ).apply {
-            setFilter(
-                Texture.TextureFilter.Nearest,
-                Texture.TextureFilter.Nearest
-            )
+            register<House>("house.png")
         }
-
-        oakRegion = TextureRegion(oakTexture)
-        houseRegion = TextureRegion(houseTexture)
     }
 
 
@@ -145,29 +131,14 @@ class SandboxGame : StrataGame {
             raisedTile = hoveredTile,
             raiseOffsetY = 6f,
 
-            objectVisualFor = { placed ->
-                when (placed.placeable) {
-                    is OakTree -> ObjectVisual(
-                        texture = oakRegion,
-                        offsetY = 5f
-                    )
-
-                    is House -> ObjectVisual(
-                        texture = houseRegion
-                    )
-
-                    else -> null
-                }
-            }
+            objectVisualFor = objectRegistry::get
         )
     }
 
     override fun dispose() {
         Gdx.input.inputProcessor = null
 
-        oakTexture.dispose()
-        houseTexture.dispose()
-
+        objectRegistry.dispose()
         terrainRegistry.dispose()
         worldView.dispose()
     }
