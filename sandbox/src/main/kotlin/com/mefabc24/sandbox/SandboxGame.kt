@@ -59,8 +59,30 @@ class SandboxGame : StrataGame {
             "Failed to place test house."
         }
 
+        terrainRegistry = TerrainRegistry<TerrainType>(
+            directory = "tiles"
+        ).apply {
+            register(TerrainType.GRASS, sprite = "grass.png")
+            register(TerrainType.WATER, sprite = "water3.png")
+            register(TerrainType.SAND, sprite = "grass.png")
+        }
+
+        objectRegistry = ObjectRegistry(
+            directory = "objects"
+        ).apply {
+            register<OakTree>("oak.png") {
+                offsetY = 5f
+            }
+
+            register<House>("house.png")
+        }
+
         worldView = IsoWorldView(
             world = world,
+            textureFor = { tile ->
+                terrainRegistry[(tile as SandboxTile).terrain]
+            },
+            objectVisualFor = objectRegistry::get,
             tileWidth = 64f,
             tileHeight = 32f,
             zoomMode = ZoomMode.WORLD_BASED,
@@ -91,24 +113,6 @@ class SandboxGame : StrataGame {
         )
 
         Gdx.input.inputProcessor = worldView.inputProcessor
-
-        terrainRegistry = TerrainRegistry<TerrainType>(
-            directory = "tiles"
-        ).apply {
-            register(TerrainType.GRASS, sprite = "grass.png")
-            register(TerrainType.WATER, sprite = "water3.png")
-            register(TerrainType.SAND, sprite = "grass.png")
-        }
-
-        objectRegistry = ObjectRegistry(
-            directory = "objects"
-        ).apply {
-            register<OakTree>("oak.png") {
-                offsetY = 5f
-            }
-
-            register<House>("house.png")
-        }
     }
 
 
@@ -125,10 +129,6 @@ class SandboxGame : StrataGame {
 
     override fun render() {
         worldView.render(
-            textureFor = { tile ->
-                terrainRegistry[(tile as SandboxTile).terrain]
-            },
-            objectVisualFor = objectRegistry::get,
             preview = placementController.preview
         )
     }

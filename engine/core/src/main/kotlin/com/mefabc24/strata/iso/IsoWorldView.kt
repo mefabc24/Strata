@@ -23,6 +23,8 @@ import com.mefabc24.strata.world.World
  */
 class IsoWorldView(
     private val world: World,
+    private val textureFor: (Tile) -> TextureRegion?,
+    private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
     tileWidth: Float = 64f,
     tileHeight: Float = 32f,
     viewportMode: ViewportMode = ViewportMode.FIXED_HEIGHT,
@@ -147,10 +149,8 @@ class IsoWorldView(
      * Renders terrain, world objects, and an optional placement preview.
      */
     fun render(
-        textureFor: (Tile) -> TextureRegion?,
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
-        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null
     ) {
         worldRenderer.render(
