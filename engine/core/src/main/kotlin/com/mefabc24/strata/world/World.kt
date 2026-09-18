@@ -17,6 +17,12 @@ class World(
 
     private val objects = linkedSetOf<PlacedObject>()
 
+    /**
+     * Changes whenever an object is placed or removed.
+     */
+    var objectVersion: Long = 0L
+        private set
+
     private val objectView: Set<PlacedObject> =
         Collections.unmodifiableSet(objects)
 
@@ -44,6 +50,7 @@ class World(
         }
 
         objects.add(placedObject)
+        objectVersion++
 
         return true
     }
@@ -79,6 +86,7 @@ class World(
         }
 
         objects.remove(placedObject)
+        objectVersion++
 
         return true
     }

@@ -19,6 +19,11 @@ class IsoWorldRenderer(
     private val terrainRenderer = IsoTerrainRenderer(projection)
     private val objectRenderer = IsoObjectRenderer(projection)
 
+    private var cachedWorld: World? = null
+    private var cachedObjectVersion = -1L
+
+    private var objectsByDepth: Map<Int, List<PlacedObject>> = emptyMap()
+
     fun render(
         world: World,
         camera: OrthographicCamera,
@@ -28,8 +33,13 @@ class IsoWorldRenderer(
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null
     ) {
-        val objectsByDepth = world.getObjects().groupBy { placed ->
-            placed.occupiedTiles().maxOf { (x, y) -> x + y }
+        if (cachedWorld !== world || cachedObjectVersion != world.objectVersion) {
+            objectsByDepth = world.getObjects().groupBy { placed ->
+                placed.occupiedTiles().maxOf { (x, y) -> x + y }
+            }
+
+            cachedWorld = world
+            cachedObjectVersion = world.objectVersion
         }
 
         val previewDepth = preview
