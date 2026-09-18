@@ -14,6 +14,7 @@ import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
@@ -144,9 +145,7 @@ class IsoWorldView(
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
-        previewObject: PlacedObject? = null,
-        previewValid: Boolean = false,
-        previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
+        preview: PlacementPreview? = null
     ) {
         tileRenderer.render(
             world = world,
@@ -155,9 +154,7 @@ class IsoWorldView(
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
             objectVisualFor = objectVisualFor,
-            previewObject = previewObject,
-            previewValid = previewValid,
-            previewStyle = previewStyle
+            preview = preview
         )
     }
 

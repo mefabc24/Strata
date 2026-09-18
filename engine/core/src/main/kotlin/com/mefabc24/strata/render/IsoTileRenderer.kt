@@ -23,15 +23,14 @@ class IsoTileRenderer(
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
-        previewObject: PlacedObject? = null,
-        previewValid: Boolean = false,
-        previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
+        preview: PlacementPreview? = null
     ) {
         val objectsByDepth = world.getObjects().groupBy { placed ->
             placed.occupiedTiles().maxOf { (x, y) -> x + y }
         }
 
-        val previewDepth = previewObject
+        val previewDepth = preview
+            ?.placedObject
             ?.occupiedTiles()
             ?.maxOf { (x, y) -> x + y }
             ?.coerceIn(0, world.width + world.height - 2)
@@ -66,20 +65,19 @@ class IsoTileRenderer(
                 drawObject(placed, visual)
             }
 
-            // Render the preview independently of existing objects.
-            if (previewObject != null && depth == previewDepth) {
-                val visual = objectVisualFor(previewObject)
+            if (preview != null && depth == previewDepth) {
+                val visual = objectVisualFor(preview.placedObject)
 
                 if (visual != null) {
-                    val color = if (previewValid) {
-                        previewStyle.validColor
+                    val color = if (preview.valid) {
+                        preview.style.validColor
                     } else {
-                        previewStyle.invalidColor
+                        preview.style.invalidColor
                     }
 
                     batch.color = color
 
-                    drawObject(previewObject, visual)
+                    drawObject(preview.placedObject, visual)
 
                     batch.setColor(1f, 1f, 1f, 1f)
                 }

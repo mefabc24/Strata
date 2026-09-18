@@ -9,6 +9,7 @@ import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.ObjectRegistry
+import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Placeable
@@ -27,8 +28,7 @@ class SandboxGame : StrataGame {
 
     private val buildPlaceable: Placeable = House()
 
-    private var previewObject: PlacedObject? = null
-    private var previewValid = false
+    private var preview: PlacementPreview? = null
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -130,17 +130,19 @@ class SandboxGame : StrataGame {
             Gdx.input.y.toFloat()
         )
 
-        previewObject = hoveredTile?.let { (x, y) ->
-            PlacedObject(
+        preview = hoveredTile?.let { (x, y) ->
+            val placedObject = PlacedObject(
                 placeable = buildPlaceable,
                 x = x,
                 y = y
             )
-        }
 
-        previewValid = previewObject?.let {
-            world.canPlaceObject(it)
-        } ?: false
+            PlacementPreview(
+                placedObject = placedObject,
+                valid = world.canPlaceObject(placedObject),
+                style = previewStyle
+            )
+        }
     }
 
     override fun render() {
@@ -149,9 +151,7 @@ class SandboxGame : StrataGame {
                 terrainRegistry[(tile as SandboxTile).terrain]
             },
             objectVisualFor = objectRegistry::get,
-            previewObject = previewObject,
-            previewValid = previewValid,
-            previewStyle = previewStyle
+            preview = preview
         )
     }
 
