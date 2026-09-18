@@ -42,6 +42,8 @@ class IsoWorldView(
         tileHeight = tileHeight
     )
 
+    var hoveredTile: Pair<Int, Int>? = null
+        private set
 
     private val worldBounds = projection.worldBounds(
         width = world.width,
@@ -131,6 +133,11 @@ class IsoWorldView(
 
     fun update(delta: Float) {
         cameraController.update(delta)
+
+        hoveredTile = tilePicker.pick(
+            Gdx.input.x.toFloat(),
+            Gdx.input.y.toFloat()
+        )
     }
 
     /**

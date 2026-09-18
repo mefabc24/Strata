@@ -20,8 +20,6 @@ class SandboxGame : StrataGame {
     private lateinit var worldView: IsoWorldView
     private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
 
-    private var hoveredTile: Pair<Int, Int>? = null
-
     private lateinit var objectRegistry: ObjectRegistry
 
     private val buildPlaceable: Placeable = House()
@@ -123,12 +121,7 @@ class SandboxGame : StrataGame {
     override fun update(delta: Float) {
         worldView.update(delta)
 
-        hoveredTile = worldView.pickTile(
-            Gdx.input.x.toFloat(),
-            Gdx.input.y.toFloat()
-        )
-
-        preview = hoveredTile?.let { (x, y) ->
+        preview = worldView.hoveredTile?.let { (x, y) ->
             val placedObject = PlacedObject(
                 placeable = buildPlaceable,
                 x = x,
