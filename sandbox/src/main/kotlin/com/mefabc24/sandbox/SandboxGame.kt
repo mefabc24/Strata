@@ -7,14 +7,14 @@ import com.mefabc24.strata.camera.ZoomMode
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.ZoomAnchor
+import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
     private lateinit var worldView: IsoWorldView
-    private lateinit var grassTexture: Texture
-    private lateinit var grassRegion: TextureRegion
+    private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
 
     private var hoveredTile: Pair<Int, Int>? = null
     private var selectedTile: Pair<Int, Int>? = null
@@ -23,8 +23,14 @@ class SandboxGame : StrataGame {
     private val worldSize = 50
 
     override fun create() {
-        world = World(worldSize, worldSize) { _, _ ->
-            SandboxTile(TerrainType.GRASS)
+        world = World(worldSize, worldSize) { x, y ->
+            val terrain = if (x in 12..18 && y in 12..18) {
+                TerrainType.WATER
+            } else {
+                TerrainType.GRASS
+            }
+
+            SandboxTile(terrain)
         }
 
         worldView = IsoWorldView(
@@ -33,7 +39,7 @@ class SandboxGame : StrataGame {
             tileHeight = 32f,
             zoomMode = ZoomMode.WORLD_BASED,
             zoomAnchor = ZoomAnchor.CURSOR,
-            zoomEdgeAllowance = 0.2f,
+            zoomEdgeAllowance = 0.3f,
 
             onLeftClick = { x, y ->
                 selectedTile = x to y
@@ -48,16 +54,13 @@ class SandboxGame : StrataGame {
 
         Gdx.input.inputProcessor = worldView.inputProcessor
 
-        grassTexture = Texture(
-            Gdx.files.classpath("tiles/grass.png")
+        terrainRegistry = TerrainRegistry<TerrainType>(
+            directory = "tiles"
         ).apply {
-            setFilter(
-                Texture.TextureFilter.Nearest,
-                Texture.TextureFilter.Nearest
-            )
+            register(TerrainType.GRASS)
+            register(TerrainType.WATER)
+            register(TerrainType.SAND, sprite = "grass.png")
         }
-
-        grassRegion = TextureRegion(grassTexture)
     }
 
 
@@ -78,7 +81,9 @@ class SandboxGame : StrataGame {
 
     override fun render() {
         worldView.render(
-            textureFor = { grassRegion },
+            textureFor = { tile ->
+                terrainRegistry[(tile as SandboxTile).terrain]
+            },
             raisedTile = hoveredTile,
             raiseOffsetY = 6f
         )
@@ -87,8 +92,8 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         Gdx.input.inputProcessor = null
 
+        terrainRegistry.dispose()
         worldView.dispose()
-        grassTexture.dispose()
     }
 
 }
