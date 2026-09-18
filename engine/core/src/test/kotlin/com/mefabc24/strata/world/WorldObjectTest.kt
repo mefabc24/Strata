@@ -127,4 +127,24 @@ class WorldObjectTest {
         assertSame(objectToPlace, world.getObjectAt(5, 4))
         assertNull(world.getObjectAt(5, 3))
     }
+
+    @Test
+    fun `removes an object by reference`() {
+        val world = createWorld()
+        val house = createObject(Footprint.square(2), 4, 4)
+
+        assertTrue(world.placeObject(house))
+        assertTrue(world.removeObject(house))
+
+        for (x in 4..5) {
+            for (y in 4..5) {
+                assertNull(world.getObjectAt(x, y))
+            }
+        }
+
+        assertTrue(world.getObjects().isEmpty())
+
+        // An object cannot be removed twice.
+        assertFalse(world.removeObject(house))
+    }
 }
