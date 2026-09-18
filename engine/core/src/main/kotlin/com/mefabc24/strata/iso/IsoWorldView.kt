@@ -19,6 +19,27 @@ import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
 /**
+ * Determines how placed objects are picked.
+ */
+enum class ObjectPickingMode {
+
+    /**
+     * Picks objects only through their occupied ground tiles.
+     */
+    FOOTPRINT,
+
+    /**
+     * Picks objects through their visible sprite pixels.
+     */
+    SPRITE_ALPHA,
+
+    /**
+     * Disables object picking.
+     */
+    NONE
+}
+
+/**
  * Manages the camera and viewport for an isometric world.
  */
 class IsoWorldView(
@@ -197,10 +218,28 @@ class IsoWorldView(
     }
 
     /**
-     * Returns the object whose sprite contains the given screen position.
+     * Returns an object according to the selected picking mode.
      */
-    fun pickObject(screenX: Float, screenY: Float): PlacedObject? {
-        return objectPicker.pick(screenX, screenY)
+    fun pickObject(
+        screenX: Float,
+        screenY: Float,
+        mode: ObjectPickingMode = ObjectPickingMode.SPRITE_ALPHA
+    ): PlacedObject? {
+        return when (mode) {
+            ObjectPickingMode.FOOTPRINT -> {
+                val tile = tilePicker.pick(screenX, screenY)
+
+                tile?.let { (x, y) ->
+                    world.getObjectAt(x, y)
+                }
+            }
+
+            ObjectPickingMode.SPRITE_ALPHA -> {
+                objectPicker.pick(screenX, screenY)
+            }
+
+            ObjectPickingMode.NONE -> null
+        }
     }
 
     /**
