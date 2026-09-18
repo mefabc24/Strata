@@ -4,11 +4,12 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 
 /**
- * Renders terrain tiles in isometric depth order.
+ * Renders terrain and world objects in isometric depth order.
  */
 class IsoTileRenderer(
     private val projection: IsoProjection
@@ -20,8 +21,13 @@ class IsoTileRenderer(
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
         raisedTile: Pair<Int, Int>? = null,
-        raiseOffsetY: Float = 0f
+        raiseOffsetY: Float = 0f,
+        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null }
     ) {
+        val objectsByDepth = world.getObjects().groupBy { placed ->
+            placed.occupiedTiles().maxOf { (x, y) -> x + y }
+        }
+
         batch.projectionMatrix = camera.combined
         batch.begin()
 
@@ -29,6 +35,7 @@ class IsoTileRenderer(
             val minX = maxOf(0, depth - world.height + 1)
             val maxX = minOf(world.width - 1, depth)
 
+            // Render terrain at the current depth.
             for (x in minX..maxX) {
                 val y = depth - x
 
@@ -43,7 +50,15 @@ class IsoTileRenderer(
 
                 drawTile(x, y, texture, offsetY)
             }
+
+            // Render objects after the terrain at their depth.
+            objectsByDepth[depth]?.forEach { placed ->
+                val visual = objectVisualFor(placed) ?: return@forEach
+
+                drawObject(placed, visual)
+            }
         }
+
         batch.end()
     }
 
@@ -63,6 +78,42 @@ class IsoTileRenderer(
             texture,
             position.x - spriteWidth / 2f,
             position.y - spriteHeight + offsetY,
+            spriteWidth,
+            spriteHeight
+        )
+    }
+
+    private fun drawObject(
+        placed: PlacedObject,
+        visual: ObjectVisual
+    ) {
+        val occupied = placed.occupiedTiles()
+
+        val minX = occupied.minOf { it.first }
+        val maxX = occupied.maxOf { it.first }
+        val minY = occupied.minOf { it.second }
+        val maxY = occupied.maxOf { it.second }
+
+        val widthInTiles = maxX - minX + 1
+        val heightInTiles = maxY - minY + 1
+
+        val footprintWidth =
+            (widthInTiles + heightInTiles) * projection.tileWidth / 2f
+
+        val scale = footprintWidth / visual.texture.regionWidth
+
+        val spriteWidth = visual.texture.regionWidth * scale
+        val spriteHeight = visual.texture.regionHeight * scale
+
+        val left = projection.tileToWorld(minX, maxY).x -
+                projection.tileWidth / 2f
+
+        val front = projection.tileToWorld(maxX, maxY)
+
+        batch.draw(
+            visual.texture,
+            left + visual.offsetX,
+            front.y - projection.tileHeight + visual.offsetY,
             spriteWidth,
             spriteHeight
         )

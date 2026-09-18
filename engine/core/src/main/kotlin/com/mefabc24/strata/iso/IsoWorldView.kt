@@ -13,6 +13,8 @@ import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
+import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
 /**
@@ -131,19 +133,21 @@ class IsoWorldView(
     }
 
     /**
-     * Renders the world using tile textures provided by the game.
+     * Renders terrain and world objects.
      */
     fun render(
         textureFor: (Tile) -> TextureRegion?,
         raisedTile: Pair<Int, Int>? = null,
-        raiseOffsetY: Float = 0f
+        raiseOffsetY: Float = 0f,
+        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null }
     ) {
         tileRenderer.render(
             world = world,
             camera = camera,
             textureFor = textureFor,
             raisedTile = raisedTile,
-            raiseOffsetY = raiseOffsetY
+            raiseOffsetY = raiseOffsetY,
+            objectVisualFor = objectVisualFor
         )
     }
 
