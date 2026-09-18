@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
@@ -26,7 +27,7 @@ class ObjectRegistry(
     private val baseDirectory = directory.trimEnd('/')
 
     private val textures = mutableMapOf<String, Texture>()
-
+    private val alphaMasks = mutableMapOf<String, AlphaMask>()
     private val visuals = mutableMapOf<KClass<out Placeable>, ObjectVisual>()
 
     /**
@@ -62,10 +63,21 @@ class ObjectRegistry(
             }
         }
 
+        val alphaMask = alphaMasks.getOrPut(path) {
+            val pixmap = Pixmap(Gdx.files.classpath(path))
+
+            try {
+                AlphaMask.fromPixmap(pixmap)
+            } finally {
+                pixmap.dispose()
+            }
+        }
+
         visuals[type] = ObjectVisual(
             texture = TextureRegion(texture),
             offsetX = settings.offsetX,
-            offsetY = settings.offsetY
+            offsetY = settings.offsetY,
+            alphaMask = alphaMask
         )
     }
 
@@ -92,6 +104,7 @@ class ObjectRegistry(
     override fun dispose() {
         textures.values.forEach { it.dispose() }
 
+        alphaMasks.clear()
         textures.clear()
         visuals.clear()
     }

@@ -41,7 +41,16 @@ class ObjectPicker(
                     result = bounds
                 )
 
-                if (bounds.contains(cursor.x, cursor.y)) {
+                if (!bounds.contains(cursor.x, cursor.y)) {
+                    continue
+                }
+
+                val u = (cursor.x - bounds.x) / bounds.width
+                val v = (cursor.y - bounds.y) / bounds.height
+
+                val alphaMask = visual.alphaMask
+
+                if (alphaMask == null || alphaMask.isSolid(u, v)) {
                     return placed
                 }
             }
