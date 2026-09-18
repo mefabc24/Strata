@@ -147,4 +147,39 @@ class WorldObjectTest {
         // An object cannot be removed twice.
         assertFalse(world.removeObject(house))
     }
+
+    @Test
+    fun `object collection reflects placement and removal`() {
+        val world = createWorld()
+        val house = createObject(Footprint.square(2), 4, 4)
+
+        val objects = world.getObjects()
+
+        assertTrue(objects.isEmpty())
+
+        assertTrue(world.placeObject(house))
+        assertEquals(1, objects.size)
+        assertTrue(house in objects)
+
+        assertFalse(world.placeObject(house))
+        assertEquals(1, objects.size)
+
+        assertTrue(world.removeObject(house))
+        assertTrue(objects.isEmpty())
+    }
+
+    @Test
+    fun `cannot remove an object that is not registered`() {
+        val world = createWorld()
+
+        val house = createObject(Footprint.square(2), 4, 4)
+        val otherHouse = createObject(Footprint.square(2), 4, 4)
+
+        assertTrue(world.placeObject(house))
+
+        assertFalse(world.removeObject(otherHouse))
+
+        assertSame(house, world.getObjectAt(4, 4))
+        assertEquals(1, world.getObjects().size)
+    }
 }
