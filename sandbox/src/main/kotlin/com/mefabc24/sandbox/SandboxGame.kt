@@ -1,6 +1,7 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.camera.ZoomAnchor
@@ -126,6 +127,15 @@ class SandboxGame : StrataGame {
     override fun update(delta: Float) {
         worldView.update(delta)
         placementController.update(worldView.hoveredTile)
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            val picked = worldView.pickObject(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat()
+            )
+
+            println("Picked object: ${picked?.placeable?.javaClass?.simpleName}")
+        }
     }
 
     override fun render() {

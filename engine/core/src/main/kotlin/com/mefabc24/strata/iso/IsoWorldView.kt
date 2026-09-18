@@ -105,6 +105,13 @@ class IsoWorldView(
         world = world
     )
 
+    private val objectPicker = ObjectPicker(
+        camera = camera,
+        projection = projection,
+        world = world,
+        visualFor = objectVisualFor
+    )
+
     private val tileInputProcessor = TileInputProcessor(
         tilePicker = tilePicker,
         onLeftClick = onLeftClick,
@@ -187,6 +194,13 @@ class IsoWorldView(
      */
     fun pickTile(screenX: Float, screenY: Float): Pair<Int, Int>? {
         return tilePicker.pick(screenX, screenY)
+    }
+
+    /**
+     * Returns the object whose sprite contains the given screen position.
+     */
+    fun pickObject(screenX: Float, screenY: Float): PlacedObject? {
+        return objectPicker.pick(screenX, screenY)
     }
 
     /**
