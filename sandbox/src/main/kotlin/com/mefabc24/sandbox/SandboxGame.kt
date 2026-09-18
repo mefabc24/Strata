@@ -6,6 +6,7 @@ import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.PlacementPreviewStyle
@@ -19,12 +20,8 @@ class SandboxGame : StrataGame {
     private lateinit var world: World
     private lateinit var worldView: IsoWorldView
     private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
-
+    private lateinit var placementController: PlacementController
     private lateinit var objectRegistry: ObjectRegistry
-
-    private val buildPlaceable: Placeable = House()
-
-    private var preview: PlacementPreview? = null
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -43,6 +40,13 @@ class SandboxGame : StrataGame {
             }
 
             SandboxTile(terrain)
+        }
+
+        placementController = PlacementController(
+            world = world,
+            style = previewStyle
+        ).apply {
+            selectedPlaceable = House()
         }
 
         val house = PlacedObject(
@@ -64,16 +68,12 @@ class SandboxGame : StrataGame {
             zoomEdgeAllowance = 0.3f,
 
             onLeftClick = { x, y ->
-                val placed = PlacedObject(
-                    placeable = buildPlaceable,
-                    x = x,
-                    y = y
-                )
+                val placed = placementController.placeAt(x, y)
 
-                if (world.placeObject(placed)) {
-                    println("House placed at ($x, $y)")
+                if (placed != null) {
+                    println("Object placed at ($x, $y)")
                 } else {
-                    println("Cannot place house at ($x, $y)")
+                    println("Cannot place object at ($x, $y)")
                 }
 
                 true
@@ -120,20 +120,7 @@ class SandboxGame : StrataGame {
 
     override fun update(delta: Float) {
         worldView.update(delta)
-
-        preview = worldView.hoveredTile?.let { (x, y) ->
-            val placedObject = PlacedObject(
-                placeable = buildPlaceable,
-                x = x,
-                y = y
-            )
-
-            PlacementPreview(
-                placedObject = placedObject,
-                valid = world.canPlaceObject(placedObject),
-                style = previewStyle
-            )
-        }
+        placementController.update(worldView.hoveredTile)
     }
 
     override fun render() {
@@ -142,7 +129,7 @@ class SandboxGame : StrataGame {
                 terrainRegistry[(tile as SandboxTile).terrain]
             },
             objectVisualFor = objectRegistry::get,
-            preview = preview
+            preview = placementController.preview
         )
     }
 
