@@ -84,12 +84,10 @@ class SandboxGame : StrataGame {
             },
 
             onRightClick = { x, y ->
-                val placedObject = world.getObjectAt(x, y)
+                val removed = world.removeObjectAt(x, y)
 
-                when (placedObject?.placeable) {
-                    is OakTree -> println("Oak tree at ($x, $y)")
-                    is House -> println("House at ($x, $y)")
-                    else -> println("No object at ($x, $y)")
+                if (removed != null) {
+                    println("Removed object at ($x, $y)")
                 }
 
                 true
