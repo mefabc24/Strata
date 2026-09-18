@@ -51,12 +51,6 @@ class SandboxGame : StrataGame {
             world = world
         )
 
-        worldView = IsoWorldView(
-            world = world,
-            projection = projection,
-            zoomMode = ZoomMode.WORLD_BASED
-        )
-
         Gdx.input.inputProcessor = InputMultiplexer(
             TileInputProcessor(
                 tilePicker = tilePicker,
