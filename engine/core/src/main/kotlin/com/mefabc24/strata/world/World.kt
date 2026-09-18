@@ -53,16 +53,37 @@ class World(
     }
 
     /**
+     * Removes a specific placed object from the world.
+     *
+     * Returns false if the object is not currently placed.
+     */
+    fun removeObject(placedObject: PlacedObject): Boolean {
+        val positions = placedObject.occupiedTiles()
+
+        if (positions.none { occupiedTiles[it] === placedObject }) {
+            return false
+        }
+
+        for (position in positions) {
+            if (occupiedTiles[position] === placedObject) {
+                occupiedTiles.remove(position)
+            }
+        }
+
+        return true
+    }
+
+    /**
      * Removes the entire object occupying the given tile.
      */
     fun removeObjectAt(x: Int, y: Int): PlacedObject? {
         val placedObject = getObjectAt(x, y) ?: return null
 
-        for (position in placedObject.occupiedTiles()) {
-            occupiedTiles.remove(position)
+        return if (removeObject(placedObject)) {
+            placedObject
+        } else {
+            null
         }
-
-        return placedObject
     }
 
     fun getTile(x: Int, y: Int): Tile? =
