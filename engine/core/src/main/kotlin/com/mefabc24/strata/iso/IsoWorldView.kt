@@ -105,12 +105,23 @@ class IsoWorldView(
         world = world
     )
 
+    private val tileInputProcessor = TileInputProcessor(
+        tilePicker = tilePicker,
+        onLeftClick = onLeftClick,
+        onRightClick = onRightClick
+    )
+
+    /**
+     * Controls whether mouse clicks interact with world tiles.
+     */
+    var worldClicksEnabled: Boolean
+        get() = tileInputProcessor.enabled
+        set(value) {
+            tileInputProcessor.enabled = value
+        }
+
     val inputProcessor = InputMultiplexer(
-        TileInputProcessor(
-            tilePicker = tilePicker,
-            onLeftClick = onLeftClick,
-            onRightClick = onRightClick
-        ),
+        tileInputProcessor,
         cameraController.inputProcessor
     )
 

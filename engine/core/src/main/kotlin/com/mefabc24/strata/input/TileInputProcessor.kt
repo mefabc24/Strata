@@ -13,12 +13,19 @@ class TileInputProcessor(
     private val onRightClick: ((x: Int, y: Int) -> Boolean)? = null
 ) : InputAdapter() {
 
+    /**
+     * Controls whether tile clicks are processed.
+     */
+    var enabled: Boolean = true
+
     override fun touchDown(
         screenX: Int,
         screenY: Int,
         pointer: Int,
         button: Int
     ): Boolean {
+        if (!enabled) return false
+
         val callback = when (button) {
             Input.Buttons.LEFT -> onLeftClick
             Input.Buttons.RIGHT -> onRightClick
