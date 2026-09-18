@@ -1,8 +1,6 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.StrataGame
@@ -13,25 +11,29 @@ import com.mefabc24.strata.camera.ViewportMode
 import com.mefabc24.strata.input.TileInputProcessor
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TilePicker
-import com.mefabc24.strata.render.IsoGridRenderer
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
     private lateinit var camera: OrthographicCamera
-    private lateinit var renderer: IsoGridRenderer
     private lateinit var projection: IsoProjection
     private lateinit var cameraController: CameraController
     private lateinit var viewport: CameraViewport
     private lateinit var bounds: CameraBounds
     private lateinit var tilePicker: TilePicker
+    private lateinit var tileRenderer: IsoTileRenderer
+    private lateinit var grassTexture: Texture
+    private lateinit var grassRegion: TextureRegion
 
     private var hoveredTile: Pair<Int, Int>? = null
     private var selectedTile: Pair<Int, Int>? = null
 
     override fun create() {
-        world = World(50, 50) { _, _ ->
+        world = World(10, 10) { _, _ ->
             SandboxTile(TerrainType.GRASS)
         }
 
@@ -81,13 +83,34 @@ class SandboxGame : StrataGame {
         )
 
         Gdx.input.inputProcessor = InputMultiplexer(
-            TileInputProcessor(tilePicker) { x, y, button ->
-                handleTileClick(x to y, button)
-            },
+            TileInputProcessor(
+                tilePicker = tilePicker,
+
+                onLeftClick = { x, y ->
+                    selectedTile = x to y
+                    true
+                },
+
+                onRightClick = { x, y ->
+                    println("Inspect tile: ($x, $y)")
+                    true
+                }
+            ),
             cameraController.inputProcessor
         )
 
-        renderer = IsoGridRenderer(projection)
+        tileRenderer = IsoTileRenderer(projection)
+
+        grassTexture = Texture(
+            Gdx.files.classpath("tiles/grass.png")
+        ).apply {
+            setFilter(
+                Texture.TextureFilter.Nearest,
+                Texture.TextureFilter.Nearest
+            )
+        }
+
+        grassRegion = TextureRegion(grassTexture)
     }
 
 
@@ -107,35 +130,20 @@ class SandboxGame : StrataGame {
     }
 
     override fun render() {
-        renderer.render(
+        tileRenderer.render(
             world = world,
             camera = camera,
-            hoveredTile = hoveredTile,
-            selectedTile = selectedTile
+            textureFor = { grassRegion },
+            raisedTile = hoveredTile,
+            raiseOffsetY = 6f
         )
     }
 
     override fun dispose() {
         Gdx.input.inputProcessor = null
-        renderer.dispose()
+
+        tileRenderer.dispose()
+        grassTexture.dispose()
     }
 
-    private fun handleTileClick(
-        tile: Pair<Int, Int>,
-        button: Int
-    ): Boolean {
-        return when (button) {
-            Input.Buttons.LEFT -> {
-                selectedTile = tile
-                true
-            }
-
-            Input.Buttons.RIGHT -> {
-                println("Inspect tile: $tile")
-                true
-            }
-
-            else -> false
-        }
-    }
 }
