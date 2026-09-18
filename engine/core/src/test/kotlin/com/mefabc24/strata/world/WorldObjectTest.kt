@@ -182,4 +182,84 @@ class WorldObjectTest {
         assertSame(house, world.getObjectAt(4, 4))
         assertEquals(1, world.getObjects().size)
     }
+
+    @Test
+    fun `places rectangular footprints with all origins`() {
+        val expectedPositions = mapOf(
+            FootprintOrigin.NORTH to setOf(
+                2 to 2, 3 to 2,
+                2 to 3, 3 to 3,
+                2 to 4, 3 to 4
+            ),
+            FootprintOrigin.EAST to setOf(
+                1 to 2, 2 to 2,
+                1 to 3, 2 to 3,
+                1 to 4, 2 to 4
+            ),
+            FootprintOrigin.SOUTH to setOf(
+                1 to 0, 2 to 0,
+                1 to 1, 2 to 1,
+                1 to 2, 2 to 2
+            ),
+            FootprintOrigin.WEST to setOf(
+                2 to 0, 3 to 0,
+                2 to 1, 3 to 1,
+                2 to 2, 3 to 2
+            )
+        )
+
+        for ((origin, expected) in expectedPositions) {
+            val world = createWorld()
+
+            val placed = createObject(
+                footprint = Footprint.rectangle(2, 3, origin),
+                x = 2,
+                y = 2
+            )
+
+            assertEquals(expected, placed.occupiedTiles())
+            assertTrue(world.placeObject(placed))
+
+            for ((x, y) in expected) {
+                assertSame(placed, world.getObjectAt(x, y))
+            }
+
+            assertEquals(1, world.getObjects().size)
+        }
+    }
+
+    @Test
+    fun `removes custom footprint without affecting neighboring objects`() {
+        val world = createWorld()
+
+        val footprint = Footprint.custom(
+            TileOffset(0, 0),
+            TileOffset(1, 0),
+            TileOffset(1, 1)
+        )
+
+        val building = createObject(footprint, 2, 2)
+
+        val neighbor = createObject(
+            Footprint.square(1),
+            2,
+            3
+        )
+
+        assertTrue(world.placeObject(building))
+        assertTrue(world.placeObject(neighbor))
+
+        assertSame(building, world.removeObjectAt(3, 3))
+
+        assertNull(world.getObjectAt(2, 2))
+        assertNull(world.getObjectAt(3, 2))
+        assertNull(world.getObjectAt(3, 3))
+
+        assertSame(neighbor, world.getObjectAt(2, 3))
+
+        assertEquals(setOf(neighbor), world.getObjects())
+
+        assertTrue(world.placeObject(building))
+        assertEquals(2, world.getObjects().size)
+    }
 }
