@@ -1,16 +1,12 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.iso.IsoWorldView
-import com.mefabc24.strata.input.TileInputProcessor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoProjection
-import com.mefabc24.strata.iso.TilePicker
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
@@ -18,8 +14,6 @@ class SandboxGame : StrataGame {
     private lateinit var world: World
     private lateinit var projection: IsoProjection
     private lateinit var worldView: IsoWorldView
-    private lateinit var tilePicker: TilePicker
-    private lateinit var tileRenderer: IsoTileRenderer
     private lateinit var grassTexture: Texture
     private lateinit var grassRegion: TextureRegion
 
@@ -42,33 +36,20 @@ class SandboxGame : StrataGame {
         worldView = IsoWorldView(
             world = world,
             projection = projection,
-            zoomMode = ZoomMode.WORLD_BASED
+            zoomMode = ZoomMode.WORLD_BASED,
+
+            onLeftClick = { x, y ->
+                selectedTile = x to y
+                true
+            },
+
+            onRightClick = { x, y ->
+                println("Inspect tile: ($x, $y)")
+                true
+            }
         )
 
-        tilePicker = TilePicker(
-            camera = worldView.camera,
-            projection = projection,
-            world = world
-        )
-
-        Gdx.input.inputProcessor = InputMultiplexer(
-            TileInputProcessor(
-                tilePicker = tilePicker,
-
-                onLeftClick = { x, y ->
-                    selectedTile = x to y
-                    true
-                },
-
-                onRightClick = { x, y ->
-                    println("Inspect tile: ($x, $y)")
-                    true
-                }
-            ),
-            worldView.cameraController.inputProcessor
-        )
-
-        tileRenderer = IsoTileRenderer(projection)
+        Gdx.input.inputProcessor = worldView.inputProcessor
 
         grassTexture = Texture(
             Gdx.files.classpath("tiles/grass.png")
@@ -92,16 +73,14 @@ class SandboxGame : StrataGame {
     override fun update(delta: Float) {
         worldView.update(delta)
 
-        hoveredTile = tilePicker.pick(
+        hoveredTile = worldView.pickTile(
             Gdx.input.x.toFloat(),
             Gdx.input.y.toFloat()
         )
     }
 
     override fun render() {
-        tileRenderer.render(
-            world = world,
-            camera = worldView.camera,
+        worldView.render(
             textureFor = { grassRegion },
             raisedTile = hoveredTile,
             raiseOffsetY = 6f
@@ -111,7 +90,7 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         Gdx.input.inputProcessor = null
 
-        tileRenderer.dispose()
+        worldView.dispose()
         grassTexture.dispose()
     }
 

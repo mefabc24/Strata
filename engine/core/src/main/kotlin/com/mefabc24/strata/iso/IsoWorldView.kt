@@ -6,6 +6,11 @@ import com.mefabc24.strata.camera.CameraBounds
 import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
 import com.mefabc24.strata.camera.ViewportMode
+import com.badlogic.gdx.InputMultiplexer
+import com.mefabc24.strata.input.TileInputProcessor
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.render.IsoTileRenderer
+import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.world.World
 
@@ -13,13 +18,15 @@ import com.mefabc24.strata.world.World
  * Manages the camera and viewport for an isometric world.
  */
 class IsoWorldView(
-    world: World,
-    projection: IsoProjection,
+    private val world: World,
+    private val projection: IsoProjection,
     viewportMode: ViewportMode = ViewportMode.FIXED_HEIGHT,
     virtualHeight: Float = 720f,
     zoomMode: ZoomMode = ZoomMode.WORLD_BASED,
     cameraPadding: Float = 100f,
-    worldFill: Float = 0.85f
+    worldFill: Float = 0.85f,
+    onLeftClick: ((x: Int, y: Int) -> Boolean)? = null,
+    onRightClick: ((x: Int, y: Int) -> Boolean)? = null
 ) {
     val camera = OrthographicCamera()
 
@@ -28,6 +35,8 @@ class IsoWorldView(
         height = world.height,
         padding = 0f
     )
+
+    private val tileRenderer = IsoTileRenderer(projection)
 
     private val cameraBounds = projection.worldBounds(
         width = world.width,
@@ -57,6 +66,21 @@ class IsoWorldView(
         worldFill = worldFill
     )
 
+    private val tilePicker = TilePicker(
+        camera = camera,
+        projection = projection,
+        world = world
+    )
+
+    val inputProcessor = InputMultiplexer(
+        TileInputProcessor(
+            tilePicker = tilePicker,
+            onLeftClick = onLeftClick,
+            onRightClick = onRightClick
+        ),
+        cameraController.inputProcessor
+    )
+
     init {
         viewport.resize(
             Gdx.graphics.width,
@@ -80,10 +104,41 @@ class IsoWorldView(
         cameraController.update(delta)
     }
 
+    /**
+     * Renders the world using tile textures provided by the game.
+     */
+    fun render(
+        textureFor: (Tile) -> TextureRegion?,
+        raisedTile: Pair<Int, Int>? = null,
+        raiseOffsetY: Float = 0f
+    ) {
+        tileRenderer.render(
+            world = world,
+            camera = camera,
+            textureFor = textureFor,
+            raisedTile = raisedTile,
+            raiseOffsetY = raiseOffsetY
+        )
+    }
+
     fun resize(width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
 
         viewport.resize(width, height)
         cameraController.refreshZoomBounds()
+    }
+
+    /**
+     * Returns the tile at the given screen position, or null.
+     */
+    fun pickTile(screenX: Float, screenY: Float): Pair<Int, Int>? {
+        return tilePicker.pick(screenX, screenY)
+    }
+
+    /**
+     * Releases resources owned by this world view.
+     */
+    fun dispose() {
+        tileRenderer.dispose()
     }
 }
