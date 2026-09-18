@@ -10,12 +10,11 @@ import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.input.TileInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.ZoomAnchor
-import com.mefabc24.strata.render.IsoTileRenderer
+import com.mefabc24.strata.render.IsoWorldRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.render.PlacementPreview
-import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -50,7 +49,7 @@ class IsoWorldView(
         padding = 0f
     )
 
-    private val tileRenderer = IsoTileRenderer(projection)
+    private val worldRenderer = IsoWorldRenderer(projection)
 
     private val cameraBounds = projection.worldBounds(
         width = world.width,
@@ -147,7 +146,7 @@ class IsoWorldView(
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null
     ) {
-        tileRenderer.render(
+        worldRenderer.render(
             world = world,
             camera = camera,
             textureFor = textureFor,
@@ -176,6 +175,6 @@ class IsoWorldView(
      * Releases resources owned by this world view.
      */
     fun dispose() {
-        tileRenderer.dispose()
+        worldRenderer.dispose()
     }
 }

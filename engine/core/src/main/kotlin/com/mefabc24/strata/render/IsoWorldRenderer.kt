@@ -11,10 +11,12 @@ import com.mefabc24.strata.world.World
 /**
  * Renders terrain and world objects in isometric depth order.
  */
-class IsoTileRenderer(
+class IsoWorldRenderer(
     private val projection: IsoProjection
 ) {
     private val batch = SpriteBatch()
+
+    private val terrainRenderer = IsoTerrainRenderer(projection)
     private val objectRenderer = IsoObjectRenderer(projection)
 
     fun render(
@@ -56,7 +58,13 @@ class IsoTileRenderer(
                     0f
                 }
 
-                drawTile(x, y, texture, offsetY)
+                terrainRenderer.render(
+                    batch = batch,
+                    x = x,
+                    y = y,
+                    texture = texture,
+                    offsetY = offsetY
+                )
             }
 
             // Render objects after the terrain at their depth.
@@ -86,27 +94,6 @@ class IsoTileRenderer(
         }
 
         batch.end()
-    }
-
-    private fun drawTile(
-        x: Int,
-        y: Int,
-        texture: TextureRegion,
-        offsetY: Float = 0f
-    ) {
-        val position = projection.tileToWorld(x, y)
-
-        val scale = projection.tileWidth / texture.regionWidth
-        val spriteWidth = texture.regionWidth * scale
-        val spriteHeight = texture.regionHeight * scale
-
-        batch.draw(
-            texture,
-            position.x - spriteWidth / 2f,
-            position.y - spriteHeight + offsetY,
-            spriteWidth,
-            spriteHeight
-        )
     }
 
     private fun drawObject(
