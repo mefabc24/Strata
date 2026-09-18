@@ -8,10 +8,9 @@ import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.ObjectRegistry
-import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.terrain.TerrainRegistry
-import com.mefabc24.strata.world.Placeable
+import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -21,6 +20,7 @@ class SandboxGame : StrataGame {
     private lateinit var worldView: IsoWorldView
     private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
     private lateinit var placementController: PlacementController
+    private lateinit var input: StrataInput
     private lateinit var objectRegistry: ObjectRegistry
 
     private val previewStyle = PlacementPreviewStyle(
@@ -112,7 +112,8 @@ class SandboxGame : StrataGame {
             }
         )
 
-        Gdx.input.inputProcessor = worldView.inputProcessor
+        input = StrataInput(worldView.inputProcessor)
+        input.install()
     }
 
 
@@ -134,7 +135,7 @@ class SandboxGame : StrataGame {
     }
 
     override fun dispose() {
-        Gdx.input.inputProcessor = null
+        input.uninstall()
 
         objectRegistry.dispose()
         terrainRegistry.dispose()
