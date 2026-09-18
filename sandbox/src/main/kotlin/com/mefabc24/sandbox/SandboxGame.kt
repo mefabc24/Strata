@@ -34,7 +34,7 @@ class SandboxGame : StrataGame {
     private var selectedTile: Pair<Int, Int>? = null
 
     // Debug
-    private val worldSize = 10
+    private val worldSize = 50
 
     override fun create() {
         world = World(worldSize, worldSize) { _, _ ->
@@ -93,7 +93,7 @@ class SandboxGame : StrataGame {
             worldFill = 0.85f
         )
 
-        cameraController.refreshZoomBounds()
+        cameraController.fitWorld()
 
         Gdx.input.inputProcessor = InputMultiplexer(
             TileInputProcessor(

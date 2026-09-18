@@ -194,6 +194,27 @@ class CameraController(
         applyBounds()
     }
 
+    /**
+     * Centers the camera on the world and adjusts the zoom to fit it.
+     */
+    fun fitWorld() {
+        require(zoomMode == ZoomMode.WORLD_BASED) {
+            "fitWorld() requires WORLD_BASED zoom mode."
+        }
+
+        val world = requireNotNull(worldZoomBounds)
+
+        camera.zoom = effectiveMaxZoom()
+
+        camera.position.set(
+            world.x + world.width / 2f,
+            world.y + world.height / 2f,
+            0f
+        )
+
+        applyBounds()
+    }
+
     private fun applyBounds() {
         bounds?.clamp(camera)
         camera.update()
