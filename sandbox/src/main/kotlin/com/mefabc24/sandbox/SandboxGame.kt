@@ -7,6 +7,7 @@ import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoProjection
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
@@ -37,6 +38,7 @@ class SandboxGame : StrataGame {
             world = world,
             projection = projection,
             zoomMode = ZoomMode.WORLD_BASED,
+            zoomAnchor = ZoomAnchor.CURSOR,
 
             onLeftClick = { x, y ->
                 selectedTile = x to y

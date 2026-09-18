@@ -9,6 +9,7 @@ import com.mefabc24.strata.camera.ViewportMode
 import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.input.TileInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
@@ -23,6 +24,7 @@ class IsoWorldView(
     viewportMode: ViewportMode = ViewportMode.FIXED_HEIGHT,
     virtualHeight: Float = 720f,
     zoomMode: ZoomMode = ZoomMode.WORLD_BASED,
+    zoomAnchor: ZoomAnchor = ZoomAnchor.CURSOR,
     cameraPadding: Float = 100f,
     worldFill: Float = 0.85f,
     onLeftClick: ((x: Int, y: Int) -> Boolean)? = null,
@@ -63,7 +65,8 @@ class IsoWorldView(
         bounds = cameraBounds,
         zoomMode = zoomMode,
         worldZoomBounds = worldBounds,
-        worldFill = worldFill
+        worldFill = worldFill,
+        zoomAnchor = zoomAnchor
     )
 
     private val tilePicker = TilePicker(

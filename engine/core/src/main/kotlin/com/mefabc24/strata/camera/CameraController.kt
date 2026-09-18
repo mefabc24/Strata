@@ -9,6 +9,21 @@ import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 
 /**
+ * Defines which point remains anchored while zooming.
+ */
+enum class ZoomAnchor {
+    /**
+     * Keeps the camera center fixed.
+     */
+    CENTER,
+
+    /**
+     * Keeps the world point under the mouse cursor fixed.
+     */
+    CURSOR
+}
+
+/**
  * Defines how the maximum zoom-out level is determined.
  */
 enum class ZoomMode {
@@ -33,7 +48,8 @@ class CameraController(
     var maxZoom: Float = 3f,
     private val zoomMode: ZoomMode = ZoomMode.FIXED,
     private val worldZoomBounds: Rectangle? = null,
-    private val worldFill: Float = 0.85f
+    private val worldFill: Float = 0.85f,
+    private val zoomAnchor: ZoomAnchor = ZoomAnchor.CENTER
 ) {
     init {
         require(minZoom > 0f && minZoom.isFinite())
@@ -52,6 +68,8 @@ class CameraController(
     private val lastMousePosition = Vector3()
     private val currentMousePosition = Vector3()
 
+    private val zoomMouseBefore = Vector3()
+    private val zoomMouseAfter = Vector3()
 
     val inputProcessor = object : InputAdapter() {
         override fun touchDown(
@@ -172,11 +190,36 @@ class CameraController(
     }
 
     fun zoom(amount: Float) {
+        if (zoomAnchor == ZoomAnchor.CURSOR) {
+            zoomMouseBefore.set(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat(),
+                0f
+            )
+
+            camera.unproject(zoomMouseBefore)
+        }
+
         camera.zoom = MathUtils.clamp(
             camera.zoom + amount * zoomSpeed,
             minZoom,
             effectiveMaxZoom()
         )
+
+        camera.update()
+
+        if (zoomAnchor == ZoomAnchor.CURSOR) {
+            zoomMouseAfter.set(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat(),
+                0f
+            )
+
+            camera.unproject(zoomMouseAfter)
+
+            camera.position.x += zoomMouseBefore.x - zoomMouseAfter.x
+            camera.position.y += zoomMouseBefore.y - zoomMouseAfter.y
+        }
 
         applyBounds()
     }
