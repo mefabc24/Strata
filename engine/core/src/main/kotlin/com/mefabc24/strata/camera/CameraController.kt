@@ -42,6 +42,7 @@ enum class ZoomMode {
 class CameraController(
     private val camera: OrthographicCamera,
     private val bounds: CameraBounds? = null,
+    private val zoomBounds: CameraBounds? = bounds,
     var moveSpeed: Float = 500f,
     var zoomSpeed: Float = 0.1f,
     var minZoom: Float = 0.25f,
@@ -113,13 +114,10 @@ class CameraController(
 
             camera.unproject(currentMousePosition)
 
-            camera.position.x +=
-                lastMousePosition.x - currentMousePosition.x
-
-            camera.position.y +=
+            pan(
+                lastMousePosition.x - currentMousePosition.x,
                 lastMousePosition.y - currentMousePosition.y
-
-            applyBounds()
+            )
 
             return true
         }
@@ -155,23 +153,28 @@ class CameraController(
     fun update(delta: Float) {
         val movement = moveSpeed * delta * camera.zoom
 
+        var deltaX = 0f
+        var deltaY = 0f
+
         if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            camera.position.y += movement
+            deltaY += movement
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            camera.position.y -= movement
+            deltaY -= movement
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            camera.position.x -= movement
+            deltaX -= movement
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            camera.position.x += movement
+            deltaX += movement
         }
 
-        applyBounds()
+        if (deltaX != 0f || deltaY != 0f) {
+            pan(deltaX, deltaY)
+        }
     }
 
     private fun effectiveMaxZoom(): Float {
@@ -221,7 +224,15 @@ class CameraController(
             camera.position.y += zoomMouseBefore.y - zoomMouseAfter.y
         }
 
-        applyBounds()
+        if (camera.zoom >= effectiveMaxZoom()) {
+            if (zoomMode == ZoomMode.WORLD_BASED) {
+                centerWorld()
+            } else {
+                applyZoomBounds()
+            }
+        } else {
+            applyZoomBounds()
+        }
     }
 
     /**
@@ -234,7 +245,14 @@ class CameraController(
             effectiveMaxZoom()
         )
 
-        applyBounds()
+        if (
+            zoomMode == ZoomMode.WORLD_BASED &&
+            camera.zoom >= effectiveMaxZoom()
+        ) {
+            centerWorld()
+        } else {
+            applyZoomBounds()
+        }
     }
 
     /**
@@ -245,9 +263,12 @@ class CameraController(
             "fitWorld() requires WORLD_BASED zoom mode."
         }
 
-        val world = requireNotNull(worldZoomBounds)
-
         camera.zoom = effectiveMaxZoom()
+        centerWorld()
+    }
+
+    private fun centerWorld() {
+        val world = requireNotNull(worldZoomBounds)
 
         camera.position.set(
             world.x + world.width / 2f,
@@ -255,11 +276,21 @@ class CameraController(
             0f
         )
 
-        applyBounds()
+        camera.update()
     }
 
-    private fun applyBounds() {
-        bounds?.clamp(camera)
+    private fun pan(deltaX: Float, deltaY: Float) {
+        if (bounds != null) {
+            bounds.move(camera, deltaX, deltaY)
+        } else {
+            camera.position.add(deltaX, deltaY, 0f)
+        }
+
+        camera.update()
+    }
+
+    private fun applyZoomBounds() {
+        zoomBounds?.clamp(camera)
         camera.update()
     }
 }
