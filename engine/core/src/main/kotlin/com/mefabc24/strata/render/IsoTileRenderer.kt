@@ -15,6 +15,7 @@ class IsoTileRenderer(
     private val projection: IsoProjection
 ) {
     private val batch = SpriteBatch()
+    private val objectRenderer = IsoObjectRenderer(projection)
 
     fun render(
         world: World,
@@ -62,7 +63,7 @@ class IsoTileRenderer(
             objectsByDepth[depth]?.forEach { placed ->
                 val visual = objectVisualFor(placed) ?: return@forEach
 
-                drawObject(placed, visual)
+                objectRenderer.render(batch, placed, visual)
             }
 
             if (preview != null && depth == previewDepth) {
@@ -77,7 +78,7 @@ class IsoTileRenderer(
 
                     batch.color = color
 
-                    drawObject(preview.placedObject, visual)
+                    objectRenderer.render(batch, preview.placedObject, visual)
 
                     batch.setColor(1f, 1f, 1f, 1f)
                 }
