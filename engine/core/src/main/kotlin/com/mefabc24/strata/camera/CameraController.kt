@@ -63,6 +63,19 @@ class CameraController(
         }
     }
 
+    /**
+     * Controls whether the camera responds to user input.
+     */
+    var enabled: Boolean = true
+        set(value) {
+            field = value
+
+            if (!value) {
+                isDragging = false
+                dragPointer = -1
+            }
+        }
+
     private var isDragging = false
     private var dragPointer = -1
 
@@ -79,6 +92,8 @@ class CameraController(
             pointer: Int,
             button: Int
         ): Boolean {
+            if (!enabled) return false
+
             if (button != Input.Buttons.MIDDLE || isDragging) {
                 return false
             }
@@ -102,6 +117,8 @@ class CameraController(
             screenY: Int,
             pointer: Int
         ): Boolean {
+            if (!enabled) return false
+
             if (!isDragging || pointer != dragPointer) {
                 return false
             }
@@ -128,6 +145,8 @@ class CameraController(
             pointer: Int,
             button: Int
         ): Boolean {
+            if (!enabled) return false
+
             if (!isDragging ||
                 pointer != dragPointer ||
                 button != Input.Buttons.MIDDLE
@@ -145,12 +164,16 @@ class CameraController(
             amountX: Float,
             amountY: Float
         ): Boolean {
+            if (!enabled) return false
+
             zoom(amountY)
             return true
         }
     }
 
     fun update(delta: Float) {
+        if (!enabled) return
+
         val movement = moveSpeed * delta * camera.zoom
 
         var deltaX = 0f
