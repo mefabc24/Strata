@@ -39,6 +39,7 @@ class SandboxGame : StrataGame {
             projection = projection,
             zoomMode = ZoomMode.WORLD_BASED,
             zoomAnchor = ZoomAnchor.CURSOR,
+            cameraEdgeAllowance = 0.2f,
 
             onLeftClick = { x, y ->
                 selectedTile = x to y

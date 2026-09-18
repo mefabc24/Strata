@@ -26,6 +26,7 @@ class IsoWorldView(
     zoomMode: ZoomMode = ZoomMode.WORLD_BASED,
     zoomAnchor: ZoomAnchor = ZoomAnchor.CURSOR,
     cameraPadding: Float = 100f,
+    cameraEdgeAllowance: Float = 0f,
     worldFill: Float = 0.85f,
     onLeftClick: ((x: Int, y: Int) -> Boolean)? = null,
     onRightClick: ((x: Int, y: Int) -> Boolean)? = null
@@ -49,7 +50,8 @@ class IsoWorldView(
             minX = it.x,
             minY = it.y,
             maxX = it.x + it.width,
-            maxY = it.y + it.height
+            maxY = it.y + it.height,
+            edgeAllowance = cameraEdgeAllowance
         )
     }
 

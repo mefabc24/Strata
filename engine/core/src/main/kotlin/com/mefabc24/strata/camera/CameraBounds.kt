@@ -1,3 +1,4 @@
+
 package com.mefabc24.strata.camera
 
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -7,11 +8,13 @@ class CameraBounds(
     val minX: Float,
     val minY: Float,
     val maxX: Float,
-    val maxY: Float
+    val maxY: Float,
+    private val edgeAllowance: Float = 0f
 ) {
     init {
         require(minX <= maxX)
         require(minY <= maxY)
+        require(edgeAllowance in 0f..1f)
     }
 
     fun clamp(camera: OrthographicCamera) {
@@ -41,14 +44,16 @@ class CameraBounds(
     ): Float {
         val center = (min + max) / 2f
 
-        if (max - min <= halfViewport * 2f) {
+        val effectiveHalfViewport = halfViewport * (1f - edgeAllowance)
+
+        if (max - min <= effectiveHalfViewport * 2f) {
             return center
         }
 
         return MathUtils.clamp(
             position,
-            min + halfViewport,
-            max - halfViewport
+            min + effectiveHalfViewport,
+            max - effectiveHalfViewport
         )
     }
 }
