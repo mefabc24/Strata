@@ -22,11 +22,19 @@ class IsoTileRenderer(
         textureFor: (Tile) -> TextureRegion?,
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
-        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null }
+        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
+        previewObject: PlacedObject? = null,
+        previewValid: Boolean = false,
+        previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
     ) {
         val objectsByDepth = world.getObjects().groupBy { placed ->
             placed.occupiedTiles().maxOf { (x, y) -> x + y }
         }
+
+        val previewDepth = previewObject
+            ?.occupiedTiles()
+            ?.maxOf { (x, y) -> x + y }
+            ?.coerceIn(0, world.width + world.height - 2)
 
         batch.projectionMatrix = camera.combined
         batch.begin()
@@ -56,6 +64,25 @@ class IsoTileRenderer(
                 val visual = objectVisualFor(placed) ?: return@forEach
 
                 drawObject(placed, visual)
+            }
+
+            // Render the preview independently of existing objects.
+            if (previewObject != null && depth == previewDepth) {
+                val visual = objectVisualFor(previewObject)
+
+                if (visual != null) {
+                    val color = if (previewValid) {
+                        previewStyle.validColor
+                    } else {
+                        previewStyle.invalidColor
+                    }
+
+                    batch.color = color
+
+                    drawObject(previewObject, visual)
+
+                    batch.setColor(1f, 1f, 1f, 1f)
+                }
             }
         }
 

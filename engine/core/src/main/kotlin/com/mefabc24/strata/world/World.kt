@@ -16,19 +16,22 @@ class World(
     private val occupiedTiles = mutableMapOf<Pair<Int, Int>, PlacedObject>()
 
     /**
-     * Places an object if all required tiles are inside the world and unoccupied.
+     * Checks whether an object can be placed without modifying the world.
+     */
+    fun canPlaceObject(placedObject: PlacedObject): Boolean {
+        return placedObject.occupiedTiles().all { (x, y) ->
+            getTile(x, y) != null &&
+                    getObjectAt(x, y) == null
+        }
+    }
+
+    /**
+     * Places an object if its footprint is inside the world and unoccupied.
      */
     fun placeObject(placedObject: PlacedObject): Boolean {
-        val positions = placedObject.occupiedTiles()
+        if (!canPlaceObject(placedObject)) return false
 
-        val canPlace = positions.all { (x, y) ->
-            getTile(x, y) != null &&
-                    (x to y) !in occupiedTiles
-        }
-
-        if (!canPlace) return false
-
-        for (position in positions) {
+        for (position in placedObject.occupiedTiles()) {
             occupiedTiles[position] = placedObject
         }
 

@@ -1,6 +1,7 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.StrataGame
@@ -8,7 +9,9 @@ import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.ObjectRegistry
+import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.terrain.TerrainRegistry
+import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -19,10 +22,18 @@ class SandboxGame : StrataGame {
     private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
 
     private var hoveredTile: Pair<Int, Int>? = null
-    private var selectedTile: Pair<Int, Int>? = null
-    private var activeTerrain: TerrainType? = null
 
     private lateinit var objectRegistry: ObjectRegistry
+
+    private val buildPlaceable: Placeable = House()
+
+    private var previewObject: PlacedObject? = null
+    private var previewValid = false
+
+    private val previewStyle = PlacementPreviewStyle(
+        validColor = Color(0.3f, 0.8f, 1f, 0.7f),
+        invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+    )
 
     // Debug
     private val worldSize = 50
@@ -57,16 +68,16 @@ class SandboxGame : StrataGame {
             zoomEdgeAllowance = 0.3f,
 
             onLeftClick = { x, y ->
-                val tree = PlacedObject(
-                    placeable = OakTree(),
+                val placed = PlacedObject(
+                    placeable = buildPlaceable,
                     x = x,
                     y = y
                 )
 
-                if (world.placeObject(tree)) {
-                    println("Tree placed at ($x, $y)")
+                if (world.placeObject(placed)) {
+                    println("House placed at ($x, $y)")
                 } else {
-                    println("Cannot place tree at ($x, $y)")
+                    println("Cannot place house at ($x, $y)")
                 }
 
                 true
@@ -120,6 +131,18 @@ class SandboxGame : StrataGame {
             Gdx.input.x.toFloat(),
             Gdx.input.y.toFloat()
         )
+
+        previewObject = hoveredTile?.let { (x, y) ->
+            PlacedObject(
+                placeable = buildPlaceable,
+                x = x,
+                y = y
+            )
+        }
+
+        previewValid = previewObject?.let {
+            world.canPlaceObject(it)
+        } ?: false
     }
 
     override fun render() {
@@ -127,10 +150,10 @@ class SandboxGame : StrataGame {
             textureFor = { tile ->
                 terrainRegistry[(tile as SandboxTile).terrain]
             },
-            raisedTile = hoveredTile,
-            raiseOffsetY = 6f,
-
-            objectVisualFor = objectRegistry::get
+            objectVisualFor = objectRegistry::get,
+            previewObject = previewObject,
+            previewValid = previewValid,
+            previewStyle = previewStyle
         )
     }
 

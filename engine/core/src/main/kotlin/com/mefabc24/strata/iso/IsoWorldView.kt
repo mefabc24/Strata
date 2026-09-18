@@ -14,6 +14,7 @@ import com.mefabc24.strata.render.IsoTileRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -135,11 +136,17 @@ class IsoWorldView(
     /**
      * Renders terrain and world objects.
      */
+    /**
+     * Renders terrain, world objects, and an optional placement preview.
+     */
     fun render(
         textureFor: (Tile) -> TextureRegion?,
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
-        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null }
+        objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
+        previewObject: PlacedObject? = null,
+        previewValid: Boolean = false,
+        previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
     ) {
         tileRenderer.render(
             world = world,
@@ -147,7 +154,10 @@ class IsoWorldView(
             textureFor = textureFor,
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
-            objectVisualFor = objectVisualFor
+            objectVisualFor = objectVisualFor,
+            previewObject = previewObject,
+            previewValid = previewValid,
+            previewStyle = previewStyle
         )
     }
 
