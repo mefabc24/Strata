@@ -1,5 +1,7 @@
 package com.mefabc24.strata.world
 
+import java.util.Collections
+
 class World(
     val width: Int,
     val height: Int,
@@ -13,15 +15,21 @@ class World(
         Array(width) { x -> createTile(x, y) }
     }
 
+    private val objects = linkedSetOf<PlacedObject>()
+
+    private val objectView: Set<PlacedObject> =
+        Collections.unmodifiableSet(objects)
+
     private val occupiedTiles = mutableMapOf<Pair<Int, Int>, PlacedObject>()
 
     /**
      * Checks whether an object can be placed without modifying the world.
      */
     fun canPlaceObject(placedObject: PlacedObject): Boolean {
+        if (placedObject in objects) return false
+
         return placedObject.occupiedTiles().all { (x, y) ->
-            getTile(x, y) != null &&
-                    getObjectAt(x, y) == null
+            getTile(x, y) != null && getObjectAt(x, y) == null
         }
     }
 
@@ -35,6 +43,8 @@ class World(
             occupiedTiles[position] = placedObject
         }
 
+        objects.add(placedObject)
+
         return true
     }
 
@@ -46,11 +56,9 @@ class World(
     }
 
     /**
-     * Returns all placed objects without duplicates.
+     * Returns a read-only live view of all placed objects.
      */
-    fun getObjects(): Set<PlacedObject> {
-        return occupiedTiles.values.toSet()
-    }
+    fun getObjects(): Set<PlacedObject> = objectView
 
     /**
      * Removes a specific placed object from the world.
@@ -58,17 +66,19 @@ class World(
      * Returns false if the object is not currently placed.
      */
     fun removeObject(placedObject: PlacedObject): Boolean {
+        if (placedObject !in objects) return false
+
         val positions = placedObject.occupiedTiles()
 
-        if (positions.none { occupiedTiles[it] === placedObject }) {
+        if (positions.any { occupiedTiles[it] !== placedObject }) {
             return false
         }
 
         for (position in positions) {
-            if (occupiedTiles[position] === placedObject) {
-                occupiedTiles.remove(position)
-            }
+            occupiedTiles.remove(position)
         }
+
+        objects.remove(placedObject)
 
         return true
     }
