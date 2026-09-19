@@ -17,6 +17,7 @@ class SoundHandle internal constructor()
  */
 class StrataAudio<C : Enum<C>>(
     private val assets: StrataAssets,
+    private val sounds: SoundRegistry<C>,
     private val maxTrackedSounds: Int = 128
 ) : Disposable {
 
@@ -88,11 +89,29 @@ class StrataAudio<C : Enum<C>>(
     }
 
     /**
+     * Plays a registered sound using its predefined category.
+     */
+    fun playSound(
+        id: SoundId,
+        volume: Float = 1f
+    ): SoundHandle? {
+        checkActive()
+
+        val definition = sounds[id]
+
+        return playSound(
+            path = definition.path,
+            category = definition.category,
+            volume = volume
+        )
+    }
+
+    /**
      * Plays a short sound effect.
      *
      * Returns null if the audio backend could not start playback.
      */
-    fun playSound(
+    private fun playSound(
         path: String,
         category: C,
         volume: Float = 1f

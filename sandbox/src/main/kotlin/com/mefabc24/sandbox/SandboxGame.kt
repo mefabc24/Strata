@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.assets.StrataAssets
+import com.mefabc24.strata.audio.SoundRegistry
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
@@ -93,14 +94,23 @@ class SandboxGame : StrataGame {
             register<House>("house.png")
         }
 
-        assets.queueSound("audio/pop.wav")
+        val sounds = SoundRegistry<SoundCategory>(assets).apply {
+            register(
+                id = BuildingSound.PLACE,
+                path = "audio/pop.wav",
+                category = SoundCategory.BUILDING
+            )
+        }
 
         assets.finishLoading()
 
         terrainRegistry.prepare()
         objectRegistry.prepare()
 
-        audio = StrataAudio<SoundCategory>(assets)
+        audio = StrataAudio(
+            assets = assets,
+            sounds = sounds
+        )
 
         audio.masterVolume = 0.8f
         audio.soundVolume = 0.7f
@@ -139,10 +149,7 @@ class SandboxGame : StrataGame {
                     if (placed != null) {
                         println("Object placed at ($x, $y)")
 
-                        audio.playSound(
-                            path = "audio/pop.wav",
-                            category = SoundCategory.BUILDING
-                        )
+                        audio.playSound(BuildingSound.PLACE)
                     } else {
                         println("Cannot place object at ($x, $y)")
                     }
