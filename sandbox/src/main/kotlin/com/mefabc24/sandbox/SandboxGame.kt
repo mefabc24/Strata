@@ -13,6 +13,9 @@ import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.input.StrataInput
+import com.mefabc24.strata.input.WorldInputBinding
+import com.mefabc24.strata.input.WorldInputTrigger
+import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -112,27 +115,56 @@ class SandboxGame : StrataGame {
             zoomAnchor = ZoomAnchor.CURSOR,
             zoomEdgeAllowance = 0.3f,
 
-            onLeftClick = { x, y ->
-                val placed = placementController.placeAt(x, y)
+            bindings = listOf(
+                WorldInputBinding.Tile(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { x, y ->
+                    val placed = placementController.placeAt(x, y)
 
-                if (placed != null) {
-                    println("Object placed at ($x, $y)")
-                } else {
-                    println("Cannot place object at ($x, $y)")
+                    if (placed != null) {
+                        println("Object placed at ($x, $y)")
+                    } else {
+                        println("Cannot place object at ($x, $y)")
+                    }
+
+                    true
+                },
+
+                WorldInputBinding.Object(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
+                    mode = ObjectPickingMode.SPRITE_ALPHA
+                ) { placed ->
+                    val removed = world.removeObject(placed)
+
+                    if (removed) {
+                        println("Removed object at (${placed.x}, ${placed.y})")
+                    }
+
+                    true
+                },
+
+                WorldInputBinding.Tile(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT)
+                ) { x, y ->
+                    val removed = world.removeObjectAt(x, y)
+
+                    if (removed != null) {
+                        println("Removed object at ($x, $y)")
+                    }
+
+                    true
+                },
+
+                WorldInputBinding.Tile(
+                    trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
+                ) { x, y ->
+                    val tile = world.getTile(x, y)
+
+                    println("Tile at ($x, $y): $tile")
+
+                    true
                 }
-
-                true
-            },
-
-            onRightClick = { x, y ->
-                val removed = world.removeObjectAt(x, y)
-
-                if (removed != null) {
-                    println("Removed object at ($x, $y)")
-                }
-
-                true
-            },
+            ),
 
             maxTerrainSpriteHeight = TerrainType.entries.maxOf { type ->
                 val region = terrainRegistry[type]
@@ -155,15 +187,6 @@ class SandboxGame : StrataGame {
     override fun update(delta: Float) {
         worldView.update(delta)
         placementController.update(worldView.hoveredTile)
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            val picked = worldView.pickObject(
-                Gdx.input.x.toFloat(),
-                Gdx.input.y.toFloat()
-            )
-
-            println("Picked object: ${picked?.placeable?.javaClass?.simpleName}")
-        }
     }
 
     override fun render() {

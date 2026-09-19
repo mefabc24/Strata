@@ -7,7 +7,8 @@ import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
 import com.mefabc24.strata.camera.ViewportMode
 import com.badlogic.gdx.InputMultiplexer
-import com.mefabc24.strata.input.TileInputProcessor
+import com.mefabc24.strata.input.WorldInputBinding
+import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.render.IsoWorldRenderer
@@ -56,8 +57,7 @@ class IsoWorldView(
     cameraPadding: Float = 100f,
     zoomEdgeAllowance: Float = 0f,
     worldFill: Float = 0.85f,
-    onLeftClick: ((x: Int, y: Int) -> Boolean)? = null,
-    onRightClick: ((x: Int, y: Int) -> Boolean)? = null,
+    bindings: List<WorldInputBinding> = emptyList(),
     private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
 ) {
     val camera = OrthographicCamera()
@@ -141,23 +141,25 @@ class IsoWorldView(
         visualFor = objectVisualFor
     )
 
-    private val tileInputProcessor = TileInputProcessor(
-        tilePicker = tilePicker,
-        onLeftClick = onLeftClick,
-        onRightClick = onRightClick
+    private val worldInputProcessor = WorldInputProcessor(
+        bindings = bindings,
+        pickTile = tilePicker::pick,
+        pickObject = { screenX, screenY, mode ->
+            pickObject(screenX, screenY, mode)
+        }
     )
 
     /**
-     * Controls whether mouse clicks interact with world tiles.
+     * Controls whether world input bindings are processed.
      */
-    var worldClicksEnabled: Boolean
-        get() = tileInputProcessor.enabled
+    var worldInputEnabled: Boolean
+        get() = worldInputProcessor.enabled
         set(value) {
-            tileInputProcessor.enabled = value
+            worldInputProcessor.enabled = value
         }
 
     val inputProcessor = InputMultiplexer(
-        tileInputProcessor,
+        worldInputProcessor,
         cameraController.inputProcessor
     )
 
