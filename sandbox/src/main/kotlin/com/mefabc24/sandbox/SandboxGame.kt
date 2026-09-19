@@ -1,6 +1,5 @@
 package com.mefabc24.sandbox
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
@@ -25,10 +24,6 @@ class SandboxGame : StrataGame {
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
         invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
     )
-
-    private var perfElapsed = 0f
-    private var perfFrames = 0
-    private var perfRenderMsSum = 0.0
 
     // Debug
     private val worldSize = 50
@@ -65,6 +60,9 @@ class SandboxGame : StrataGame {
             terrainDirectory = "tiles",
             objectDirectory = "objects"
         ) {
+            performance.enabled = true
+            performance.intervalSeconds = 2f
+
             terrain.register(
                 TerrainType.GRASS,
                 sprite = "grass.png"
@@ -179,30 +177,6 @@ class SandboxGame : StrataGame {
         scene.render(
             preview = placementController.preview
         )
-
-        val stats = scene.view.renderStats
-
-        perfElapsed += Gdx.graphics.deltaTime
-        perfFrames++
-        perfRenderMsSum += stats.cpuRenderMs
-
-        if (perfElapsed >= 2f) {
-            val averageRenderMs = perfRenderMsSum / perfFrames
-
-            Gdx.app.log(
-                "StrataPerf",
-                "FPS: ${Gdx.graphics.framesPerSecond} | " +
-                        "CPU render: ${"%.2f".format(averageRenderMs)} ms | " +
-                        "Tiles: ${stats.terrainDrawn}/${stats.terrainChecked} | " +
-                        "Objects: ${stats.objectsDrawn}/${stats.objectsChecked} | " +
-                        "Preview: ${stats.previewsDrawn} | " +
-                        "Draw calls: ${stats.drawCalls}"
-            )
-
-            perfElapsed = 0f
-            perfFrames = 0
-            perfRenderMsSum = 0.0
-        }
     }
 
     override fun dispose() {

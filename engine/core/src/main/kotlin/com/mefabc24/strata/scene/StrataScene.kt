@@ -11,6 +11,7 @@ import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
+import com.badlogic.gdx.Gdx
 
 /**
  * Coordinates asset loading and the lifecycle of a world view.
@@ -41,6 +42,11 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
         assets = assets,
         sounds = sounds
     )
+
+    /**
+     * Configures optional performance logging.
+     */
+    val performance = ScenePerformanceLogger()
 
     private var attachedView: IsoWorldView? = null
     private var attachedInput: StrataInput? = null
@@ -184,6 +190,11 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
             preview = preview
+        )
+
+        performance.record(
+            stats = view.renderStats,
+            delta = Gdx.graphics.deltaTime
         )
     }
 
