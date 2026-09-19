@@ -132,26 +132,9 @@ class SandboxGame : StrataGame {
 
                 WorldInputBinding.Object(
                     trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                    mode = ObjectPickingMode.SPRITE_ALPHA
+                    mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT
                 ) { placed ->
-                    val removed = world.removeObject(placed)
-
-                    if (removed) {
-                        println("Removed object at (${placed.x}, ${placed.y})")
-                    }
-
-                    true
-                },
-
-                WorldInputBinding.Tile(
-                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT)
-                ) { x, y ->
-                    val removed = world.removeObjectAt(x, y)
-
-                    if (removed != null) {
-                        println("Removed object at ($x, $y)")
-                    }
-
+                    world.removeObject(placed)
                     true
                 },
 

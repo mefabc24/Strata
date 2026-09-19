@@ -36,6 +36,11 @@ enum class ObjectPickingMode {
     SPRITE_ALPHA,
 
     /**
+     * Picks sprite pixels first, then falls back to occupied ground tiles.
+     */
+    SPRITE_OR_FOOTPRINT,
+
+    /**
      * Disables object picking.
      */
     NONE
@@ -254,6 +259,13 @@ class IsoWorldView(
 
             ObjectPickingMode.SPRITE_ALPHA -> {
                 objectPicker.pick(screenX, screenY)
+            }
+
+            ObjectPickingMode.SPRITE_OR_FOOTPRINT -> {
+                objectPicker.pick(screenX, screenY)
+                    ?: tilePicker.pick(screenX, screenY)?.let { (x, y) ->
+                        world.getObjectAt(x, y)
+                    }
             }
 
             ObjectPickingMode.NONE -> null
