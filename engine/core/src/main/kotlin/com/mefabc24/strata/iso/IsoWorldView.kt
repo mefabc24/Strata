@@ -57,7 +57,8 @@ class IsoWorldView(
     zoomEdgeAllowance: Float = 0f,
     worldFill: Float = 0.85f,
     onLeftClick: ((x: Int, y: Int) -> Boolean)? = null,
-    onRightClick: ((x: Int, y: Int) -> Boolean)? = null
+    onRightClick: ((x: Int, y: Int) -> Boolean)? = null,
+    private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
 ) {
     val camera = OrthographicCamera()
 
@@ -161,6 +162,13 @@ class IsoWorldView(
     )
 
     init {
+        require(
+            maxTerrainSpriteHeight > 0f &&
+                    !maxTerrainSpriteHeight.isNaN()
+        ) {
+            "Maximum terrain sprite height must be positive."
+        }
+
         viewport.resize(
             Gdx.graphics.width,
             Gdx.graphics.height
@@ -206,7 +214,8 @@ class IsoWorldView(
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
             objectVisualFor = objectVisualFor,
-            preview = preview
+            preview = preview,
+            maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
     }
 

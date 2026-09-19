@@ -114,6 +114,12 @@ class SandboxGame : StrataGame {
                 }
 
                 true
+            },
+
+            maxTerrainSpriteHeight = TerrainType.entries.maxOf { type ->
+                val region = terrainRegistry[type]
+
+                64f * region.regionHeight / region.regionWidth
             }
         )
 

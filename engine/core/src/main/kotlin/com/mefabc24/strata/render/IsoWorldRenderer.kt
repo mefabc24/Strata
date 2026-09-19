@@ -40,7 +40,8 @@ class IsoWorldRenderer(
         raisedTile: Pair<Int, Int>? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
-        preview: PlacementPreview? = null
+        preview: PlacementPreview? = null,
+        maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
     ) {
         stats.reset()
 
@@ -78,66 +79,84 @@ class IsoWorldRenderer(
             (visibleArea.x + visibleArea.width) / projection.tileWidth + 0.5f
 
         batch.projectionMatrix = camera.combined
+
+        val terrainDepths = TerrainDepthCulling.visibleDepths(
+            visibleBottom = visibleArea.y,
+            visibleTop = visibleArea.y + visibleArea.height,
+            tileHeight = projection.tileHeight,
+            maxSpriteHeight = maxTerrainSpriteHeight,
+            raisedOffsetY = raiseOffsetY,
+            maxDepth = world.width + world.height - 2
+        )
+
         batch.begin()
 
         for (depth in 0 until world.width + world.height - 1) {
             val depthOffset = depth / 2f
 
-            val minX = maxOf(
-                0,
-                depth - world.height + 1,
-                floor(leftInTiles + depthOffset).toInt()
-            )
+            if (depth in terrainDepths) {
+                val depthOffset = depth / 2f
 
-            val maxX = minOf(
-                world.width - 1,
-                depth,
-                ceil(rightInTiles + depthOffset).toInt()
-            )
-
-            // Render only terrain sprites intersecting the camera.
-            for (x in minX..maxX) {
-                val y = depth - x
-
-                stats.terrainChecked++
-
-                val tile = world.getTile(x, y) ?: continue
-                val texture = textureFor(tile) ?: continue
-
-                val offsetY = if (raisedTile == (x to y)) {
-                    raiseOffsetY
-                } else {
-                    0f
-                }
-
-                val scale = projection.tileWidth / texture.regionWidth
-
-                val spriteWidth = texture.regionWidth * scale
-                val spriteHeight = texture.regionHeight * scale
-
-                val centerX = (x - y) * projection.tileWidth / 2f
-                val topY = -depth * projection.tileHeight / 2f + offsetY
-
-                tileBounds.set(
-                    centerX - spriteWidth / 2f,
-                    topY - spriteHeight,
-                    spriteWidth,
-                    spriteHeight
+                val minX = maxOf(
+                    0,
+                    depth - world.height + 1,
+                    floor(leftInTiles + depthOffset).toInt()
                 )
 
-                if (!tileBounds.overlaps(visibleArea)) {
-                    continue
-                }
-
-                terrainRenderer.render(
-                    batch = batch,
-                    x = x,
-                    y = y,
-                    texture = texture,
-                    offsetY = offsetY
+                val maxX = minOf(
+                    world.width - 1,
+                    depth,
+                    ceil(rightInTiles + depthOffset).toInt()
                 )
 
-                stats.terrainDrawn++
+                // Render only terrain sprites intersecting the camera.
+                for (x in minX..maxX) {
+                    val y = depth - x
+
+                    stats.terrainChecked++
+
+                    val tile = world.getTile(x, y) ?: continue
+                    val texture = textureFor(tile) ?: continue
+
+                    val offsetY = if (
+                        raisedTile != null &&
+                        raisedTile.first == x &&
+                        raisedTile.second == y
+                    ) {
+                        raiseOffsetY
+                    } else {
+                        0f
+                    }
+
+                    val scale = projection.tileWidth / texture.regionWidth
+
+                    val spriteWidth = texture.regionWidth * scale
+                    val spriteHeight = texture.regionHeight * scale
+
+                    val centerX = (x - y) * projection.tileWidth / 2f
+                    val topY = -depth * projection.tileHeight / 2f + offsetY
+
+                    tileBounds.set(
+                        centerX - spriteWidth / 2f,
+                        topY - spriteHeight,
+                        spriteWidth,
+                        spriteHeight
+                    )
+
+                    if (!tileBounds.overlaps(visibleArea)) {
+                        continue
+                    }
+
+                    terrainRenderer.render(
+                        batch = batch,
+                        x = x,
+                        y = y,
+                        texture = texture,
+                        offsetY = offsetY
+                    )
+
+                    stats.terrainDrawn++
+                }
             }
 
             objectsByDepth[depth]?.forEach { placed ->

@@ -12,7 +12,6 @@ import com.mefabc24.strata.iso.IsoProjection
 class IsoTerrainRenderer(
     private val projection: IsoProjection
 ) {
-
     fun render(
         batch: SpriteBatch,
         x: Int,
@@ -20,16 +19,18 @@ class IsoTerrainRenderer(
         texture: TextureRegion,
         offsetY: Float = 0f
     ) {
-        val position = projection.tileToWorld(x, y)
-
         val scale = projection.tileWidth / texture.regionWidth
+
         val spriteWidth = texture.regionWidth * scale
         val spriteHeight = texture.regionHeight * scale
 
+        val centerX = (x - y) * projection.tileWidth / 2f
+        val topY = -(x + y) * projection.tileHeight / 2f
+
         batch.draw(
             texture,
-            position.x - spriteWidth / 2f,
-            position.y - spriteHeight + offsetY,
+            centerX - spriteWidth / 2f,
+            topY - spriteHeight + offsetY,
             spriteWidth,
             spriteHeight
         )
