@@ -20,17 +20,15 @@ import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.audio.StrataAudio
+import com.mefabc24.strata.scene.StrataScene
 
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
     private lateinit var worldView: IsoWorldView
-    private lateinit var terrainRegistry: TerrainRegistry<TerrainType>
     private lateinit var placementController: PlacementController
     private lateinit var input: StrataInput
-    private lateinit var objectRegistry: ObjectRegistry
-    private lateinit var assets: StrataAssets
-    private lateinit var audio: StrataAudio<SoundCategory>
+    private lateinit var scene: StrataScene<TerrainType, SoundCategory>
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -72,58 +70,52 @@ class SandboxGame : StrataGame {
             "Failed to place test house."
         }
 
-        assets = StrataAssets()
+        scene = StrataScene<TerrainType, SoundCategory>(
+            terrainDirectory = "tiles",
+            objectDirectory = "objects"
+        ) {
+            terrain.register(
+                TerrainType.GRASS,
+                sprite = "grass.png"
+            )
 
-        terrainRegistry = TerrainRegistry<TerrainType>(
-            directory = "tiles",
-            assets = assets
-        ).apply {
-            register(TerrainType.GRASS, sprite = "grass.png")
-            register(TerrainType.WATER, sprite = "water3.png")
-            register(TerrainType.SAND, sprite = "grass.png")
-        }
+            terrain.register(
+                TerrainType.WATER,
+                sprite = "water3.png"
+            )
 
-        objectRegistry = ObjectRegistry(
-            directory = "objects",
-            assets = assets
-        ).apply {
-            register<OakTree>("oak.png") {
+            terrain.register(
+                TerrainType.SAND,
+                sprite = "grass.png"
+            )
+
+            objects.register<OakTree>("oak.png") {
                 offsetY = 5f
             }
 
-            register<House>("house.png")
-        }
+            objects.register<House>("house.png")
 
-        val sounds = SoundRegistry<SoundCategory>(assets).apply {
-            register(
+            sounds.register(
                 id = BuildingSound.PLACE,
                 path = "audio/pop.wav",
                 category = SoundCategory.BUILDING
             )
         }
 
-        assets.finishLoading()
+        scene.audio.apply {
+            masterVolume = 0.8f
+            soundVolume = 0.7f
+            musicVolume = 0.5f
 
-        terrainRegistry.prepare()
-        objectRegistry.prepare()
-
-        audio = StrataAudio(
-            assets = assets,
-            sounds = sounds
-        )
-
-        audio.masterVolume = 0.8f
-        audio.soundVolume = 0.7f
-        audio.musicVolume = 0.5f
-
-        audio.setCategoryVolume(
-            SoundCategory.BUILDING,
-            0.6f
-        )
+            setCategoryVolume(
+                SoundCategory.BUILDING,
+                0.6f
+            )
+        }
 
         check(
-            terrainRegistry[TerrainType.GRASS].texture ===
-                    terrainRegistry[TerrainType.SAND].texture
+            scene.terrain[TerrainType.GRASS].texture ===
+                    scene.terrain[TerrainType.SAND].texture
         ) {
             "Terrain types using the same sprite must share a texture."
         }
@@ -131,9 +123,9 @@ class SandboxGame : StrataGame {
         worldView = IsoWorldView(
             world = world,
             textureFor = { tile ->
-                terrainRegistry[(tile as SandboxTile).terrain]
+                scene.terrain[(tile as SandboxTile).terrain]
             },
-            objectVisualFor = objectRegistry::get,
+            objectVisualFor = scene.objects::get,
             tileWidth = 64f,
             tileHeight = 32f,
             zoomMode = ZoomMode.WORLD_BASED,
@@ -149,7 +141,7 @@ class SandboxGame : StrataGame {
                     if (placed != null) {
                         println("Object placed at ($x, $y)")
 
-                        audio.playSound(BuildingSound.PLACE)
+                        scene.audio.playSound(BuildingSound.PLACE)
                     } else {
                         println("Cannot place object at ($x, $y)")
                     }
@@ -177,7 +169,7 @@ class SandboxGame : StrataGame {
             ),
 
             maxTerrainSpriteHeight = TerrainType.entries.maxOf { type ->
-                val region = terrainRegistry[type]
+                val region = scene.terrain[type]
 
                 64f * region.regionHeight / region.regionWidth
             }
@@ -232,9 +224,7 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         input.uninstall()
 
-        audio.dispose()
         worldView.dispose()
-        assets.dispose()
+        scene.dispose()
     }
-
 }
