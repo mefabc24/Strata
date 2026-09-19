@@ -89,17 +89,6 @@ class SandboxGame : StrataGame {
             )
         }
 
-        scene.audio.apply {
-            masterVolume = 0.8f
-            soundVolume = 0.7f
-            musicVolume = 0.5f
-
-            setCategoryVolume(
-                SoundCategory.BUILDING,
-                0.6f
-            )
-        }
-
         check(
             scene.terrain[TerrainType.GRASS].texture ===
                     scene.terrain[TerrainType.SAND].texture
@@ -113,6 +102,17 @@ class SandboxGame : StrataGame {
                 (tile as SandboxTile).terrain
             }
         ) {
+            audio {
+                masterVolume = 0.8f
+                soundVolume = 0.7f
+                musicVolume = 0.5f
+
+                setCategoryVolume(
+                    SoundCategory.BUILDING,
+                    0.6f
+                )
+            }
+
             camera {
                 zoomEdgeAllowance = 0.3f
             }

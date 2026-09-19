@@ -94,7 +94,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     fun createView(
         world: World,
         terrainFor: (Tile) -> T,
-        configure: IsoViewSettings.() -> Unit = {}
+        configure: IsoViewSettings<C>.() -> Unit = {}
     ): IsoWorldView {
         checkActive()
 
@@ -102,7 +102,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A world view is already attached to this scene."
         }
 
-        val settings = IsoViewSettings().apply(configure)
+        val settings = IsoViewSettings(audio).apply(configure)
 
         val renderingSettings = settings.rendering.copy().apply {
             validate()
