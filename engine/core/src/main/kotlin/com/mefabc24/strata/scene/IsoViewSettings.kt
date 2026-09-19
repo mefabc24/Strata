@@ -6,11 +6,13 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
 
 /**
- * Configures an isometric world view and its scene audio.
+ * Configures an isometric world view and its scene systems.
  */
 class IsoViewSettings<C : Enum<C>>(
-    private val sceneAudio: StrataAudio<C>
+    private val sceneAudio: StrataAudio<C>,
+    private val sceneDebug: DebugSettings
 ) {
+
     fun audio(configure: StrataAudio<C>.() -> Unit) {
         sceneAudio.apply(configure)
     }
@@ -31,5 +33,9 @@ class IsoViewSettings<C : Enum<C>>(
 
     fun controls(configure: ControlsSettings.() -> Unit) {
         controls.apply(configure)
+    }
+
+    fun debug(configure: DebugSettings.() -> Unit) {
+        sceneDebug.apply(configure)
     }
 }

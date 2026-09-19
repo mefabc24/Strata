@@ -58,9 +58,6 @@ class SandboxGame : StrataGame {
             terrainDirectory = "tiles",
             objectDirectory = "objects"
         ) {
-            performance.enabled = true
-            performance.intervalSeconds = 2f
-
             terrain.register(
                 TerrainType.GRASS,
                 sprite = "grass.png"
@@ -103,14 +100,18 @@ class SandboxGame : StrataGame {
             }
         ) {
             audio {
-                masterVolume = 0.8f
-                soundVolume = 0.7f
-                musicVolume = 0.5f
+                masterVolume = 1f
+                soundVolume = 1f
+                musicVolume = 1f
 
-                setCategoryVolume(
-                    SoundCategory.BUILDING,
-                    0.6f
-                )
+                setCategoryVolume(SoundCategory.BUILDING, 1f)
+            }
+
+            debug {
+                performance {
+                    enabled = true
+                    intervalSeconds = 2f
+                }
             }
 
             camera {

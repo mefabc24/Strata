@@ -44,9 +44,9 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     )
 
     /**
-     * Configures optional performance logging.
+     * Provides access to scene debugging facilities.
      */
-    val performance = ScenePerformanceLogger()
+    val debug = DebugSettings()
 
     private var attachedView: IsoWorldView? = null
     private var attachedInput: StrataInput? = null
@@ -102,7 +102,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A world view is already attached to this scene."
         }
 
-        val settings = IsoViewSettings(audio).apply(configure)
+        val settings = IsoViewSettings(
+            sceneAudio = audio,
+            sceneDebug = debug
+        ).apply(configure)
 
         val renderingSettings = settings.rendering.copy().apply {
             validate()
@@ -185,7 +188,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             preview = preview
         )
 
-        performance.record(
+        debug.performance.record(
             stats = view.renderStats,
             delta = Gdx.graphics.deltaTime
         )
