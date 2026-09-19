@@ -20,6 +20,7 @@ import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.camera.CameraControls
+import com.mefabc24.strata.camera.CameraSettings
 
 /**
  * Determines how placed objects are picked.
@@ -54,19 +55,21 @@ class IsoWorldView(
     private val world: World,
     private val textureFor: (Tile) -> TextureRegion?,
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
+
     tileWidth: Float = 64f,
     tileHeight: Float = 32f,
-    viewportMode: ViewportMode = ViewportMode.FIXED_HEIGHT,
-    virtualHeight: Float = 720f,
-    zoomMode: ZoomMode = ZoomMode.WORLD_BASED,
-    zoomAnchor: ZoomAnchor = ZoomAnchor.CURSOR,
-    cameraPadding: Float = 100f,
-    zoomEdgeAllowance: Float = 0f,
-    worldFill: Float = 0.85f,
+
+    cameraSettings: CameraSettings = CameraSettings(),
+
     bindings: List<WorldInputBinding> = emptyList(),
     private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
     cameraControls: CameraControls = CameraControls()
 ) {
+
+    private val cameraConfig = cameraSettings.copy().also {
+        it.validate()
+    }
+
     val camera = OrthographicCamera()
 
     private val projection = IsoProjection(
@@ -94,7 +97,7 @@ class IsoWorldView(
     private val cameraBounds = projection.worldBounds(
         width = world.width,
         height = world.height,
-        padding = cameraPadding
+        padding = cameraConfig.cameraPadding
     ).let {
         CameraBounds(
             minX = it.x,
@@ -107,32 +110,30 @@ class IsoWorldView(
     private val zoomBounds = projection.worldBounds(
         width = world.width,
         height = world.height,
-        padding = cameraPadding
+        padding = cameraConfig.cameraPadding
     ).let {
         CameraBounds(
             minX = it.x,
             minY = it.y,
             maxX = it.x + it.width,
             maxY = it.y + it.height,
-            edgeAllowance = zoomEdgeAllowance
+            edgeAllowance = cameraConfig.zoomEdgeAllowance
         )
     }
 
     private val viewport = CameraViewport(
         camera = camera,
-        mode = viewportMode,
-        virtualHeight = virtualHeight,
+        mode = cameraConfig.viewportMode,
+        virtualHeight = cameraConfig.virtualHeight,
         bounds = zoomBounds
     )
 
     val cameraController = CameraController(
         camera = camera,
+        settings = cameraConfig,
         bounds = cameraBounds,
         zoomBounds = zoomBounds,
-        zoomMode = zoomMode,
         worldZoomBounds = worldBounds,
-        worldFill = worldFill,
-        zoomAnchor = zoomAnchor,
         controls = cameraControls
     )
 
@@ -184,7 +185,7 @@ class IsoWorldView(
             Gdx.graphics.height
         )
 
-        if (zoomMode == ZoomMode.WORLD_BASED) {
+        if (cameraConfig.zoomMode == ZoomMode.WORLD_BASED) {
             cameraController.fitWorld()
         } else {
             camera.position.set(
@@ -197,6 +198,9 @@ class IsoWorldView(
         }
     }
 
+    /**
+     * Updates the state of the world view.
+     */
     fun update(delta: Float) {
         cameraController.update(delta)
 

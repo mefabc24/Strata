@@ -118,9 +118,9 @@ class SandboxGame : StrataGame {
             tileWidth = 64f
             tileHeight = 32f
 
-            zoomMode = ZoomMode.WORLD_BASED
-            zoomAnchor = ZoomAnchor.CURSOR
-            zoomEdgeAllowance = 0.3f
+            camera {
+                zoomEdgeAllowance = 0.3f
+            }
 
             controls {
                 dragButton = Input.Buttons.MIDDLE

@@ -116,15 +116,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             tileWidth = settings.tileWidth,
             tileHeight = settings.tileHeight,
 
-            viewportMode = settings.viewportMode,
-            virtualHeight = settings.virtualHeight,
-
-            zoomMode = settings.zoomMode,
-            zoomAnchor = settings.zoomAnchor,
-
-            cameraPadding = settings.cameraPadding,
-            zoomEdgeAllowance = settings.zoomEdgeAllowance,
-            worldFill = settings.worldFill,
+            cameraSettings = settings.camera,
 
             bindings = settings.bindings,
 

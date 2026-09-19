@@ -41,26 +41,36 @@ enum class ZoomMode {
 
 class CameraController(
     private val camera: OrthographicCamera,
+    settings: CameraSettings,
     private val bounds: CameraBounds? = null,
     private val zoomBounds: CameraBounds? = bounds,
-    var moveSpeed: Float = 500f,
-    var zoomSpeed: Float = 0.1f,
-    var minZoom: Float = 0.25f,
-    var maxZoom: Float = 3f,
-    private val zoomMode: ZoomMode = ZoomMode.FIXED,
     private val worldZoomBounds: Rectangle? = null,
-    private val worldFill: Float = 0.85f,
-    private val zoomAnchor: ZoomAnchor = ZoomAnchor.CENTER,
     val controls: CameraControls = CameraControls()
 ) {
+
+    var moveSpeed: Float = settings.moveSpeed
+    var zoomSpeed: Float = settings.zoomSpeed
+    var minZoom: Float = settings.minZoom
+    var maxZoom: Float = settings.maxZoom
+
+    private val zoomMode = settings.zoomMode
+    private val worldFill = settings.worldFill
+    private val zoomAnchor = settings.zoomAnchor
+
     init {
-        require(minZoom > 0f && minZoom.isFinite())
-        require(maxZoom >= minZoom && maxZoom.isFinite())
-        require(worldFill > 0f && worldFill <= 1f)
+        settings.validate()
 
         if (zoomMode == ZoomMode.WORLD_BASED) {
-            require(worldZoomBounds != null)
-            require(worldZoomBounds.width > 0f && worldZoomBounds.height > 0f)
+            require(worldZoomBounds != null) {
+                "World-based zoom requires world bounds."
+            }
+
+            require(
+                worldZoomBounds.width > 0f &&
+                        worldZoomBounds.height > 0f
+            ) {
+                "World bounds must have positive dimensions."
+            }
         }
     }
 
