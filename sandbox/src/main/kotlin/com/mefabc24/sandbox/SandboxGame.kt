@@ -25,9 +25,7 @@ import com.mefabc24.strata.scene.StrataScene
 class SandboxGame : StrataGame {
 
     private lateinit var world: World
-    private lateinit var worldView: IsoWorldView
     private lateinit var placementController: PlacementController
-    private lateinit var input: StrataInput
     private lateinit var scene: StrataScene<TerrainType, SoundCategory>
 
     private val previewStyle = PlacementPreviewStyle(
@@ -120,7 +118,7 @@ class SandboxGame : StrataGame {
             "Terrain types using the same sprite must share a texture."
         }
 
-        worldView = IsoWorldView(
+        scene.attachView(IsoWorldView(
             world = world,
             textureFor = { tile ->
                 scene.terrain[(tile as SandboxTile).terrain]
@@ -173,30 +171,28 @@ class SandboxGame : StrataGame {
 
                 64f * region.regionHeight / region.regionWidth
             }
-        )
-
-        input = StrataInput(worldView.inputProcessor)
-        input.install()
+        ))
     }
 
 
     override fun resize(width: Int, height: Int) {
-        if (!::worldView.isInitialized) return
+        if (!::scene.isInitialized) return
 
-        worldView.resize(width, height)
+        scene.resize(width, height)
     }
 
     override fun update(delta: Float) {
-        worldView.update(delta)
-        placementController.update(worldView.hoveredTile)
+        scene.update(delta)
+
+        placementController.update(scene.view.hoveredTile)
     }
 
     override fun render() {
-        worldView.render(
+        scene.render(
             preview = placementController.preview
         )
 
-        val stats = worldView.renderStats
+        val stats = scene.view.renderStats
 
         perfElapsed += Gdx.graphics.deltaTime
         perfFrames++
@@ -222,9 +218,8 @@ class SandboxGame : StrataGame {
     }
 
     override fun dispose() {
-        input.uninstall()
-
-        worldView.dispose()
-        scene.dispose()
+        if (::scene.isInitialized) {
+            scene.dispose()
+        }
     }
 }
