@@ -50,7 +50,8 @@ class CameraController(
     private val zoomMode: ZoomMode = ZoomMode.FIXED,
     private val worldZoomBounds: Rectangle? = null,
     private val worldFill: Float = 0.85f,
-    private val zoomAnchor: ZoomAnchor = ZoomAnchor.CENTER
+    private val zoomAnchor: ZoomAnchor = ZoomAnchor.CENTER,
+    val controls: CameraControls = CameraControls()
 ) {
     init {
         require(minZoom > 0f && minZoom.isFinite())
@@ -73,11 +74,13 @@ class CameraController(
             if (!value) {
                 isDragging = false
                 dragPointer = -1
+                activeDragButton = -1
             }
         }
 
     private var isDragging = false
     private var dragPointer = -1
+    private var activeDragButton = -1
 
     private val lastMousePosition = Vector3()
     private val currentMousePosition = Vector3()
@@ -94,12 +97,17 @@ class CameraController(
         ): Boolean {
             if (!enabled) return false
 
-            if (button != Input.Buttons.MIDDLE || isDragging) {
+            if (
+                !controls.mouseDraggingEnabled ||
+                button != controls.dragButton ||
+                isDragging
+            ) {
                 return false
             }
 
             isDragging = true
             dragPointer = pointer
+            activeDragButton = button
 
             lastMousePosition.set(
                 screenX.toFloat(),
@@ -117,7 +125,13 @@ class CameraController(
             screenY: Int,
             pointer: Int
         ): Boolean {
-            if (!enabled) return false
+            if (!enabled || !controls.mouseDraggingEnabled) {
+                isDragging = false
+                dragPointer = -1
+                activeDragButton = -1
+
+                return false
+            }
 
             if (!isDragging || pointer != dragPointer) {
                 return false
@@ -147,15 +161,17 @@ class CameraController(
         ): Boolean {
             if (!enabled) return false
 
-            if (!isDragging ||
+            if (
+                !isDragging ||
                 pointer != dragPointer ||
-                button != Input.Buttons.MIDDLE
+                button != activeDragButton
             ) {
                 return false
             }
 
             isDragging = false
             dragPointer = -1
+            activeDragButton = -1
 
             return true
         }
@@ -164,7 +180,7 @@ class CameraController(
             amountX: Float,
             amountY: Float
         ): Boolean {
-            if (!enabled) return false
+            if (!enabled || !controls.zoomEnabled) return false
 
             zoom(amountY)
             return true
@@ -172,26 +188,32 @@ class CameraController(
     }
 
     fun update(delta: Float) {
-        if (!enabled) return
+        if (!controls.mouseDraggingEnabled && isDragging) {
+            isDragging = false
+            dragPointer = -1
+            activeDragButton = -1
+        }
+
+        if (!enabled || !controls.keyboardMovementEnabled) return
 
         val movement = moveSpeed * delta * camera.zoom
 
         var deltaX = 0f
         var deltaY = 0f
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+        if (Gdx.input.isKeyPressed(controls.moveUp)) {
             deltaY += movement
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+        if (Gdx.input.isKeyPressed(controls.moveDown)) {
             deltaY -= movement
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+        if (Gdx.input.isKeyPressed(controls.moveLeft)) {
             deltaX -= movement
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+        if (Gdx.input.isKeyPressed(controls.moveRight)) {
             deltaX += movement
         }
 

@@ -1,5 +1,6 @@
 package com.mefabc24.strata.scene
 
+import com.mefabc24.strata.camera.CameraControls
 import com.mefabc24.strata.camera.ViewportMode
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
@@ -31,4 +32,13 @@ class IsoViewSettings {
      * Null enables automatic calculation.
      */
     var maxTerrainSpriteHeight: Float? = null
+
+    /**
+     * Configures keyboard and mouse controls for the camera.
+     */
+    val cameraControls = CameraControls()
+
+    fun controls(configure: CameraControls.() -> Unit) {
+        cameraControls.apply(configure)
+    }
 }

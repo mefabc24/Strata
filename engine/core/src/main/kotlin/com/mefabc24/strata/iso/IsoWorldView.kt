@@ -19,6 +19,7 @@ import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.camera.CameraControls
 
 /**
  * Determines how placed objects are picked.
@@ -63,7 +64,8 @@ class IsoWorldView(
     zoomEdgeAllowance: Float = 0f,
     worldFill: Float = 0.85f,
     bindings: List<WorldInputBinding> = emptyList(),
-    private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
+    private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
+    cameraControls: CameraControls = CameraControls()
 ) {
     val camera = OrthographicCamera()
 
@@ -130,7 +132,8 @@ class IsoWorldView(
         zoomMode = zoomMode,
         worldZoomBounds = worldBounds,
         worldFill = worldFill,
-        zoomAnchor = zoomAnchor
+        zoomAnchor = zoomAnchor,
+        controls = cameraControls
     )
 
     private val tilePicker = TilePicker(

@@ -122,6 +122,14 @@ class SandboxGame : StrataGame {
             zoomAnchor = ZoomAnchor.CURSOR
             zoomEdgeAllowance = 0.3f
 
+            controls {
+                dragButton = Input.Buttons.MIDDLE
+
+                keyboardMovementEnabled = true
+                mouseDraggingEnabled = true
+                zoomEnabled = true
+            }
+
             bindings = listOf(
                 WorldInputBinding.Tile(
                     trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
