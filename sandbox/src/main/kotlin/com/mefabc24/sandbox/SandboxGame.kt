@@ -123,41 +123,43 @@ class SandboxGame : StrataGame {
             }
 
             controls {
-                bindings = listOf(
-                    WorldInputBinding.Tile(
-                        trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
-                    ) { x, y ->
-                        val placed = placementController.placeAt(x, y)
+                worldInput {
+                    bindings = listOf(
+                        WorldInputBinding.Tile(
+                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                        ) { x, y ->
+                            val placed = placementController.placeAt(x, y)
 
-                        if (placed != null) {
-                            println("Object placed at ($x, $y)")
+                            if (placed != null) {
+                                println("Object placed at ($x, $y)")
 
-                            scene.audio.playSound(BuildingSound.PLACE)
-                        } else {
-                            println("Cannot place object at ($x, $y)")
+                                scene.audio.playSound(BuildingSound.PLACE)
+                            } else {
+                                println("Cannot place object at ($x, $y)")
+                            }
+
+                            true
+                        },
+
+                        WorldInputBinding.Object(
+                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
+                            mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT
+                        ) { placed ->
+                            world.removeObject(placed)
+                            true
+                        },
+
+                        WorldInputBinding.Tile(
+                            trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
+                        ) { x, y ->
+                            val tile = world.getTile(x, y)
+
+                            println("Tile at ($x, $y): $tile")
+
+                            true
                         }
-
-                        true
-                    },
-
-                    WorldInputBinding.Object(
-                        trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                        mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT
-                    ) { placed ->
-                        world.removeObject(placed)
-                        true
-                    },
-
-                    WorldInputBinding.Tile(
-                        trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
-                    ) { x, y ->
-                        val tile = world.getTile(x, y)
-
-                        println("Tile at ($x, $y): $tile")
-
-                        true
-                    }
-                )
+                    )
+                }
             }
         }
     }

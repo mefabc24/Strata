@@ -2,9 +2,6 @@ package com.mefabc24.strata.input
 
 import com.mefabc24.strata.camera.CameraControls
 
-/**
- * Configures camera controls and world input bindings.
- */
 class ControlsSettings {
 
     val camera = CameraControls()
@@ -13,5 +10,9 @@ class ControlsSettings {
         camera.apply(configure)
     }
 
-    var bindings: List<WorldInputBinding> = emptyList()
+    val worldInput = WorldInputSettings()
+
+    fun worldInput(configure: WorldInputSettings.() -> Unit) {
+        worldInput.apply(configure)
+    }
 }
