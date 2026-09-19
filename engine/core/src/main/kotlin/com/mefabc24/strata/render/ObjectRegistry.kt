@@ -2,9 +2,7 @@ package com.mefabc24.strata.render
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.utils.Disposable
+import com.mefabc24.strata.assets.AssetStore
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import kotlin.reflect.KClass
@@ -22,17 +20,18 @@ class ObjectSpriteSettings {
 }
 
 /**
- * Loads and manages sprites for registered placeable types.
+ * Maps placeable types to sprites managed by an AssetStore.
  */
 class ObjectRegistry(
-    directory: String
-) : Disposable {
-
+    directory: String,
+    private val assets: AssetStore
+) {
     private val baseDirectory = directory.trimEnd('/')
 
-    private val textures = mutableMapOf<String, Texture>()
     private val alphaMasks = mutableMapOf<String, AlphaMask>()
-    private val visuals = mutableMapOf<KClass<out Placeable>, ObjectVisual>()
+
+    private val visuals =
+        mutableMapOf<KClass<out Placeable>, ObjectVisual>()
 
     /**
      * Registers a sprite for a placeable type.
@@ -58,14 +57,7 @@ class ObjectRegistry(
             "$baseDirectory/$sprite"
         }
 
-        val texture = textures.getOrPut(path) {
-            Texture(Gdx.files.classpath(path)).apply {
-                setFilter(
-                    Texture.TextureFilter.Nearest,
-                    Texture.TextureFilter.Nearest
-                )
-            }
-        }
+        val region = assets.region(path)
 
         val alphaMask = alphaMasks.getOrPut(path) {
             val pixmap = Pixmap(Gdx.files.classpath(path))
@@ -78,7 +70,7 @@ class ObjectRegistry(
         }
 
         visuals[type] = ObjectVisual(
-            texture = TextureRegion(texture),
+            texture = region,
             offsetX = settings.offsetX,
             offsetY = settings.offsetY,
             alphaMask = alphaMask,
@@ -103,16 +95,5 @@ class ObjectRegistry(
      */
     fun get(placed: PlacedObject): ObjectVisual? {
         return visuals[placed.placeable::class]
-    }
-
-    /**
-     * Releases all textures owned by this registry.
-     */
-    override fun dispose() {
-        textures.values.forEach { it.dispose() }
-
-        alphaMasks.clear()
-        textures.clear()
-        visuals.clear()
     }
 }

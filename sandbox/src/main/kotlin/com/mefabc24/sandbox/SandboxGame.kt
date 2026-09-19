@@ -14,6 +14,7 @@ import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.assets.AssetStore
 
 class SandboxGame : StrataGame {
 
@@ -23,6 +24,7 @@ class SandboxGame : StrataGame {
     private lateinit var placementController: PlacementController
     private lateinit var input: StrataInput
     private lateinit var objectRegistry: ObjectRegistry
+    private lateinit var assets: AssetStore
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -34,7 +36,7 @@ class SandboxGame : StrataGame {
     private var perfRenderMsSum = 0.0
 
     // Debug
-    private val worldSize = 200
+    private val worldSize = 50
 
     override fun create() {
         world = World(worldSize, worldSize) { x, y ->
@@ -64,16 +66,27 @@ class SandboxGame : StrataGame {
             "Failed to place test house."
         }
 
+        assets = AssetStore()
+
         terrainRegistry = TerrainRegistry<TerrainType>(
-            directory = "tiles"
+            directory = "tiles",
+            assets = assets
         ).apply {
             register(TerrainType.GRASS, sprite = "grass.png")
             register(TerrainType.WATER, sprite = "water3.png")
             register(TerrainType.SAND, sprite = "grass.png")
         }
 
+        check(
+            terrainRegistry[TerrainType.GRASS].texture ===
+                    terrainRegistry[TerrainType.SAND].texture
+        ) {
+            "Terrain types using the same sprite must share a texture."
+        }
+
         objectRegistry = ObjectRegistry(
-            directory = "objects"
+            directory = "objects",
+            assets = assets
         ).apply {
             register<OakTree>("oak.png") {
                 offsetY = 5f
@@ -181,9 +194,8 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         input.uninstall()
 
-        objectRegistry.dispose()
-        terrainRegistry.dispose()
         worldView.dispose()
+        assets.dispose()
     }
 
 }

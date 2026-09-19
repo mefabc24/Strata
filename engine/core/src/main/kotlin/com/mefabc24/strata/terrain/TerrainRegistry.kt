@@ -1,16 +1,17 @@
 package com.mefabc24.strata.terrain
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.utils.Disposable
+import com.mefabc24.strata.assets.AssetStore
 
+/**
+ * Maps terrain types to sprites managed by an AssetStore.
+ */
 class TerrainRegistry<T : Enum<T>>(
-    directory: String
-) : Disposable {
+    directory: String,
+    private val assets: AssetStore
+) {
     private val baseDirectory = directory.trimEnd('/')
 
-    private val textures = mutableMapOf<String, Texture>()
     private val regions = mutableMapOf<T, TextureRegion>()
 
     /**
@@ -34,16 +35,7 @@ class TerrainRegistry<T : Enum<T>>(
             "$baseDirectory/$sprite"
         }
 
-        val texture = textures.getOrPut(path) {
-            Texture(Gdx.files.classpath(path)).apply {
-                setFilter(
-                    Texture.TextureFilter.Nearest,
-                    Texture.TextureFilter.Nearest
-                )
-            }
-        }
-
-        regions[type] = TextureRegion(texture)
+        regions[type] = assets.region(path)
     }
 
     /**
@@ -52,15 +44,5 @@ class TerrainRegistry<T : Enum<T>>(
     operator fun get(type: T): TextureRegion {
         return regions[type]
             ?: error("Terrain type $type is not registered.")
-    }
-
-    /**
-     * Releases all textures owned by this registry.
-     */
-    override fun dispose() {
-        textures.values.forEach { it.dispose() }
-
-        textures.clear()
-        regions.clear()
     }
 }
