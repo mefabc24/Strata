@@ -3,32 +3,30 @@ package com.mefabc24.strata.assets
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.assets.loaders.TextureLoader
 import com.badlogic.gdx.assets.loaders.resolvers.ClasspathFileHandleResolver
+import com.badlogic.gdx.audio.Music
+import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 
 /**
- * Manages the lifecycle of game assets.
+ * Loads and owns game assets.
  */
 class StrataAssets : Disposable {
 
     private val manager = AssetManager(ClasspathFileHandleResolver())
 
-    private val queuedTextures = mutableSetOf<String>()
+    private val queuedAssets = mutableMapOf<String, Class<*>>()
 
     private var disposed = false
 
     /**
-     * Queues a texture for loading if it has not been requested yet.
+     * Queues a texture with pixel-art filtering.
      */
     fun queueTexture(path: String) {
         checkActive()
 
-        require(path.isNotBlank()) {
-            "Texture path must not be blank."
-        }
-
-        if (path in queuedTextures) return
+        if (!register(path, Texture::class.java)) return
 
         val parameters = TextureLoader.TextureParameter().apply {
             minFilter = Texture.TextureFilter.Nearest
@@ -36,14 +34,32 @@ class StrataAssets : Disposable {
         }
 
         manager.load(path, Texture::class.java, parameters)
-
-        queuedTextures.add(path)
     }
 
     /**
-     * Processes pending loading tasks.
-     *
-     * Returns true when all assets have finished loading.
+     * Queues a short sound effect.
+     */
+    fun queueSound(path: String) {
+        checkActive()
+
+        if (register(path, Sound::class.java)) {
+            manager.load(path, Sound::class.java)
+        }
+    }
+
+    /**
+     * Queues a streamed music track.
+     */
+    fun queueMusic(path: String) {
+        checkActive()
+
+        if (register(path, Music::class.java)) {
+            manager.load(path, Music::class.java)
+        }
+    }
+
+    /**
+     * Returns true when all queued assets are loaded.
      */
     fun update(): Boolean {
         checkActive()
@@ -51,44 +67,75 @@ class StrataAssets : Disposable {
     }
 
     /**
-     * Blocks until all queued assets have finished loading.
+     * Blocks until all queued assets are loaded.
      */
     fun finishLoading() {
         checkActive()
         manager.finishLoading()
     }
 
-    /**
-     * Returns the current loading progress.
-     */
     val progress: Float
         get() {
             checkActive()
             return manager.progress
         }
 
-    /**
-     * Returns an already loaded texture.
-     */
     fun texture(path: String): Texture {
-        checkActive()
+        return get(path, Texture::class.java)
+    }
 
-        check(path in queuedTextures) {
-            "Texture has not been queued: $path"
-        }
+    fun region(path: String): TextureRegion {
+        return TextureRegion(texture(path))
+    }
 
-        check(manager.isLoaded(path, Texture::class.java)) {
-            "Texture is not loaded yet: $path"
-        }
+    fun sound(path: String): Sound {
+        return get(path, Sound::class.java)
+    }
 
-        return manager.get(path, Texture::class.java)
+    fun music(path: String): Music {
+        return get(path, Music::class.java)
     }
 
     /**
-     * Creates a region referencing an already loaded texture.
+     * Registers an asset path exactly once.
      */
-    fun region(path: String): TextureRegion {
-        return TextureRegion(texture(path))
+    private fun register(
+        path: String,
+        type: Class<*>
+    ): Boolean {
+        require(path.isNotBlank()) {
+            "Asset path must not be blank."
+        }
+
+        val existingType = queuedAssets[path]
+
+        if (existingType != null) {
+            require(existingType == type) {
+                "Asset $path is already registered as ${existingType.simpleName}."
+            }
+
+            return false
+        }
+
+        queuedAssets[path] = type
+        return true
+    }
+
+    private fun <T> get(
+        path: String,
+        type: Class<T>
+    ): T {
+        checkActive()
+
+        check(queuedAssets[path] == type) {
+            "Asset is not queued as ${type.simpleName}: $path"
+        }
+
+        check(manager.isLoaded(path, type)) {
+            "Asset is not loaded yet: $path"
+        }
+
+        return manager.get(path, type)
     }
 
     private fun checkActive() {
@@ -98,7 +145,7 @@ class StrataAssets : Disposable {
     }
 
     /**
-     * Releases all managed assets.
+     * Releases all assets owned by the manager.
      */
     override fun dispose() {
         if (disposed) return
@@ -106,6 +153,6 @@ class StrataAssets : Disposable {
         disposed = true
 
         manager.dispose()
-        queuedTextures.clear()
+        queuedAssets.clear()
     }
 }

@@ -18,6 +18,7 @@ import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.audio.StrataAudio
 
 class SandboxGame : StrataGame {
 
@@ -28,6 +29,7 @@ class SandboxGame : StrataGame {
     private lateinit var input: StrataInput
     private lateinit var objectRegistry: ObjectRegistry
     private lateinit var assets: StrataAssets
+    private lateinit var audio: StrataAudio<SoundCategory>
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -91,10 +93,23 @@ class SandboxGame : StrataGame {
             register<House>("house.png")
         }
 
+        assets.queueSound("audio/pop.wav")
+
         assets.finishLoading()
 
         terrainRegistry.prepare()
         objectRegistry.prepare()
+
+        audio = StrataAudio<SoundCategory>(assets)
+
+        audio.masterVolume = 0.8f
+        audio.soundVolume = 0.7f
+        audio.musicVolume = 0.5f
+
+        audio.setCategoryVolume(
+            SoundCategory.BUILDING,
+            0.6f
+        )
 
         check(
             terrainRegistry[TerrainType.GRASS].texture ===
@@ -123,6 +138,11 @@ class SandboxGame : StrataGame {
 
                     if (placed != null) {
                         println("Object placed at ($x, $y)")
+
+                        audio.playSound(
+                            path = "audio/pop.wav",
+                            category = SoundCategory.BUILDING
+                        )
                     } else {
                         println("Cannot place object at ($x, $y)")
                     }
@@ -205,6 +225,7 @@ class SandboxGame : StrataGame {
     override fun dispose() {
         input.uninstall()
 
+        audio.dispose()
         worldView.dispose()
         assets.dispose()
     }
