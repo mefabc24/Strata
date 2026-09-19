@@ -2,7 +2,7 @@ package com.mefabc24.strata.render
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
-import com.mefabc24.strata.assets.AssetStore
+import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import kotlin.reflect.KClass
@@ -20,13 +20,21 @@ class ObjectSpriteSettings {
 }
 
 /**
- * Maps placeable types to sprites managed by an AssetStore.
+ * Maps placeable types to their visual configuration.
  */
 class ObjectRegistry(
     directory: String,
-    private val assets: AssetStore
+    private val assets: StrataAssets
 ) {
+    private data class Registration(
+        val path: String,
+        val settings: ObjectSpriteSettings
+    )
+
     private val baseDirectory = directory.trimEnd('/')
+
+    private val registrations =
+        mutableMapOf<KClass<out Placeable>, Registration>()
 
     private val alphaMasks = mutableMapOf<String, AlphaMask>()
 
@@ -34,14 +42,14 @@ class ObjectRegistry(
         mutableMapOf<KClass<out Placeable>, ObjectVisual>()
 
     /**
-     * Registers a sprite for a placeable type.
+     * Registers an object type and queues its texture.
      */
     fun <T : Placeable> register(
         type: KClass<T>,
         sprite: String,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        require(type !in visuals) {
+        require(type !in registrations) {
             "Object type $type is already registered."
         }
 
@@ -57,26 +65,11 @@ class ObjectRegistry(
             "$baseDirectory/$sprite"
         }
 
-        val region = assets.region(path)
+        assets.queueTexture(path)
 
-        val alphaMask = alphaMasks.getOrPut(path) {
-            val pixmap = Pixmap(Gdx.files.classpath(path))
-
-            try {
-                AlphaMask.fromPixmap(pixmap)
-            } finally {
-                pixmap.dispose()
-            }
-        }
-
-        visuals[type] = ObjectVisual(
-            texture = region,
-            offsetX = settings.offsetX,
-            offsetY = settings.offsetY,
-            alphaMask = alphaMask,
-            width = settings.width,
-            height = settings.height,
-            scale = settings.scale
+        registrations[type] = Registration(
+            path = path,
+            settings = settings
         )
     }
 
@@ -91,7 +84,41 @@ class ObjectRegistry(
     }
 
     /**
-     * Returns the visual registered for a placed object.
+     * Resolves textures and builds alpha masks after loading.
+     */
+    fun prepare() {
+        for ((type, registration) in registrations) {
+            if (type in visuals) continue
+
+            val path = registration.path
+            val settings = registration.settings
+
+            val region = assets.region(path)
+
+            val alphaMask = alphaMasks.getOrPut(path) {
+                val pixmap = Pixmap(Gdx.files.classpath(path))
+
+                try {
+                    AlphaMask.fromPixmap(pixmap)
+                } finally {
+                    pixmap.dispose()
+                }
+            }
+
+            visuals[type] = ObjectVisual(
+                texture = region,
+                offsetX = settings.offsetX,
+                offsetY = settings.offsetY,
+                alphaMask = alphaMask,
+                width = settings.width,
+                height = settings.height,
+                scale = settings.scale
+            )
+        }
+    }
+
+    /**
+     * Returns the prepared visual for a placed object.
      */
     fun get(placed: PlacedObject): ObjectVisual? {
         return visuals[placed.placeable::class]

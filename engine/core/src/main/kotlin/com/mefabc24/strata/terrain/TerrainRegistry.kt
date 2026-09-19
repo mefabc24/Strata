@@ -1,27 +1,28 @@
 package com.mefabc24.strata.terrain
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.mefabc24.strata.assets.AssetStore
+import com.mefabc24.strata.assets.StrataAssets
 
 /**
- * Maps terrain types to sprites managed by an AssetStore.
+ * Maps terrain types to their sprites.
  */
 class TerrainRegistry<T : Enum<T>>(
     directory: String,
-    private val assets: AssetStore
+    private val assets: StrataAssets
 ) {
     private val baseDirectory = directory.trimEnd('/')
 
+    private val registrations = mutableMapOf<T, String>()
     private val regions = mutableMapOf<T, TextureRegion>()
 
     /**
-     * Registers a terrain type using its name as the default sprite filename.
+     * Registers a terrain type and queues its texture.
      */
     fun register(
         type: T,
         sprite: String = "${type.name.lowercase()}.png"
     ) {
-        require(type !in regions) {
+        require(type !in registrations) {
             "Terrain type $type is already registered."
         }
 
@@ -35,14 +36,29 @@ class TerrainRegistry<T : Enum<T>>(
             "$baseDirectory/$sprite"
         }
 
-        regions[type] = assets.region(path)
+        assets.queueTexture(path)
+        registrations[type] = path
     }
 
     /**
-     * Returns the sprite registered for a terrain type.
+     * Resolves registered sprites after their textures have loaded.
+     */
+    fun prepare() {
+        for ((type, path) in registrations) {
+            if (type in regions) continue
+
+            regions[type] = assets.region(path)
+        }
+    }
+
+    /**
+     * Returns the prepared sprite for a terrain type.
      */
     operator fun get(type: T): TextureRegion {
         return regions[type]
-            ?: error("Terrain type $type is not registered.")
+            ?: error(
+                "Terrain type $type is not prepared. " +
+                        "Load the assets and call prepare() first."
+            )
     }
 }

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
+import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.iso.IsoWorldView
@@ -14,7 +15,6 @@ import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
-import com.mefabc24.strata.assets.AssetStore
 
 class SandboxGame : StrataGame {
 
@@ -24,7 +24,7 @@ class SandboxGame : StrataGame {
     private lateinit var placementController: PlacementController
     private lateinit var input: StrataInput
     private lateinit var objectRegistry: ObjectRegistry
-    private lateinit var assets: AssetStore
+    private lateinit var assets: StrataAssets
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -66,7 +66,7 @@ class SandboxGame : StrataGame {
             "Failed to place test house."
         }
 
-        assets = AssetStore()
+        assets = StrataAssets()
 
         terrainRegistry = TerrainRegistry<TerrainType>(
             directory = "tiles",
@@ -75,13 +75,6 @@ class SandboxGame : StrataGame {
             register(TerrainType.GRASS, sprite = "grass.png")
             register(TerrainType.WATER, sprite = "water3.png")
             register(TerrainType.SAND, sprite = "grass.png")
-        }
-
-        check(
-            terrainRegistry[TerrainType.GRASS].texture ===
-                    terrainRegistry[TerrainType.SAND].texture
-        ) {
-            "Terrain types using the same sprite must share a texture."
         }
 
         objectRegistry = ObjectRegistry(
@@ -93,6 +86,18 @@ class SandboxGame : StrataGame {
             }
 
             register<House>("house.png")
+        }
+
+        assets.finishLoading()
+
+        terrainRegistry.prepare()
+        objectRegistry.prepare()
+
+        check(
+            terrainRegistry[TerrainType.GRASS].texture ===
+                    terrainRegistry[TerrainType.SAND].texture
+        ) {
+            "Terrain types using the same sprite must share a texture."
         }
 
         worldView = IsoWorldView(
