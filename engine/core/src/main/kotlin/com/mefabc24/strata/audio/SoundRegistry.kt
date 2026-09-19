@@ -15,9 +15,11 @@ data class SoundDefinition<C : Enum<C>>(
  *
  * Sound assets are queued automatically during registration.
  */
-class SoundRegistry<C : Enum<C>>(
-    private val assets: StrataAssets
+class SoundRegistry<C : Enum<C>> internal constructor(
+    private val queueSound: (String) -> Unit
 ) {
+
+    constructor(assets: StrataAssets) : this(assets::queueSound)
 
     private val definitions = mutableMapOf<SoundId, SoundDefinition<C>>()
 
@@ -37,7 +39,7 @@ class SoundRegistry<C : Enum<C>>(
             "Sound path must not be blank."
         }
 
-        assets.queueSound(path)
+        queueSound(path)
 
         definitions[id] = SoundDefinition(
             path = path,
