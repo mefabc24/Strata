@@ -6,9 +6,9 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
 
 /**
- * Configures an isometric world view and its scene systems.
+ * Configures a scene and its isometric world view.
  */
-class IsoViewSettings<C : Enum<C>>(
+class SceneSettings<C : Enum<C>>(
     private val sceneAudio: StrataAudio<C>,
     private val sceneDebug: DebugSettings
 ) {

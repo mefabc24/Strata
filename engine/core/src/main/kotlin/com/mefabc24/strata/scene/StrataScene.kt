@@ -61,7 +61,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             ?: error("No world view is attached to this scene.")
 
     /**
-     * Provides access to input configuration, including UI processors.
+     * Provides access to runtime input routing, including UI processors.
      */
     val input: StrataInput
         get() = attachedInput
@@ -94,7 +94,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     fun createView(
         world: World,
         terrainFor: (Tile) -> T,
-        configure: IsoViewSettings<C>.() -> Unit = {}
+        configure: SceneSettings<C>.() -> Unit = {}
     ): IsoWorldView {
         checkActive()
 
@@ -102,7 +102,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A world view is already attached to this scene."
         }
 
-        val settings = IsoViewSettings(
+        val settings = SceneSettings(
             sceneAudio = audio,
             sceneDebug = debug
         ).apply(configure)
@@ -139,7 +139,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
      *
      * A scene can own one world view.
      */
-    fun attachView(view: IsoWorldView) {
+    private fun attachView(view: IsoWorldView) {
         checkActive()
 
         check(attachedView == null) {
