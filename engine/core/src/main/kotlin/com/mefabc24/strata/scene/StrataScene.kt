@@ -9,6 +9,8 @@ import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.terrain.TerrainRegistry
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.World
 
 /**
  * Coordinates asset loading and the lifecycle of a world view.
@@ -76,6 +78,58 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
 
             throw failure
         }
+    }
+
+    /**
+     * Creates, configures, and attaches an isometric world view.
+     *
+     * Terrain and object visuals are resolved through this scene's registries.
+     */
+    fun createView(
+        world: World,
+        terrainFor: (Tile) -> T,
+        configure: IsoViewSettings.() -> Unit = {}
+    ): IsoWorldView {
+        checkActive()
+
+        check(attachedView == null) {
+            "A world view is already attached to this scene."
+        }
+
+        val settings = IsoViewSettings().apply(configure)
+
+        val view = IsoWorldView(
+            world = world,
+
+            textureFor = { tile ->
+                terrain[terrainFor(tile)]
+            },
+
+            objectVisualFor = objects::get,
+
+            tileWidth = settings.tileWidth,
+            tileHeight = settings.tileHeight,
+
+            viewportMode = settings.viewportMode,
+            virtualHeight = settings.virtualHeight,
+
+            zoomMode = settings.zoomMode,
+            zoomAnchor = settings.zoomAnchor,
+
+            cameraPadding = settings.cameraPadding,
+            zoomEdgeAllowance = settings.zoomEdgeAllowance,
+            worldFill = settings.worldFill,
+
+            bindings = settings.bindings,
+
+            maxTerrainSpriteHeight =
+                settings.maxTerrainSpriteHeight
+                    ?: terrain.maxSpriteHeight(settings.tileWidth)
+        )
+
+        attachView(view)
+
+        return view
     }
 
     /**

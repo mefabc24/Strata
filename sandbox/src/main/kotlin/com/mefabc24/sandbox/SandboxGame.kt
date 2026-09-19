@@ -4,22 +4,15 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
-import com.mefabc24.strata.assets.StrataAssets
-import com.mefabc24.strata.audio.SoundRegistry
 import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.camera.ZoomMode
-import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
-import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.PlacementPreviewStyle
-import com.mefabc24.strata.terrain.TerrainRegistry
-import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
-import com.mefabc24.strata.audio.StrataAudio
 import com.mefabc24.strata.scene.StrataScene
 
 class SandboxGame : StrataGame {
@@ -118,17 +111,18 @@ class SandboxGame : StrataGame {
             "Terrain types using the same sprite must share a texture."
         }
 
-        scene.attachView(IsoWorldView(
+        scene.createView(
             world = world,
-            textureFor = { tile ->
-                scene.terrain[(tile as SandboxTile).terrain]
-            },
-            objectVisualFor = scene.objects::get,
-            tileWidth = 64f,
-            tileHeight = 32f,
-            zoomMode = ZoomMode.WORLD_BASED,
-            zoomAnchor = ZoomAnchor.CURSOR,
-            zoomEdgeAllowance = 0.3f,
+            terrainFor = { tile ->
+                (tile as SandboxTile).terrain
+            }
+        ) {
+            tileWidth = 64f
+            tileHeight = 32f
+
+            zoomMode = ZoomMode.WORLD_BASED
+            zoomAnchor = ZoomAnchor.CURSOR
+            zoomEdgeAllowance = 0.3f
 
             bindings = listOf(
                 WorldInputBinding.Tile(
@@ -164,14 +158,8 @@ class SandboxGame : StrataGame {
 
                     true
                 }
-            ),
-
-            maxTerrainSpriteHeight = TerrainType.entries.maxOf { type ->
-                val region = scene.terrain[type]
-
-                64f * region.regionHeight / region.regionWidth
-            }
-        ))
+            )
+        }
     }
 
 

@@ -52,6 +52,29 @@ class TerrainRegistry<T : Enum<T>>(
     }
 
     /**
+     * Returns the maximum terrain sprite height in world units.
+     *
+     * An empty registry returns infinity to disable height-based culling.
+     */
+    fun maxSpriteHeight(tileWidth: Float): Float {
+        require(tileWidth > 0f && tileWidth.isFinite()) {
+            "Tile width must be finite and positive."
+        }
+
+        check(registrations.keys.all { it in regions }) {
+            "Terrain sprites must be prepared before calculating their height."
+        }
+
+        return regions.values.maxOfOrNull { region ->
+            require(region.regionWidth > 0) {
+                "Terrain sprite width must be positive."
+            }
+
+            tileWidth * region.regionHeight / region.regionWidth
+        } ?: Float.POSITIVE_INFINITY
+    }
+
+    /**
      * Returns the prepared sprite for a terrain type.
      */
     operator fun get(type: T): TextureRegion {
