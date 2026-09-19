@@ -104,6 +104,14 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
 
         val settings = IsoViewSettings().apply(configure)
 
+        val renderingSettings = settings.rendering.copy().apply {
+            validate()
+
+            if (maxTerrainSpriteHeight == null) {
+                maxTerrainSpriteHeight = terrain.maxSpriteHeight(tileWidth)
+            }
+        }
+
         val view = IsoWorldView(
             world = world,
 
@@ -113,16 +121,9 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
 
             objectVisualFor = objects::get,
 
-            tileWidth = settings.tileWidth,
-            tileHeight = settings.tileHeight,
-
             cameraSettings = settings.camera,
-
-            maxTerrainSpriteHeight =
-                settings.maxTerrainSpriteHeight
-                    ?: terrain.maxSpriteHeight(settings.tileWidth),
-
-            controls = settings.controls
+            controls = settings.controls,
+            renderingSettings = renderingSettings
         )
 
         attachView(view)

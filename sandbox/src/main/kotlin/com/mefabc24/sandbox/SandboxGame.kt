@@ -3,16 +3,14 @@ package com.mefabc24.sandbox
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.StrataGame
-import com.mefabc24.strata.camera.ZoomAnchor
-import com.mefabc24.strata.camera.ZoomMode
-import com.mefabc24.strata.placement.PlacementController
-import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.render.PlacementPreviewStyle
+import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
-import com.mefabc24.strata.scene.StrataScene
 
 class SandboxGame : StrataGame {
 
@@ -115,11 +113,13 @@ class SandboxGame : StrataGame {
                 (tile as SandboxTile).terrain
             }
         ) {
-            tileWidth = 64f
-            tileHeight = 32f
-
             camera {
                 zoomEdgeAllowance = 0.3f
+            }
+
+            rendering {
+                tileWidth = 64f
+                tileHeight = 32f
             }
 
             controls {

@@ -18,6 +18,7 @@ import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
+import com.mefabc24.strata.render.RenderingSettings
 
 /**
  * Determines how placed objects are picked.
@@ -53,24 +54,27 @@ class IsoWorldView(
     private val textureFor: (Tile) -> TextureRegion?,
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
 
-    tileWidth: Float = 64f,
-    tileHeight: Float = 32f,
-
     cameraSettings: CameraSettings = CameraSettings(),
-
-    private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
-    controls: ControlsSettings = ControlsSettings()
+    controls: ControlsSettings = ControlsSettings(),
+    renderingSettings: RenderingSettings = RenderingSettings()
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
         it.validate()
     }
 
+    private val renderingConfig = renderingSettings.copy().also {
+        it.validate()
+    }
+
+    private val maxTerrainSpriteHeight =
+        renderingConfig.maxTerrainSpriteHeight ?: Float.POSITIVE_INFINITY
+
     val camera = OrthographicCamera()
 
     private val projection = IsoProjection(
-        tileWidth = tileWidth,
-        tileHeight = tileHeight
+        tileWidth = renderingConfig.tileWidth,
+        tileHeight = renderingConfig.tileHeight
     )
 
     var hoveredTile: Pair<Int, Int>? = null
@@ -169,13 +173,6 @@ class IsoWorldView(
     )
 
     init {
-        require(
-            maxTerrainSpriteHeight > 0f &&
-                    !maxTerrainSpriteHeight.isNaN()
-        ) {
-            "Maximum terrain sprite height must be positive."
-        }
-
         viewport.resize(
             Gdx.graphics.width,
             Gdx.graphics.height
