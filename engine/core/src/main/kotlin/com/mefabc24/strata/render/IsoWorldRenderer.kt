@@ -31,6 +31,8 @@ class IsoWorldRenderer(
 
     private var objectsByDepth: Map<Int, List<PlacedObject>> = emptyMap()
 
+    val stats = RenderStats()
+
     fun render(
         world: World,
         camera: OrthographicCamera,
@@ -40,6 +42,10 @@ class IsoWorldRenderer(
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null
     ) {
+        stats.reset()
+
+        val renderStartNanos = System.nanoTime()
+
         if (cachedWorld !== world || cachedObjectVersion != world.objectVersion) {
             objectsByDepth = world.getObjects().groupBy { placed ->
                 placed.occupiedTiles().maxOf { (x, y) -> x + y }
@@ -93,6 +99,8 @@ class IsoWorldRenderer(
             for (x in minX..maxX) {
                 val y = depth - x
 
+                stats.terrainChecked++
+
                 val tile = world.getTile(x, y) ?: continue
                 val texture = textureFor(tile) ?: continue
 
@@ -128,9 +136,13 @@ class IsoWorldRenderer(
                     texture = texture,
                     offsetY = offsetY
                 )
+
+                stats.terrainDrawn++
             }
 
             objectsByDepth[depth]?.forEach { placed ->
+                stats.objectsChecked++
+
                 val visual = objectVisualFor(placed) ?: return@forEach
 
                 IsoObjectBounds.calculate(
@@ -145,6 +157,7 @@ class IsoWorldRenderer(
                 }
 
                 objectRenderer.render(batch, placed, visual)
+                stats.objectsDrawn++
             }
 
             if (preview != null && depth == previewDepth) {
@@ -172,6 +185,7 @@ class IsoWorldRenderer(
                             preview.placedObject,
                             visual
                         )
+                        stats.previewsDrawn++
 
                         batch.setColor(1f, 1f, 1f, 1f)
                     }
@@ -180,6 +194,11 @@ class IsoWorldRenderer(
         }
 
         batch.end()
+
+        stats.drawCalls = batch.renderCalls
+
+        stats.cpuRenderMs =
+            (System.nanoTime() - renderStartNanos) / 1_000_000.0
     }
 
     fun dispose() {

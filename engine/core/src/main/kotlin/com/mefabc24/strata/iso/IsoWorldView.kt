@@ -15,6 +15,7 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -75,6 +76,12 @@ class IsoWorldView(
     )
 
     private val worldRenderer = IsoWorldRenderer(projection)
+
+    /**
+     * Rendering statistics from the most recent frame.
+     */
+    val renderStats: RenderStats
+        get() = worldRenderer.stats
 
     private val cameraBounds = projection.worldBounds(
         width = world.width,
