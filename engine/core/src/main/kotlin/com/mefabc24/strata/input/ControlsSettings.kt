@@ -10,9 +10,9 @@ class ControlsSettings {
         camera.apply(configure)
     }
 
-    val worldInput = WorldInputSettings()
+    val gameplay = GameplayControlsSettings()
 
-    fun worldInput(configure: WorldInputSettings.() -> Unit) {
-        worldInput.apply(configure)
+    fun gameplay(configure: GameplayControlsSettings.() -> Unit) {
+        gameplay.apply(configure)
     }
 }

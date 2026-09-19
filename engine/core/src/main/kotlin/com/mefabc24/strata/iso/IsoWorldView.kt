@@ -147,7 +147,7 @@ class IsoWorldView(
     )
 
     private val worldInputProcessor = WorldInputProcessor(
-        bindings = controls.worldInput.bindings,
+        bindings = controls.gameplay.bindings,
         pickTile = tilePicker::pick,
         pickObject = { screenX, screenY, mode ->
             pickObject(screenX, screenY, mode)

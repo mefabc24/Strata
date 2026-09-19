@@ -123,7 +123,7 @@ class SandboxGame : StrataGame {
             }
 
             controls {
-                worldInput {
+                gameplay {
                     bindings = listOf(
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
