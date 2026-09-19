@@ -5,12 +5,9 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.camera.CameraBounds
 import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
-import com.mefabc24.strata.camera.ViewportMode
 import com.badlogic.gdx.InputMultiplexer
-import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.mefabc24.strata.camera.ZoomAnchor
 import com.mefabc24.strata.render.IsoWorldRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
@@ -19,8 +16,8 @@ import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
-import com.mefabc24.strata.camera.CameraControls
 import com.mefabc24.strata.camera.CameraSettings
+import com.mefabc24.strata.input.ControlsSettings
 
 /**
  * Determines how placed objects are picked.
@@ -61,9 +58,8 @@ class IsoWorldView(
 
     cameraSettings: CameraSettings = CameraSettings(),
 
-    bindings: List<WorldInputBinding> = emptyList(),
     private val maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
-    cameraControls: CameraControls = CameraControls()
+    controls: ControlsSettings = ControlsSettings()
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -134,7 +130,7 @@ class IsoWorldView(
         bounds = cameraBounds,
         zoomBounds = zoomBounds,
         worldZoomBounds = worldBounds,
-        controls = cameraControls
+        controls = controls.camera
     )
 
     private val tilePicker = TilePicker(
@@ -151,7 +147,7 @@ class IsoWorldView(
     )
 
     private val worldInputProcessor = WorldInputProcessor(
-        bindings = bindings,
+        bindings = controls.bindings,
         pickTile = tilePicker::pick,
         pickObject = { screenX, screenY, mode ->
             pickObject(screenX, screenY, mode)

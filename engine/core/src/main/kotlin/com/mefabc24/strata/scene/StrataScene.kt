@@ -118,13 +118,11 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
 
             cameraSettings = settings.camera,
 
-            bindings = settings.bindings,
-
             maxTerrainSpriteHeight =
                 settings.maxTerrainSpriteHeight
                     ?: terrain.maxSpriteHeight(settings.tileWidth),
 
-            cameraControls = settings.cameraControls
+            controls = settings.controls
         )
 
         attachView(view)
