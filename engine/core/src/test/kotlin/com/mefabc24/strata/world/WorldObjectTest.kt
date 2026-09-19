@@ -262,4 +262,33 @@ class WorldObjectTest {
         assertTrue(world.placeObject(building))
         assertEquals(2, world.getObjects().size)
     }
+
+    @Test
+    fun `object version changes only after successful modifications`() {
+        val world = createWorld()
+
+        val house = createObject(Footprint.square(2), 4, 4)
+        val overlapping = createObject(Footprint.square(1), 5, 5)
+
+        assertEquals(0L, world.objectVersion)
+
+        assertTrue(world.placeObject(house))
+        assertEquals(1L, world.objectVersion)
+
+        assertFalse(world.placeObject(house))
+        assertFalse(world.placeObject(overlapping))
+        assertEquals(1L, world.objectVersion)
+
+        assertTrue(world.removeObject(house))
+        assertEquals(2L, world.objectVersion)
+
+        assertFalse(world.removeObject(house))
+        assertEquals(2L, world.objectVersion)
+
+        assertTrue(world.placeObject(overlapping))
+        assertEquals(3L, world.objectVersion)
+
+        assertSame(overlapping, world.removeObjectAt(5, 5))
+        assertEquals(4L, world.objectVersion)
+    }
 }
