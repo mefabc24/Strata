@@ -115,4 +115,60 @@ class WorldTest {
 
         assertNull(world.getOverlayTile("infrastructure", -1, 0))
     }
+
+    @Test
+    fun `terrain starts at height zero`() {
+        val world = World(3, 2) { _, _ -> TestTile(0) }
+
+        for (y in 0 until world.height) {
+            for (x in 0 until world.width) {
+                assertEquals(0, world.getHeight(x, y))
+            }
+        }
+    }
+
+    @Test
+    fun `terrain height can be changed independently`() {
+        val world = World(3, 3) { _, _ -> TestTile(0) }
+
+        world.setHeight(1, 1, 3)
+
+        assertEquals(3, world.getHeight(1, 1))
+        assertEquals(0, world.getHeight(0, 1))
+        assertEquals(0, world.getHeight(1, 0))
+
+        world.setTile(1, 1, TestTile(42))
+
+        assertEquals(3, world.getHeight(1, 1))
+        assertEquals(TestTile(42), world.getTile(1, 1))
+    }
+
+    @Test
+    fun `height lookup outside the world returns null`() {
+        val world = World(3, 3) { _, _ -> TestTile(0) }
+
+        assertNull(world.getHeight(-1, 0))
+        assertNull(world.getHeight(0, -1))
+        assertNull(world.getHeight(3, 0))
+        assertNull(world.getHeight(0, 3))
+    }
+
+    @Test
+    fun `invalid terrain heights are rejected`() {
+        val world = World(3, 3) { _, _ -> TestTile(0) }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.setHeight(1, 1, -1)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.setHeight(3, 0, 1)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.setHeight(0, -1, 1)
+        }
+
+        assertEquals(0, world.getHeight(1, 1))
+    }
 }

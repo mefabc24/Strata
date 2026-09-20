@@ -16,6 +16,15 @@ class World(
     }
 
     /**
+     * Terrain elevation for each world coordinate.
+     *
+     * All tiles start at elevation zero.
+     */
+    private val heights = Array(height) {
+        IntArray(width)
+    }
+
+    /**
      * Additional terrain layers in rendering order.
      *
      * Null represents an empty overlay cell.
@@ -123,6 +132,32 @@ class World(
     fun setTile(x: Int, y: Int, tile: Tile) {
         require(x in 0 until width && y in 0 until height)
         tiles[y][x] = tile
+    }
+
+    /**
+     * Returns the terrain height at the given position.
+     *
+     * Returns null when the position is outside the world.
+     */
+    fun getHeight(x: Int, y: Int): Int? {
+        return heights.getOrNull(y)?.getOrNull(x)
+    }
+
+    /**
+     * Sets the terrain height at the given position.
+     *
+     * Height zero represents the base terrain level.
+     */
+    fun setHeight(x: Int, y: Int, level: Int) {
+        require(x in 0 until width && y in 0 until height) {
+            "Tile position ($x, $y) is outside the world."
+        }
+
+        require(level >= 0) {
+            "Terrain height must not be negative."
+        }
+
+        heights[y][x] = level
     }
 
     /**
