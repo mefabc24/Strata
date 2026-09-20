@@ -53,4 +53,66 @@ class WorldTest {
             World(10, 0) { _, _ -> TestTile(0) }
         }
     }
+
+    @Test
+    fun `overlay layers are independent from ground and each other`() {
+        val world = World(3, 3) { _, _ -> TestTile(0) }
+
+        world.addOverlayLayer("infrastructure")
+        world.addOverlayLayer("decoration")
+
+        assertEquals(
+            listOf("infrastructure", "decoration"),
+            world.overlayLayerIds
+        )
+
+        assertNull(world.getOverlayTile("infrastructure", 1, 1))
+
+        world.setOverlayTile("infrastructure", 1, 1, TestTile(1))
+        world.setOverlayTile("decoration", 1, 1, TestTile(2))
+
+        assertEquals(TestTile(0), world.getTile(1, 1))
+        assertEquals(
+            TestTile(1),
+            world.getOverlayTile("infrastructure", 1, 1)
+        )
+        assertEquals(
+            TestTile(2),
+            world.getOverlayTile("decoration", 1, 1)
+        )
+
+        world.setOverlayTile("infrastructure", 1, 1, null)
+
+        assertNull(world.getOverlayTile("infrastructure", 1, 1))
+        assertEquals(
+            TestTile(2),
+            world.getOverlayTile("decoration", 1, 1)
+        )
+        assertEquals(TestTile(0), world.getTile(1, 1))
+    }
+
+    @Test
+    fun `overlay layers reject invalid operations`() {
+        val world = World(3, 3) { _, _ -> TestTile(0) }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.addOverlayLayer("")
+        }
+
+        world.addOverlayLayer("infrastructure")
+
+        assertFailsWith<IllegalArgumentException> {
+            world.addOverlayLayer("infrastructure")
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.getOverlayTile("unknown", 0, 0)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            world.setOverlayTile("infrastructure", 3, 0, TestTile(1))
+        }
+
+        assertNull(world.getOverlayTile("infrastructure", -1, 0))
+    }
 }

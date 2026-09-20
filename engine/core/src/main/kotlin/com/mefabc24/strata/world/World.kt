@@ -15,6 +15,19 @@ class World(
         Array(width) { x -> createTile(x, y) }
     }
 
+    /**
+     * Additional terrain layers in rendering order.
+     *
+     * Null represents an empty overlay cell.
+     */
+    private val overlayLayers = linkedMapOf<String, Array<Array<Tile?>>>()
+
+    /**
+     * Returns overlay identifiers in their rendering order.
+     */
+    val overlayLayerIds: List<String>
+        get() = overlayLayers.keys.toList()
+
     private val objects = linkedSetOf<PlacedObject>()
 
     /**
@@ -110,5 +123,68 @@ class World(
     fun setTile(x: Int, y: Int, tile: Tile) {
         require(x in 0 until width && y in 0 until height)
         tiles[y][x] = tile
+    }
+
+    /**
+     * Adds an empty terrain overlay layer.
+     *
+     * Layers are rendered in their registration order.
+     */
+    fun addOverlayLayer(id: String) {
+        require(id.isNotBlank()) {
+            "Overlay layer ID must not be blank."
+        }
+
+        require(id !in overlayLayers) {
+            "Overlay layer '$id' already exists."
+        }
+
+        overlayLayers[id] = Array(height) {
+            arrayOfNulls<Tile>(width)
+        }
+    }
+
+    /**
+     * Returns the tile on an overlay layer, or null if the cell is empty
+     * or outside the world.
+     */
+    fun getOverlayTile(
+        layerId: String,
+        x: Int,
+        y: Int
+    ): Tile? {
+        val layer = requireOverlayLayer(layerId)
+
+        return layer.getOrNull(y)?.getOrNull(x)
+    }
+
+    /**
+     * Sets or clears a tile on an overlay layer.
+     *
+     * Passing null clears the cell.
+     */
+    fun setOverlayTile(
+        layerId: String,
+        x: Int,
+        y: Int,
+        tile: Tile?
+    ) {
+        require(x in 0 until width && y in 0 until height) {
+            "Tile position ($x, $y) is outside the world."
+        }
+
+        val layer = requireOverlayLayer(layerId)
+
+        layer[y][x] = tile
+    }
+
+    /**
+     * Returns a registered overlay layer.
+     */
+    private fun requireOverlayLayer(id: String): Array<Array<Tile?>> {
+        return overlayLayers[id]
+            ?: throw IllegalArgumentException(
+                "Unknown overlay layer '$id'."
+            )
     }
 }
