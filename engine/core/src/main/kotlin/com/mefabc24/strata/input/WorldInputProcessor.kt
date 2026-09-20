@@ -76,15 +76,21 @@ class WorldInputProcessor(
         pointer: Int,
         button: Int
     ): Boolean {
-        pressedButtons[pointer]?.let { buttons ->
-            buttons.remove(button)
+        val wasPressed = pressedButtons[pointer]?.remove(button) == true
 
-            if (buttons.isEmpty()) {
-                pressedButtons.remove(pointer)
-            }
+        if (pressedButtons[pointer]?.isEmpty() == true) {
+            pressedButtons.remove(pointer)
         }
 
-        return false
+        if (!enabled || !wasPressed) {
+            return false
+        }
+
+        return dispatch(
+            trigger = WorldInputTrigger.MouseUp(button),
+            screenX = screenX.toFloat(),
+            screenY = screenY.toFloat()
+        )
     }
 
     override fun keyDown(keycode: Int): Boolean {
