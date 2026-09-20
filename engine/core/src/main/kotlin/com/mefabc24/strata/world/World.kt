@@ -25,6 +25,12 @@ class World(
     }
 
     /**
+     * Highest terrain level currently present in the world.
+     */
+    var maxHeight: Int = 0
+        private set
+
+    /**
      * Additional terrain layers in rendering order.
      *
      * Null represents an empty overlay cell.
@@ -157,7 +163,23 @@ class World(
             "Terrain height must not be negative."
         }
 
+        val previousLevel = heights[y][x]
+
+        if (previousLevel == level) return
+
         heights[y][x] = level
+
+        when {
+            level > maxHeight -> {
+                maxHeight = level
+            }
+
+            previousLevel == maxHeight -> {
+                maxHeight = heights.maxOf { row ->
+                    row.maxOrNull() ?: 0
+                }
+            }
+        }
     }
 
     /**

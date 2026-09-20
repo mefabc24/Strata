@@ -14,10 +14,20 @@ class IsoProjection(
         require(tileHeight > 0f && tileHeight.isFinite())
     }
 
-    fun tileToWorld(x: Int, y: Int): Vector2 {
+    /**
+     * Vertical world-space distance between two terrain levels.
+     */
+    val elevationStep: Float
+        get() = tileHeight / 2f
+
+    fun tileToWorld(
+        x: Int,
+        y: Int,
+        elevation: Int = 0
+    ): Vector2 {
         return Vector2(
             (x - y) * tileWidth / 2f,
-            -(x + y) * tileHeight / 2f
+            -(x + y) * tileHeight / 2f + elevation * elevationStep
         )
     }
 

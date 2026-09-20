@@ -17,7 +17,8 @@ class IsoTerrainRenderer(
         x: Int,
         y: Int,
         texture: TextureRegion,
-        offsetY: Float = 0f
+        offsetY: Float = 0f,
+        elevation: Int = 0
     ) {
         val scale = projection.tileWidth / texture.regionWidth
 
@@ -25,7 +26,7 @@ class IsoTerrainRenderer(
         val spriteHeight = texture.regionHeight * scale
 
         val centerX = (x - y) * projection.tileWidth / 2f
-        val topY = -(x + y) * projection.tileHeight / 2f
+        val topY = -(x + y) * projection.tileHeight / 2f + elevation * projection.elevationStep
 
         batch.draw(
             texture,

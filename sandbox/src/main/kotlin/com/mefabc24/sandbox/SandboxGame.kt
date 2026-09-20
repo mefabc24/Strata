@@ -11,7 +11,6 @@ import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
-import kotlin.math.abs
 
 class SandboxGame : StrataGame {
 
@@ -37,6 +36,13 @@ class SandboxGame : StrataGame {
             }
 
             SandboxTile(TerrainType.GRASS)
+        }
+
+        // Create a temporary elevated plateau.
+        for (x in 28..32) {
+            for (y in 28..32) {
+                world.setHeight(x, y, 2)
+            }
         }
 
         // Create a temporary overlay to verify layered rendering.

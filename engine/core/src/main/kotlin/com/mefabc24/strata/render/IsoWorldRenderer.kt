@@ -3,11 +3,11 @@ package com.mefabc24.strata.render
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
-import com.badlogic.gdx.math.Rectangle
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -86,7 +86,8 @@ class IsoWorldRenderer(
             tileHeight = projection.tileHeight,
             maxSpriteHeight = maxTerrainSpriteHeight,
             raisedOffsetY = raiseOffsetY,
-            maxDepth = world.width + world.height - 2
+            maxDepth = world.width + world.height - 2,
+            maxElevationOffset = world.maxHeight * projection.elevationStep
         )
 
         val overlayIds = world.overlayLayerIds
@@ -112,6 +113,7 @@ class IsoWorldRenderer(
                 for (layerIndex in -1 until overlayIds.size) {
                     for (x in minX..maxX) {
                         val y = depth - x
+                        val elevation = world.getHeight(x, y) ?: continue
 
                         stats.terrainChecked++
 
@@ -143,7 +145,8 @@ class IsoWorldRenderer(
                         val spriteHeight = texture.regionHeight * scale
 
                         val centerX = (x - y) * projection.tileWidth / 2f
-                        val topY = -depth * projection.tileHeight / 2f + offsetY
+                        val topY = -depth * projection.tileHeight / 2f +
+                                elevation * projection.elevationStep + offsetY
 
                         tileBounds.set(
                             centerX - spriteWidth / 2f,
@@ -161,7 +164,8 @@ class IsoWorldRenderer(
                             x = x,
                             y = y,
                             texture = texture,
-                            offsetY = offsetY
+                            offsetY = offsetY,
+                            elevation = elevation
                         )
 
                         stats.terrainDrawn++

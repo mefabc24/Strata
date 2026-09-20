@@ -14,17 +14,19 @@ internal object TerrainDepthCulling {
         tileHeight: Float,
         maxSpriteHeight: Float,
         raisedOffsetY: Float,
-        maxDepth: Int
+        maxDepth: Int,
+        maxElevationOffset: Float = 0f
     ): IntRange {
         require(maxDepth >= 0)
         require(tileHeight > 0f && tileHeight.isFinite())
         require(maxSpriteHeight > 0f && !maxSpriteHeight.isNaN())
         require(raisedOffsetY.isFinite())
+        require(maxElevationOffset >= 0f && maxElevationOffset.isFinite())
 
         val halfTileHeight = tileHeight / 2f
 
         val minOffset = minOf(0f, raisedOffsetY)
-        val maxOffset = maxOf(0f, raisedOffsetY)
+        val maxOffset = maxOf(0f, raisedOffsetY) + maxElevationOffset
 
         val firstDepth = if (maxSpriteHeight.isInfinite()) {
             0
