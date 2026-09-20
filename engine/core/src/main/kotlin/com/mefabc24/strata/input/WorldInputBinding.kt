@@ -12,6 +12,10 @@ sealed interface WorldInputTrigger {
         val button: Int
     ) : WorldInputTrigger
 
+    data class MouseDrag(
+        val button: Int
+    ) : WorldInputTrigger
+
     data class KeyDown(
         val key: Int
     ) : WorldInputTrigger

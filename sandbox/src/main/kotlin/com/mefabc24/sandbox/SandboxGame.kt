@@ -11,6 +11,7 @@ import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
+import kotlin.math.abs
 
 class SandboxGame : StrataGame {
 
@@ -21,6 +22,9 @@ class SandboxGame : StrataGame {
     private var terrainPaintingEnabled = false
     // Null selects the ground layer.
     private var selectedPaintLayerId: String? = null
+
+    private var lastPaintedTile: Pair<Int, Int>? = null
+    private var lastErasedTile: Pair<Int, Int>? = null
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -148,21 +152,8 @@ class SandboxGame : StrataGame {
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
                         ) { x, y ->
                             if (terrainPaintingEnabled) {
-                                val tile = SandboxTile(TerrainType.WATER)
-                                val layerId = selectedPaintLayerId
-
-                                if (layerId == null) {
-                                    world.setTile(x, y, tile)
-                                } else {
-                                    world.setOverlayTile(
-                                        layerId = layerId,
-                                        x = x,
-                                        y = y,
-                                        tile = tile
-                                    )
-                                }
-
-                                println("Painted ${layerId ?: "ground"} at ($x, $y)")
+                                lastPaintedTile = null
+                                paintStroke(x, y)
                             } else {
                                 val placed = placementController.placeAt(x, y)
 
@@ -178,26 +169,32 @@ class SandboxGame : StrataGame {
                         },
 
                         WorldInputBinding.Tile(
+                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
+                            enabled = { terrainPaintingEnabled }
+                        ) { x, y ->
+                            paintStroke(x, y)
+                            true
+                        },
+
+                        WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
                             enabled = {
                                 terrainPaintingEnabled && selectedPaintLayerId != null
                             }
                         ) { x, y ->
-                            val layerId = selectedPaintLayerId
+                            lastErasedTile = null
+                            eraseStroke(x, y)
+                            true
+                        },
 
-                            if (layerId != null) {
-                                world.setOverlayTile(
-                                    layerId = layerId,
-                                    x = x,
-                                    y = y,
-                                    tile = null
-                                )
-
-                                println("Cleared $layerId at ($x, $y)")
-                                true
-                            } else {
-                                false
+                        WorldInputBinding.Tile(
+                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
+                            enabled = {
+                                terrainPaintingEnabled && selectedPaintLayerId != null
                             }
+                        ) { x, y ->
+                            eraseStroke(x, y)
+                            true
                         },
 
                         WorldInputBinding.Object(
@@ -251,6 +248,80 @@ class SandboxGame : StrataGame {
         }
     }
 
+    private fun paintStroke(x: Int, y: Int) {
+        val layerId = selectedPaintLayerId
+        val tile = SandboxTile(TerrainType.WATER)
+
+        forEachTileOnLine(lastPaintedTile, x to y) { tileX, tileY ->
+            if (layerId == null) {
+                world.setTile(tileX, tileY, tile)
+            } else {
+                world.setOverlayTile(
+                    layerId = layerId,
+                    x = tileX,
+                    y = tileY,
+                    tile = tile
+                )
+            }
+        }
+
+        lastPaintedTile = x to y
+    }
+
+    private fun eraseStroke(x: Int, y: Int) {
+        val layerId = selectedPaintLayerId ?: return
+
+        forEachTileOnLine(lastErasedTile, x to y) { tileX, tileY ->
+            world.setOverlayTile(
+                layerId = layerId,
+                x = tileX,
+                y = tileY,
+                tile = null
+            )
+        }
+
+        lastErasedTile = x to y
+    }
+
+    private fun forEachTileOnLine(
+        from: Pair<Int, Int>?,
+        to: Pair<Int, Int>,
+        action: (x: Int, y: Int) -> Unit
+    ) {
+        var x = from?.first ?: to.first
+        var y = from?.second ?: to.second
+
+        val dx = abs(to.first - x)
+        val dy = abs(to.second - y)
+
+        val stepX = if (x < to.first) 1 else -1
+        val stepY = if (y < to.second) 1 else -1
+
+        var error = dx - dy
+
+        while (true) {
+            // Avoid processing the previous tile twice.
+            if (from == null || x != from.first || y != from.second) {
+                action(x, y)
+            }
+
+            if (x == to.first && y == to.second) {
+                break
+            }
+
+            val doubleError = 2 * error
+
+            if (doubleError > -dy) {
+                error -= dy
+                x += stepX
+            }
+
+            if (doubleError < dx) {
+                error += dx
+                y += stepY
+            }
+        }
+    }
 
     override fun resize(width: Int, height: Int) {
         if (!::scene.isInitialized) return

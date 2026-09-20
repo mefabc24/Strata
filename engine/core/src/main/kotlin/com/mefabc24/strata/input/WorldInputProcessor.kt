@@ -18,7 +18,16 @@ class WorldInputProcessor(
     ) -> PlacedObject?
 ) : InputAdapter() {
 
+    private val pressedButtons = mutableMapOf<Int, MutableSet<Int>>()
+
     var enabled: Boolean = true
+        set(value) {
+            field = value
+
+            if (!value) {
+                pressedButtons.clear()
+            }
+        }
 
     override fun touchDown(
         screenX: Int,
@@ -28,11 +37,54 @@ class WorldInputProcessor(
     ): Boolean {
         if (!enabled) return false
 
+        pressedButtons
+            .getOrPut(pointer) { mutableSetOf() }
+            .add(button)
+
         return dispatch(
             trigger = WorldInputTrigger.MouseDown(button),
             screenX = screenX.toFloat(),
             screenY = screenY.toFloat()
         )
+    }
+
+    override fun touchDragged(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int
+    ): Boolean {
+        if (!enabled) return false
+
+        val buttons = pressedButtons[pointer] ?: return false
+
+        for (button in buttons.toList()) {
+            val handled = dispatch(
+                trigger = WorldInputTrigger.MouseDrag(button),
+                screenX = screenX.toFloat(),
+                screenY = screenY.toFloat()
+            )
+
+            if (handled) return true
+        }
+
+        return false
+    }
+
+    override fun touchUp(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int
+    ): Boolean {
+        pressedButtons[pointer]?.let { buttons ->
+            buttons.remove(button)
+
+            if (buttons.isEmpty()) {
+                pressedButtons.remove(pointer)
+            }
+        }
+
+        return false
     }
 
     override fun keyDown(keycode: Int): Boolean {
