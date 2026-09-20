@@ -18,6 +18,10 @@ class SandboxGame : StrataGame {
     private lateinit var placementController: PlacementController
     private lateinit var scene: StrataScene<TerrainType, SoundCategory>
 
+    private var terrainPaintingEnabled = false
+    // Null selects the ground layer.
+    private var selectedPaintLayerId: String? = null
+
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
         invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
@@ -143,22 +147,63 @@ class SandboxGame : StrataGame {
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
                         ) { x, y ->
-                            val placed = placementController.placeAt(x, y)
+                            if (terrainPaintingEnabled) {
+                                val tile = SandboxTile(TerrainType.WATER)
+                                val layerId = selectedPaintLayerId
 
-                            if (placed != null) {
-                                println("Object placed at ($x, $y)")
+                                if (layerId == null) {
+                                    world.setTile(x, y, tile)
+                                } else {
+                                    world.setOverlayTile(
+                                        layerId = layerId,
+                                        x = x,
+                                        y = y,
+                                        tile = tile
+                                    )
+                                }
 
-                                scene.audio.playSound(BuildingSound.PLACE)
+                                println("Painted ${layerId ?: "ground"} at ($x, $y)")
                             } else {
-                                println("Cannot place object at ($x, $y)")
+                                val placed = placementController.placeAt(x, y)
+
+                                if (placed != null) {
+                                    println("Object placed at ($x, $y)")
+                                    scene.audio.playSound(BuildingSound.PLACE)
+                                } else {
+                                    println("Cannot place object at ($x, $y)")
+                                }
                             }
 
                             true
                         },
 
+                        WorldInputBinding.Tile(
+                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
+                            enabled = {
+                                terrainPaintingEnabled && selectedPaintLayerId != null
+                            }
+                        ) { x, y ->
+                            val layerId = selectedPaintLayerId
+
+                            if (layerId != null) {
+                                world.setOverlayTile(
+                                    layerId = layerId,
+                                    x = x,
+                                    y = y,
+                                    tile = null
+                                )
+
+                                println("Cleared $layerId at ($x, $y)")
+                                true
+                            } else {
+                                false
+                            }
+                        },
+
                         WorldInputBinding.Object(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                            mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT
+                            mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
+                            enabled = { !terrainPaintingEnabled }
                         ) { placed ->
                             world.removeObject(placed)
                             true
@@ -172,7 +217,34 @@ class SandboxGame : StrataGame {
                             println("Tile at ($x, $y): $tile")
 
                             true
-                        }
+                        },
+
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.KeyDown(Input.Keys.T)
+                        ) {
+                            terrainPaintingEnabled = !terrainPaintingEnabled
+
+                            println(
+                                "Terrain painting: " +
+                                        if (terrainPaintingEnabled) "enabled" else "disabled"
+                            )
+
+                            true
+                        },
+
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.KeyDown(Input.Keys.O)
+                        ) {
+                            selectedPaintLayerId = if (selectedPaintLayerId == null) {
+                                "demo"
+                            } else {
+                                null
+                            }
+
+                            println("Selected paint layer: ${selectedPaintLayerId ?: "ground"}")
+
+                            true
+                        },
                     )
                 }
             }
@@ -194,7 +266,11 @@ class SandboxGame : StrataGame {
 
     override fun render() {
         scene.render(
-            preview = placementController.preview
+            preview = if (terrainPaintingEnabled) {
+                null
+            } else {
+                placementController.preview
+            }
         )
     }
 
