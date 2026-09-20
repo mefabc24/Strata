@@ -18,13 +18,7 @@ class SandboxGame : StrataGame {
     private lateinit var world: World
     private lateinit var placementController: PlacementController
     private lateinit var scene: StrataScene<TerrainType, SoundCategory>
-
-    private var terrainPaintingEnabled = false
-    // Null selects the ground layer.
-    private var selectedPaintLayerId: String? = null
-
-    private var lastPaintedTile: Pair<Int, Int>? = null
-    private var lastErasedTile: Pair<Int, Int>? = null
+    private lateinit var painter: SandboxTerrainPainter
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -66,6 +60,8 @@ class SandboxGame : StrataGame {
             selectedPlaceable = House()
         }
 
+        painter = SandboxTerrainPainter(world)
+
         val house = PlacedObject(
             placeable = House(),
             x = 5,
@@ -92,7 +88,7 @@ class SandboxGame : StrataGame {
 
             terrain.register(
                 TerrainType.SAND,
-                sprite = "grass.png"
+                sprite = "flowers.png"
             )
 
             objects.register<OakTree>("oak.png") {
@@ -106,13 +102,6 @@ class SandboxGame : StrataGame {
                 path = "audio/pop.wav",
                 category = SoundCategory.BUILDING
             )
-        }
-
-        check(
-            scene.terrain[TerrainType.GRASS].texture ===
-                    scene.terrain[TerrainType.SAND].texture
-        ) {
-            "Terrain types using the same sprite must share a texture."
         }
 
         scene.createView(
@@ -148,177 +137,127 @@ class SandboxGame : StrataGame {
             controls {
                 gameplay {
                     bindings = listOf(
+                        // Left click: paint terrain or place an object.
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
                         ) { x, y ->
-                            if (terrainPaintingEnabled) {
-                                lastPaintedTile = null
-                                paintStroke(x, y)
+                            if (painter.enabled) {
+                                painter.beginPaint(x, y)
                             } else {
                                 val placed = placementController.placeAt(x, y)
 
                                 if (placed != null) {
                                     println("Object placed at ($x, $y)")
                                     scene.audio.playSound(BuildingSound.PLACE)
-                                } else {
-                                    println("Cannot place object at ($x, $y)")
                                 }
-                            }
 
-                            true
+                                true
+                            }
                         },
 
+                        // Continue painting while dragging.
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                            enabled = { terrainPaintingEnabled }
+                            enabled = { painter.enabled }
                         ) { x, y ->
-                            paintStroke(x, y)
-                            true
+                            painter.dragPaint(x, y)
                         },
 
+                        // Cancel the stroke if the cursor leaves the world.
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
+                            enabled = { painter.enabled }
+                        ) {
+                            painter.cancel()
+                            false
+                        },
+
+                        // Finish painting even when released outside the world.
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT)
+                        ) {
+                            painter.endPaint()
+                        },
+
+                        // Right click: begin erasing an overlay.
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
                             enabled = {
-                                terrainPaintingEnabled && selectedPaintLayerId != null
+                                painter.enabled && painter.layerId != null
                             }
                         ) { x, y ->
-                            lastErasedTile = null
-                            eraseStroke(x, y)
-                            true
+                            painter.beginErase(x, y)
                         },
 
+                        // Continue erasing while dragging.
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
                             enabled = {
-                                terrainPaintingEnabled && selectedPaintLayerId != null
+                                painter.enabled && painter.layerId != null
                             }
                         ) { x, y ->
-                            eraseStroke(x, y)
-                            true
+                            painter.dragErase(x, y)
                         },
 
+                        // Cancel erasing if the cursor leaves the world.
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
+                            enabled = { painter.enabled }
+                        ) {
+                            painter.cancel()
+                            false
+                        },
+
+                        // Finish erasing even when released outside the world.
+                        WorldInputBinding.NoPicking(
+                            trigger = WorldInputTrigger.MouseUp(Input.Buttons.RIGHT)
+                        ) {
+                            painter.endErase()
+                        },
+
+                        // Remove objects only outside painting mode.
                         WorldInputBinding.Object(
                             trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
                             mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
-                            enabled = { !terrainPaintingEnabled }
+                            enabled = { !painter.enabled }
                         ) { placed ->
                             world.removeObject(placed)
                             true
                         },
 
+                        // Debug: inspect the ground tile.
                         WorldInputBinding.Tile(
                             trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
                         ) { x, y ->
-                            val tile = world.getTile(x, y)
-
-                            println("Tile at ($x, $y): $tile")
-
+                            println("Tile at ($x, $y): ${world.getTile(x, y)}")
                             true
                         },
 
+                        // Toggle painting mode.
                         WorldInputBinding.NoPicking(
                             trigger = WorldInputTrigger.KeyDown(Input.Keys.T)
                         ) {
-                            terrainPaintingEnabled = !terrainPaintingEnabled
+                            painter.enabled = !painter.enabled
 
-                            println(
-                                "Terrain painting: " +
-                                        if (terrainPaintingEnabled) "enabled" else "disabled"
-                            )
-
+                            println("Terrain painting: ${painter.enabled}")
                             true
                         },
 
+                        // Switch between ground and the demo overlay.
                         WorldInputBinding.NoPicking(
                             trigger = WorldInputTrigger.KeyDown(Input.Keys.O)
                         ) {
-                            selectedPaintLayerId = if (selectedPaintLayerId == null) {
+                            painter.layerId = if (painter.layerId == null) {
                                 "demo"
                             } else {
                                 null
                             }
 
-                            println("Selected paint layer: ${selectedPaintLayerId ?: "ground"}")
-
+                            println("Selected layer: ${painter.layerId ?: "ground"}")
                             true
-                        },
+                        }
                     )
                 }
-            }
-        }
-    }
-
-    private fun paintStroke(x: Int, y: Int) {
-        val layerId = selectedPaintLayerId
-        val tile = SandboxTile(TerrainType.WATER)
-
-        forEachTileOnLine(lastPaintedTile, x to y) { tileX, tileY ->
-            if (layerId == null) {
-                world.setTile(tileX, tileY, tile)
-            } else {
-                world.setOverlayTile(
-                    layerId = layerId,
-                    x = tileX,
-                    y = tileY,
-                    tile = tile
-                )
-            }
-        }
-
-        lastPaintedTile = x to y
-    }
-
-    private fun eraseStroke(x: Int, y: Int) {
-        val layerId = selectedPaintLayerId ?: return
-
-        forEachTileOnLine(lastErasedTile, x to y) { tileX, tileY ->
-            world.setOverlayTile(
-                layerId = layerId,
-                x = tileX,
-                y = tileY,
-                tile = null
-            )
-        }
-
-        lastErasedTile = x to y
-    }
-
-    private fun forEachTileOnLine(
-        from: Pair<Int, Int>?,
-        to: Pair<Int, Int>,
-        action: (x: Int, y: Int) -> Unit
-    ) {
-        var x = from?.first ?: to.first
-        var y = from?.second ?: to.second
-
-        val dx = abs(to.first - x)
-        val dy = abs(to.second - y)
-
-        val stepX = if (x < to.first) 1 else -1
-        val stepY = if (y < to.second) 1 else -1
-
-        var error = dx - dy
-
-        while (true) {
-            // Avoid processing the previous tile twice.
-            if (from == null || x != from.first || y != from.second) {
-                action(x, y)
-            }
-
-            if (x == to.first && y == to.second) {
-                break
-            }
-
-            val doubleError = 2 * error
-
-            if (doubleError > -dy) {
-                error -= dy
-                x += stepX
-            }
-
-            if (doubleError < dx) {
-                error += dx
-                y += stepY
             }
         }
     }
@@ -337,7 +276,7 @@ class SandboxGame : StrataGame {
 
     override fun render() {
         scene.render(
-            preview = if (terrainPaintingEnabled) {
+            preview = if (painter.enabled) {
                 null
             } else {
                 placementController.preview
