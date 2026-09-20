@@ -89,14 +89,13 @@ class IsoWorldRenderer(
             maxDepth = world.width + world.height - 2
         )
 
+        val overlayIds = world.overlayLayerIds
         batch.begin()
 
         for (depth in 0 until world.width + world.height - 1) {
             val depthOffset = depth / 2f
 
             if (depth in terrainDepths) {
-                val depthOffset = depth / 2f
-
                 val minX = maxOf(
                     0,
                     depth - world.height + 1,
@@ -109,53 +108,64 @@ class IsoWorldRenderer(
                     ceil(rightInTiles + depthOffset).toInt()
                 )
 
-                // Render only terrain sprites intersecting the camera.
-                for (x in minX..maxX) {
-                    val y = depth - x
+                // Render ground first, followed by overlays in registration order.
+                for (layerIndex in -1 until overlayIds.size) {
+                    for (x in minX..maxX) {
+                        val y = depth - x
 
-                    stats.terrainChecked++
+                        stats.terrainChecked++
 
-                    val tile = world.getTile(x, y) ?: continue
-                    val texture = textureFor(tile) ?: continue
+                        val tile = if (layerIndex == -1) {
+                            world.getTile(x, y)
+                        } else {
+                            world.getOverlayTile(
+                                layerId = overlayIds[layerIndex],
+                                x = x,
+                                y = y
+                            )
+                        } ?: continue
 
-                    val offsetY = if (
-                        raisedTile != null &&
-                        raisedTile.first == x &&
-                        raisedTile.second == y
-                    ) {
-                        raiseOffsetY
-                    } else {
-                        0f
+                        val texture = textureFor(tile) ?: continue
+
+                        val offsetY = if (
+                            raisedTile != null &&
+                            raisedTile.first == x &&
+                            raisedTile.second == y
+                        ) {
+                            raiseOffsetY
+                        } else {
+                            0f
+                        }
+
+                        val scale = projection.tileWidth / texture.regionWidth
+
+                        val spriteWidth = texture.regionWidth * scale
+                        val spriteHeight = texture.regionHeight * scale
+
+                        val centerX = (x - y) * projection.tileWidth / 2f
+                        val topY = -depth * projection.tileHeight / 2f + offsetY
+
+                        tileBounds.set(
+                            centerX - spriteWidth / 2f,
+                            topY - spriteHeight,
+                            spriteWidth,
+                            spriteHeight
+                        )
+
+                        if (!tileBounds.overlaps(visibleArea)) {
+                            continue
+                        }
+
+                        terrainRenderer.render(
+                            batch = batch,
+                            x = x,
+                            y = y,
+                            texture = texture,
+                            offsetY = offsetY
+                        )
+
+                        stats.terrainDrawn++
                     }
-
-                    val scale = projection.tileWidth / texture.regionWidth
-
-                    val spriteWidth = texture.regionWidth * scale
-                    val spriteHeight = texture.regionHeight * scale
-
-                    val centerX = (x - y) * projection.tileWidth / 2f
-                    val topY = -depth * projection.tileHeight / 2f + offsetY
-
-                    tileBounds.set(
-                        centerX - spriteWidth / 2f,
-                        topY - spriteHeight,
-                        spriteWidth,
-                        spriteHeight
-                    )
-
-                    if (!tileBounds.overlaps(visibleArea)) {
-                        continue
-                    }
-
-                    terrainRenderer.render(
-                        batch = batch,
-                        x = x,
-                        y = y,
-                        texture = texture,
-                        offsetY = offsetY
-                    )
-
-                    stats.terrainDrawn++
                 }
             }
 

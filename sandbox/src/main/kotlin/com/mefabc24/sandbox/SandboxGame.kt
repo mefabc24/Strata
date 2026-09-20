@@ -34,7 +34,21 @@ class SandboxGame : StrataGame {
                 TerrainType.GRASS
             }
 
-            SandboxTile(terrain)
+            SandboxTile(TerrainType.GRASS)
+        }
+
+        // Create a temporary overlay to verify layered rendering.
+        world.addOverlayLayer("demo")
+
+        for (x in 23..25) {
+            for (y in 23..25) {
+                world.setOverlayTile(
+                    layerId = "demo",
+                    x = x,
+                    y = y,
+                    tile = SandboxTile(TerrainType.WATER)
+                )
+            }
         }
 
         placementController = PlacementController(
