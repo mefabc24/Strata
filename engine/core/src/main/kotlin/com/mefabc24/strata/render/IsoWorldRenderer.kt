@@ -178,18 +178,30 @@ class IsoWorldRenderer(
 
                 val visual = objectVisualFor(placed) ?: return@forEach
 
+                val elevation = world.getHeight(
+                    placed.x,
+                    placed.y
+                ) ?: 0
+
                 IsoObjectBounds.calculate(
                     projection = projection,
                     placed = placed,
                     visual = visual,
-                    result = objectBounds
+                    result = objectBounds,
+                    elevation = elevation
                 )
 
                 if (!objectBounds.overlaps(visibleArea)) {
                     return@forEach
                 }
 
-                objectRenderer.render(batch, placed, visual)
+                objectRenderer.render(
+                    batch = batch,
+                    placed = placed,
+                    visual = visual,
+                    elevation = elevation
+                )
+
                 stats.objectsDrawn++
             }
 
@@ -197,6 +209,11 @@ class IsoWorldRenderer(
                 val visual = objectVisualFor(preview.placedObject)
 
                 if (visual != null) {
+                    val elevation = world.getHeight(
+                        preview.placedObject.x,
+                        preview.placedObject.y
+                    ) ?: 0
+
                     IsoObjectBounds.calculate(
                         projection = projection,
                         placed = preview.placedObject,
@@ -213,10 +230,12 @@ class IsoWorldRenderer(
 
                         batch.color = color
 
-                        objectRenderer.render(
-                            batch,
-                            preview.placedObject,
-                            visual
+                        IsoObjectBounds.calculate(
+                            projection = projection,
+                            placed = preview.placedObject,
+                            visual = visual,
+                            result = objectBounds,
+                            elevation = elevation
                         )
                         stats.previewsDrawn++
 

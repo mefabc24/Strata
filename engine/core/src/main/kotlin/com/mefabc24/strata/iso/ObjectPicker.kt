@@ -34,11 +34,17 @@ class ObjectPicker(
             for (placed in objects.asReversed()) {
                 val visual = visualFor(placed) ?: continue
 
+                val elevation = world.getHeight(
+                    placed.x,
+                    placed.y
+                ) ?: 0
+
                 IsoObjectBounds.calculate(
                     projection = projection,
                     placed = placed,
                     visual = visual,
-                    result = bounds
+                    result = bounds,
+                    elevation = elevation
                 )
 
                 if (!bounds.contains(cursor.x, cursor.y)) {

@@ -15,13 +15,21 @@ class TilePicker(
         position.set(screenX, screenY, 0f)
         camera.unproject(position)
 
-        val (x, y) = projection.worldToTile(
-            position.x,
-            position.y
-        )
+        for (elevation in world.maxHeight downTo 0) {
+            val (x, y) = projection.worldToTile(
+                worldX = position.x,
+                worldY = position.y -
+                        elevation * projection.elevationStep
+            )
 
-        return if (world.getTile(x, y) != null) {
-            x to y
-        } else null
+            if (
+                world.getTile(x, y) != null &&
+                world.getHeight(x, y) == elevation
+            ) {
+                return x to y
+            }
+        }
+
+        return null
     }
 }
