@@ -2,23 +2,33 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
-import com.mefabc24.strata.world.World
 import kotlin.math.floor
 
 class IsoProjection(
-    val tileWidth: Float = 64f,
-    val tileHeight: Float = 32f,
+    geometry: TileGeometry = TileGeometry()
 ) {
-    init {
-        require(tileWidth > 0f && tileWidth.isFinite())
-        require(tileHeight > 0f && tileHeight.isFinite())
+
+    private val geometry = geometry.copy().also {
+        it.validate()
     }
+
+    /**
+     * Width of the isometric top face.
+     */
+    val tileWidth: Float
+        get() = geometry.width
+
+    /**
+     * Height of the isometric top face.
+     */
+    val tileHeight: Float
+        get() = geometry.faceHeight
 
     /**
      * Vertical world-space distance between two terrain levels.
      */
     val elevationStep: Float
-        get() = tileHeight / 2f
+        get() = geometry.elevationStep
 
     fun tileToWorld(
         x: Int,
@@ -27,11 +37,15 @@ class IsoProjection(
     ): Vector2 {
         return Vector2(
             (x - y) * tileWidth / 2f,
-            -(x + y) * tileHeight / 2f + elevation * elevationStep
+            -(x + y) * tileHeight / 2f +
+                    elevation * elevationStep
         )
     }
 
-    fun worldToTile(worldX: Float, worldY: Float): Pair<Int, Int> {
+    fun worldToTile(
+        worldX: Float,
+        worldY: Float
+    ): Pair<Int, Int> {
         val x = worldX / tileWidth - worldY / tileHeight
         val y = -worldX / tileWidth - worldY / tileHeight
 

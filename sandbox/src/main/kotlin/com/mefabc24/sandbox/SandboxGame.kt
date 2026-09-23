@@ -136,8 +136,10 @@ class SandboxGame : StrataGame {
             }
 
             rendering {
-                tileWidth = 64f
-                tileHeight = 32f
+                tileGeometry {
+                    width = 32f
+                    height = 32f
+                }
             }
 
             controls {

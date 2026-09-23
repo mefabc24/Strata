@@ -1,13 +1,14 @@
 package com.mefabc24.strata.render
 
+import com.mefabc24.strata.iso.TileGeometry
+
 /**
  * Configures the rendering of an isometric world.
  *
  * Settings are applied when the world view is created.
  */
-data class RenderingSettings(
-    var tileWidth: Float = 64f,
-    var tileHeight: Float = 32f,
+class RenderingSettings(
+    val tileGeometry: TileGeometry = TileGeometry(),
 
     /**
      * Maximum terrain sprite height in world units.
@@ -18,14 +19,19 @@ data class RenderingSettings(
     var maxTerrainSpriteHeight: Float? = null
 ) {
 
-    internal fun validate() {
-        require(tileWidth.isFinite() && tileWidth > 0f) {
-            "Tile width must be finite and positive."
-        }
+    fun tileGeometry(configure: TileGeometry.() -> Unit) {
+        tileGeometry.apply(configure)
+    }
 
-        require(tileHeight.isFinite() && tileHeight > 0f) {
-            "Tile height must be finite and positive."
-        }
+    fun copy(): RenderingSettings {
+        return RenderingSettings(
+            tileGeometry = tileGeometry.copy(),
+            maxTerrainSpriteHeight = maxTerrainSpriteHeight
+        )
+    }
+
+    internal fun validate() {
+        tileGeometry.validate()
 
         require(
             maxTerrainSpriteHeight == null ||

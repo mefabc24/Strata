@@ -111,7 +111,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             validate()
 
             if (maxTerrainSpriteHeight == null) {
-                maxTerrainSpriteHeight = terrain.maxSpriteHeight(tileWidth)
+                maxTerrainSpriteHeight = terrain.maxSpriteHeight(tileGeometry.width)
             }
         }
 

@@ -73,8 +73,7 @@ class IsoWorldView(
     val camera = OrthographicCamera()
 
     private val projection = IsoProjection(
-        tileWidth = renderingConfig.tileWidth,
-        tileHeight = renderingConfig.tileHeight
+        geometry = renderingConfig.tileGeometry
     )
 
     var hoveredTile: Pair<Int, Int>? = null
