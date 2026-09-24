@@ -4,16 +4,59 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
 
 /**
- * Maps terrain types to their sprites.
+ * Describes one terrain registration.
+ *
+ * The texture is owned by the registry's asset manager. Accessing [texture]
+ * requires the registry to have been prepared.
  */
-class TerrainRegistry<T : Enum<T>>(
-    directory: String,
-    private val assets: StrataAssets
+class TerrainEntry<T : Enum<T>> internal constructor(
+    val type: T,
+    val spritePath: String
 ) {
+    private var preparedTexture: TextureRegion? = null
+
+    /** The loaded texture region used to render this terrain. */
+    val texture: TextureRegion
+        get() = preparedTexture
+            ?: error("Terrain type $type is not prepared.")
+
+    /** Whether [texture] is ready for use. */
+    val isPrepared: Boolean
+        get() = preparedTexture != null
+
+    internal fun prepare(texture: TextureRegion) {
+        preparedTexture = texture
+    }
+}
+
+/**
+ * Maps terrain types to their sprites in registration order.
+ */
+class TerrainRegistry<T : Enum<T>> internal constructor(
+    directory: String,
+    private val queueTexture: (String) -> Unit,
+    private val regionFor: (String) -> TextureRegion
+) {
+    constructor(
+        directory: String,
+        assets: StrataAssets
+    ) : this(
+        directory = directory,
+        queueTexture = assets::queueTexture,
+        regionFor = assets::region
+    )
+
     private val baseDirectory = directory.trimEnd('/')
 
-    private val registrations = mutableMapOf<T, String>()
-    private val regions = mutableMapOf<T, TextureRegion>()
+    private val registrations = linkedMapOf<T, TerrainEntry<T>>()
+
+    /**
+     * A snapshot of registered terrain entries in registration order.
+     *
+     * Mutating the returned list cannot change this registry.
+     */
+    val entries: List<TerrainEntry<T>>
+        get() = registrations.values.toList()
 
     /**
      * Registers a terrain type and queues its texture.
@@ -36,18 +79,24 @@ class TerrainRegistry<T : Enum<T>>(
             "$baseDirectory/$sprite"
         }
 
-        assets.queueTexture(path)
-        registrations[type] = path
+        queueTexture(path)
+
+        registrations[type] = TerrainEntry(
+            type = type,
+            spritePath = path
+        )
     }
 
     /**
      * Resolves registered sprites after their textures have loaded.
      */
     fun prepare() {
-        for ((type, path) in registrations) {
-            if (type in regions) continue
+        for (entry in registrations.values) {
+            if (entry.isPrepared) continue
 
-            regions[type] = assets.region(path)
+            entry.prepare(
+                regionFor(entry.spritePath)
+            )
         }
     }
 
@@ -61,11 +110,13 @@ class TerrainRegistry<T : Enum<T>>(
             "Tile width must be finite and positive."
         }
 
-        check(registrations.keys.all { it in regions }) {
+        check(registrations.values.all { it.isPrepared }) {
             "Terrain sprites must be prepared before calculating their height."
         }
 
-        return regions.values.maxOfOrNull { region ->
+        return registrations.values.maxOfOrNull { entry ->
+            val region = entry.texture
+
             require(region.regionWidth > 0) {
                 "Terrain sprite width must be positive."
             }
@@ -78,10 +129,7 @@ class TerrainRegistry<T : Enum<T>>(
      * Returns the prepared sprite for a terrain type.
      */
     operator fun get(type: T): TextureRegion {
-        return regions[type]
-            ?: error(
-                "Terrain type $type is not prepared. " +
-                        "Load the assets and call prepare() first."
-            )
+        return registrations[type]?.texture
+            ?: error("Terrain type $type is not registered.")
     }
 }

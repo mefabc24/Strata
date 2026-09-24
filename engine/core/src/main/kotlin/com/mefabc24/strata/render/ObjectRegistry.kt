@@ -2,6 +2,7 @@ package com.mefabc24.strata.render
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
@@ -17,29 +18,86 @@ class ObjectSpriteSettings {
     var width: Float? = null
     var height: Float? = null
     var scale: Float = 1f
+
+    internal fun validate() {
+        require(offsetX.isFinite() && offsetY.isFinite()) {
+            "Sprite offsets must be finite."
+        }
+
+        require(width == null || (width!!.isFinite() && width!! > 0f)) {
+            "Sprite width must be finite and positive."
+        }
+
+        require(height == null || (height!!.isFinite() && height!! > 0f)) {
+            "Sprite height must be finite and positive."
+        }
+
+        require(scale.isFinite() && scale > 0f) {
+            "Sprite scale must be finite and positive."
+        }
+    }
 }
 
 /**
- * Maps placeable types to their visual configuration.
+ * Describes one registered object type and its prepared rendering metadata.
+ *
+ * The visual references registry-owned texture data and must not be disposed
+ * by callers.
  */
-class ObjectRegistry(
-    directory: String,
-    private val assets: StrataAssets
+class ObjectEntry internal constructor(
+    val type: KClass<out Placeable>,
+    val spritePath: String,
+    internal val settings: ObjectSpriteSettings
 ) {
-    private data class Registration(
-        val path: String,
-        val settings: ObjectSpriteSettings
+    private var preparedVisual: ObjectVisual? = null
+
+    /** The visual used to render this object type. */
+    val visual: ObjectVisual
+        get() = preparedVisual
+            ?: error("Object type $type is not prepared.")
+
+    /** Whether [visual] is ready for use. */
+    val isPrepared: Boolean
+        get() = preparedVisual != null
+
+    internal fun prepare(visual: ObjectVisual) {
+        preparedVisual = visual
+    }
+}
+
+/**
+ * Maps placeable types to their visual configuration in registration order.
+ */
+class ObjectRegistry internal constructor(
+    directory: String,
+    private val queueTexture: (String) -> Unit,
+    private val regionFor: (String) -> TextureRegion,
+    private val loadAlphaMask: (String) -> AlphaMask?
+) {
+    constructor(
+        directory: String,
+        assets: StrataAssets
+    ) : this(
+        directory = directory,
+        queueTexture = assets::queueTexture,
+        regionFor = assets::region,
+        loadAlphaMask = ::alphaMaskFromClasspath
     )
 
     private val baseDirectory = directory.trimEnd('/')
 
     private val registrations =
-        mutableMapOf<KClass<out Placeable>, Registration>()
+        linkedMapOf<KClass<out Placeable>, ObjectEntry>()
 
-    private val alphaMasks = mutableMapOf<String, AlphaMask>()
+    private val alphaMasks = mutableMapOf<String, AlphaMask?>()
 
-    private val visuals =
-        mutableMapOf<KClass<out Placeable>, ObjectVisual>()
+    /**
+     * A snapshot of registered object entries in registration order.
+     *
+     * Mutating the returned list cannot change this registry.
+     */
+    val entries: List<ObjectEntry>
+        get() = registrations.values.toList()
 
     /**
      * Registers an object type and queues its texture.
@@ -58,6 +116,7 @@ class ObjectRegistry(
         }
 
         val settings = ObjectSpriteSettings().apply(configure)
+        settings.validate()
 
         val path = if (baseDirectory.isEmpty()) {
             sprite
@@ -65,10 +124,11 @@ class ObjectRegistry(
             "$baseDirectory/$sprite"
         }
 
-        assets.queueTexture(path)
+        queueTexture(path)
 
-        registrations[type] = Registration(
-            path = path,
+        registrations[type] = ObjectEntry(
+            type = type,
+            spritePath = path,
             settings = settings
         )
     }
@@ -87,32 +147,30 @@ class ObjectRegistry(
      * Resolves textures and builds alpha masks after loading.
      */
     fun prepare() {
-        for ((type, registration) in registrations) {
-            if (type in visuals) continue
+        for (entry in registrations.values) {
+            if (entry.isPrepared) continue
 
-            val path = registration.path
-            val settings = registration.settings
+            val path = entry.spritePath
+            val settings = entry.settings
 
-            val region = assets.region(path)
-
-            val alphaMask = alphaMasks.getOrPut(path) {
-                val pixmap = Pixmap(Gdx.files.classpath(path))
-
-                try {
-                    AlphaMask.fromPixmap(pixmap)
-                } finally {
-                    pixmap.dispose()
+            val alphaMask = if (path in alphaMasks) {
+                alphaMasks[path]
+            } else {
+                loadAlphaMask(path).also {
+                    alphaMasks[path] = it
                 }
             }
 
-            visuals[type] = ObjectVisual(
-                texture = region,
-                offsetX = settings.offsetX,
-                offsetY = settings.offsetY,
-                alphaMask = alphaMask,
-                width = settings.width,
-                height = settings.height,
-                scale = settings.scale
+            entry.prepare(
+                ObjectVisual(
+                    texture = regionFor(path),
+                    offsetX = settings.offsetX,
+                    offsetY = settings.offsetY,
+                    alphaMask = alphaMask,
+                    width = settings.width,
+                    height = settings.height,
+                    scale = settings.scale
+                )
             )
         }
     }
@@ -121,6 +179,19 @@ class ObjectRegistry(
      * Returns the prepared visual for a placed object.
      */
     fun get(placed: PlacedObject): ObjectVisual? {
-        return visuals[placed.placeable::class]
+        val entry = registrations[placed.placeable::class]
+            ?: return null
+
+        return entry.visual
+    }
+}
+
+private fun alphaMaskFromClasspath(path: String): AlphaMask {
+    val pixmap = Pixmap(Gdx.files.classpath(path))
+
+    return try {
+        AlphaMask.fromPixmap(pixmap)
+    } finally {
+        pixmap.dispose()
     }
 }
