@@ -262,9 +262,6 @@ class IsoWorldView(
     }
 
     /**
-     * Renders terrain and world objects.
-     */
-    /**
      * Renders terrain, world objects, and an optional placement preview.
      */
     fun render(

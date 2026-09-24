@@ -27,14 +27,11 @@ class PlacementControllerTest {
     }
 
     @Test
-    fun `allows placement when external validator accepts`() {
+    fun `places selected object when placement is valid`() {
         val world = createWorld()
 
         val controller = PlacementController(
-            world = world,
-            placementValidator = { _, _ ->
-                true
-            }
+            world = world
         )
 
         controller.selectedPlaceable =
@@ -45,10 +42,31 @@ class PlacementControllerTest {
         )
 
         assertNotNull(placed)
+
+        assertNotNull(
+            world.getObjectAt(
+                TilePosition(2, 2)
+            )
+        )
     }
 
     @Test
-    fun `rejects placement when external validator rejects`() {
+    fun `does not place without selected object`() {
+        val world = createWorld()
+
+        val controller = PlacementController(
+            world = world
+        )
+
+        assertNull(
+            controller.placeAt(
+                TilePosition(2, 2)
+            )
+        )
+    }
+
+    @Test
+    fun `external validator can reject placement`() {
         val world = createWorld()
 
         val controller = PlacementController(
@@ -61,11 +79,12 @@ class PlacementControllerTest {
         controller.selectedPlaceable =
             TestPlaceable()
 
-        val placed = controller.placeAt(
-            TilePosition(2, 2)
+        assertNull(
+            controller.placeAt(
+                TilePosition(2, 2)
+            )
         )
 
-        assertNull(placed)
         assertNull(
             world.getObjectAt(
                 TilePosition(2, 2)
@@ -74,7 +93,7 @@ class PlacementControllerTest {
     }
 
     @Test
-    fun `preview reflects external placement validation`() {
+    fun `preview reflects external validation`() {
         val world = createWorld()
 
         val controller = PlacementController(
@@ -92,7 +111,7 @@ class PlacementControllerTest {
         )
 
         assertFalse(
-            controller.preview?.valid ?: true
+            requireNotNull(controller.preview).valid
         )
 
         controller.update(
@@ -100,20 +119,20 @@ class PlacementControllerTest {
         )
 
         assertTrue(
-            controller.preview?.valid ?: false
+            requireNotNull(controller.preview).valid
         )
     }
 
     @Test
-    fun `external validator cannot override geometric restrictions`() {
+    fun `external validator cannot override world restrictions`() {
         val world = createWorld()
 
-        val existing = world.place(
-            placeable = TestPlaceable(),
-            position = TilePosition(2, 2)
+        assertNotNull(
+            world.place(
+                placeable = TestPlaceable(),
+                position = TilePosition(2, 2)
+            )
         )
-
-        assertNotNull(existing)
 
         val controller = PlacementController(
             world = world,
@@ -130,5 +149,35 @@ class PlacementControllerTest {
                 TilePosition(2, 2)
             )
         )
+
+        controller.update(
+            TilePosition(2, 2)
+        )
+
+        assertFalse(
+            requireNotNull(controller.preview).valid
+        )
+    }
+
+    @Test
+    fun `clears preview when nothing is hovered`() {
+        val world = createWorld()
+
+        val controller = PlacementController(
+            world = world
+        )
+
+        controller.selectedPlaceable =
+            TestPlaceable()
+
+        controller.update(
+            TilePosition(2, 2)
+        )
+
+        assertNotNull(controller.preview)
+
+        controller.update(null)
+
+        assertNull(controller.preview)
     }
 }
