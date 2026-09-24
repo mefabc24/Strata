@@ -149,14 +149,47 @@ class StrataUi(
     ): StrataSpacer = root.spacer(width, height)
 
     /**
-     * Creates a value-based selection group owned by game code.
+     * Creates a required value-based selection group owned by game code.
      *
      * Controls built through this UI are detached when the UI is disposed.
      */
     fun <T> selectionGroup(
         options: Iterable<T>,
         initialSelection: T? = null,
-        selectionRequired: Boolean = true,
+        onSelectionChanged: ((T) -> Unit)? = null
+    ): StrataSelectionGroup<T> {
+        checkActive()
+
+        val group = StrataSelectionGroup(
+            options = options,
+            initialSelection = initialSelection,
+            selectionRequired = true
+        )
+
+        if (onSelectionChanged != null) {
+            context.own(
+                group.onSelectionChanged { selected ->
+                    onSelectionChanged(
+                        requireNotNull(selected) {
+                            "A required selection group has no selection."
+                        }
+                    )
+                }
+            )
+        }
+
+        return group
+    }
+
+    /**
+     * Creates a value-based selection group that can be cleared.
+     *
+     * The callback receives null when the selection is cleared. Controls
+     * built through this UI are detached when the UI is disposed.
+     */
+    fun <T> optionalSelectionGroup(
+        options: Iterable<T>,
+        initialSelection: T? = null,
         onSelectionChanged: ((T?) -> Unit)? = null
     ): StrataSelectionGroup<T> {
         checkActive()
@@ -164,7 +197,7 @@ class StrataUi(
         val group = StrataSelectionGroup(
             options = options,
             initialSelection = initialSelection,
-            selectionRequired = selectionRequired
+            selectionRequired = false
         )
 
         if (onSelectionChanged != null) {
