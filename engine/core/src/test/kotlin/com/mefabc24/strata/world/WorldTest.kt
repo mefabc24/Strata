@@ -212,4 +212,42 @@ class WorldTest {
 
         assertEquals(1, world.maxHeight)
     }
+
+    @Test
+    fun `overlay operations accept tile positions`() {
+        val world = World(3, 3) { _, _ ->
+            TestTile(0)
+        }
+
+        val position = TilePosition(1, 2)
+
+        world.addOverlayLayer("infrastructure")
+
+        world.setOverlayTile(
+            layerId = "infrastructure",
+            position = position,
+            tile = TestTile(42)
+        )
+
+        assertEquals(
+            TestTile(42),
+            world.getOverlayTile(
+                layerId = "infrastructure",
+                position = position
+            )
+        )
+
+        world.setOverlayTile(
+            layerId = "infrastructure",
+            position = position,
+            tile = null
+        )
+
+        assertNull(
+            world.getOverlayTile(
+                layerId = "infrastructure",
+                position = position
+            )
+        )
+    }
 }

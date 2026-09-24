@@ -401,6 +401,20 @@ class World(
     }
 
     /**
+     * Returns the tile on an overlay layer at the given position.
+     */
+    fun getOverlayTile(
+        layerId: String,
+        position: TilePosition
+    ): Tile? {
+        return getOverlayTile(
+            layerId = layerId,
+            x = position.x,
+            y = position.y
+        )
+    }
+
+    /**
      * Sets or clears a tile on an overlay layer.
      *
      * Passing null clears the cell.
@@ -418,6 +432,22 @@ class World(
         val layer = requireOverlayLayer(layerId)
 
         layer[y][x] = tile
+    }
+
+    /**
+     * Sets or clears a tile on an overlay layer at the given position.
+     */
+    fun setOverlayTile(
+        layerId: String,
+        position: TilePosition,
+        tile: Tile?
+    ) {
+        setOverlayTile(
+            layerId = layerId,
+            x = position.x,
+            y = position.y,
+            tile = tile
+        )
     }
 
     /**

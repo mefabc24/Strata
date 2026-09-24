@@ -232,4 +232,50 @@ class TerrainManipulatorTest {
             world.getTile(3, 5)
         )
     }
+
+    @Test
+    fun `single tile operations accept tile positions`() {
+        val world = createWorld()
+        val position = TilePosition(2, 3)
+
+        world.terrain.setTile(
+            position = position,
+            tile = TestTile(42)
+        )
+
+        assertEquals(
+            TestTile(42),
+            world.getTile(position)
+        )
+
+        assertTrue(
+            world.terrain.setHeight(
+                position = position,
+                level = 2
+            )
+        )
+
+        assertEquals(
+            2,
+            world.getHeight(position)
+        )
+
+        assertTrue(
+            world.terrain.raise(position)
+        )
+
+        assertEquals(
+            3,
+            world.getHeight(position)
+        )
+
+        assertTrue(
+            world.terrain.lower(position)
+        )
+
+        assertEquals(
+            2,
+            world.getHeight(position)
+        )
+    }
 }

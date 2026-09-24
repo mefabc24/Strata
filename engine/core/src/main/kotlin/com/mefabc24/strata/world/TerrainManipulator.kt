@@ -32,6 +32,20 @@ class TerrainManipulator internal constructor(
     }
 
     /**
+     * Sets the elevation of a single terrain tile.
+     */
+    fun setHeight(
+        position: TilePosition,
+        level: Int
+    ): Boolean {
+        return setHeight(
+            x = position.x,
+            y = position.y,
+            level = level
+        )
+    }
+
+    /**
      * Sets the elevation of a rectangular terrain area.
      */
     fun setHeight(
@@ -75,6 +89,20 @@ class TerrainManipulator internal constructor(
             mapOf(
                 TilePosition(x, y) to current + amount
             )
+        )
+    }
+
+    /**
+     * Raises a single terrain tile.
+     */
+    fun raise(
+        position: TilePosition,
+        amount: Int = 1
+    ): Boolean {
+        return raise(
+            x = position.x,
+            y = position.y,
+            amount = amount
         )
     }
 
@@ -139,6 +167,20 @@ class TerrainManipulator internal constructor(
     }
 
     /**
+     * Lowers a single terrain tile.
+     */
+    fun lower(
+        position: TilePosition,
+        amount: Int = 1
+    ): Boolean {
+        return lower(
+            x = position.x,
+            y = position.y,
+            amount = amount
+        )
+    }
+
+    /**
      * Lowers a rectangular terrain area.
      */
     fun lower(
@@ -188,6 +230,20 @@ class TerrainManipulator internal constructor(
         world.setTile(
             x = x,
             y = y,
+            tile = tile
+        )
+    }
+
+    /**
+     * Replaces the ground tile at the given position.
+     */
+    fun setTile(
+        position: TilePosition,
+        tile: Tile
+    ) {
+        setTile(
+            x = position.x,
+            y = position.y,
             tile = tile
         )
     }
