@@ -70,6 +70,15 @@ class IsoWorldView(
     private val maxTerrainSpriteHeight =
         renderingConfig.maxTerrainSpriteHeight ?: Float.POSITIVE_INFINITY
 
+    private val boundsSpriteHeight =
+        if (maxTerrainSpriteHeight.isFinite()) {
+            maxTerrainSpriteHeight
+        } else {
+            renderingConfig.tileGeometry.height
+        }
+
+    private var knownHeightVersion = world.heightVersion
+
     val camera = OrthographicCamera()
 
     private val projection = IsoProjection(
@@ -82,7 +91,9 @@ class IsoWorldView(
     private val worldBounds = projection.worldBounds(
         width = world.width,
         height = world.height,
-        padding = 0f
+        padding = 0f,
+        maxElevation = world.maxHeight,
+        maxSpriteHeight = boundsSpriteHeight
     )
 
     private val worldRenderer = IsoWorldRenderer(projection)
@@ -96,7 +107,9 @@ class IsoWorldView(
     private val cameraBounds = projection.worldBounds(
         width = world.width,
         height = world.height,
-        padding = cameraConfig.cameraPadding
+        padding = cameraConfig.cameraPadding,
+        maxElevation = world.maxHeight,
+        maxSpriteHeight = boundsSpriteHeight
     ).let {
         CameraBounds(
             minX = it.x,
@@ -109,7 +122,9 @@ class IsoWorldView(
     private val zoomBounds = projection.worldBounds(
         width = world.width,
         height = world.height,
-        padding = cameraConfig.cameraPadding
+        padding = cameraConfig.cameraPadding,
+        maxElevation = world.maxHeight,
+        maxSpriteHeight = boundsSpriteHeight
     ).let {
         CameraBounds(
             minX = it.x,
@@ -190,10 +205,53 @@ class IsoWorldView(
         }
     }
 
+    private fun refreshElevationBounds() {
+        if (knownHeightVersion == world.heightVersion) return
+
+        knownHeightVersion = world.heightVersion
+
+        val updatedWorldBounds = projection.worldBounds(
+            width = world.width,
+            height = world.height,
+            padding = 0f,
+            maxElevation = world.maxHeight,
+            maxSpriteHeight = boundsSpriteHeight
+        )
+
+        worldBounds.set(updatedWorldBounds)
+
+        val updatedCameraBounds = projection.worldBounds(
+            width = world.width,
+            height = world.height,
+            padding = cameraConfig.cameraPadding,
+            maxElevation = world.maxHeight,
+            maxSpriteHeight = boundsSpriteHeight
+        )
+
+        cameraBounds.update(
+            minX = updatedCameraBounds.x,
+            minY = updatedCameraBounds.y,
+            maxX = updatedCameraBounds.x + updatedCameraBounds.width,
+            maxY = updatedCameraBounds.y + updatedCameraBounds.height
+        )
+
+        zoomBounds.update(
+            minX = updatedCameraBounds.x,
+            minY = updatedCameraBounds.y,
+            maxX = updatedCameraBounds.x + updatedCameraBounds.width,
+            maxY = updatedCameraBounds.y + updatedCameraBounds.height
+        )
+
+        cameraBounds.clamp(camera)
+        cameraController.refreshZoomBounds()
+    }
+
     /**
      * Updates the state of the world view.
      */
     fun update(delta: Float) {
+        refreshElevationBounds()
+
         cameraController.update(delta)
 
         hoveredTile = tilePicker.pick(

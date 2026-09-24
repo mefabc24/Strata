@@ -55,18 +55,27 @@ class IsoProjection(
     fun worldBounds(
         width: Int,
         height: Int,
-        padding: Float = 0f
+        padding: Float = 0f,
+        maxElevation: Int = 0,
+        maxSpriteHeight: Float = tileHeight
     ): Rectangle {
         require(width > 0 && height > 0)
         require(padding >= 0f && padding.isFinite())
+        require(maxElevation >= 0)
+        require(maxSpriteHeight > 0f && maxSpriteHeight.isFinite())
 
         val halfWidth = tileWidth / 2f
 
         val minX = -(height - 1) * halfWidth - halfWidth
         val maxX = (width - 1) * halfWidth + halfWidth
 
-        val maxY = 0f
-        val minY = -(width + height) * tileHeight / 2f
+        val highestTopY = maxElevation * elevationStep
+
+        val deepestTopY =
+            -(width + height - 2) * tileHeight / 2f
+
+        val minY = deepestTopY - maxSpriteHeight
+        val maxY = highestTopY
 
         return Rectangle(
             minX - padding,

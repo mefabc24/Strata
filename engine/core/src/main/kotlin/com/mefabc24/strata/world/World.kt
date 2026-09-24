@@ -31,6 +31,12 @@ class World(
         private set
 
     /**
+     * Changes whenever terrain elevation is modified.
+     */
+    var heightVersion: Long = 0L
+        private set
+
+    /**
      * Additional terrain layers in rendering order.
      *
      * Null represents an empty overlay cell.
@@ -175,6 +181,7 @@ class World(
         if (previousLevel == level) return
 
         heights[y][x] = level
+        heightVersion++
 
         when {
             level > maxHeight -> {
