@@ -47,6 +47,7 @@ class ObjectSpriteSettings {
 class ObjectEntry internal constructor(
     val type: KClass<out Placeable>,
     val spritePath: String,
+    private val factory: (() -> Placeable)?,
     internal val settings: ObjectSpriteSettings
 ) {
     private var preparedVisual: ObjectVisual? = null
@@ -59,6 +60,26 @@ class ObjectEntry internal constructor(
     /** Whether [visual] is ready for use. */
     val isPrepared: Boolean
         get() = preparedVisual != null
+
+    /** Whether this registration can create new object instances. */
+    val isConstructible: Boolean
+        get() = factory != null
+
+    /**
+     * Creates a new placeable through the explicitly registered factory.
+     */
+    fun create(): Placeable {
+        val create = factory
+            ?: error("Object type $type has no registered factory.")
+
+        val placeable = create()
+
+        check(type.isInstance(placeable)) {
+            "The factory for $type created ${placeable::class}."
+        }
+
+        return placeable
+    }
 
     internal fun prepare(visual: ObjectVisual) {
         preparedVisual = visual
@@ -100,11 +121,20 @@ class ObjectRegistry internal constructor(
         get() = registrations.values.toList()
 
     /**
+     * A snapshot containing only entries with an explicit factory.
+     */
+    val constructibleEntries: List<ObjectEntry>
+        get() = registrations.values.filter {
+            it.isConstructible
+        }
+
+    /**
      * Registers an object type and queues its texture.
      */
     fun <T : Placeable> register(
         type: KClass<T>,
         sprite: String,
+        factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
         require(type !in registrations) {
@@ -129,6 +159,9 @@ class ObjectRegistry internal constructor(
         registrations[type] = ObjectEntry(
             type = type,
             spritePath = path,
+            factory = factory?.let { create ->
+                { create() }
+            },
             settings = settings
         )
     }
@@ -138,9 +171,15 @@ class ObjectRegistry internal constructor(
      */
     inline fun <reified T : Placeable> register(
         sprite: String,
+        noinline factory: (() -> T)? = null,
         noinline configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        register(T::class, sprite, configure)
+        register(
+            type = T::class,
+            sprite = sprite,
+            factory = factory,
+            configure = configure
+        )
     }
 
     /**
