@@ -12,6 +12,7 @@ import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import com.badlogic.gdx.Gdx
+import com.mefabc24.strata.world.TilePosition
 
 /**
  * Coordinates asset loading and the lifecycle of a world view.
@@ -177,7 +178,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
      */
     fun render(
         preview: PlacementPreview? = null,
-        raisedTile: Pair<Int, Int>? = null,
+        raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f
     ) {
         checkActive()

@@ -268,7 +268,7 @@ class IsoWorldView(
      * Renders terrain, world objects, and an optional placement preview.
      */
     fun render(
-        raisedTile: Pair<Int, Int>? = null,
+        raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f,
         preview: PlacementPreview? = null
     ) {

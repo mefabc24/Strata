@@ -65,7 +65,8 @@ class World(
     private val objectView: Set<PlacedObject> =
         Collections.unmodifiableSet(objects)
 
-    private val occupiedTiles = mutableMapOf<Pair<Int, Int>, PlacedObject>()
+    private val occupiedTiles =
+        mutableMapOf<TilePosition, PlacedObject>()
 
     /**
      * Checks whether a placeable can be placed at the given position.
@@ -148,8 +149,53 @@ class World(
     /**
      * Returns the object occupying the given tile, if any.
      */
-    fun getObjectAt(x: Int, y: Int): PlacedObject? {
-        return occupiedTiles[x to y]
+    fun getObjectAt(
+        x: Int,
+        y: Int
+    ): PlacedObject? {
+        return getObjectAt(TilePosition(x, y))
+    }
+
+    fun getObjectAt(
+        position: TilePosition
+    ): PlacedObject? {
+        return occupiedTiles[position]
+    }
+
+    fun getTile(position: TilePosition): Tile? {
+        return getTile(position.x, position.y)
+    }
+
+    fun getHeight(position: TilePosition): Int? {
+        return getHeight(position.x, position.y)
+    }
+
+    fun canPlace(
+        placeable: Placeable,
+        position: TilePosition
+    ): Boolean {
+        return canPlace(
+            placeable = placeable,
+            x = position.x,
+            y = position.y
+        )
+    }
+
+    fun place(
+        placeable: Placeable,
+        position: TilePosition
+    ): PlacedObject? {
+        return place(
+            placeable = placeable,
+            x = position.x,
+            y = position.y
+        )
+    }
+
+    fun removeAt(
+        position: TilePosition
+    ): PlacedObject? {
+        return removeAt(position.x, position.y)
     }
 
     /**
@@ -261,7 +307,9 @@ class World(
         }
 
         applyHeightChanges(
-            mapOf((x to y) to level)
+            mapOf(
+                TilePosition(x, y) to level
+            )
         )
     }
 
@@ -269,7 +317,7 @@ class World(
      * Applies a validated terrain elevation change as one operation.
      */
     internal fun applyHeightChanges(
-        changes: Map<Pair<Int, Int>, Int>
+        changes: Map<TilePosition, Int>
     ) {
         if (changes.isEmpty()) return
 

@@ -3,6 +3,7 @@ package com.mefabc24.strata.render
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 class IsoGridRenderer(
@@ -13,8 +14,8 @@ class IsoGridRenderer(
     fun render(
         world: World,
         camera: OrthographicCamera,
-        hoveredTile: Pair<Int, Int>? = null,
-        selectedTile: Pair<Int, Int>? = null
+        hoveredTile: TilePosition? = null,
+        selectedTile: TilePosition? = null
     ) {
         shapes.projectionMatrix = camera.combined
 
@@ -30,7 +31,7 @@ class IsoGridRenderer(
                     elevation = elevation
                 )
 
-                val coordinates = x to y
+                val coordinates = TilePosition(x, y)
 
                 drawTile(
                     position.x,

@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -37,7 +38,7 @@ class IsoWorldRenderer(
         world: World,
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
-        raisedTile: Pair<Int, Int>? = null,
+        raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null,
@@ -131,8 +132,8 @@ class IsoWorldRenderer(
 
                         val offsetY = if (
                             raisedTile != null &&
-                            raisedTile.first == x &&
-                            raisedTile.second == y
+                            raisedTile.x == x &&
+                            raisedTile.y == y
                         ) {
                             raiseOffsetY
                         } else {

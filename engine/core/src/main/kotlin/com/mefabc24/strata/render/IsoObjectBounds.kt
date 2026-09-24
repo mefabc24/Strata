@@ -18,10 +18,10 @@ object IsoObjectBounds {
     ): Rectangle {
         val occupied = placed.occupiedTiles()
 
-        val minX = occupied.minOf { it.first }
-        val maxX = occupied.maxOf { it.first }
-        val minY = occupied.minOf { it.second }
-        val maxY = occupied.maxOf { it.second }
+        val minX = occupied.minOf { it.x }
+        val maxX = occupied.maxOf { it.x }
+        val minY = occupied.minOf { it.y }
+        val maxY = occupied.maxOf { it.y }
 
         val widthInTiles = maxX - minX + 1
         val heightInTiles = maxY - minY + 1

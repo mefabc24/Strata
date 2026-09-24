@@ -25,7 +25,9 @@ class TerrainManipulator internal constructor(
         validatePosition(x, y)
 
         return applyChanges(
-            mapOf((x to y) to level)
+            mapOf(
+                TilePosition(x, y) to level
+            )
         )
     }
 
@@ -41,7 +43,10 @@ class TerrainManipulator internal constructor(
             "Terrain height must not be negative."
         }
 
-        val positions = positionsIn(xRange, yRange)
+        val positions = positionsIn(
+            xRange = xRange,
+            yRange = yRange
+        )
 
         return applyChanges(
             positions.associateWith { level }
@@ -62,10 +67,14 @@ class TerrainManipulator internal constructor(
 
         validatePosition(x, y)
 
-        val current = requireNotNull(world.getHeight(x, y))
+        val current = requireNotNull(
+            world.getHeight(x, y)
+        )
 
         return applyChanges(
-            mapOf((x to y) to current + amount)
+            mapOf(
+                TilePosition(x, y) to current + amount
+            )
         )
     }
 
@@ -81,10 +90,18 @@ class TerrainManipulator internal constructor(
             "Raise amount must be positive."
         }
 
-        val positions = positionsIn(xRange, yRange)
+        val positions = positionsIn(
+            xRange = xRange,
+            yRange = yRange
+        )
 
-        val changes = positions.associateWith { (x, y) ->
-            requireNotNull(world.getHeight(x, y)) + amount
+        val changes = positions.associateWith { position ->
+            requireNotNull(
+                world.getHeight(
+                    position.x,
+                    position.y
+                )
+            ) + amount
         }
 
         return applyChanges(changes)
@@ -104,7 +121,10 @@ class TerrainManipulator internal constructor(
 
         validatePosition(x, y)
 
-        val current = requireNotNull(world.getHeight(x, y))
+        val current = requireNotNull(
+            world.getHeight(x, y)
+        )
+
         val target = current - amount
 
         if (target < 0) {
@@ -112,7 +132,9 @@ class TerrainManipulator internal constructor(
         }
 
         return applyChanges(
-            mapOf((x to y) to target)
+            mapOf(
+                TilePosition(x, y) to target
+            )
         )
     }
 
@@ -128,19 +150,26 @@ class TerrainManipulator internal constructor(
             "Lower amount must be positive."
         }
 
-        val positions = positionsIn(xRange, yRange)
+        val positions = positionsIn(
+            xRange = xRange,
+            yRange = yRange
+        )
 
-        val changes = mutableMapOf<Pair<Int, Int>, Int>()
+        val changes = mutableMapOf<TilePosition, Int>()
 
-        for ((x, y) in positions) {
-            val target =
-                requireNotNull(world.getHeight(x, y)) - amount
+        for (position in positions) {
+            val target = requireNotNull(
+                world.getHeight(
+                    position.x,
+                    position.y
+                )
+            ) - amount
 
             if (target < 0) {
                 return false
             }
 
-            changes[x to y] = target
+            changes[position] = target
         }
 
         return applyChanges(changes)
@@ -156,7 +185,11 @@ class TerrainManipulator internal constructor(
     ) {
         validatePosition(x, y)
 
-        world.setTile(x, y, tile)
+        world.setTile(
+            x = x,
+            y = y,
+            tile = tile
+        )
     }
 
     /**
@@ -167,7 +200,10 @@ class TerrainManipulator internal constructor(
         yRange: IntRange,
         tile: Tile
     ) {
-        fill(xRange, yRange) { _, _ ->
+        fill(
+            xRange = xRange,
+            yRange = yRange
+        ) { _, _ ->
             tile
         }
     }
@@ -180,29 +216,35 @@ class TerrainManipulator internal constructor(
         yRange: IntRange,
         createTile: (x: Int, y: Int) -> Tile
     ) {
-        val positions = positionsIn(xRange, yRange)
+        val positions = positionsIn(
+            xRange = xRange,
+            yRange = yRange
+        )
 
         // Create all tiles before modifying the world.
-        val tiles = positions.associateWith { (x, y) ->
-            createTile(x, y)
+        val tiles = positions.associateWith { position ->
+            createTile(
+                position.x,
+                position.y
+            )
         }
 
         for ((position, tile) in tiles) {
             world.setTile(
-                position.first,
-                position.second,
-                tile
+                x = position.x,
+                y = position.y,
+                tile = tile
             )
         }
     }
 
     private fun applyChanges(
-        changes: Map<Pair<Int, Int>, Int>
+        changes: Map<TilePosition, Int>
     ): Boolean {
         val effectiveChanges = changes.filter { (position, level) ->
             world.getHeight(
-                position.first,
-                position.second
+                position.x,
+                position.y
             ) != level
         }
 
@@ -211,8 +253,11 @@ class TerrainManipulator internal constructor(
         }
 
         val affectedObjects = effectiveChanges.keys
-            .mapNotNull { (x, y) ->
-                world.getObjectAt(x, y)
+            .mapNotNull { position ->
+                world.getObjectAt(
+                    position.x,
+                    position.y
+                )
             }
             .toSet()
 
@@ -222,8 +267,8 @@ class TerrainManipulator internal constructor(
             for (position in placedObject.occupiedTiles()) {
                 val height = effectiveChanges[position]
                     ?: world.getHeight(
-                        position.first,
-                        position.second
+                        position.x,
+                        position.y
                     )
                     ?: return false
 
@@ -243,7 +288,7 @@ class TerrainManipulator internal constructor(
     private fun positionsIn(
         xRange: IntRange,
         yRange: IntRange
-    ): List<Pair<Int, Int>> {
+    ): List<TilePosition> {
         require(!xRange.isEmpty() && !yRange.isEmpty()) {
             "Terrain area must not be empty."
         }
@@ -260,7 +305,12 @@ class TerrainManipulator internal constructor(
         return buildList {
             for (y in yRange) {
                 for (x in xRange) {
-                    add(x to y)
+                    add(
+                        TilePosition(
+                            x = x,
+                            y = y
+                        )
+                    )
                 }
             }
         }

@@ -6,14 +6,16 @@ class PlacedObject(
     val y: Int
 ) {
     /**
-     * Returns the world coordinates of all tiles occupied by this object.
+     * Returns the world positions of all tiles occupied by this object.
      */
-    fun occupiedTiles(): Set<Pair<Int, Int>> {
+    fun occupiedTiles(): Set<TilePosition> {
         val origin = placeable.footprint.origin
 
         return placeable.footprint.offsets.mapTo(mutableSetOf()) { offset ->
-            (x + offset.x - origin.x) to
-                    (y + offset.y - origin.y)
+            TilePosition(
+                x = x + offset.x - origin.x,
+                y = y + offset.y - origin.y
+            )
         }
     }
 }
