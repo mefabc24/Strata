@@ -14,6 +14,7 @@ import com.mefabc24.strata.world.World
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.ui.StrataUi
+import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.world.TilePosition
 
 /**
@@ -151,10 +152,13 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
      * A world view must be attached before the UI so its input processor
      * can be registered with the scene input router.
      *
-     * The supplied skin remains owned by the caller.
+     * The scene owns the UI and its stage. The supplied skin and all resources
+     * in it remain owned by the caller. [theme] maps semantic UI roles to
+     * styles in that skin.
      */
     fun createUi(
         skin: Skin,
+        theme: StrataUiTheme = StrataUiTheme(),
         configure: StrataUi.() -> Unit = {}
     ): StrataUi {
         checkActive()
@@ -168,7 +172,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
                 "A world view must be attached before creating a UI layer."
             )
 
-        val ui = StrataUi(skin)
+        val ui = StrataUi(
+            skin = skin,
+            theme = theme
+        )
 
         try {
             ui.configure()
