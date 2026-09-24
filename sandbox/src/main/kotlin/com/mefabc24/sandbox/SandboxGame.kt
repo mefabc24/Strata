@@ -275,14 +275,16 @@ class SandboxGame : StrataGame {
 
         uiSkin = SandboxUi.createSkin()
 
-        val ui = scene.createUi(
-            skin = uiSkin
-        )
-
-        sandboxUi = SandboxUi(
-            ui = ui,
-            painter = painter
-        )
+        scene.createUi(
+            skin = uiSkin,
+            theme = SandboxUi.createTheme()
+        ) {
+            sandboxUi = SandboxUi(
+                ui = this,
+                painter = painter,
+                placementController = placementController
+            )
+        }
     }
 
     override fun resize(
