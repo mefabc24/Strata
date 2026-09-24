@@ -146,6 +146,27 @@ class TerrainRegistryTest {
     }
 
     @Test
+    fun `maximum visual height includes elevation fill canvases`() {
+        val surface = region(width = 32, height = 24)
+        val fill = region(width = 32, height = 48)
+        val registry = TerrainRegistry<Terrain>(
+            directory = "tiles",
+            queueTexture = {},
+            regionFor = { path ->
+                if (path.endsWith("fill.png")) fill else surface
+            }
+        )
+
+        registry.register(Terrain.GRASS, "grass.png") {
+            fillSprite = "dirt-fill.png"
+        }
+        registry.freeze()
+        registry.prepare()
+
+        assertEquals(48f, registry.maxSpriteHeight(tileWidth = 32f))
+    }
+
+    @Test
     fun `frozen registry rejects registration and keeps prepared entries readable`() {
         val texture = TextureRegion()
         val registry = TerrainRegistry<Terrain>(
@@ -207,4 +228,14 @@ class TerrainRegistryTest {
         queueTexture = queued::add,
         regionFor = { TextureRegion() }
     )
+
+    private fun region(
+        width: Int,
+        height: Int
+    ): TextureRegion {
+        return object : TextureRegion() {
+            override fun getRegionWidth(): Int = width
+            override fun getRegionHeight(): Int = height
+        }
+    }
 }

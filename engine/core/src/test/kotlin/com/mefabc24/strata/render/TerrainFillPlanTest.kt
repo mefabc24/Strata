@@ -8,6 +8,7 @@ import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class TerrainFillPlanTest {
 
@@ -133,6 +134,31 @@ class TerrainFillPlanTest {
         assertEquals(16, odd.leftWidth)
         assertEquals(17, odd.rightWidth)
         assertEquals(33, odd.leftWidth + odd.rightWidth)
+    }
+
+    @Test
+    fun `world bounds contain the deepest full canvas fill`() {
+        val projection = IsoProjection(
+            TileGeometry(width = 32f, height = 24f)
+        )
+        val worldBounds = projection.worldBounds(
+            width = 1,
+            height = 1,
+            maxElevation = 4,
+            maxSpriteHeight = 48f
+        )
+        val deepestFill = fillBounds(
+            projection = projection,
+            elevation = 4,
+            level = 3,
+            textureHeight = 48
+        )
+
+        assertTrue(deepestFill.y >= worldBounds.y)
+        assertTrue(
+            deepestFill.y + deepestFill.height <=
+                    worldBounds.y + worldBounds.height
+        )
     }
 
     @Test
