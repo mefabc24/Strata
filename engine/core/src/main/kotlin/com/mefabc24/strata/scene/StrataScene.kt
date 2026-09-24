@@ -12,6 +12,8 @@ import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.world.TilePosition
 
 /**
@@ -51,6 +53,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
 
     private var attachedView: IsoWorldView? = null
     private var attachedInput: StrataInput? = null
+    private var attachedUi: StrataUi? = null
 
     private var disposed = false
 
@@ -67,6 +70,13 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     val input: StrataInput
         get() = attachedInput
             ?: error("No world view is attached to this scene.")
+
+    /**
+     * Returns the attached UI layer.
+     */
+    val ui: StrataUi
+        get() = attachedUi
+            ?: error("No UI is attached to this scene.")
 
     init {
         try {
@@ -136,6 +146,52 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     }
 
     /**
+     * Creates and attaches a UI layer.
+     *
+     * A world view must be attached before the UI so its input processor
+     * can be registered with the scene input router.
+     *
+     * The supplied skin remains owned by the caller.
+     */
+    fun createUi(
+        skin: Skin,
+        configure: StrataUi.() -> Unit = {}
+    ): StrataUi {
+        checkActive()
+
+        check(attachedUi == null) {
+            "A UI layer is already attached to this scene."
+        }
+
+        val input = attachedInput
+            ?: error(
+                "A world view must be attached before creating a UI layer."
+            )
+
+        val ui = StrataUi(skin)
+
+        try {
+            ui.configure()
+
+            input.addUiProcessor(
+                ui.inputProcessor
+            )
+        } catch (failure: Throwable) {
+            try {
+                ui.dispose()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+
+            throw failure
+        }
+
+        attachedUi = ui
+
+        return ui
+    }
+
+    /**
      * Attaches a world view and installs its input processor.
      *
      * A scene can own one world view.
@@ -170,7 +226,9 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
      */
     fun update(delta: Float) {
         checkActive()
+
         view.update(delta)
+        attachedUi?.update(delta)
     }
 
     /**
@@ -193,14 +251,28 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             stats = view.renderStats,
             delta = Gdx.graphics.deltaTime
         )
+
+        attachedUi?.render()
     }
 
     /**
      * Resizes the attached world view if one exists.
      */
-    fun resize(width: Int, height: Int) {
+    fun resize(
+        width: Int,
+        height: Int
+    ) {
         checkActive()
-        attachedView?.resize(width, height)
+
+        attachedView?.resize(
+            width,
+            height
+        )
+
+        attachedUi?.resize(
+            width,
+            height
+        )
     }
 
     private fun checkActive() {
@@ -221,12 +293,16 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             attachedInput?.uninstall()
         } finally {
             try {
-                attachedView?.dispose()
+                attachedUi?.dispose()
             } finally {
                 try {
-                    audio.dispose()
+                    attachedView?.dispose()
                 } finally {
-                    assets.dispose()
+                    try {
+                        audio.dispose()
+                    } finally {
+                        assets.dispose()
+                    }
                 }
             }
         }
