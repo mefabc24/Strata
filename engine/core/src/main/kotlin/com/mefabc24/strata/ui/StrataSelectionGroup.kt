@@ -1,5 +1,7 @@
 package com.mefabc24.strata.ui
 
+import java.util.Collections
+
 /**
  * Maintains one selected value from a fixed set of options.
  *
@@ -25,14 +27,17 @@ class StrataSelectionGroup<T>(
         }
     }
 
-    private val listeners = linkedSetOf<(T?) -> Unit>()
+    private val listeners = mutableListOf<(T?) -> Unit>()
     private val attachments = mutableSetOf<T>()
+
+    private val readOnlyOptions: Set<T> =
+        Collections.unmodifiableSet(optionSet)
 
     /**
      * Values accepted by this group, in declaration order.
      */
     val options: Set<T>
-        get() = optionSet
+        get() = readOnlyOptions
 
     /**
      * The selected value, or null when this optional group is cleared.
@@ -104,8 +109,13 @@ class StrataSelectionGroup<T>(
     ): StrataSelectionSubscription {
         listeners += listener
 
+        var subscribed = true
+
         return StrataSelectionSubscription {
-            listeners -= listener
+            if (subscribed) {
+                listeners.remove(listener)
+                subscribed = false
+            }
         }
     }
 
