@@ -37,8 +37,9 @@ class IsoWorldRenderer(
 
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
+    private var cachedHeightVersion = -1L
 
-    private var objectsByDepth: Map<Int, List<PlacedObject>> = emptyMap()
+    private var orderedObjects: List<PlacedObject> = emptyList()
 
     val stats = RenderStats()
 
@@ -56,20 +57,23 @@ class IsoWorldRenderer(
 
         val renderStartNanos = System.nanoTime()
 
-        if (cachedWorld !== world || cachedObjectVersion != world.objectVersion) {
-            objectsByDepth = world.getObjects().groupBy { placed ->
-                placed.occupiedTiles().maxOf { (x, y) -> x + y }
-            }
+        if (
+            cachedWorld !== world ||
+            cachedObjectVersion != world.objectVersion ||
+            cachedHeightVersion != world.heightVersion
+        ) {
+            orderedObjects = IsoObjectOrdering.backToFront(
+                objects = world.getObjects(),
+                projection = projection,
+                elevationFor = { placed ->
+                    world.getHeight(placed.x, placed.y) ?: 0
+                }
+            )
 
             cachedWorld = world
             cachedObjectVersion = world.objectVersion
+            cachedHeightVersion = world.heightVersion
         }
-
-        val previewDepth = preview
-            ?.placedObject
-            ?.occupiedTiles()
-            ?.maxOf { (x, y) -> x + y }
-            ?.coerceIn(0, world.width + world.height - 2)
 
         val viewWidth = camera.viewportWidth * camera.zoom
         val viewHeight = camera.viewportHeight * camera.zoom
@@ -177,77 +181,54 @@ class IsoWorldRenderer(
                 }
             }
 
-            objectsByDepth[depth]?.forEach { placed ->
-                stats.objectsChecked++
+        }
 
-                val visual = objectVisualFor(placed) ?: return@forEach
+        val objectPlan = ObjectRenderPlan.create(
+            orderedObjects = orderedObjects,
+            preview = preview
+        )
 
-                val elevation = world.getHeight(
-                    placed.x,
-                    placed.y
-                ) ?: 0
+        for (item in objectPlan) {
+            val placed = item.placedObject
+            val visual = objectVisualFor(placed) ?: continue
+            val elevation = world.getHeight(placed.x, placed.y) ?: 0
 
-                IsoObjectBounds.calculate(
-                    projection = projection,
-                    placed = placed,
-                    visual = visual,
-                    result = objectBounds,
-                    elevation = elevation,
-                    objectSettings = objectSettings
-                )
+            IsoObjectBounds.calculate(
+                projection = projection,
+                placed = placed,
+                visual = visual,
+                result = objectBounds,
+                elevation = elevation,
+                objectSettings = objectSettings
+            )
 
-                if (!objectBounds.overlaps(visibleArea)) {
-                    return@forEach
-                }
-
-                objectRenderer.render(
-                    batch = batch,
-                    placed = placed,
-                    visual = visual,
-                    elevation = elevation
-                )
-
-                stats.objectsDrawn++
+            when (item) {
+                is ObjectRenderItem.WorldObject -> stats.objectsChecked++
+                is ObjectRenderItem.Preview -> Unit
             }
 
-            if (preview != null && depth == previewDepth) {
-                val visual = objectVisualFor(preview.placedObject)
+            if (!objectBounds.overlaps(visibleArea)) continue
 
-                if (visual != null) {
-                    val elevation = world.getHeight(
-                        preview.placedObject.x,
-                        preview.placedObject.y
-                    ) ?: 0
+            if (item is ObjectRenderItem.Preview) {
+                batch.color = if (item.preview.valid) {
+                    item.preview.style.validColor
+                } else {
+                    item.preview.style.invalidColor
+                }
+            }
 
-                    IsoObjectBounds.calculate(
-                        projection = projection,
-                        placed = preview.placedObject,
-                        visual = visual,
-                        result = objectBounds,
-                        elevation = elevation,
-                        objectSettings = objectSettings
-                    )
+            objectRenderer.render(
+                batch = batch,
+                placed = placed,
+                visual = visual,
+                elevation = elevation
+            )
 
-                    if (objectBounds.overlaps(visibleArea)) {
-                        val color = if (preview.valid) {
-                            preview.style.validColor
-                        } else {
-                            preview.style.invalidColor
-                        }
-
-                        batch.color = color
-
-                        objectRenderer.render(
-                            batch = batch,
-                            placed = preview.placedObject,
-                            visual = visual,
-                            elevation = elevation
-                        )
-
-                        stats.previewsDrawn++
-
-                        batch.setColor(1f, 1f, 1f, 1f)
-                    }
+            when (item) {
+                is ObjectRenderItem.WorldObject -> stats.objectsDrawn++
+                is ObjectRenderItem.Preview -> {
+                    stats.previewsDrawn++
+                    batch.setColor(1f, 1f, 1f, 1f)
                 }
             }
         }

@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.render.IsoObjectBounds
+import com.mefabc24.strata.render.IsoObjectOrdering
 import com.mefabc24.strata.render.ObjectRenderingSettings
 import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.world.PlacedObject
@@ -37,42 +38,42 @@ class ObjectPicker(
         worldX: Float,
         worldY: Float
     ): PlacedObject? {
-        val objectsByDepth = world.getObjects().groupBy { placed ->
-            placed.occupiedTiles().maxOf { (x, y) -> x + y }
-        }
+        val orderedObjects = IsoObjectOrdering.backToFront(
+            objects = world.getObjects(),
+            projection = projection,
+            elevationFor = { placed ->
+                world.getHeight(placed.x, placed.y) ?: 0
+            }
+        )
 
-        for (depth in objectsByDepth.keys.sortedDescending()) {
-            val objects = objectsByDepth.getValue(depth)
+        for (placed in orderedObjects.asReversed()) {
+            val visual = visualFor(placed) ?: continue
 
-            for (placed in objects.asReversed()) {
-                val visual = visualFor(placed) ?: continue
+            val elevation = world.getHeight(
+                placed.x,
+                placed.y
+            ) ?: 0
 
-                val elevation = world.getHeight(
-                    placed.x,
-                    placed.y
-                ) ?: 0
+            IsoObjectBounds.calculate(
+                projection = projection,
+                placed = placed,
+                visual = visual,
+                result = bounds,
+                elevation = elevation,
+                objectSettings = objectSettings
+            )
 
-                IsoObjectBounds.calculate(
-                    projection = projection,
-                    placed = placed,
-                    visual = visual,
-                    result = bounds,
-                    elevation = elevation,
-                    objectSettings = objectSettings
-                )
+            if (!bounds.contains(worldX, worldY)) {
+                continue
+            }
 
-                if (!bounds.contains(worldX, worldY)) {
-                    continue
-                }
+            val u = (worldX - bounds.x) / bounds.width
+            val v = (worldY - bounds.y) / bounds.height
 
-                val u = (worldX - bounds.x) / bounds.width
-                val v = (worldY - bounds.y) / bounds.height
+            val alphaMask = visual.alphaMask
 
-                val alphaMask = visual.alphaMask
-
-                if (alphaMask == null || alphaMask.isSolid(u, v)) {
-                    return placed
-                }
+            if (alphaMask == null || alphaMask.isSolid(u, v)) {
+                return placed
             }
         }
 
