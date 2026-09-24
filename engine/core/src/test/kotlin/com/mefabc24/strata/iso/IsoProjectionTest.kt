@@ -96,4 +96,26 @@ class IsoProjectionTest {
         assertEquals(160f, bounds.width)
         assertEquals(176f, bounds.height)
     }
+
+    @Test
+    fun `compact world bounds include texture overhang above logical terrain`() {
+        val compactProjection = IsoProjection(
+            TileGeometry(
+                width = 32f,
+                height = 24f
+            )
+        )
+
+        val bounds = compactProjection.worldBounds(
+            width = 3,
+            height = 2,
+            maxElevation = 2,
+            maxSpriteHeight = 32f
+        )
+
+        assertEquals(-32f, bounds.x)
+        assertEquals(-48f, bounds.y)
+        assertEquals(80f, bounds.width)
+        assertEquals(72f, bounds.height)
+    }
 }
