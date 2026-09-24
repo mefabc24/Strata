@@ -166,7 +166,7 @@ class SandboxUi(
                 buildControls = column {
                     label("Build object")
 
-                    row {
+                    grid(columns = 3) {
                         for (entry in buildEntries) {
                             column(
                                 spacing = 4f,
@@ -197,7 +197,7 @@ class SandboxUi(
                 paintControls = column {
                     label("Terrain")
 
-                    row {
+                    grid(columns = 3) {
                         for (terrain in terrains) {
                             selectableButton(
                                 text = terrain.displayName(),
