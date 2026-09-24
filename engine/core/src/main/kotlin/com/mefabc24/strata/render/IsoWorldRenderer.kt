@@ -218,7 +218,8 @@ class IsoWorldRenderer(
                         projection = projection,
                         placed = preview.placedObject,
                         visual = visual,
-                        result = objectBounds
+                        result = objectBounds,
+                        elevation = elevation
                     )
 
                     if (objectBounds.overlaps(visibleArea)) {
@@ -230,13 +231,13 @@ class IsoWorldRenderer(
 
                         batch.color = color
 
-                        IsoObjectBounds.calculate(
-                            projection = projection,
+                        objectRenderer.render(
+                            batch = batch,
                             placed = preview.placedObject,
                             visual = visual,
-                            result = objectBounds,
                             elevation = elevation
                         )
+
                         stats.previewsDrawn++
 
                         batch.setColor(1f, 1f, 1f, 1f)

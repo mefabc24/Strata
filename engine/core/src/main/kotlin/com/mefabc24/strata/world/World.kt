@@ -62,8 +62,15 @@ class World(
     fun canPlaceObject(placedObject: PlacedObject): Boolean {
         if (placedObject in objects) return false
 
+        val elevation = getHeight(
+            placedObject.x,
+            placedObject.y
+        ) ?: return false
+
         return placedObject.occupiedTiles().all { (x, y) ->
-            getTile(x, y) != null && getObjectAt(x, y) == null
+            getTile(x, y) != null &&
+                    getObjectAt(x, y) == null &&
+                    getHeight(x, y) == elevation
         }
     }
 

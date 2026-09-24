@@ -41,7 +41,7 @@ class SandboxGame : StrataGame {
         // Create a temporary elevated plateau.
         for (x in 28..32) {
             for (y in 28..32) {
-                world.setHeight(x, y, 2)
+                world.setHeight(x, y, 1)
             }
         }
 

@@ -291,4 +291,76 @@ class WorldObjectTest {
         assertSame(overlapping, world.removeObjectAt(5, 5))
         assertEquals(4L, world.objectVersion)
     }
+
+    @Test
+    fun `places an object when its footprint is on the same elevation`() {
+        val world = createWorld()
+
+        val house = createObject(
+            Footprint.square(2),
+            4,
+            4
+        )
+
+        for ((x, y) in house.occupiedTiles()) {
+            world.setHeight(x, y, 1)
+        }
+
+        assertTrue(world.canPlaceObject(house))
+        assertTrue(world.placeObject(house))
+    }
+
+    @Test
+    fun `rejects an object when its footprint spans different elevations`() {
+        val world = createWorld()
+
+        val house = createObject(
+            Footprint.square(2),
+            4,
+            4
+        )
+
+        for ((x, y) in house.occupiedTiles()) {
+            world.setHeight(x, y, 1)
+        }
+
+        world.setHeight(5, 5, 0)
+
+        assertFalse(world.canPlaceObject(house))
+        assertFalse(world.placeObject(house))
+    }
+
+    @Test
+    fun `elevation validation respects footprint origin`() {
+        for (origin in FootprintOrigin.entries) {
+            val world = createWorld()
+
+            val placed = createObject(
+                footprint = Footprint.rectangle(
+                    width = 2,
+                    height = 3,
+                    origin = origin
+                ),
+                x = 4,
+                y = 4
+            )
+
+            for ((x, y) in placed.occupiedTiles()) {
+                world.setHeight(x, y, 1)
+            }
+
+            assertTrue(world.canPlaceObject(placed))
+
+            val differentTile = placed.occupiedTiles()
+                .first { it != placed.x to placed.y }
+
+            world.setHeight(
+                differentTile.first,
+                differentTile.second,
+                2
+            )
+
+            assertFalse(world.canPlaceObject(placed))
+        }
+    }
 }
