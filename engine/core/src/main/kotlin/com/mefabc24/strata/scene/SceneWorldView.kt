@@ -9,6 +9,7 @@ import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
+import com.mefabc24.strata.render.TerrainCliffVisuals
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
@@ -17,6 +18,7 @@ import com.mefabc24.strata.world.World
 internal data class SceneWorldViewSpec(
     val world: World,
     val textureFor: (Tile) -> TextureRegion?,
+    val terrainCliffsFor: (Tile) -> TerrainCliffVisuals?,
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,
@@ -52,6 +54,7 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
             IsoWorldView(
                 world = spec.world,
                 textureFor = spec.textureFor,
+                terrainCliffsFor = spec.terrainCliffsFor,
                 objectVisualFor = spec.objectVisualFor,
                 cameraSettings = spec.cameraSettings,
                 controls = spec.controlsSettings,

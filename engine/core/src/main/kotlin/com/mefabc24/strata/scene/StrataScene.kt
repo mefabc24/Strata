@@ -276,6 +276,9 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                 textureFor = { tile ->
                     terrain[terrainFor(tile)]
                 },
+                terrainCliffsFor = { tile ->
+                    terrain.cliffs(terrainFor(tile))
+                },
                 objectVisualFor = objects::get,
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),

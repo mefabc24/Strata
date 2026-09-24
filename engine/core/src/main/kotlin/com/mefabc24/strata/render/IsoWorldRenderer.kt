@@ -47,6 +47,7 @@ class IsoWorldRenderer(
         world: World,
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
+        terrainCliffsFor: (Tile) -> TerrainCliffVisuals? = { null },
         raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
@@ -123,60 +124,66 @@ class IsoWorldRenderer(
                     ceil(rightInTiles + depthOffset).toInt()
                 )
 
-                // Render ground first, followed by overlays in registration order.
-                for (layerIndex in -1 until overlayIds.size) {
+                // Ground cliffs and surfaces share the normal terrain depth.
+                for (x in minX..maxX) {
+                    val y = depth - x
+                    val elevation = world.getHeight(x, y) ?: continue
+                    val tile = world.getTile(x, y) ?: continue
+                    val texture = textureFor(tile) ?: continue
+                    val offsetY = terrainOffsetY(
+                        x = x,
+                        y = y,
+                        raisedTile = raisedTile,
+                        raiseOffsetY = raiseOffsetY
+                    )
+
+                    stats.terrainChecked++
+
+                    renderCliffs(
+                        world = world,
+                        x = x,
+                        y = y,
+                        elevation = elevation,
+                        visuals = terrainCliffsFor(tile),
+                        offsetY = offsetY
+                    )
+
+                    renderTerrainSprite(
+                        x = x,
+                        y = y,
+                        elevation = elevation,
+                        texture = texture,
+                        offsetY = offsetY
+                    )
+                }
+
+                // Overlays stay attached to the ground surface and have no cliffs.
+                for (layerId in overlayIds) {
                     for (x in minX..maxX) {
                         val y = depth - x
                         val elevation = world.getHeight(x, y) ?: continue
+                        val tile = world.getOverlayTile(
+                            layerId = layerId,
+                            x = x,
+                            y = y
+                        ) ?: continue
+                        val texture = textureFor(tile) ?: continue
+                        val offsetY = terrainOffsetY(
+                            x = x,
+                            y = y,
+                            raisedTile = raisedTile,
+                            raiseOffsetY = raiseOffsetY
+                        )
 
                         stats.terrainChecked++
 
-                        val tile = if (layerIndex == -1) {
-                            world.getTile(x, y)
-                        } else {
-                            world.getOverlayTile(
-                                layerId = overlayIds[layerIndex],
-                                x = x,
-                                y = y
-                            )
-                        } ?: continue
-
-                        val texture = textureFor(tile) ?: continue
-
-                        val offsetY = if (
-                            raisedTile != null &&
-                            raisedTile.x == x &&
-                            raisedTile.y == y
-                        ) {
-                            raiseOffsetY
-                        } else {
-                            0f
-                        }
-
-                        IsoTerrainBounds.calculate(
-                            projection = projection,
+                        renderTerrainSprite(
                             x = x,
                             y = y,
+                            elevation = elevation,
                             texture = texture,
-                            result = tileBounds,
-                            offsetY = offsetY,
-                            elevation = elevation
+                            offsetY = offsetY
                         )
-
-                        if (!tileBounds.overlaps(visibleArea)) {
-                            continue
-                        }
-
-                        terrainRenderer.render(
-                            batch = batch,
-                            x = x,
-                            y = y,
-                            texture = texture,
-                            offsetY = offsetY,
-                            elevation = elevation
-                        )
-
-                        stats.terrainDrawn++
                     }
                 }
             }
@@ -239,6 +246,93 @@ class IsoWorldRenderer(
 
         stats.cpuRenderMs =
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
+    }
+
+    private fun renderCliffs(
+        world: World,
+        x: Int,
+        y: Int,
+        elevation: Int,
+        visuals: TerrainCliffVisuals?,
+        offsetY: Float
+    ) {
+        if (visuals == null) return
+
+        for (part in TerrainCliffPlan.create(world, x, y)) {
+            val texture = when (part.side) {
+                TerrainCliffSide.LEFT -> visuals.left
+                TerrainCliffSide.RIGHT -> visuals.right
+            } ?: continue
+
+            IsoCliffBounds.calculate(
+                projection = projection,
+                x = x,
+                y = y,
+                elevation = elevation,
+                levelBelowSurface = part.levelBelowSurface,
+                texture = texture,
+                result = tileBounds,
+                offsetY = offsetY
+            )
+
+            if (!tileBounds.overlaps(visibleArea)) continue
+
+            batch.draw(
+                texture,
+                tileBounds.x,
+                tileBounds.y,
+                tileBounds.width,
+                tileBounds.height
+            )
+            stats.terrainDrawn++
+        }
+    }
+
+    private fun renderTerrainSprite(
+        x: Int,
+        y: Int,
+        elevation: Int,
+        texture: TextureRegion,
+        offsetY: Float
+    ) {
+        IsoTerrainBounds.calculate(
+            projection = projection,
+            x = x,
+            y = y,
+            texture = texture,
+            result = tileBounds,
+            offsetY = offsetY,
+            elevation = elevation
+        )
+
+        if (!tileBounds.overlaps(visibleArea)) return
+
+        terrainRenderer.render(
+            batch = batch,
+            x = x,
+            y = y,
+            texture = texture,
+            offsetY = offsetY,
+            elevation = elevation
+        )
+        stats.terrainDrawn++
+    }
+
+    private fun terrainOffsetY(
+        x: Int,
+        y: Int,
+        raisedTile: TilePosition?,
+        raiseOffsetY: Float
+    ): Float {
+        return if (
+            raisedTile != null &&
+            raisedTile.x == x &&
+            raisedTile.y == y
+        ) {
+            raiseOffsetY
+        } else {
+            0f
+        }
     }
 
     fun dispose() {

@@ -242,6 +242,30 @@ class StrataSceneWorldTest {
     }
 
     @Test
+    fun `world attachment resolves prepared terrain cliff visuals`() {
+        val factory = RecordingViewFactory()
+        val scene = sceneWith(factory) {
+            terrain.register(Terrain.GRASS, TEST_TEXTURE) {
+                cliffs {
+                    left = TEST_TEXTURE
+                    right = TEST_TEXTURE
+                }
+            }
+        }
+        val world = world()
+
+        scene.attachWorld(world) { Terrain.GRASS }
+
+        val tile = requireNotNull(world.getTile(0, 0))
+        val cliffs = assertNotNull(factory.spec.terrainCliffsFor(tile))
+
+        assertSame(scene.terrain[Terrain.GRASS].texture, cliffs.left?.texture)
+        assertSame(scene.terrain[Terrain.GRASS].texture, cliffs.right?.texture)
+
+        scene.dispose()
+    }
+
+    @Test
     fun `world view lifecycle is coordinated without a ui`() {
         val inputState = TestGdxEnvironment.install()
         val factory = RecordingViewFactory()

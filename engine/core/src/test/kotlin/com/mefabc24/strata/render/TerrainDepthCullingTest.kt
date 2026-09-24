@@ -54,6 +54,22 @@ class TerrainDepthCullingTest {
         assertTrue(398 in depths)
     }
 
+    @Test
+    fun `elevation range keeps supporting cliff segments visible`() {
+        val depths = TerrainDepthCulling.visibleDepths(
+            visibleBottom = -96f,
+            visibleTop = -88f,
+            tileHeight = 16f,
+            logicalTileHeight = 24f,
+            maxSpriteHeight = 32f,
+            raisedOffsetY = 0f,
+            maxDepth = 20,
+            maxElevationOffset = 24f
+        )
+
+        assertTrue(10 in depths)
+    }
+
     private fun visibleDepths(offset: Float): IntRange {
         return TerrainDepthCulling.visibleDepths(
             visibleBottom = -120f,
