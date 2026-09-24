@@ -141,6 +141,10 @@ class StrataUi(
         configure = configure
     )
 
+    fun stack(
+        configure: StrataStack.() -> Unit
+    ): StrataStack = root.stack(configure)
+
     fun panel(
         styleName: String? = theme.panelStyle,
         spacing: Float = theme.spacing,

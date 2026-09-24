@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Stack
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
@@ -201,6 +202,14 @@ abstract class StrataLayout internal constructor(
         return actor(column)
     }
 
+    fun stack(
+        configure: StrataStack.() -> Unit
+    ): StrataStack {
+        return actor(
+            StrataStack(context).apply(configure)
+        )
+    }
+
     fun panel(
         styleName: String? = theme.panelStyle,
         spacing: Float = theme.spacing,
@@ -306,6 +315,36 @@ class StrataRow internal constructor(
 
     override fun <A : Actor> place(actor: A): Cell<A> {
         return add(actor)
+    }
+}
+
+/**
+ * Overlays regular Scene2D actors for simple switchable UI sections.
+ */
+class StrataStack internal constructor(
+    private val context: StrataUiContext
+) : Stack() {
+
+    /** Adds an actor as a stack layer and returns the same actor. */
+    fun <A : Actor> actor(actor: A): A {
+        addActor(actor)
+        return actor
+    }
+
+    fun column(
+        spacing: Float = context.theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn {
+        return actor(
+            StrataColumn(
+                context = context,
+                spacing = spacing,
+                padding = padding,
+                alignment = alignment
+            ).apply(configure)
+        )
     }
 }
 
