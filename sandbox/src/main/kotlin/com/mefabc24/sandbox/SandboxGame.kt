@@ -9,7 +9,6 @@ import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
-import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataGame {
@@ -70,13 +69,13 @@ class SandboxGame : StrataGame {
 
         painter = SandboxTerrainPainter(world)
 
-        val house = PlacedObject(
-            placeable = House(),
-            x = 5,
-            y = 5
-        )
-
-        check(world.placeObject(house)) {
+        check(
+            world.place(
+                placeable = House(),
+                x = 5,
+                y = 5
+            ) != null
+        ) {
             "Failed to place test house."
         }
 
@@ -231,7 +230,7 @@ class SandboxGame : StrataGame {
                             mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
                             enabled = { !painter.enabled }
                         ) { placed ->
-                            world.removeObject(placed)
+                            world.remove(placed)
                             true
                         },
 
