@@ -1,11 +1,10 @@
 package com.mefabc24.strata.world
 
 /**
- * Provides safe terrain elevation modifications for a world.
+ * Provides terrain modification operations for a world.
  *
- * Area modifications are atomic. If the resulting terrain would make
- * an occupied object footprint span multiple elevations, no changes
- * are applied.
+ * Elevation modifications preserve object footprint consistency.
+ * Area modifications are applied atomically.
  */
 class TerrainManipulator internal constructor(
     private val world: World
@@ -145,6 +144,56 @@ class TerrainManipulator internal constructor(
         }
 
         return applyChanges(changes)
+    }
+
+    /**
+     * Replaces the ground tile at the given position.
+     */
+    fun setTile(
+        x: Int,
+        y: Int,
+        tile: Tile
+    ) {
+        validatePosition(x, y)
+
+        world.setTile(x, y, tile)
+    }
+
+    /**
+     * Fills a rectangular area with the same ground tile.
+     */
+    fun fill(
+        xRange: IntRange,
+        yRange: IntRange,
+        tile: Tile
+    ) {
+        fill(xRange, yRange) { _, _ ->
+            tile
+        }
+    }
+
+    /**
+     * Fills a rectangular area using a tile factory.
+     */
+    fun fill(
+        xRange: IntRange,
+        yRange: IntRange,
+        createTile: (x: Int, y: Int) -> Tile
+    ) {
+        val positions = positionsIn(xRange, yRange)
+
+        // Create all tiles before modifying the world.
+        val tiles = positions.associateWith { (x, y) ->
+            createTile(x, y)
+        }
+
+        for ((position, tile) in tiles) {
+            world.setTile(
+                position.first,
+                position.second,
+                tile
+            )
+        }
     }
 
     private fun applyChanges(

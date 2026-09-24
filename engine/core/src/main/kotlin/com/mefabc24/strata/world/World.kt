@@ -153,8 +153,15 @@ class World(
     fun getTile(x: Int, y: Int): Tile? =
         tiles.getOrNull(y)?.getOrNull(x)
 
-    fun setTile(x: Int, y: Int, tile: Tile) {
-        require(x in 0 until width && y in 0 until height)
+    internal fun setTile(
+        x: Int,
+        y: Int,
+        tile: Tile
+    ) {
+        require(x in 0 until width && y in 0 until height) {
+            "Tile position ($x, $y) is outside the world."
+        }
+
         tiles[y][x] = tile
     }
 

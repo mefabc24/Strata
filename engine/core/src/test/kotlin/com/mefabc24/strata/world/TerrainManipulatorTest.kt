@@ -7,7 +7,9 @@ import kotlin.test.assertTrue
 
 class TerrainManipulatorTest {
 
-    private class TestTile : Tile
+    private data class TestTile(
+        val id: Int = 0
+    ) : Tile
 
     private fun createWorld(): World {
         return World(10, 10) { _, _ ->
@@ -166,5 +168,68 @@ class TerrainManipulatorTest {
         }
 
         assertEquals(0L, world.heightVersion)
+    }
+
+    @Test
+    fun `replaces a single ground tile`() {
+        val world = createWorld()
+
+        world.terrain.setTile(
+            x = 2,
+            y = 3,
+            tile = TestTile(42)
+        )
+
+        assertEquals(
+            TestTile(42),
+            world.getTile(2, 3)
+        )
+    }
+
+    @Test
+    fun `fills a rectangular ground area`() {
+        val world = createWorld()
+
+        world.terrain.fill(
+            xRange = 2..4,
+            yRange = 3..5,
+            tile = TestTile(42)
+        )
+
+        for (y in 3..5) {
+            for (x in 2..4) {
+                assertEquals(
+                    TestTile(42),
+                    world.getTile(x, y)
+                )
+            }
+        }
+
+        assertEquals(
+            TestTile(),
+            world.getTile(1, 3)
+        )
+    }
+
+    @Test
+    fun `fills terrain using world coordinates`() {
+        val world = createWorld()
+
+        world.terrain.fill(
+            xRange = 2..3,
+            yRange = 4..5
+        ) { x, y ->
+            TestTile(x + y * 10)
+        }
+
+        assertEquals(
+            TestTile(42),
+            world.getTile(2, 4)
+        )
+
+        assertEquals(
+            TestTile(53),
+            world.getTile(3, 5)
+        )
     }
 }
