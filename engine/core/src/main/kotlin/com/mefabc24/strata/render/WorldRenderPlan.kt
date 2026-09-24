@@ -4,6 +4,7 @@ import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import java.util.PriorityQueue
 
 /** One terrain or object operation in back-to-front world rendering order. */
 internal sealed interface WorldRenderItem {
@@ -60,7 +61,7 @@ internal object WorldRenderPlan {
             )
         }
 
-        return merge(terrainNodes, objectNodes)
+        return order(terrainNodes, objectNodes)
     }
 
     /** Appends the placement preview after every normal world visual. */
@@ -106,47 +107,72 @@ internal object WorldRenderPlan {
         }
     }
 
-    private fun merge(
+    private fun order(
         terrainNodes: List<Node>,
         objectNodes: List<Node>
     ): List<WorldRenderItem> {
-        var terrainIndex = 0
-        var objectIndex = 0
-        val result = ArrayList<WorldRenderItem>(
-            terrainNodes.size + objectNodes.size
-        )
+        val nodes = terrainNodes + objectNodes
+        val edges = List(nodes.size) { mutableSetOf<Int>() }
+        val incoming = IntArray(nodes.size)
 
-        while (
-            terrainIndex < terrainNodes.size &&
-            objectIndex < objectNodes.size
-        ) {
-            val terrain = terrainNodes[terrainIndex]
-            val objectNode = objectNodes[objectIndex]
-            val terrainBehind = terrain.isBehind(objectNode)
-            val objectBehind = objectNode.isBehind(terrain)
+        fun addEdge(source: Node, target: Node) {
+            if (source.index == target.index) return
 
-            val emitTerrain = when {
-                terrain.position in objectNode.occupiedTiles -> true
-                terrainBehind && !objectBehind -> true
-                objectBehind && !terrainBehind -> false
-                else -> nodeComparator.compare(terrain, objectNode) <= 0
-            }
-
-            if (emitTerrain) {
-                result += terrain.item
-                terrainIndex++
-            } else {
-                result += objectNode.item
-                objectIndex++
+            if (edges[source.index].add(target.index)) {
+                incoming[target.index]++
             }
         }
 
-        while (terrainIndex < terrainNodes.size) {
-            result += terrainNodes[terrainIndex++].item
+        // Each terrain column draws its deepest fill first and its surface last.
+        for (index in 0 until terrainNodes.lastIndex) {
+            val current = terrainNodes[index]
+            val next = terrainNodes[index + 1]
+
+            if (current.position == next.position) {
+                addEdge(current, next)
+            }
         }
 
-        while (objectIndex < objectNodes.size) {
-            result += objectNodes[objectIndex++].item
+        // IsoObjectOrdering already establishes footprint-aware object order.
+        for (index in 0 until objectNodes.lastIndex) {
+            addEdge(objectNodes[index], objectNodes[index + 1])
+        }
+
+        for (terrain in terrainNodes) {
+            for (objectNode in objectNodes) {
+                if (terrain.mustRenderBefore(objectNode)) {
+                    addEdge(terrain, objectNode)
+                } else {
+                    addEdge(objectNode, terrain)
+                }
+            }
+        }
+
+        val available = PriorityQueue(nodeComparator)
+
+        for (node in nodes) {
+            if (incoming[node.index] == 0) {
+                available += node
+            }
+        }
+
+        val result = ArrayList<WorldRenderItem>(nodes.size)
+
+        while (available.isNotEmpty()) {
+            val current = available.remove()
+            result += current.item
+
+            for (target in edges[current.index]) {
+                incoming[target]--
+
+                if (incoming[target] == 0) {
+                    available += nodes[target]
+                }
+            }
+        }
+
+        check(result.size == nodes.size) {
+            "World render dependencies must not contain a cycle."
         }
 
         return result
@@ -180,7 +206,7 @@ internal object WorldRenderPlan {
             is WorldRenderItem.Preview -> error("Preview is not a normal world item.")
         }
 
-        private val elevation = when (item) {
+        val elevation = when (item) {
             is WorldRenderItem.TerrainFill -> {
                 item.elevation - item.part.levelBelowSurface - 1
             }
@@ -213,6 +239,31 @@ internal object WorldRenderPlan {
 
         fun isBehind(other: Node): Boolean {
             return maxX < other.minX || maxY < other.minY
+        }
+
+        fun mustRenderBefore(objectNode: Node): Boolean {
+            check(item !is WorldRenderItem.WorldObject)
+            check(objectNode.item is WorldRenderItem.WorldObject)
+
+            if (position in objectNode.occupiedTiles) return true
+
+            // Terrain at or below the object's supporting level cannot cover
+            // an object that stands on that level.
+            if (columnElevation <= objectNode.elevation) return true
+
+            val terrainBehind = isBehind(objectNode)
+            val objectBehind = objectNode.isBehind(this)
+
+            // Only a strictly higher terrain column that is definitely in
+            // front of the object is allowed to occlude it.
+            return !(objectBehind && !terrainBehind)
+        }
+
+        private val columnElevation = when (item) {
+            is WorldRenderItem.TerrainFill -> item.elevation
+            is WorldRenderItem.TerrainSurface -> item.elevation
+            is WorldRenderItem.WorldObject -> elevation
+            is WorldRenderItem.Preview -> error("Preview is not a normal world item.")
         }
     }
 

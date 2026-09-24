@@ -29,6 +29,40 @@ class WorldRenderPlanTest {
     )
 
     @Test
+    fun `flat terrain surfaces render before a house`() {
+        val world = world()
+        val house = requireNotNull(world.place(House(), 1, 1))
+
+        val plan = WorldRenderPlan.create(world, projection)
+        val lastSurface = plan.indexOfLast {
+            it is WorldRenderItem.TerrainSurface
+        }
+
+        assertTrue(lastSurface < plan.indexOfObject(house))
+    }
+
+    @Test
+    fun `elevated supporting surfaces render before their object`() {
+        val world = world()
+        world.terrain.setHeight(1..4, 1..4, 2)
+        val house = requireNotNull(world.place(House(), 1, 1))
+
+        val plan = WorldRenderPlan.create(world, projection)
+        val houseIndex = plan.indexOfObject(house)
+
+        for (position in house.occupiedTiles()) {
+            assertTrue(
+                plan.indexOfSurface(position.x, position.y) < houseIndex,
+                "Supporting surface $position rendered after the house."
+            )
+        }
+        assertTrue(
+            plan.indexOfLast { it is WorldRenderItem.TerrainSurface } <
+                    houseIndex
+        )
+    }
+
+    @Test
     fun `tree behind foreground elevated terrain precedes its fill`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))
@@ -38,6 +72,9 @@ class WorldRenderPlanTest {
 
         assertTrue(
             plan.indexOfObject(tree) < plan.indexOfFill(x = 3, y = 2)
+        )
+        assertTrue(
+            plan.indexOfObject(tree) < plan.indexOfSurface(x = 3, y = 2)
         )
     }
 
@@ -51,6 +88,9 @@ class WorldRenderPlanTest {
 
         assertTrue(
             plan.indexOfFill(x = 1, y = 2) < plan.indexOfObject(tree)
+        )
+        assertTrue(
+            plan.indexOfSurface(x = 1, y = 2) < plan.indexOfObject(tree)
         )
     }
 
@@ -124,6 +164,19 @@ class WorldRenderPlanTest {
     ): Int {
         return indexOfFirst { item ->
             item is WorldRenderItem.TerrainFill &&
+                    item.x == x &&
+                    item.y == y
+        }.also { index ->
+            check(index >= 0)
+        }
+    }
+
+    private fun List<WorldRenderItem>.indexOfSurface(
+        x: Int,
+        y: Int
+    ): Int {
+        return indexOfFirst { item ->
+            item is WorldRenderItem.TerrainSurface &&
                     item.x == x &&
                     item.y == y
         }.also { index ->
