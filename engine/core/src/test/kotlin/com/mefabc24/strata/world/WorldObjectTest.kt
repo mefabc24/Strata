@@ -113,10 +113,10 @@ class WorldObjectTest {
 
         assertEquals(
             setOf(
-                4 to 2,
-                4 to 3,
-                4 to 4,
-                5 to 4
+                TilePosition(4, 2),
+                TilePosition(4, 3),
+                TilePosition(4, 4),
+                TilePosition(5, 4)
             ),
             objectToPlace.occupiedTiles()
         )
@@ -187,24 +187,36 @@ class WorldObjectTest {
     fun `places rectangular footprints with all origins`() {
         val expectedPositions = mapOf(
             FootprintOrigin.NORTH to setOf(
-                2 to 2, 3 to 2,
-                2 to 3, 3 to 3,
-                2 to 4, 3 to 4
+                TilePosition(2, 2),
+                TilePosition(3, 2),
+                TilePosition(2, 3),
+                TilePosition(3, 3),
+                TilePosition(2, 4),
+                TilePosition(3, 4)
             ),
             FootprintOrigin.EAST to setOf(
-                1 to 2, 2 to 2,
-                1 to 3, 2 to 3,
-                1 to 4, 2 to 4
+                TilePosition(1, 2),
+                TilePosition(2, 2),
+                TilePosition(1, 3),
+                TilePosition(2, 3),
+                TilePosition(1, 4),
+                TilePosition(2, 4)
             ),
             FootprintOrigin.SOUTH to setOf(
-                1 to 0, 2 to 0,
-                1 to 1, 2 to 1,
-                1 to 2, 2 to 2
+                TilePosition(1, 0),
+                TilePosition(2, 0),
+                TilePosition(1, 1),
+                TilePosition(2, 1),
+                TilePosition(1, 2),
+                TilePosition(2, 2)
             ),
             FootprintOrigin.WEST to setOf(
-                2 to 0, 3 to 0,
-                2 to 1, 3 to 1,
-                2 to 2, 3 to 2
+                TilePosition(2, 0),
+                TilePosition(3, 0),
+                TilePosition(2, 1),
+                TilePosition(3, 1),
+                TilePosition(2, 2),
+                TilePosition(3, 2)
             )
         )
 
@@ -352,11 +364,16 @@ class WorldObjectTest {
             assertTrue(world.canPlaceObject(placed))
 
             val differentTile = placed.occupiedTiles()
-                .first { it != placed.x to placed.y }
+                .first {
+                    it != TilePosition(
+                        x = placed.x,
+                        y = placed.y
+                    )
+                }
 
             world.setHeight(
-                differentTile.first,
-                differentTile.second,
+                differentTile.x,
+                differentTile.y,
                 2
             )
 
