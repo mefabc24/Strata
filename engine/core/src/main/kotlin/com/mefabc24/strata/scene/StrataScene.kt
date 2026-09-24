@@ -4,10 +4,13 @@ import com.badlogic.gdx.utils.Disposable
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.audio.SoundRegistry
 import com.mefabc24.strata.audio.StrataAudio
+import com.mefabc24.strata.camera.CameraSettings
+import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.ObjectRegistry
 import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
@@ -27,14 +30,17 @@ internal fun interface StrataUiFactory {
 /**
  * Coordinates assets and the optional world and UI layers of a scene.
  *
- * The scene owns its assets, audio, attached world view, and attached UI.
- * A scene can contain either layer independently or both together.
+ * The scene owns its assets, audio, attached world view, and attached UI. The
+ * game creates an optional [World] and attaches it; the world itself currently
+ * has no disposal lifecycle. A scene can contain either runtime layer
+ * independently or both together.
  */
 class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     terrainDirectory: String,
     objectDirectory: String,
     configure: StrataScene<T, C>.() -> Unit,
-    private val uiFactory: StrataUiFactory
+    private val uiFactory: StrataUiFactory,
+    private val worldViewFactory: SceneWorldViewFactory
 ) : Disposable {
 
     constructor(
@@ -50,19 +56,22 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                 skin = skin,
                 theme = theme
             )
-        }
+        },
+        DefaultSceneWorldViewFactory
     )
 
     internal constructor(
         terrainDirectory: String,
         objectDirectory: String,
         uiFactory: StrataUiFactory,
+        worldViewFactory: SceneWorldViewFactory = DefaultSceneWorldViewFactory,
         configure: StrataScene<T, C>.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
         configure,
-        uiFactory
+        uiFactory,
+        worldViewFactory
     )
 
     val assets = StrataAssets()
@@ -89,7 +98,14 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      */
     val debug = DebugSettings()
 
-    private var attachedView: IsoWorldView? = null
+    private val cameraSettings = CameraSettings()
+    private val renderingSettings = RenderingSettings()
+    private val controlsSettings = ControlsSettings()
+
+    private var configurationOpen = true
+
+    private var attachedWorld: World? = null
+    private var attachedView: SceneWorldView? = null
     private var attachedUi: StrataUi? = null
 
     private val sceneInput = StrataInput()
@@ -101,8 +117,15 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      * Returns the attached world view.
      */
     val view: IsoWorldView
-        get() = attachedView
+        get() = attachedView?.publicView
             ?: error("No world view is attached to this scene.")
+
+    /**
+     * Returns the game-created world attached to this scene.
+     */
+    val world: World
+        get() = attachedWorld
+            ?: error("No world is attached to this scene.")
 
     /**
      * Runtime input routing for the optional UI and world layers.
@@ -120,6 +143,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     init {
         try {
             configure(this)
+            configurationOpen = false
 
             assets.finishLoading()
 
@@ -136,28 +160,60 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         }
     }
 
+    /** Configures runtime audio during scene setup. */
+    fun audio(configure: StrataAudio<C>.() -> Unit) {
+        checkConfigurationOpen()
+        audio.apply(configure)
+    }
+
+    /** Configures debugging facilities during scene setup. */
+    fun debug(configure: DebugSettings.() -> Unit) {
+        checkConfigurationOpen()
+        debug.apply(configure)
+    }
+
     /**
-     * Creates, configures, and attaches an isometric world view.
-     *
-     * Terrain and object visuals are resolved through this scene's registries.
+     * Configures the camera snapshot applied when a world is attached.
      */
-    fun createView(
+    fun camera(configure: CameraSettings.() -> Unit) {
+        checkConfigurationOpen()
+        cameraSettings.apply(configure)
+    }
+
+    /**
+     * Configures the rendering snapshot applied when a world is attached.
+     */
+    fun rendering(configure: RenderingSettings.() -> Unit) {
+        checkConfigurationOpen()
+        renderingSettings.apply(configure)
+    }
+
+    /**
+     * Configures the controls snapshot applied when a world is attached.
+     */
+    fun controls(configure: ControlsSettings.() -> Unit) {
+        checkConfigurationOpen()
+        controlsSettings.apply(configure)
+    }
+
+    /**
+     * Attaches a game-created world and creates its isometric view.
+     *
+     * Camera, rendering, and control settings are copied from the scene setup
+     * configuration at this point. Terrain and object visuals are resolved
+     * through this scene's registries. A world can be attached only once.
+     */
+    fun attachWorld(
         world: World,
-        terrainFor: (Tile) -> T,
-        configure: SceneSettings<C>.() -> Unit = {}
-    ): IsoWorldView {
+        terrainFor: (Tile) -> T
+    ) {
         checkActive()
 
         check(attachedView == null) {
-            "A world view is already attached to this scene."
+            "A world is already attached to this scene."
         }
 
-        val settings = SceneSettings(
-            sceneAudio = audio,
-            sceneDebug = debug
-        ).apply(configure)
-
-        val renderingSettings = settings.rendering.copy().apply {
+        val renderingSnapshot = renderingSettings.copy().apply {
             validate()
 
             if (maxTerrainSpriteHeight == null) {
@@ -165,23 +221,23 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             }
         }
 
-        val view = IsoWorldView(
-            world = world,
-
-            textureFor = { tile ->
-                terrain[terrainFor(tile)]
-            },
-
-            objectVisualFor = objects::get,
-
-            cameraSettings = settings.camera,
-            controls = settings.controls,
-            renderingSettings = renderingSettings
+        val view = worldViewFactory.create(
+            SceneWorldViewSpec(
+                world = world,
+                textureFor = { tile ->
+                    terrain[terrainFor(tile)]
+                },
+                objectVisualFor = objects::get,
+                cameraSettings = cameraSettings.copy(),
+                controlsSettings = controlsSettings.copy(),
+                renderingSettings = renderingSnapshot
+            )
         )
 
-        attachView(view)
-
-        return view
+        attachView(
+            world = world,
+            view = view
+        )
     }
 
     /**
@@ -240,7 +296,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      *
      * A scene can own one world view.
      */
-    private fun attachView(view: IsoWorldView) {
+    private fun attachView(
+        world: World,
+        view: SceneWorldView
+    ) {
         checkActive()
 
         check(attachedView == null) {
@@ -267,6 +326,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             throw failure
         }
 
+        attachedWorld = world
         attachedView = view
     }
 
@@ -332,6 +392,12 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private fun checkActive() {
         check(!disposed) {
             "StrataScene has already been disposed."
+        }
+    }
+
+    private fun checkConfigurationOpen() {
+        check(configurationOpen) {
+            "Scene setup configuration is already complete."
         }
     }
 
