@@ -14,6 +14,8 @@ class StrataUiThemeTest {
         assertEquals("default", theme.labelStyle)
         assertEquals("default", theme.buttonStyle)
         assertEquals("default", theme.toggleButtonStyle)
+        assertEquals("default", theme.imageButtonStyle)
+        assertEquals("default", theme.selectableImageButtonStyle)
         assertNull(theme.panelStyle)
         assertNull(theme.separatorStyle)
         assertEquals(8f, theme.spacing)
@@ -30,7 +32,20 @@ class StrataUiThemeTest {
         }
 
         assertFailsWith<IllegalArgumentException> {
-            StrataUiTheme(spacing = -1f)
+            StrataUiTheme(imageButtonStyle = " ")
+        }
+
+        for (
+            invalid in listOf(
+                -1f,
+                Float.NaN,
+                Float.POSITIVE_INFINITY,
+                Float.NEGATIVE_INFINITY
+            )
+        ) {
+            assertFailsWith<IllegalArgumentException> {
+                StrataUiTheme(spacing = invalid)
+            }
         }
     }
 
@@ -57,6 +72,17 @@ class StrataUiThemeTest {
                 right = 0f
             )
         }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataInsets.all(Float.NaN)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataInsets.symmetric(
+                horizontal = Float.POSITIVE_INFINITY,
+                vertical = 0f
+            )
+        }
     }
 
     @Test
@@ -75,11 +101,21 @@ class StrataUiThemeTest {
 
     @Test
     fun `separator style requires positive thickness`() {
-        assertFailsWith<IllegalArgumentException> {
-            StrataSeparatorStyle(
-                drawable = TestDrawable,
-                thickness = 0f
+        for (
+            invalid in listOf(
+                0f,
+                -1f,
+                Float.NaN,
+                Float.POSITIVE_INFINITY,
+                Float.NEGATIVE_INFINITY
             )
+        ) {
+            assertFailsWith<IllegalArgumentException> {
+                StrataSeparatorStyle(
+                    drawable = TestDrawable,
+                    thickness = invalid
+                )
+            }
         }
     }
 

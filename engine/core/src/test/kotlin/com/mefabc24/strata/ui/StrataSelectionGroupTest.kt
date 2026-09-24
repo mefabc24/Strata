@@ -100,6 +100,49 @@ class StrataSelectionGroupTest {
     }
 
     @Test
+    fun `options preserve order and cannot mutate group state`() {
+        val group = StrataSelectionGroup(
+            options = listOf(Option.FIRST, Option.SECOND)
+        )
+
+        val options = group.options
+
+        assertEquals(
+            listOf(Option.FIRST, Option.SECOND),
+            options.toList()
+        )
+
+        assertFailsWith<UnsupportedOperationException> {
+            (options as MutableSet<Option>).add(Option.THIRD)
+        }
+
+        assertEquals(
+            listOf(Option.FIRST, Option.SECOND),
+            group.options.toList()
+        )
+    }
+
+    @Test
+    fun `duplicate callback registrations have independent subscriptions`() {
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        var changes = 0
+        val callback: (Option?) -> Unit = {
+            changes++
+        }
+
+        val first = group.onSelectionChanged(callback)
+        group.onSelectionChanged(callback)
+
+        first.dispose()
+        group.select(Option.SECOND)
+
+        assertEquals(1, changes)
+    }
+
+    @Test
     fun `unknown and invalid options are rejected`() {
         assertFailsWith<IllegalArgumentException> {
             StrataSelectionGroup(
