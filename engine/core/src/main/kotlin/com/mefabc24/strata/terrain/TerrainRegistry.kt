@@ -2,7 +2,6 @@ package com.mefabc24.strata.terrain
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
-import com.mefabc24.strata.render.TerrainCliffVisuals
 
 /**
  * Describes one terrain registration.
@@ -13,11 +12,10 @@ import com.mefabc24.strata.render.TerrainCliffVisuals
 class TerrainEntry<T : Enum<T>> internal constructor(
     val type: T,
     val spritePath: String,
-    val leftCliffSpritePath: String?,
-    val rightCliffSpritePath: String?
+    val fillSpritePath: String?
 ) {
     private var preparedTexture: TextureRegion? = null
-    private var preparedCliffs: TerrainCliffVisuals? = null
+    private var preparedFillTexture: TextureRegion? = null
 
     /** The loaded texture region used to render this terrain. */
     val texture: TextureRegion
@@ -28,22 +26,22 @@ class TerrainEntry<T : Enum<T>> internal constructor(
     val isPrepared: Boolean
         get() = preparedTexture != null
 
-    /** Prepared optional cliff faces used for additional elevation levels. */
-    val cliffs: TerrainCliffVisuals?
+    /** Prepared optional visual used for additional exposed elevation levels. */
+    val fillTexture: TextureRegion?
         get() {
             check(isPrepared) {
                 "Terrain type $type is not prepared."
             }
 
-            return preparedCliffs
+            return preparedFillTexture
         }
 
     internal fun prepare(
         texture: TextureRegion,
-        cliffs: TerrainCliffVisuals?
+        fillTexture: TextureRegion?
     ) {
         preparedTexture = texture
-        preparedCliffs = cliffs
+        preparedFillTexture = fillTexture
     }
 }
 
@@ -81,7 +79,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         get() = registrations.values.toList()
 
     /**
-     * Registers a terrain type and queues its surface and optional cliff
+     * Registers a terrain type and queues its surface and optional fill
      * textures. Registration order is retained by [entries].
      */
     fun register(
@@ -103,18 +101,15 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         settings.validate()
 
         val path = resolvePath(sprite)
-        val leftCliffPath = settings.cliffs.left?.let(::resolvePath)
-        val rightCliffPath = settings.cliffs.right?.let(::resolvePath)
+        val fillPath = settings.fillSprite?.let(::resolvePath)
 
         queueTexture(path)
-        leftCliffPath?.let(queueTexture)
-        rightCliffPath?.let(queueTexture)
+        fillPath?.let(queueTexture)
 
         registrations[type] = TerrainEntry(
             type = type,
             spritePath = path,
-            leftCliffSpritePath = leftCliffPath,
-            rightCliffSpritePath = rightCliffPath
+            fillSpritePath = fillPath
         )
     }
 
@@ -127,7 +122,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
 
             entry.prepare(
                 texture = regionFor(entry.spritePath),
-                cliffs = createCliffs(entry)
+                fillTexture = entry.fillSpritePath?.let(regionFor)
             )
         }
     }
@@ -151,13 +146,13 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         }
 
         return registrations.values.maxOfOrNull { entry ->
-            val region = entry.texture
+            listOfNotNull(entry.texture, entry.fillTexture).maxOf { region ->
+                require(region.regionWidth > 0) {
+                    "Terrain sprite width must be positive."
+                }
 
-            require(region.regionWidth > 0) {
-                "Terrain sprite width must be positive."
+                tileWidth * region.regionHeight / region.regionWidth
             }
-
-            tileWidth * region.regionHeight / region.regionWidth
         } ?: Float.POSITIVE_INFINITY
     }
 
@@ -169,25 +164,12 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
             ?: error("Terrain type $type is not registered.")
     }
 
-    /** Returns prepared optional cliff faces for a terrain type. */
-    fun cliffs(type: T): TerrainCliffVisuals? {
+    /** Returns the prepared optional elevation-fill sprite for a terrain type. */
+    fun fill(type: T): TextureRegion? {
         val entry = registrations[type]
             ?: error("Terrain type $type is not registered.")
 
-        return entry.cliffs
-    }
-
-    private fun createCliffs(
-        entry: TerrainEntry<T>
-    ): TerrainCliffVisuals? {
-        val left = entry.leftCliffSpritePath?.let(regionFor)
-        val right = entry.rightCliffSpritePath?.let(regionFor)
-
-        return if (left == null && right == null) {
-            null
-        } else {
-            TerrainCliffVisuals(left = left, right = right)
-        }
+        return entry.fillTexture
     }
 
     private fun resolvePath(sprite: String): String {

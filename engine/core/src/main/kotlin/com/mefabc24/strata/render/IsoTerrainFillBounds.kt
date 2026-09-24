@@ -4,8 +4,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 
-/** Calculates a one-step cliff sprite's bounds from logical tile geometry. */
-internal object IsoCliffBounds {
+/** Calculates elevation-fill bounds from logical tile geometry. */
+internal object IsoTerrainFillBounds {
 
     fun calculate(
         projection: IsoProjection,
@@ -42,10 +42,10 @@ internal object IsoCliffBounds {
         offsetY: Float = 0f
     ): Rectangle {
         require(levelBelowSurface > 0) {
-            "Cliff level below surface must be positive."
+            "Fill level below surface must be positive."
         }
         require(textureWidth > 0 && textureHeight > 0) {
-            "Cliff texture dimensions must be positive."
+            "Terrain fill texture dimensions must be positive."
         }
 
         val scale = projection.tileWidth / textureWidth

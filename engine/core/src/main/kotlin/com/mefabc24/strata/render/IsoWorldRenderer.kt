@@ -26,6 +26,7 @@ class IsoWorldRenderer(
     private val batch = SpriteBatch()
 
     private val terrainRenderer = IsoTerrainRenderer(projection)
+    private val terrainFillRenderer = IsoTerrainFillRenderer(projection)
     private val objectRenderer = IsoObjectRenderer(
         projection = projection,
         objectSettings = this.objectSettings
@@ -47,7 +48,7 @@ class IsoWorldRenderer(
         world: World,
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
-        terrainCliffsFor: (Tile) -> TerrainCliffVisuals? = { null },
+        terrainFillFor: (Tile) -> TextureRegion? = { null },
         raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
@@ -124,7 +125,7 @@ class IsoWorldRenderer(
                     ceil(rightInTiles + depthOffset).toInt()
                 )
 
-                // Ground cliffs and surfaces share the normal terrain depth.
+                // Ground fills and surfaces share the normal terrain depth.
                 for (x in minX..maxX) {
                     val y = depth - x
                     val elevation = world.getHeight(x, y) ?: continue
@@ -139,12 +140,12 @@ class IsoWorldRenderer(
 
                     stats.terrainChecked++
 
-                    renderCliffs(
+                    renderFills(
                         world = world,
                         x = x,
                         y = y,
                         elevation = elevation,
-                        visuals = terrainCliffsFor(tile),
+                        texture = terrainFillFor(tile),
                         offsetY = offsetY
                     )
 
@@ -157,7 +158,7 @@ class IsoWorldRenderer(
                     )
                 }
 
-                // Overlays stay attached to the ground surface and have no cliffs.
+                // Overlays stay attached to the ground surface and have no fills.
                 for (layerId in overlayIds) {
                     for (x in minX..maxX) {
                         val y = depth - x
@@ -248,28 +249,22 @@ class IsoWorldRenderer(
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
     }
 
-    private fun renderCliffs(
+    private fun renderFills(
         world: World,
         x: Int,
         y: Int,
         elevation: Int,
-        visuals: TerrainCliffVisuals?,
+        texture: TextureRegion?,
         offsetY: Float
     ) {
-        if (visuals == null) return
+        if (texture == null) return
 
-        for (part in TerrainCliffPlan.create(world, x, y)) {
-            val texture = when (part.side) {
-                TerrainCliffSide.LEFT -> visuals.left
-                TerrainCliffSide.RIGHT -> visuals.right
-            } ?: continue
-
-            IsoCliffBounds.calculate(
-                projection = projection,
+        for (part in TerrainFillPlan.create(world, x, y)) {
+            terrainFillRenderer.bounds(
                 x = x,
                 y = y,
                 elevation = elevation,
-                levelBelowSurface = part.levelBelowSurface,
+                part = part,
                 texture = texture,
                 result = tileBounds,
                 offsetY = offsetY
@@ -277,12 +272,14 @@ class IsoWorldRenderer(
 
             if (!tileBounds.overlaps(visibleArea)) continue
 
-            batch.draw(
-                texture,
-                tileBounds.x,
-                tileBounds.y,
-                tileBounds.width,
-                tileBounds.height
+            terrainFillRenderer.render(
+                batch = batch,
+                x = x,
+                y = y,
+                elevation = elevation,
+                part = part,
+                texture = texture,
+                offsetY = offsetY
             )
             stats.terrainDrawn++
         }

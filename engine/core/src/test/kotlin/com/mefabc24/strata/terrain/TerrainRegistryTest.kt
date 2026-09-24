@@ -83,15 +83,13 @@ class TerrainRegistryTest {
     }
 
     @Test
-    fun `cliff sprites are queued and prepared with their terrain`() {
+    fun `fill sprite is queued and prepared with its terrain`() {
         val queued = mutableListOf<String>()
         val grass = TextureRegion()
-        val dirtLeft = TextureRegion()
-        val dirtRight = TextureRegion()
+        val dirtFill = TextureRegion()
         val regions = mapOf(
             "tiles/grass.png" to grass,
-            "tiles/dirt-left.png" to dirtLeft,
-            "tiles/dirt-right.png" to dirtRight
+            "tiles/dirt-fill.png" to dirtFill
         )
         val registry = TerrainRegistry<Terrain>(
             directory = "tiles",
@@ -100,17 +98,13 @@ class TerrainRegistryTest {
         )
 
         registry.register(Terrain.GRASS, "grass.png") {
-            cliffs {
-                left = "dirt-left.png"
-                right = "dirt-right.png"
-            }
+            fillSprite = "dirt-fill.png"
         }
 
         assertEquals(
             listOf(
                 "tiles/grass.png",
-                "tiles/dirt-left.png",
-                "tiles/dirt-right.png"
+                "tiles/dirt-fill.png"
             ),
             queued
         )
@@ -118,12 +112,11 @@ class TerrainRegistryTest {
         registry.freeze()
         registry.prepare()
 
-        assertSame(dirtLeft, registry.cliffs(Terrain.GRASS)?.left)
-        assertSame(dirtRight, registry.cliffs(Terrain.GRASS)?.right)
+        assertSame(dirtFill, registry.fill(Terrain.GRASS))
     }
 
     @Test
-    fun `terrain types retain their own optional cliff materials`() {
+    fun `terrain types retain their own optional fill materials`() {
         val regions = mutableMapOf<String, TextureRegion>()
         val registry = TerrainRegistry<Terrain>(
             directory = "tiles",
@@ -132,38 +125,24 @@ class TerrainRegistryTest {
         )
 
         registry.register(Terrain.GRASS, "grass.png") {
-            cliffs {
-                left = "dirt-left.png"
-                right = "dirt-right.png"
-            }
+            fillSprite = "dirt-fill.png"
         }
         registry.register(Terrain.SAND, "sand.png") {
-            cliffs {
-                left = "sand-left.png"
-                right = "sand-right.png"
-            }
+            fillSprite = "sand-fill.png"
         }
         registry.register(Terrain.WATER, "water.png")
         registry.freeze()
         registry.prepare()
 
         assertSame(
-            regions.getValue("tiles/dirt-left.png"),
-            registry.cliffs(Terrain.GRASS)?.left
+            regions.getValue("tiles/dirt-fill.png"),
+            registry.fill(Terrain.GRASS)
         )
         assertSame(
-            regions.getValue("tiles/dirt-right.png"),
-            registry.cliffs(Terrain.GRASS)?.right
+            regions.getValue("tiles/sand-fill.png"),
+            registry.fill(Terrain.SAND)
         )
-        assertSame(
-            regions.getValue("tiles/sand-left.png"),
-            registry.cliffs(Terrain.SAND)?.left
-        )
-        assertSame(
-            regions.getValue("tiles/sand-right.png"),
-            registry.cliffs(Terrain.SAND)?.right
-        )
-        assertEquals(null, registry.cliffs(Terrain.WATER))
+        assertEquals(null, registry.fill(Terrain.WATER))
     }
 
     @Test
@@ -212,12 +191,12 @@ class TerrainRegistryTest {
 
         assertFailsWith<IllegalArgumentException> {
             registry.register(Terrain.WATER) {
-                cliffs.left = " "
+                fillSprite = " "
             }
         }
 
         assertFailsWith<IllegalStateException> {
-            registry.cliffs(Terrain.UNREGISTERED)
+            registry.fill(Terrain.UNREGISTERED)
         }
     }
 

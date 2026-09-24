@@ -55,7 +55,7 @@ class TerrainDepthCullingTest {
     }
 
     @Test
-    fun `elevation range keeps supporting cliff segments visible`() {
+    fun `elevation range keeps supporting fill segments visible`() {
         val depths = TerrainDepthCulling.visibleDepths(
             visibleBottom = -96f,
             visibleTop = -88f,

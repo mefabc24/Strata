@@ -19,7 +19,6 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
-import com.mefabc24.strata.render.TerrainCliffVisuals
 import com.mefabc24.strata.world.TilePosition
 
 /**
@@ -54,7 +53,7 @@ enum class ObjectPickingMode {
 class IsoWorldView(
     private val world: World,
     private val textureFor: (Tile) -> TextureRegion?,
-    private val terrainCliffsFor: (Tile) -> TerrainCliffVisuals? = { null },
+    private val terrainFillFor: (Tile) -> TextureRegion? = { null },
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
 
     cameraSettings: CameraSettings = CameraSettings(),
@@ -279,7 +278,7 @@ class IsoWorldView(
             world = world,
             camera = camera,
             textureFor = textureFor,
-            terrainCliffsFor = terrainCliffsFor,
+            terrainFillFor = terrainFillFor,
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
             objectVisualFor = objectVisualFor,
