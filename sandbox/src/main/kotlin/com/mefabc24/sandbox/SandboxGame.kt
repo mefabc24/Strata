@@ -17,6 +17,7 @@ class SandboxGame : StrataGame {
     private lateinit var placementController: PlacementController
     private lateinit var scene: StrataScene<TerrainType, SoundCategory>
     private lateinit var painter: SandboxTerrainPainter
+    private lateinit var ui: SandboxUi
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -269,18 +270,43 @@ class SandboxGame : StrataGame {
                 }
             }
         }
+
+        ui = SandboxUi(
+            painter = painter
+        )
+
+        scene.input.addUiProcessor(
+            ui.inputProcessor
+        )
     }
 
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int
+    ) {
         if (!::scene.isInitialized) return
 
-        scene.resize(width, height)
+        scene.resize(
+            width,
+            height
+        )
+
+        if (::ui.isInitialized) {
+            ui.resize(
+                width,
+                height
+            )
+        }
     }
 
     override fun update(delta: Float) {
         scene.update(delta)
 
-        placementController.update(scene.view.hoveredTile)
+        placementController.update(
+            scene.view.hoveredTile
+        )
+
+        ui.update(delta)
     }
 
     override fun render() {
@@ -291,9 +317,21 @@ class SandboxGame : StrataGame {
                 placementController.preview
             }
         )
+
+        ui.render()
     }
 
     override fun dispose() {
+        if (::ui.isInitialized) {
+            if (::scene.isInitialized) {
+                scene.input.removeUiProcessor(
+                    ui.inputProcessor
+                )
+            }
+
+            ui.dispose()
+        }
+
         if (::scene.isInitialized) {
             scene.dispose()
         }

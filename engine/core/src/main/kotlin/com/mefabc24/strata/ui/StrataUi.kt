@@ -23,7 +23,7 @@ class StrataUi(
     /**
      * Root layout container for game-specific UI.
      */
-    val root = Table().apply {
+    val root = Table(skin).apply {
         setFillParent(true)
     }
 
