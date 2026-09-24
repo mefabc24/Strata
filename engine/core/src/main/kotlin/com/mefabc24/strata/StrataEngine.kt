@@ -3,14 +3,13 @@ package com.mefabc24.strata
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.Color
 
 class StrataEngine(
-    private val game: StrataGame,
-    backgroundColor: Color = Color(0.1f, 0.1f, 0.1f, 1f)
+    private val game: StrataGame
 ) : ApplicationAdapter() {
 
-    private val backgroundColor = backgroundColor.cpy()
+    private val backgroundColor =
+        game.engineSettings.backgroundColorSnapshot()
 
     override fun create() {
         Gdx.app.log("Strata", "Engine initialized")
