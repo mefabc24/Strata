@@ -82,10 +82,7 @@ class SandboxUi(
         options = TerrainType.entries,
         initialSelection = painter.terrain
     ) { selected ->
-        if (selected != null) {
-            painter.terrain = selected
-        }
-
+        painter.terrain = selected
         updateStatus()
     }
 
@@ -94,10 +91,7 @@ class SandboxUi(
         initialSelection = SandboxPaintLayer.from(painter.layerId)
             ?: SandboxPaintLayer.GROUND
     ) { selected ->
-        if (selected != null) {
-            painter.layerId = selected.layerId
-        }
-
+        painter.layerId = selected.layerId
         updateStatus()
     }
 
@@ -107,10 +101,7 @@ class SandboxUi(
             placementController.selectedPlaceable
         ) ?: SandboxBuildOption.HOUSE
     ) { selected ->
-        if (selected != null) {
-            placementController.selectedPlaceable = selected.create()
-        }
-
+        placementController.selectedPlaceable = selected.create()
         updateStatus()
     }
 
