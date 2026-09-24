@@ -129,6 +129,33 @@ class TerrainFillPlanTest {
     }
 
     @Test
+    fun `first fill is one logical step below the surface sprite`() {
+        val projection = IsoProjection(
+            TileGeometry(width = 32f, height = 24f)
+        )
+        val surface = IsoTerrainBounds.calculate(
+            projection = projection,
+            x = 0,
+            y = 0,
+            elevation = 1,
+            textureWidth = 32,
+            textureHeight = 32,
+            result = Rectangle()
+        )
+        val firstFill = fillBounds(
+            projection = projection,
+            elevation = 1,
+            level = 0,
+            textureHeight = 32
+        )
+
+        assertEquals(
+            projection.elevationStep,
+            surface.y - firstFill.y
+        )
+    }
+
+    @Test
     fun `fill spacing does not depend on canvas height`() {
         val projection = IsoProjection(
             TileGeometry(width = 32f, height = 24f)
