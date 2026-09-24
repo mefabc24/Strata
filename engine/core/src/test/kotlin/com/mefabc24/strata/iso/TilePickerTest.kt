@@ -137,6 +137,22 @@ class TilePickerTest {
     }
 
     @Test
+    fun `base grid picks a flat terrain cell`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val baseCenter = topFaceCenter(4, 0, elevation = 0)
+
+        assertEquals(
+            TilePosition(4, 0),
+            picker.pickWorld(
+                baseCenter.x,
+                baseCenter.y,
+                TilePickingMode.BASE_GRID
+            )
+        )
+    }
+
+    @Test
     fun `base grid result remains stable while terrain height changes`() {
         val world = createWorld()
         val picker = picker(world)
