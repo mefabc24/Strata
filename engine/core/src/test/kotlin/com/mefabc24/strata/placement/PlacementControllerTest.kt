@@ -180,4 +180,37 @@ class PlacementControllerTest {
 
         assertNull(controller.preview)
     }
+
+    @Test
+    fun `disabled placement clears preview and retains selection`() {
+        val controller = PlacementController(
+            world = createWorld()
+        )
+
+        val selected = TestPlaceable()
+        controller.selectedPlaceable = selected
+        controller.update(TilePosition(2, 2))
+
+        assertNotNull(controller.preview)
+
+        controller.enabled = false
+
+        assertNull(controller.preview)
+        assertTrue(controller.selectedPlaceable === selected)
+
+        controller.update(TilePosition(3, 3))
+        assertNull(controller.preview)
+    }
+
+    @Test
+    fun `disabled placement cannot place selected object`() {
+        val world = createWorld()
+        val controller = PlacementController(world)
+
+        controller.selectedPlaceable = TestPlaceable()
+        controller.enabled = false
+
+        assertNull(controller.placeAt(2, 2))
+        assertNull(world.getObjectAt(2, 2))
+    }
 }

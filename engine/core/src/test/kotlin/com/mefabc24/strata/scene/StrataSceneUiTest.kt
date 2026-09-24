@@ -1,15 +1,23 @@
 package com.mefabc24.strata.scene
 
+import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.testing.defaultValue
 import com.mefabc24.strata.testing.proxy
 import com.mefabc24.strata.ui.StrataUi
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.World
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,6 +36,8 @@ class StrataSceneUiTest {
     private enum class SoundCategory {
         EFFECT
     }
+
+    private class TestTile : Tile
 
     @BeforeTest
     fun installTestEnvironment() {
@@ -94,6 +104,42 @@ class StrataSceneUiTest {
     }
 
     @Test
+    fun `scene coordinates world and ui layers together`() {
+        val inputState = TestGdxEnvironment.install()
+        val stage = TrackingStage()
+        val worldView = TrackingWorldView()
+        val scene = sceneWith(
+            stage = stage,
+            worldViewFactory = SceneWorldViewFactory { worldView }
+        )
+
+        scene.createUi(TrackingSkin())
+        scene.attachWorld(
+            world = World(2, 2) { _, _ -> TestTile() },
+            terrainFor = { Terrain.GRASS }
+        )
+
+        scene.update(0.25f)
+        scene.render()
+        scene.resize(800, 600)
+
+        assertTrue(inputState.inputProcessor === scene.input.processor)
+        assertEquals(listOf(0.25f), worldView.updateDeltas)
+        assertEquals(listOf(0.25f), stage.actDeltas)
+        assertEquals(1, worldView.renderCalls)
+        assertEquals(1, stage.drawCalls)
+        assertEquals(listOf(800 to 600), worldView.resizes)
+        assertEquals(800, stage.viewport.screenWidth)
+        assertEquals(600, stage.viewport.screenHeight)
+
+        scene.dispose()
+
+        assertTrue(worldView.disposed)
+        assertTrue(stage.disposed)
+        assertNull(inputState.inputProcessor)
+    }
+
+    @Test
     fun `failed ui configuration disposes the stage without installing input`() {
         val inputState = TestGdxEnvironment.install()
         val stage = TrackingStage()
@@ -137,7 +183,9 @@ class StrataSceneUiTest {
     }
 
     private fun sceneWith(
-        stage: Stage
+        stage: Stage,
+        worldViewFactory: SceneWorldViewFactory =
+            DefaultSceneWorldViewFactory
     ): StrataScene<Terrain, SoundCategory> {
         return StrataScene(
             terrainDirectory = "",
@@ -149,8 +197,43 @@ class StrataSceneUiTest {
                     stage = stage
                 )
             },
+            worldViewFactory = worldViewFactory,
             configure = {}
         )
+    }
+
+    private class TrackingWorldView : SceneWorldView {
+        override val publicView: IsoWorldView? = null
+        override val inputProcessor: InputProcessor = InputAdapter()
+        override val hoveredTile: TilePosition? = null
+        override val renderStats = RenderStats()
+
+        val updateDeltas = mutableListOf<Float>()
+        var renderCalls = 0
+            private set
+        val resizes = mutableListOf<Pair<Int, Int>>()
+        var disposed = false
+            private set
+
+        override fun update(delta: Float) {
+            updateDeltas += delta
+        }
+
+        override fun render(
+            raisedTile: TilePosition?,
+            raiseOffsetY: Float,
+            preview: PlacementPreview?
+        ) {
+            renderCalls++
+        }
+
+        override fun resize(width: Int, height: Int) {
+            resizes += width to height
+        }
+
+        override fun dispose() {
+            disposed = true
+        }
     }
 
     private class TrackingSkin : Skin() {
