@@ -41,6 +41,39 @@ class SoundRegistryTest {
     }
 
     @Test
+    fun `frozen registry rejects registration and keeps definitions readable`() {
+        val registry = SoundRegistry<TestCategory> { }
+
+        registry.register(
+            id = BuildingSound.PLACE,
+            path = "audio/place.wav",
+            category = TestCategory.BUILDING
+        )
+        registry.freeze()
+
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.register(
+                id = BuildingSound.DEMOLISH,
+                path = "audio/demolish.wav",
+                category = TestCategory.BUILDING
+            )
+        }
+
+        assertEquals(
+            "Sound registry registration is already closed.",
+            failure.message
+        )
+
+        assertEquals(
+            SoundDefinition(
+                path = "audio/place.wav",
+                category = TestCategory.BUILDING
+            ),
+            registry[BuildingSound.PLACE]
+        )
+    }
+
+    @Test
     fun `registering a sound queues its asset`() {
         val queuedPaths = mutableListOf<String>()
 

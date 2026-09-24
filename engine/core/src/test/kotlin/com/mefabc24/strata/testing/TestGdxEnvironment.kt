@@ -1,13 +1,16 @@
 package com.mefabc24.strata.testing
 
 import com.badlogic.gdx.Application
+import com.badlogic.gdx.Audio
 import com.badlogic.gdx.Files
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.utils.GdxNativesLoader
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -37,6 +40,8 @@ class TestInputState internal constructor() : InvocationHandler {
 
 object TestGdxEnvironment {
     fun install(): TestInputState {
+        GdxNativesLoader.load()
+
         val inputState = TestInputState()
 
         Gdx.app = proxy(
@@ -56,6 +61,19 @@ object TestGdxEnvironment {
 
         Gdx.files = TestFiles
         Gdx.input = inputState.input
+        Gdx.audio = proxy(
+            Audio::class.java
+        ) { _, method, _ ->
+            when (method.name) {
+                "newSound" -> proxy(
+                    Sound::class.java
+                ) { _, soundMethod, _ ->
+                    defaultValue(soundMethod.returnType)
+                }
+
+                else -> defaultValue(method.returnType)
+            }
+        }
 
         Gdx.graphics = proxy(
             Graphics::class.java
@@ -112,7 +130,7 @@ private object TestFiles : Files {
     override fun getFileHandle(
         path: String,
         type: Files.FileType
-    ) = FileHandle(path)
+    ) = TestFileHandle(path, type)
 
     override fun classpath(path: String) =
         getFileHandle(path, Files.FileType.Classpath)
@@ -137,3 +155,8 @@ private object TestFiles : Files {
 
     override fun isLocalStorageAvailable() = false
 }
+
+private class TestFileHandle(
+    path: String,
+    type: Files.FileType
+) : FileHandle(path, type)

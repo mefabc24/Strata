@@ -10,6 +10,7 @@ dependencies {
     api("com.badlogicgames.gdx:gdx:1.14.2")
 
     testImplementation(kotlin("test"))
+    testRuntimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.2:natives-desktop")
 }
 
 kotlin {

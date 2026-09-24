@@ -4,10 +4,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.ui.StrataSelectableImageButton
 import com.mefabc24.strata.ui.StrataSelectionGroup
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -24,6 +26,11 @@ class ObjectRegistryTest {
 
     private class Tree : Placeable {
         override val footprint = Footprint.square(1)
+    }
+
+    @BeforeTest
+    fun installTestEnvironment() {
+        TestGdxEnvironment.install()
     }
 
     @Test
@@ -62,6 +69,7 @@ class ObjectRegistryTest {
         assertEquals("objects/house.png", house.spritePath)
         assertFalse(house.isPrepared)
 
+        registry.freeze()
         registry.prepare()
 
         assertTrue(house.isPrepared)
@@ -69,6 +77,33 @@ class ObjectRegistryTest {
         assertEquals(2f, house.visual.offsetX)
         assertEquals(3f, house.visual.offsetY)
         assertEquals(1.5f, house.visual.scale)
+    }
+
+    @Test
+    fun `frozen registry rejects registration and keeps constructible visuals readable`() {
+        val texture = TextureRegion()
+        val registry = registry(texture = texture)
+
+        registry.register<House>(
+            sprite = "house.png",
+            factory = ::House
+        )
+        registry.freeze()
+
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.register<Tree>("tree.png", ::Tree)
+        }
+
+        assertEquals(
+            "Object registry registration is already closed.",
+            failure.message
+        )
+
+        registry.prepare()
+
+        val entry = registry.constructibleEntries.single()
+        assertSame(texture, entry.visual.texture)
+        assertIs<House>(entry.create())
     }
 
     @Test
@@ -123,6 +158,7 @@ class ObjectRegistryTest {
         val registry = registry()
         registry.register<House>("house.png", ::House)
         registry.register<Tree>("tree.png", ::Tree)
+        registry.freeze()
         registry.prepare()
 
         val entries = registry.constructibleEntries

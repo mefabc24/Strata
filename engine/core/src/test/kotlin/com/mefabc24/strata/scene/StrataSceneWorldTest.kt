@@ -3,6 +3,7 @@ package com.mefabc24.strata.scene
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.Color
+import com.mefabc24.strata.audio.SoundId
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.WorldInputBinding
@@ -23,6 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -31,16 +33,26 @@ import kotlin.test.assertTrue
 class StrataSceneWorldTest {
 
     private enum class Terrain {
-        GRASS
+        GRASS,
+        WATER
     }
 
     private enum class SoundCategory {
         EFFECT
     }
 
+    private enum class TestSound : SoundId {
+        PLACE,
+        REMOVE
+    }
+
     private class TestTile : Tile
 
     private class TestPlaceable : Placeable {
+        override val footprint = Footprint.square(1)
+    }
+
+    private class OtherPlaceable : Placeable {
         override val footprint = Footprint.square(1)
     }
 
@@ -82,6 +94,65 @@ class StrataSceneWorldTest {
             "Scene runtime operations are unavailable during setup.",
             failure.message
         )
+    }
+
+    @Test
+    fun `scene closes content registration after preparing setup entries`() {
+        val scene = sceneWith(RecordingViewFactory()) {
+            terrain.register(
+                type = Terrain.GRASS,
+                sprite = TEST_TEXTURE
+            )
+            objects.register<TestPlaceable>(
+                sprite = TEST_TEXTURE,
+                factory = ::TestPlaceable
+            )
+            sounds.register(
+                id = TestSound.PLACE,
+                path = "test.wav",
+                category = SoundCategory.EFFECT
+            )
+        }
+
+        assertEquals(
+            listOf(Terrain.GRASS),
+            scene.terrain.entries.map { it.type }
+        )
+        assertTrue(scene.terrain.entries.single().isPrepared)
+        assertTrue(scene.objects.entries.single().isPrepared)
+        assertIs<TestPlaceable>(
+            scene.objects.constructibleEntries.single().create()
+        )
+        assertEquals("test.wav", scene.sounds[TestSound.PLACE].path)
+
+        val terrainFailure = assertFailsWith<IllegalStateException> {
+            scene.terrain.register(Terrain.WATER, TEST_TEXTURE)
+        }
+        val objectFailure = assertFailsWith<IllegalStateException> {
+            scene.objects.register<OtherPlaceable>(TEST_TEXTURE)
+        }
+        val soundFailure = assertFailsWith<IllegalStateException> {
+            scene.sounds.register(
+                id = TestSound.REMOVE,
+                path = "other.wav",
+                category = SoundCategory.EFFECT
+            )
+        }
+
+        assertEquals(
+            "Terrain registry registration is already closed.",
+            terrainFailure.message
+        )
+        assertEquals(
+            "Object registry registration is already closed.",
+            objectFailure.message
+        )
+        assertEquals(
+            "Sound registry registration is already closed.",
+            soundFailure.message
+        )
+
+        scene.dispose()
     }
 
     @Test
@@ -331,5 +402,9 @@ class StrataSceneWorldTest {
         override fun dispose() {
             disposed = true
         }
+    }
+
+    private companion object {
+        const val TEST_TEXTURE = "com/badlogic/gdx/utils/lsans-15.png"
     }
 }

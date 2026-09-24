@@ -73,10 +73,38 @@ class TerrainRegistryTest {
             entry.texture
         }
 
+        registry.freeze()
         registry.prepare()
 
         assertTrue(entry.isPrepared)
         assertSame(texture, entry.texture)
+        assertSame(texture, registry[Terrain.GRASS])
+    }
+
+    @Test
+    fun `frozen registry rejects registration and keeps prepared entries readable`() {
+        val texture = TextureRegion()
+        val registry = TerrainRegistry<Terrain>(
+            directory = "tiles",
+            queueTexture = {},
+            regionFor = { texture }
+        )
+
+        registry.register(Terrain.GRASS)
+        registry.freeze()
+
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.register(Terrain.WATER)
+        }
+
+        assertEquals(
+            "Terrain registry registration is already closed.",
+            failure.message
+        )
+
+        registry.prepare()
+
+        assertEquals(listOf(Terrain.GRASS), registry.entries.map { it.type })
         assertSame(texture, registry[Terrain.GRASS])
     }
 
