@@ -15,10 +15,20 @@ class TilePicker(
         position.set(screenX, screenY, 0f)
         camera.unproject(position)
 
+        return pickWorld(
+            worldX = position.x,
+            worldY = position.y
+        )
+    }
+
+    internal fun pickWorld(
+        worldX: Float,
+        worldY: Float
+    ): Pair<Int, Int>? {
         for (elevation in world.maxHeight downTo 0) {
             val (x, y) = projection.worldToTile(
-                worldX = position.x,
-                worldY = position.y -
+                worldX = worldX,
+                worldY = worldY -
                         elevation * projection.elevationStep
             )
 

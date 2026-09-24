@@ -77,4 +77,19 @@ class IsoProjectionTest {
             )
         }
     }
+
+    @Test
+    fun `world bounds include terrain elevation and sprite height`() {
+        val bounds = projection.worldBounds(
+            width = 3,
+            height = 2,
+            maxElevation = 2,
+            maxSpriteHeight = 64f
+        )
+
+        assertEquals(-64f, bounds.x)
+        assertEquals(-112f, bounds.y)
+        assertEquals(160f, bounds.width)
+        assertEquals(176f, bounds.height)
+    }
 }

@@ -171,4 +171,45 @@ class WorldTest {
 
         assertEquals(0, world.getHeight(1, 1))
     }
+
+    @Test
+    fun `height version changes only when terrain elevation changes`() {
+        val world = World(3, 3) { _, _ ->
+            TestTile(0)
+        }
+
+        assertEquals(0L, world.heightVersion)
+
+        world.setHeight(1, 1, 2)
+
+        assertEquals(1L, world.heightVersion)
+
+        world.setHeight(1, 1, 2)
+
+        assertEquals(1L, world.heightVersion)
+
+        world.setHeight(1, 1, 1)
+
+        assertEquals(2L, world.heightVersion)
+    }
+
+    @Test
+    fun `maximum terrain height updates when highest tile is lowered`() {
+        val world = World(3, 3) { _, _ ->
+            TestTile(0)
+        }
+
+        world.setHeight(0, 0, 3)
+        world.setHeight(1, 1, 2)
+
+        assertEquals(3, world.maxHeight)
+
+        world.setHeight(0, 0, 1)
+
+        assertEquals(2, world.maxHeight)
+
+        world.setHeight(1, 1, 0)
+
+        assertEquals(1, world.maxHeight)
+    }
 }
