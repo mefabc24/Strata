@@ -2,6 +2,7 @@ package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
@@ -17,7 +18,8 @@ class SandboxGame : StrataGame {
     private lateinit var placementController: PlacementController
     private lateinit var scene: StrataScene<TerrainType, SoundCategory>
     private lateinit var painter: SandboxTerrainPainter
-    private lateinit var ui: SandboxUi
+    private lateinit var uiSkin: Skin
+    private lateinit var sandboxUi: SandboxUi
 
     private val previewStyle = PlacementPreviewStyle(
         validColor = Color(0.3f, 0.8f, 1f, 0.7f),
@@ -271,12 +273,15 @@ class SandboxGame : StrataGame {
             }
         }
 
-        ui = SandboxUi(
-            painter = painter
+        uiSkin = SandboxUi.createSkin()
+
+        val ui = scene.createUi(
+            skin = uiSkin
         )
 
-        scene.input.addUiProcessor(
-            ui.inputProcessor
+        sandboxUi = SandboxUi(
+            ui = ui,
+            painter = painter
         )
     }
 
@@ -290,13 +295,6 @@ class SandboxGame : StrataGame {
             width,
             height
         )
-
-        if (::ui.isInitialized) {
-            ui.resize(
-                width,
-                height
-            )
-        }
     }
 
     override fun update(delta: Float) {
@@ -306,7 +304,7 @@ class SandboxGame : StrataGame {
             scene.view.hoveredTile
         )
 
-        ui.update(delta)
+        sandboxUi.sync()
     }
 
     override fun render() {
@@ -317,23 +315,15 @@ class SandboxGame : StrataGame {
                 placementController.preview
             }
         )
-
-        ui.render()
     }
 
     override fun dispose() {
-        if (::ui.isInitialized) {
-            if (::scene.isInitialized) {
-                scene.input.removeUiProcessor(
-                    ui.inputProcessor
-                )
-            }
-
-            ui.dispose()
-        }
-
         if (::scene.isInitialized) {
             scene.dispose()
+        }
+
+        if (::uiSkin.isInitialized) {
+            uiSkin.dispose()
         }
     }
 }
