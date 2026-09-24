@@ -9,8 +9,6 @@ import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
-import kotlin.math.ceil
-import kotlin.math.floor
 
 /**
  * Renders terrain and world objects in isometric depth order.
@@ -40,7 +38,7 @@ class IsoWorldRenderer(
     private var cachedObjectVersion = -1L
     private var cachedHeightVersion = -1L
 
-    private var orderedObjects: List<PlacedObject> = emptyList()
+    private var normalRenderPlan: List<WorldRenderItem> = emptyList()
 
     val stats = RenderStats()
 
@@ -64,12 +62,9 @@ class IsoWorldRenderer(
             cachedObjectVersion != world.objectVersion ||
             cachedHeightVersion != world.heightVersion
         ) {
-            orderedObjects = IsoObjectOrdering.backToFront(
-                objects = world.getObjects(),
+            normalRenderPlan = WorldRenderPlan.create(
+                world = world,
                 projection = projection,
-                elevationFor = { placed ->
-                    world.getHeight(placed.x, placed.y) ?: 0
-                }
             )
 
             cachedWorld = world
@@ -87,12 +82,6 @@ class IsoWorldRenderer(
             viewHeight
         )
 
-        val leftInTiles =
-            visibleArea.x / projection.tileWidth - 0.5f
-
-        val rightInTiles =
-            (visibleArea.x + visibleArea.width) / projection.tileWidth + 0.5f
-
         batch.projectionMatrix = camera.combined
 
         val terrainDepths = TerrainDepthCulling.visibleDepths(
@@ -109,134 +98,61 @@ class IsoWorldRenderer(
         val overlayIds = world.overlayLayerIds
         batch.begin()
 
-        for (depth in 0 until world.width + world.height - 1) {
-            val depthOffset = depth / 2f
+        val renderPlan = WorldRenderPlan.withPreview(
+            normalItems = normalRenderPlan,
+            preview = preview
+        )
 
-            if (depth in terrainDepths) {
-                val minX = maxOf(
-                    0,
-                    depth - world.height + 1,
-                    floor(leftInTiles + depthOffset).toInt()
-                )
+        for (item in renderPlan) {
+            when (item) {
+                is WorldRenderItem.TerrainFill -> {
+                    if (item.x + item.y !in terrainDepths) continue
 
-                val maxX = minOf(
-                    world.width - 1,
-                    depth,
-                    ceil(rightInTiles + depthOffset).toInt()
-                )
-
-                // Ground fills and surfaces share the normal terrain depth.
-                for (x in minX..maxX) {
-                    val y = depth - x
-                    val elevation = world.getHeight(x, y) ?: continue
-                    val tile = world.getTile(x, y) ?: continue
-                    val texture = textureFor(tile) ?: continue
+                    val tile = world.getTile(item.x, item.y) ?: continue
+                    val texture = terrainFillFor(tile) ?: continue
                     val offsetY = terrainOffsetY(
-                        x = x,
-                        y = y,
+                        x = item.x,
+                        y = item.y,
                         raisedTile = raisedTile,
                         raiseOffsetY = raiseOffsetY
                     )
 
-                    stats.terrainChecked++
-
-                    renderFills(
-                        world = world,
-                        x = x,
-                        y = y,
-                        elevation = elevation,
-                        texture = terrainFillFor(tile),
-                        offsetY = offsetY
-                    )
-
-                    renderTerrainSprite(
-                        x = x,
-                        y = y,
-                        elevation = elevation,
+                    renderFill(
+                        item = item,
                         texture = texture,
                         offsetY = offsetY
                     )
                 }
 
-                // Overlays stay attached to the ground surface and have no fills.
-                for (layerId in overlayIds) {
-                    for (x in minX..maxX) {
-                        val y = depth - x
-                        val elevation = world.getHeight(x, y) ?: continue
-                        val tile = world.getOverlayTile(
-                            layerId = layerId,
-                            x = x,
-                            y = y
-                        ) ?: continue
-                        val texture = textureFor(tile) ?: continue
-                        val offsetY = terrainOffsetY(
-                            x = x,
-                            y = y,
-                            raisedTile = raisedTile,
-                            raiseOffsetY = raiseOffsetY
-                        )
+                is WorldRenderItem.TerrainSurface -> {
+                    if (item.x + item.y !in terrainDepths) continue
 
-                        stats.terrainChecked++
-
-                        renderTerrainSprite(
-                            x = x,
-                            y = y,
-                            elevation = elevation,
-                            texture = texture,
-                            offsetY = offsetY
-                        )
-                    }
+                    renderSurface(
+                        world = world,
+                        item = item,
+                        overlayIds = overlayIds,
+                        textureFor = textureFor,
+                        raisedTile = raisedTile,
+                        raiseOffsetY = raiseOffsetY
+                    )
                 }
-            }
 
-        }
-
-        val objectPlan = ObjectRenderPlan.create(
-            orderedObjects = orderedObjects,
-            preview = preview
-        )
-
-        for (item in objectPlan) {
-            val placed = item.placedObject
-            val visual = objectVisualFor(placed) ?: continue
-            val elevation = world.getHeight(placed.x, placed.y) ?: 0
-
-            IsoObjectBounds.calculate(
-                projection = projection,
-                placed = placed,
-                visual = visual,
-                result = objectBounds,
-                elevation = elevation,
-                objectSettings = objectSettings
-            )
-
-            when (item) {
-                is ObjectRenderItem.WorldObject -> stats.objectsChecked++
-                is ObjectRenderItem.Preview -> Unit
-            }
-
-            if (!objectBounds.overlaps(visibleArea)) continue
-
-            if (item is ObjectRenderItem.Preview) {
-                batch.color = if (item.preview.valid) {
-                    item.preview.style.validColor
-                } else {
-                    item.preview.style.invalidColor
+                is WorldRenderItem.WorldObject -> {
+                    renderObject(
+                        world = world,
+                        placed = item.placedObject,
+                        visual = objectVisualFor(item.placedObject),
+                        preview = null
+                    )
                 }
-            }
 
-            objectRenderer.render(
-                batch = batch,
-                placed = placed,
-                visual = visual,
-                elevation = elevation
-            )
-
-            when (item) {
-                is ObjectRenderItem.WorldObject -> stats.objectsDrawn++
-                is ObjectRenderItem.Preview -> {
-                    stats.previewsDrawn++
-                    batch.setColor(1f, 1f, 1f, 1f)
+                is WorldRenderItem.Preview -> {
+                    renderObject(
+                        world = world,
+                        placed = item.preview.placedObject,
+                        visual = objectVisualFor(item.preview.placedObject),
+                        preview = item.preview
+                    )
                 }
             }
         }
@@ -249,39 +165,126 @@ class IsoWorldRenderer(
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
     }
 
-    private fun renderFills(
-        world: World,
-        x: Int,
-        y: Int,
-        elevation: Int,
-        texture: TextureRegion?,
+    private fun renderFill(
+        item: WorldRenderItem.TerrainFill,
+        texture: TextureRegion,
         offsetY: Float
     ) {
-        if (texture == null) return
+        terrainFillRenderer.bounds(
+            x = item.x,
+            y = item.y,
+            elevation = item.elevation,
+            part = item.part,
+            texture = texture,
+            result = tileBounds,
+            offsetY = offsetY
+        )
 
-        for (part in TerrainFillPlan.create(world, x, y)) {
-            terrainFillRenderer.bounds(
-                x = x,
-                y = y,
-                elevation = elevation,
-                part = part,
-                texture = texture,
-                result = tileBounds,
-                offsetY = offsetY
-            )
+        if (!tileBounds.overlaps(visibleArea)) return
 
-            if (!tileBounds.overlaps(visibleArea)) continue
+        terrainFillRenderer.render(
+            batch = batch,
+            x = item.x,
+            y = item.y,
+            elevation = item.elevation,
+            part = item.part,
+            texture = texture,
+            offsetY = offsetY
+        )
+        stats.terrainDrawn++
+    }
 
-            terrainFillRenderer.render(
-                batch = batch,
-                x = x,
-                y = y,
-                elevation = elevation,
-                part = part,
-                texture = texture,
-                offsetY = offsetY
-            )
-            stats.terrainDrawn++
+    private fun renderSurface(
+        world: World,
+        item: WorldRenderItem.TerrainSurface,
+        overlayIds: List<String>,
+        textureFor: (Tile) -> TextureRegion?,
+        raisedTile: TilePosition?,
+        raiseOffsetY: Float
+    ) {
+        val offsetY = terrainOffsetY(
+            x = item.x,
+            y = item.y,
+            raisedTile = raisedTile,
+            raiseOffsetY = raiseOffsetY
+        )
+
+        stats.terrainChecked++
+
+        world.getTile(item.x, item.y)
+            ?.let(textureFor)
+            ?.let { texture ->
+                renderTerrainSprite(
+                    x = item.x,
+                    y = item.y,
+                    elevation = item.elevation,
+                    texture = texture,
+                    offsetY = offsetY
+                )
+            }
+
+        for (layerId in overlayIds) {
+            stats.terrainChecked++
+
+            world.getOverlayTile(layerId, item.x, item.y)
+                ?.let(textureFor)
+                ?.let { texture ->
+                    renderTerrainSprite(
+                        x = item.x,
+                        y = item.y,
+                        elevation = item.elevation,
+                        texture = texture,
+                        offsetY = offsetY
+                    )
+                }
+        }
+    }
+
+    private fun renderObject(
+        world: World,
+        placed: PlacedObject,
+        visual: ObjectVisual?,
+        preview: PlacementPreview?
+    ) {
+        if (preview == null) {
+            stats.objectsChecked++
+        }
+
+        if (visual == null) return
+
+        val elevation = world.getHeight(placed.x, placed.y) ?: 0
+
+        IsoObjectBounds.calculate(
+            projection = projection,
+            placed = placed,
+            visual = visual,
+            result = objectBounds,
+            elevation = elevation,
+            objectSettings = objectSettings
+        )
+
+        if (!objectBounds.overlaps(visibleArea)) return
+
+        if (preview != null) {
+            batch.color = if (preview.valid) {
+                preview.style.validColor
+            } else {
+                preview.style.invalidColor
+            }
+        }
+
+        objectRenderer.render(
+            batch = batch,
+            placed = placed,
+            visual = visual,
+            elevation = elevation
+        )
+
+        if (preview == null) {
+            stats.objectsDrawn++
+        } else {
+            stats.previewsDrawn++
+            batch.setColor(1f, 1f, 1f, 1f)
         }
     }
 
