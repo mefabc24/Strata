@@ -18,9 +18,10 @@ import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.world.TilePosition
 
 /**
- * Coordinates asset loading and the lifecycle of a world view.
+ * Coordinates assets and the optional world and UI layers of a scene.
  *
- * The scene owns its assets, audio, and attached world view.
+ * The scene owns its assets, audio, attached world view, and attached UI.
+ * A scene can contain either layer independently or both together.
  */
 class StrataScene<T : Enum<T>, C : Enum<C>>(
     terrainDirectory: String,
@@ -53,8 +54,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     val debug = DebugSettings()
 
     private var attachedView: IsoWorldView? = null
-    private var attachedInput: StrataInput? = null
     private var attachedUi: StrataUi? = null
+
+    private val sceneInput = StrataInput()
+    private var inputInstalled = false
 
     private var disposed = false
 
@@ -66,11 +69,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             ?: error("No world view is attached to this scene.")
 
     /**
-     * Provides access to runtime input routing, including UI processors.
+     * Runtime input routing for the optional UI and world layers.
      */
     val input: StrataInput
-        get() = attachedInput
-            ?: error("No world view is attached to this scene.")
+        get() = sceneInput
 
     /**
      * Returns the attached UI layer.
@@ -149,9 +151,6 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     /**
      * Creates and attaches a UI layer.
      *
-     * A world view must be attached before the UI so its input processor
-     * can be registered with the scene input router.
-     *
      * The scene owns the UI and its stage. The supplied skin and all resources
      * in it remain owned by the caller. [theme] maps semantic UI roles to
      * styles in that skin.
@@ -167,11 +166,6 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A UI layer is already attached to this scene."
         }
 
-        val input = attachedInput
-            ?: error(
-                "A world view must be attached before creating a UI layer."
-            )
-
         val ui = StrataUi(
             skin = skin,
             theme = theme
@@ -180,9 +174,16 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
         try {
             ui.configure()
 
-            input.addUiProcessor(
+            sceneInput.addUiProcessor(
                 ui.inputProcessor
             )
+
+            try {
+                installInputIfNeeded()
+            } catch (failure: Throwable) {
+                sceneInput.removeUiProcessor(ui.inputProcessor)
+                throw failure
+            }
         } catch (failure: Throwable) {
             try {
                 ui.dispose()
@@ -210,11 +211,17 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A world view is already attached to this scene."
         }
 
-        val input = StrataInput(view.inputProcessor)
+        var processorAttached = false
 
         try {
-            input.install()
+            sceneInput.setWorldProcessor(view.inputProcessor)
+            processorAttached = true
+            installInputIfNeeded()
         } catch (failure: Throwable) {
+            if (processorAttached) {
+                sceneInput.removeWorldProcessor(view.inputProcessor)
+            }
+
             try {
                 view.dispose()
             } catch (cleanupFailure: Throwable) {
@@ -225,7 +232,13 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
         }
 
         attachedView = view
-        attachedInput = input
+    }
+
+    private fun installInputIfNeeded() {
+        if (inputInstalled) return
+
+        sceneInput.install()
+        inputInstalled = true
     }
 
     /**
@@ -234,7 +247,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     fun update(delta: Float) {
         checkActive()
 
-        view.update(delta)
+        attachedView?.update(delta)
         attachedUi?.update(delta)
     }
 
@@ -248,16 +261,18 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
     ) {
         checkActive()
 
-        view.render(
-            raisedTile = raisedTile,
-            raiseOffsetY = raiseOffsetY,
-            preview = preview
-        )
+        attachedView?.let { view ->
+            view.render(
+                raisedTile = raisedTile,
+                raiseOffsetY = raiseOffsetY,
+                preview = preview
+            )
 
-        debug.performance.record(
-            stats = view.renderStats,
-            delta = Gdx.graphics.deltaTime
-        )
+            debug.performance.record(
+                stats = view.renderStats,
+                delta = Gdx.graphics.deltaTime
+            )
+        }
 
         attachedUi?.render()
     }
@@ -297,7 +312,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
         disposed = true
 
         try {
-            attachedInput?.uninstall()
+            sceneInput.uninstall()
         } finally {
             try {
                 attachedUi?.dispose()
