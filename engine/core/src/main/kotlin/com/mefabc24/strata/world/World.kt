@@ -37,6 +37,11 @@ class World(
         private set
 
     /**
+     * Provides safe terrain elevation modifications.
+     */
+    val terrain = TerrainManipulator(this)
+
+    /**
      * Additional terrain layers in rendering order.
      *
      * Null represents an empty overlay cell.
@@ -167,7 +172,11 @@ class World(
      *
      * Height zero represents the base terrain level.
      */
-    fun setHeight(x: Int, y: Int, level: Int) {
+    internal fun setHeight(
+        x: Int,
+        y: Int,
+        level: Int
+    ) {
         require(x in 0 until width && y in 0 until height) {
             "Tile position ($x, $y) is outside the world."
         }
@@ -176,24 +185,63 @@ class World(
             "Terrain height must not be negative."
         }
 
-        val previousLevel = heights[y][x]
+        applyHeightChanges(
+            mapOf((x to y) to level)
+        )
+    }
 
-        if (previousLevel == level) return
+    /**
+     * Applies a validated terrain elevation change as one operation.
+     */
+    internal fun applyHeightChanges(
+        changes: Map<Pair<Int, Int>, Int>
+    ) {
+        if (changes.isEmpty()) return
 
-        heights[y][x] = level
-        heightVersion++
+        var changed = false
+        var requiresMaxHeightRefresh = false
+        var highestNewLevel = maxHeight
 
-        when {
-            level > maxHeight -> {
-                maxHeight = level
+        for ((position, level) in changes) {
+            val (x, y) = position
+
+            require(x in 0 until width && y in 0 until height)
+            require(level >= 0)
+
+            val previousLevel = heights[y][x]
+
+            if (previousLevel == level) {
+                continue
             }
 
-            previousLevel == maxHeight -> {
-                maxHeight = heights.maxOf { row ->
-                    row.maxOrNull() ?: 0
-                }
+            if (
+                previousLevel == maxHeight &&
+                level < previousLevel
+            ) {
+                requiresMaxHeightRefresh = true
             }
+
+            heights[y][x] = level
+
+            highestNewLevel = maxOf(
+                highestNewLevel,
+                level
+            )
+
+            changed = true
         }
+
+        if (!changed) return
+
+        maxHeight = if (requiresMaxHeightRefresh) {
+            heights.maxOf { row ->
+                row.maxOrNull() ?: 0
+            }
+        } else {
+            highestNewLevel
+        }
+
+        heightVersion++
     }
 
     /**

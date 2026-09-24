@@ -39,11 +39,13 @@ class SandboxGame : StrataGame {
         }
 
         // Create a temporary elevated plateau.
-        for (x in 28..32) {
-            for (y in 28..32) {
-                world.setHeight(x, y, 1)
-            }
-        }
+        check(
+            world.terrain.setHeight(
+                xRange = 28..32,
+                yRange = 28..32,
+                level = 1
+            )
+        )
 
         // Create a temporary overlay to verify layered rendering.
         world.addOverlayLayer("demo")

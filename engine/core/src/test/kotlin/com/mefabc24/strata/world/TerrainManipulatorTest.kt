@@ -1,0 +1,170 @@
+package com.mefabc24.strata.world
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class TerrainManipulatorTest {
+
+    private class TestTile : Tile
+
+    private fun createWorld(): World {
+        return World(10, 10) { _, _ ->
+            TestTile()
+        }
+    }
+
+    private fun createObject(
+        footprint: Footprint,
+        x: Int,
+        y: Int
+    ): PlacedObject {
+        val placeable = object : Placeable {
+            override val footprint = footprint
+        }
+
+        return PlacedObject(
+            placeable = placeable,
+            x = x,
+            y = y
+        )
+    }
+
+    @Test
+    fun `raises and lowers a single tile`() {
+        val world = createWorld()
+
+        assertTrue(world.terrain.raise(2, 3))
+        assertEquals(1, world.getHeight(2, 3))
+
+        assertTrue(world.terrain.raise(2, 3, amount = 2))
+        assertEquals(3, world.getHeight(2, 3))
+
+        assertTrue(world.terrain.lower(2, 3))
+        assertEquals(2, world.getHeight(2, 3))
+    }
+
+    @Test
+    fun `cannot lower terrain below zero`() {
+        val world = createWorld()
+
+        assertFalse(world.terrain.lower(2, 3))
+
+        assertEquals(0, world.getHeight(2, 3))
+        assertEquals(0L, world.heightVersion)
+    }
+
+    @Test
+    fun `modifies rectangular terrain atomically`() {
+        val world = createWorld()
+
+        assertTrue(
+            world.terrain.raise(
+                xRange = 2..4,
+                yRange = 3..5
+            )
+        )
+
+        for (y in 3..5) {
+            for (x in 2..4) {
+                assertEquals(
+                    1,
+                    world.getHeight(x, y)
+                )
+            }
+        }
+
+        assertEquals(1L, world.heightVersion)
+        assertEquals(1, world.maxHeight)
+    }
+
+    @Test
+    fun `rejects partial elevation changes below an object footprint`() {
+        val world = createWorld()
+
+        val building = createObject(
+            footprint = Footprint.square(2),
+            x = 4,
+            y = 4
+        )
+
+        assertTrue(world.placeObject(building))
+
+        assertFalse(
+            world.terrain.raise(
+                x = 4,
+                y = 4
+            )
+        )
+
+        for ((x, y) in building.occupiedTiles()) {
+            assertEquals(
+                0,
+                world.getHeight(x, y)
+            )
+        }
+
+        assertEquals(0L, world.heightVersion)
+    }
+
+    @Test
+    fun `moves an object with its complete terrain footprint`() {
+        val world = createWorld()
+
+        val building = createObject(
+            footprint = Footprint.square(2),
+            x = 4,
+            y = 4
+        )
+
+        assertTrue(world.placeObject(building))
+
+        assertTrue(
+            world.terrain.raise(
+                xRange = 4..5,
+                yRange = 4..5
+            )
+        )
+
+        for ((x, y) in building.occupiedTiles()) {
+            assertEquals(
+                1,
+                world.getHeight(x, y)
+            )
+        }
+
+        assertEquals(1L, world.heightVersion)
+    }
+
+    @Test
+    fun `rejects an entire area when one object would become uneven`() {
+        val world = createWorld()
+
+        val building = createObject(
+            footprint = Footprint.square(2),
+            x = 4,
+            y = 4
+        )
+
+        assertTrue(world.placeObject(building))
+
+        assertFalse(
+            world.terrain.raise(
+                xRange = 3..4,
+                yRange = 3..4
+            )
+        )
+
+        for (y in 3..4) {
+            for (x in 3..4) {
+                assertEquals(
+                    0,
+                    world.getHeight(x, y)
+                )
+            }
+        }
+
+        assertEquals(0L, world.heightVersion)
+    }
+}
