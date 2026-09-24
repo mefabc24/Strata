@@ -56,10 +56,11 @@ class WorldRenderPlanTest {
                 "Supporting surface $position rendered after the house."
             )
         }
-        assertTrue(
-            plan.indexOfLast { it is WorldRenderItem.TerrainSurface } <
-                    houseIndex
-        )
+        val lastTerrain = plan.indexOfLast { item ->
+            item is WorldRenderItem.TerrainFill ||
+                    item is WorldRenderItem.TerrainSurface
+        }
+        assertTrue(lastTerrain < houseIndex)
     }
 
     @Test
