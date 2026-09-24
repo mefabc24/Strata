@@ -71,4 +71,117 @@ class WorldQueriesTest {
             ).toSet()
         )
     }
+
+    @Test
+    fun `returns diagonal neighbors when requested`() {
+        val world = createWorld()
+
+        assertEquals(
+            setOf(
+                TilePosition(1, 1),
+                TilePosition(2, 1),
+                TilePosition(3, 1),
+                TilePosition(1, 2),
+                TilePosition(3, 2),
+                TilePosition(1, 3),
+                TilePosition(2, 3),
+                TilePosition(3, 3)
+            ),
+            world.neighbors(
+                position = TilePosition(2, 2),
+                includeDiagonals = true
+            ).toSet()
+        )
+    }
+
+    @Test
+    fun `positions in area ignore positions outside the world`() {
+        val world = createWorld()
+
+        assertEquals(
+            setOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(0, 1),
+                TilePosition(1, 1)
+            ),
+            world.positionsIn(
+                xRange = -1..1,
+                yRange = -1..1
+            ).toSet()
+        )
+    }
+
+    @Test
+    fun `detects occupied positions`() {
+        val world = createWorld()
+
+        val placeable = object : Placeable {
+            override val footprint =
+                Footprint.square(1)
+        }
+
+        val position = TilePosition(2, 2)
+
+        assertFalse(
+            world.isOccupied(position)
+        )
+
+        world.place(
+            placeable = placeable,
+            position = position
+        )
+
+        assertTrue(
+            world.isOccupied(position)
+        )
+    }
+
+    @Test
+    fun `returns unique objects inside area`() {
+        val world = createWorld()
+
+        val building = object : Placeable {
+            override val footprint =
+                Footprint.square(2)
+        }
+
+        val tree = object : Placeable {
+            override val footprint =
+                Footprint.square(1)
+        }
+
+        val placedBuilding = requireNotNull(
+            world.place(
+                placeable = building,
+                position = TilePosition(1, 1)
+            )
+        )
+
+        val placedTree = requireNotNull(
+            world.place(
+                placeable = tree,
+                position = TilePosition(4, 4)
+            )
+        )
+
+        assertEquals(
+            setOf(placedBuilding),
+            world.objectsIn(
+                xRange = 0..2,
+                yRange = 0..2
+            )
+        )
+
+        assertEquals(
+            setOf(
+                placedBuilding,
+                placedTree
+            ),
+            world.objectsIn(
+                xRange = 0..4,
+                yRange = 0..4
+            )
+        )
+    }
 }
