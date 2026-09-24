@@ -151,6 +151,33 @@ class SandboxTerrainPainterTest {
         }
     }
 
+    @Test
+    fun `continuous strokes support large elevation changes in both directions`() {
+        for ((initial, target) in listOf(0 to 2, 0 to 5, 5 to 0)) {
+            val world = world()
+
+            for (x in 0..3) {
+                assertTrue(world.terrain.setHeight(x, 0, initial))
+            }
+
+            val painter = painter(world).apply {
+                terrain = TerrainType.WATER
+                elevation = target
+            }
+
+            assertTrue(painter.beginPaint(0, 0))
+            assertTrue(painter.dragPaint(3, 0))
+
+            for (x in 0..3) {
+                assertEquals(
+                    target,
+                    world.getHeight(x, 0),
+                    "Stroke $initial to $target missed tile ($x, 0)."
+                )
+            }
+        }
+    }
+
     private fun painter(world: World): SandboxTerrainPainter {
         return SandboxTerrainPainter(world).apply {
             enabled = true
