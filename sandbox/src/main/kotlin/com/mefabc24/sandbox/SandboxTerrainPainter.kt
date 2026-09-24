@@ -99,7 +99,11 @@ class SandboxTerrainPainter(
 
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
             if (selectedLayer == null) {
-                world.setTile(tileX, tileY, tile)
+                world.terrain.setTile(
+                    x = tileX,
+                    y = tileY,
+                    tile = tile
+                )
             } else {
                 world.setOverlayTile(
                     layerId = selectedLayer,

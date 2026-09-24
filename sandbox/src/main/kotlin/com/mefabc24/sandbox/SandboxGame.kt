@@ -35,7 +35,7 @@ class SandboxGame : StrataGame {
                 TerrainType.GRASS
             }
 
-            SandboxTile(TerrainType.GRASS)
+            SandboxTile(terrain)
         }
 
         // Create a temporary elevated plateau.
