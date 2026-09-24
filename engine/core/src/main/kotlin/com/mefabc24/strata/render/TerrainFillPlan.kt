@@ -5,9 +5,8 @@ import com.mefabc24.strata.world.World
 /**
  * One repeated elevation-fill level and the visible faces needed at it.
  *
- * [levelBelowSurface] starts at one. The surface sprite already supplies the
- * first elevation step, so these parts describe only additional exposed
- * levels.
+ * [levelBelowSurface] starts at zero for the first step directly beneath the
+ * terrain surface.
  */
 internal data class TerrainFillPart(
     val levelBelowSurface: Int,
@@ -30,15 +29,15 @@ internal object TerrainFillPlan {
         val rightLevels = additionalLevels(
             currentHeight - (world.getHeight(x + 1, y) ?: 0)
         )
-        val deepestLevel = maxOf(leftLevels, rightLevels)
+        val levelCount = maxOf(leftLevels, rightLevels)
 
-        return buildList(deepestLevel) {
-            for (level in deepestLevel downTo 1) {
+        return buildList(levelCount) {
+            for (level in levelCount - 1 downTo 0) {
                 add(
                     TerrainFillPart(
                         levelBelowSurface = level,
-                        leftExposed = level <= leftLevels,
-                        rightExposed = level <= rightLevels
+                        leftExposed = level < leftLevels,
+                        rightExposed = level < rightLevels
                     )
                 )
             }
@@ -46,6 +45,6 @@ internal object TerrainFillPlan {
     }
 
     private fun additionalLevels(heightDifference: Int): Int {
-        return maxOf(0, heightDifference - 1)
+        return maxOf(0, heightDifference)
     }
 }

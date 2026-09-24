@@ -182,7 +182,7 @@ internal object WorldRenderPlan {
 
         private val elevation = when (item) {
             is WorldRenderItem.TerrainFill -> {
-                item.elevation - item.part.levelBelowSurface
+                item.elevation - item.part.levelBelowSurface - 1
             }
             is WorldRenderItem.TerrainSurface -> item.elevation
             is WorldRenderItem.WorldObject -> {

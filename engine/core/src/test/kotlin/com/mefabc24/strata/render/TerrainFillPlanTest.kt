@@ -22,7 +22,7 @@ class TerrainFillPlanTest {
             world.terrain.setHeight(1, 1, height)
 
             assertEquals(
-                maxOf(0, height - 1),
+                height,
                 TerrainFillPlan.create(world, 1, 1).size,
                 "Unexpected fill count for height difference $height."
             )
@@ -37,7 +37,8 @@ class TerrainFillPlanTest {
         assertEquals(
             listOf(
                 TerrainFillPart(2, leftExposed = true, rightExposed = true),
-                TerrainFillPart(1, leftExposed = true, rightExposed = true)
+                TerrainFillPart(1, leftExposed = true, rightExposed = true),
+                TerrainFillPart(0, leftExposed = true, rightExposed = true)
             ),
             TerrainFillPlan.create(world, 1, 1)
         )
@@ -53,7 +54,8 @@ class TerrainFillPlanTest {
         assertEquals(
             listOf(
                 TerrainFillPart(2, leftExposed = false, rightExposed = true),
-                TerrainFillPart(1, leftExposed = false, rightExposed = true)
+                TerrainFillPart(1, leftExposed = false, rightExposed = true),
+                TerrainFillPart(0, leftExposed = true, rightExposed = true)
             ),
             TerrainFillPlan.create(world, 1, 1)
         )
@@ -69,7 +71,8 @@ class TerrainFillPlanTest {
         assertEquals(
             listOf(
                 TerrainFillPart(2, leftExposed = true, rightExposed = false),
-                TerrainFillPart(1, leftExposed = true, rightExposed = true)
+                TerrainFillPart(1, leftExposed = true, rightExposed = true),
+                TerrainFillPart(0, leftExposed = true, rightExposed = true)
             ),
             TerrainFillPlan.create(world, 1, 1)
         )
@@ -84,6 +87,23 @@ class TerrainFillPlanTest {
     }
 
     @Test
+    fun `height one at the map edge exposes its first fill`() {
+        val world = world()
+        world.terrain.setHeight(3, 3, 1)
+
+        assertEquals(
+            listOf(
+                TerrainFillPart(
+                    levelBelowSurface = 0,
+                    leftExposed = true,
+                    rightExposed = true
+                )
+            ),
+            TerrainFillPlan.create(world, 3, 3)
+        )
+    }
+
+    @Test
     fun `compact geometry spaces full canvas fills by one logical step`() {
         val projection = IsoProjection(
             TileGeometry(width = 32f, height = 24f)
@@ -92,13 +112,13 @@ class TerrainFillPlanTest {
         val first = fillBounds(
             projection = projection,
             elevation = 3,
-            level = 1,
+            level = 0,
             textureHeight = 32
         )
         val second = fillBounds(
             projection = projection,
             elevation = 3,
-            level = 2,
+            level = 1,
             textureHeight = 32
         )
 
@@ -114,10 +134,10 @@ class TerrainFillPlanTest {
             TileGeometry(width = 32f, height = 24f)
         )
 
-        val shortFirst = fillBounds(projection, 3, 1, textureHeight = 8)
-        val shortSecond = fillBounds(projection, 3, 2, textureHeight = 8)
-        val tallFirst = fillBounds(projection, 3, 1, textureHeight = 48)
-        val tallSecond = fillBounds(projection, 3, 2, textureHeight = 48)
+        val shortFirst = fillBounds(projection, 3, 0, textureHeight = 8)
+        val shortSecond = fillBounds(projection, 3, 1, textureHeight = 8)
+        val tallFirst = fillBounds(projection, 3, 0, textureHeight = 48)
+        val tallSecond = fillBounds(projection, 3, 1, textureHeight = 48)
 
         assertEquals(8f, shortFirst.y - shortSecond.y)
         assertEquals(8f, tallFirst.y - tallSecond.y)
@@ -173,7 +193,7 @@ class TerrainFillPlanTest {
                 x = 0,
                 y = 0,
                 elevation = 1,
-                levelBelowSurface = 0,
+                levelBelowSurface = -1,
                 textureWidth = 32,
                 textureHeight = 32,
                 result = Rectangle()

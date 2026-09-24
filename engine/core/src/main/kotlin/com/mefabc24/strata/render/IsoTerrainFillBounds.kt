@@ -41,8 +41,8 @@ internal object IsoTerrainFillBounds {
         result: Rectangle,
         offsetY: Float = 0f
     ): Rectangle {
-        require(levelBelowSurface > 0) {
-            "Fill level below surface must be positive."
+        require(levelBelowSurface >= 0) {
+            "Fill level below surface must not be negative."
         }
         require(textureWidth > 0 && textureHeight > 0) {
             "Terrain fill texture dimensions must be positive."

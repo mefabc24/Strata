@@ -80,7 +80,7 @@ class WorldRenderPlanTest {
         }
 
         assertEquals(
-            listOf(3, 2, 1),
+            listOf(3, 2, 1, 0),
             columnItems.filterIsInstance<WorldRenderItem.TerrainFill>()
                 .map { it.part.levelBelowSurface }
         )
