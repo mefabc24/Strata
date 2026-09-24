@@ -282,7 +282,8 @@ class SandboxGame : StrataGame {
             sandboxUi = SandboxUi(
                 ui = this,
                 painter = painter,
-                placementController = placementController
+                placementController = placementController,
+                terrainEntries = scene.terrain.entries
             )
         }
     }

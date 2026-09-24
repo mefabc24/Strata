@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.ui.StrataInsets
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataSelectableButton
@@ -63,8 +64,15 @@ private enum class SandboxPaintLayer(
 class SandboxUi(
     private val ui: StrataUi,
     private val painter: SandboxTerrainPainter,
-    private val placementController: PlacementController
+    private val placementController: PlacementController,
+    terrainEntries: List<TerrainEntry<TerrainType>>
 ) {
+
+    private val terrains = terrainEntries.map(TerrainEntry<TerrainType>::type).also {
+        require(it.isNotEmpty()) {
+            "The Sandbox UI requires at least one registered terrain."
+        }
+    }
 
     private val modeSelection = ui.selectionGroup(
         options = SandboxMode.entries,
@@ -79,8 +87,9 @@ class SandboxUi(
     }
 
     private val terrainSelection = ui.selectionGroup(
-        options = TerrainType.entries,
-        initialSelection = painter.terrain
+        options = terrains,
+        initialSelection = painter.terrain.takeIf { it in terrains }
+            ?: terrains.first()
     ) { selected ->
         painter.terrain = selected
         updateStatus()
@@ -120,6 +129,7 @@ class SandboxUi(
     private lateinit var layerStatus: Label
 
     init {
+        painter.terrain = checkNotNull(terrainSelection.selected)
         buildUi()
         sync()
     }
@@ -168,7 +178,7 @@ class SandboxUi(
             label("Terrain")
 
             row {
-                for (terrain in TerrainType.entries) {
+                for (terrain in terrains) {
                     terrainButtons += selectableButton(
                         text = terrain.displayName(),
                         value = terrain,
@@ -221,7 +231,9 @@ class SandboxUi(
             }
         )
 
-        terrainSelection.select(painter.terrain)
+        if (painter.terrain in terrains) {
+            terrainSelection.select(painter.terrain)
+        }
 
         SandboxPaintLayer.from(painter.layerId)?.let {
             layerSelection.select(it)
