@@ -66,9 +66,7 @@ class SandboxGame : StrataGame {
         placementController = PlacementController(
             world = world,
             style = previewStyle
-        ).apply {
-            selectedPlaceable = House()
-        }
+        )
 
         painter = SandboxTerrainPainter(world)
 
@@ -101,11 +99,17 @@ class SandboxGame : StrataGame {
                 sprite = "flowers.png"
             )
 
-            objects.register<OakTree>("oak.png") {
+            objects.register<House>(
+                sprite = "house.png",
+                factory = ::House
+            )
+
+            objects.register<OakTree>(
+                sprite = "oak.png",
+                factory = ::OakTree
+            ) {
                 offsetY = 5f
             }
-
-            objects.register<House>("house.png")
 
             sounds.register(
                 id = BuildingSound.PLACE,
@@ -113,6 +117,9 @@ class SandboxGame : StrataGame {
                 category = SoundCategory.BUILDING
             )
         }
+
+        placementController.selectedPlaceable =
+            scene.objects.constructibleEntries.firstOrNull()?.create()
 
         scene.createView(
             world = world,
@@ -283,7 +290,8 @@ class SandboxGame : StrataGame {
                 ui = this,
                 painter = painter,
                 placementController = placementController,
-                terrainEntries = scene.terrain.entries
+                terrainEntries = scene.terrain.entries,
+                objectEntries = scene.objects.constructibleEntries
             )
         }
     }

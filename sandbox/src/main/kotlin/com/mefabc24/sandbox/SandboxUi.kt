@@ -5,44 +5,29 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.render.ObjectEntry
 import com.mefabc24.strata.terrain.TerrainEntry
+import com.mefabc24.strata.ui.StrataColumn
 import com.mefabc24.strata.ui.StrataInsets
 import com.mefabc24.strata.ui.StrataPanelStyle
-import com.mefabc24.strata.ui.StrataSelectableButton
 import com.mefabc24.strata.ui.StrataSeparatorStyle
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.ui.cell
-import com.mefabc24.strata.world.Placeable
 
 private enum class SandboxMode(
     val displayName: String
 ) {
     BUILD("Build"),
     PAINT("Paint")
-}
-
-private enum class SandboxBuildOption(
-    val displayName: String,
-    val create: () -> Placeable
-) {
-    HOUSE("House", ::House),
-    OAK_TREE("Oak tree", ::OakTree);
-
-    companion object {
-        fun from(placeable: Placeable?): SandboxBuildOption? {
-            return when (placeable) {
-                is House -> HOUSE
-                is OakTree -> OAK_TREE
-                else -> null
-            }
-        }
-    }
 }
 
 private enum class SandboxPaintLayer(
@@ -65,12 +50,27 @@ class SandboxUi(
     private val ui: StrataUi,
     private val painter: SandboxTerrainPainter,
     private val placementController: PlacementController,
-    terrainEntries: List<TerrainEntry<TerrainType>>
+    terrainEntries: List<TerrainEntry<TerrainType>>,
+    objectEntries: List<ObjectEntry>
 ) {
 
     private val terrains = terrainEntries.map(TerrainEntry<TerrainType>::type).also {
         require(it.isNotEmpty()) {
             "The Sandbox UI requires at least one registered terrain."
+        }
+    }
+
+    private val buildEntries = objectEntries.toList().also {
+        require(it.isNotEmpty()) {
+            "The Sandbox UI requires at least one constructible object."
+        }
+
+        require(it.all(ObjectEntry::isConstructible)) {
+            "All Sandbox build entries must have a registered factory."
+        }
+
+        require(it.all(ObjectEntry::isPrepared)) {
+            "All Sandbox build entries must be prepared."
         }
     }
 
@@ -105,31 +105,33 @@ class SandboxUi(
     }
 
     private val buildSelection = ui.selectionGroup(
-        options = SandboxBuildOption.entries,
-        initialSelection = SandboxBuildOption.from(
-            placementController.selectedPlaceable
-        ) ?: SandboxBuildOption.HOUSE
+        options = buildEntries,
+        initialSelection = buildEntries.firstOrNull { entry ->
+            placementController.selectedPlaceable?.let(entry.type::isInstance)
+                ?: false
+        } ?: buildEntries.first()
     ) { selected ->
         placementController.selectedPlaceable = selected.create()
         updateStatus()
     }
 
-    private val buildButtons =
-        mutableListOf<StrataSelectableButton<SandboxBuildOption>>()
-
-    private val terrainButtons =
-        mutableListOf<StrataSelectableButton<TerrainType>>()
-
-    private val layerButtons =
-        mutableListOf<StrataSelectableButton<SandboxPaintLayer>>()
-
+    private lateinit var buildControls: StrataColumn
+    private lateinit var paintControls: StrataColumn
     private lateinit var modeStatus: Label
-    private lateinit var buildStatus: Label
-    private lateinit var terrainStatus: Label
-    private lateinit var layerStatus: Label
+    private lateinit var selectionStatus: Label
 
     init {
         painter.terrain = checkNotNull(terrainSelection.selected)
+
+        val selectedBuildEntry = checkNotNull(buildSelection.selected)
+        if (
+            placementController.selectedPlaceable?.let(
+                selectedBuildEntry.type::isInstance
+            ) != true
+        ) {
+            placementController.selectedPlaceable = selectedBuildEntry.create()
+        }
+
         buildUi()
         sync()
     }
@@ -160,58 +162,78 @@ class SandboxUi(
                 }
             }
 
-            label("Build object")
+            stack {
+                buildControls = column {
+                    label("Build object")
 
-            row {
-                for (option in SandboxBuildOption.entries) {
-                    buildButtons += selectableButton(
-                        text = option.displayName,
-                        value = option,
-                        group = buildSelection
-                    ).cell {
-                        width(116f)
-                        height(34f)
+                    row {
+                        for (entry in buildEntries) {
+                            column(
+                                spacing = 4f,
+                                alignment = Align.center
+                            ) {
+                                selectableImageButton(
+                                    drawable = TextureRegionDrawable(
+                                        entry.visual.texture
+                                    ),
+                                    value = entry,
+                                    group = buildSelection
+                                ).apply {
+                                    image.setScaling(Scaling.fit)
+                                    imageCell.pad(6f)
+                                }.cell {
+                                    width(72f)
+                                    height(72f)
+                                }
+
+                                label(entry.displayName()).cell {
+                                    center()
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            label("Terrain")
+                paintControls = column {
+                    label("Terrain")
 
-            row {
-                for (terrain in terrains) {
-                    terrainButtons += selectableButton(
-                        text = terrain.displayName(),
-                        value = terrain,
-                        group = terrainSelection
-                    ).cell {
-                        width(74f)
-                        height(34f)
+                    row {
+                        for (terrain in terrains) {
+                            selectableButton(
+                                text = terrain.displayName(),
+                                value = terrain,
+                                group = terrainSelection
+                            ).cell {
+                                width(74f)
+                                height(34f)
+                            }
+                        }
+                    }
+
+                    label("Paint layer")
+
+                    row {
+                        for (layer in SandboxPaintLayer.entries) {
+                            selectableButton(
+                                text = layer.displayName,
+                                value = layer,
+                                group = layerSelection
+                            ).cell {
+                                width(116f)
+                                height(34f)
+                            }
+                        }
                     }
                 }
-            }
-
-            label("Paint layer")
-
-            row {
-                for (layer in SandboxPaintLayer.entries) {
-                    layerButtons += selectableButton(
-                        text = layer.displayName,
-                        value = layer,
-                        group = layerSelection
-                    ).cell {
-                        width(116f)
-                        height(34f)
-                    }
-                }
+            }.cell {
+                growX()
             }
 
             separator()
             label("Status", styleName = "title")
 
             modeStatus = label("")
-            buildStatus = label("")
-            terrainStatus = label("")
-            layerStatus = label("")
+            selectionStatus = label("")
         }.cell {
             width(272f)
             top()
@@ -239,26 +261,15 @@ class SandboxUi(
             layerSelection.select(it)
         }
 
-        SandboxBuildOption.from(
-            placementController.selectedPlaceable
-        )?.let {
-            buildSelection.select(it)
+        buildEntries.firstOrNull { entry ->
+            placementController.selectedPlaceable?.let(entry.type::isInstance)
+                ?: false
+        }?.let { entry ->
+            buildSelection.select(entry)
         }
 
-        val buildEnabled = !painter.enabled
-        val paintEnabled = painter.enabled
-
-        for (button in buildButtons) {
-            button.isDisabled = !buildEnabled
-        }
-
-        for (button in terrainButtons) {
-            button.isDisabled = !paintEnabled
-        }
-
-        for (button in layerButtons) {
-            button.isDisabled = !paintEnabled
-        }
+        buildControls.isVisible = !painter.enabled
+        paintControls.isVisible = painter.enabled
 
         updateStatus()
     }
@@ -270,16 +281,13 @@ class SandboxUi(
             "Mode: ${modeSelection.selected?.displayName}"
         )
 
-        buildStatus.setText(
-            "Object: ${buildSelection.selected?.displayName}"
-        )
-
-        terrainStatus.setText(
-            "Terrain: ${terrainSelection.selected?.displayName()}"
-        )
-
-        layerStatus.setText(
-            "Layer: ${layerSelection.selected?.displayName}"
+        selectionStatus.setText(
+            if (modeSelection.selected == SandboxMode.BUILD) {
+                "Object: ${buildSelection.selected?.displayName()}"
+            } else {
+                "Terrain: ${terrainSelection.selected?.displayName()}  " +
+                    "Layer: ${layerSelection.selected?.displayName}"
+            }
         )
     }
 
@@ -289,6 +297,8 @@ class SandboxUi(
             labelStyle = "default",
             buttonStyle = "default",
             toggleButtonStyle = "default",
+            imageButtonStyle = "default",
+            selectableImageButtonStyle = "default",
             panelStyle = "toolbar",
             separatorStyle = "toolbar",
             spacing = 8f
@@ -375,6 +385,35 @@ class SandboxUi(
             )
 
             skin.add(
+                "default",
+                ImageButton.ImageButtonStyle().apply {
+                    up = baseDrawable.tint(
+                        Color(0.18f, 0.18f, 0.20f, 1f)
+                    )
+
+                    over = baseDrawable.tint(
+                        Color(0.25f, 0.25f, 0.28f, 1f)
+                    )
+
+                    down = baseDrawable.tint(
+                        Color(0.12f, 0.12f, 0.14f, 1f)
+                    )
+
+                    checked = baseDrawable.tint(
+                        Color(0.16f, 0.45f, 0.68f, 1f)
+                    )
+
+                    checkedOver = baseDrawable.tint(
+                        Color(0.20f, 0.55f, 0.78f, 1f)
+                    )
+
+                    disabled = baseDrawable.tint(
+                        Color(0.11f, 0.11f, 0.12f, 1f)
+                    )
+                }
+            )
+
+            skin.add(
                 "toolbar",
                 StrataPanelStyle(
                     background = baseDrawable.tint(
@@ -399,6 +438,12 @@ class SandboxUi(
             return skin
         }
     }
+}
+
+private fun ObjectEntry.displayName(): String {
+    return type.simpleName
+        ?.replace(Regex("(?<=[a-z])(?=[A-Z])"), " ")
+        ?: type.toString()
 }
 
 private fun TerrainType.displayName(): String {
