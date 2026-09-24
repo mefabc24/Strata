@@ -17,17 +17,53 @@ import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.world.TilePosition
 
+internal fun interface StrataUiFactory {
+    fun create(
+        skin: Skin,
+        theme: StrataUiTheme
+    ): StrataUi
+}
+
 /**
  * Coordinates assets and the optional world and UI layers of a scene.
  *
  * The scene owns its assets, audio, attached world view, and attached UI.
  * A scene can contain either layer independently or both together.
  */
-class StrataScene<T : Enum<T>, C : Enum<C>>(
+class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     terrainDirectory: String,
     objectDirectory: String,
-    configure: StrataScene<T, C>.() -> Unit
+    configure: StrataScene<T, C>.() -> Unit,
+    private val uiFactory: StrataUiFactory
 ) : Disposable {
+
+    constructor(
+        terrainDirectory: String,
+        objectDirectory: String,
+        configure: StrataScene<T, C>.() -> Unit
+    ) : this(
+        terrainDirectory,
+        objectDirectory,
+        configure,
+        StrataUiFactory { skin, theme ->
+            StrataUi(
+                skin = skin,
+                theme = theme
+            )
+        }
+    )
+
+    internal constructor(
+        terrainDirectory: String,
+        objectDirectory: String,
+        uiFactory: StrataUiFactory,
+        configure: StrataScene<T, C>.() -> Unit
+    ) : this(
+        terrainDirectory,
+        objectDirectory,
+        configure,
+        uiFactory
+    )
 
     val assets = StrataAssets()
 
@@ -166,7 +202,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>>(
             "A UI layer is already attached to this scene."
         }
 
-        val ui = StrataUi(
+        val ui = uiFactory.create(
             skin = skin,
             theme = theme
         )

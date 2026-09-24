@@ -17,10 +17,20 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
  * it remain owned by the caller. A scene normally updates, renders, resizes,
  * and disposes this instance automatically.
  */
-class StrataUi(
+class StrataUi internal constructor(
     val skin: Skin,
-    val theme: StrataUiTheme = StrataUiTheme()
+    val theme: StrataUiTheme,
+    val stage: Stage
 ) : Disposable {
+
+    constructor(
+        skin: Skin,
+        theme: StrataUiTheme = StrataUiTheme()
+    ) : this(
+        skin = skin,
+        theme = theme,
+        stage = Stage(ScreenViewport())
+    )
 
     private val context = StrataUiContext(
         skin = skin,
@@ -28,10 +38,6 @@ class StrataUi(
     )
 
     private var disposed = false
-
-    val stage = Stage(
-        ScreenViewport()
-    )
 
     /**
      * Root vertical layout for game-specific UI.
