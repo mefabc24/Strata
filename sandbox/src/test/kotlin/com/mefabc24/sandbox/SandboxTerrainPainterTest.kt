@@ -153,7 +153,14 @@ class SandboxTerrainPainterTest {
 
     @Test
     fun `continuous strokes support large elevation changes in both directions`() {
-        for ((initial, target) in listOf(0 to 2, 0 to 5, 5 to 0)) {
+        for ((initial, target) in listOf(
+            0 to 2,
+            0 to 5,
+            2 to 4,
+            4 to 1,
+            5 to 0,
+            10 to 0
+        )) {
             val world = world()
 
             for (x in 0..3) {
