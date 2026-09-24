@@ -1,29 +1,49 @@
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 
 /**
- * Provides the root UI layer for a Strata scene.
+ * Provides a Scene2D UI layer and a small Kotlin construction API.
  *
- * The supplied skin is owned by the caller and is not disposed by this class.
+ * Strata owns and disposes [stage]. The supplied [skin] and all resources in
+ * it remain owned by the caller. A scene normally updates, renders, resizes,
+ * and disposes this instance automatically.
  */
 class StrataUi(
-    val skin: Skin
+    val skin: Skin,
+    val theme: StrataUiTheme = StrataUiTheme()
 ) : Disposable {
+
+    private val context = StrataUiContext(
+        skin = skin,
+        theme = theme
+    )
+
+    private var disposed = false
 
     val stage = Stage(
         ScreenViewport()
     )
 
     /**
-     * Root layout container for game-specific UI.
+     * Root vertical layout for game-specific UI.
+     *
+     * It fills the stage and aligns content to the top left. It intentionally
+     * does not consume input outside its child controls and panels.
      */
-    val root = Table(skin).apply {
+    val root = StrataColumn(
+        context = context,
+        spacing = theme.spacing,
+        padding = StrataInsets.NONE,
+        alignment = Align.topLeft
+    ).apply {
         setFillParent(true)
     }
 
@@ -37,10 +57,130 @@ class StrataUi(
         stage.addActor(root)
     }
 
+    fun <A : Actor> actor(actor: A): A = root.actor(actor)
+
+    fun label(
+        text: String,
+        styleName: String = theme.labelStyle
+    ): Label = root.label(text, styleName)
+
+    fun button(
+        text: String,
+        styleName: String = theme.buttonStyle,
+        onClick: () -> Unit
+    ): StrataButton = root.button(text, styleName, onClick)
+
+    fun toggleButton(
+        text: String,
+        checked: Boolean = false,
+        styleName: String = theme.toggleButtonStyle,
+        onChanged: (Boolean) -> Unit = {}
+    ): StrataToggleButton = root.toggleButton(
+        text = text,
+        checked = checked,
+        styleName = styleName,
+        onChanged = onChanged
+    )
+
+    fun <T> selectableButton(
+        text: String,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.toggleButtonStyle
+    ): StrataSelectableButton<T> = root.selectableButton(
+        text = text,
+        value = value,
+        group = group,
+        styleName = styleName
+    )
+
+    fun row(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.left,
+        configure: StrataRow.() -> Unit
+    ): StrataRow = root.row(
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
+    fun column(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn = root.column(
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
+    fun panel(
+        styleName: String? = theme.panelStyle,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets? = null,
+        blocksInput: Boolean = true,
+        configure: StrataPanel.() -> Unit
+    ): StrataPanel = root.panel(
+        styleName = styleName,
+        spacing = spacing,
+        padding = padding,
+        blocksInput = blocksInput,
+        configure = configure
+    )
+
+    fun separator(
+        orientation: StrataSeparatorOrientation =
+            StrataSeparatorOrientation.HORIZONTAL,
+        styleName: String = requireNotNull(theme.separatorStyle) {
+            "No separator style is configured in the UI theme."
+        }
+    ): StrataSeparator = root.separator(
+        orientation = orientation,
+        styleName = styleName
+    )
+
+    fun spacer(
+        width: Float = 0f,
+        height: Float = 0f
+    ): StrataSpacer = root.spacer(width, height)
+
+    /**
+     * Creates a value-based selection group owned by game code.
+     *
+     * Controls built through this UI are detached when the UI is disposed.
+     */
+    fun <T> selectionGroup(
+        options: Iterable<T>,
+        initialSelection: T? = null,
+        selectionRequired: Boolean = true,
+        onSelectionChanged: ((T?) -> Unit)? = null
+    ): StrataSelectionGroup<T> {
+        checkActive()
+
+        val group = StrataSelectionGroup(
+            options = options,
+            initialSelection = initialSelection,
+            selectionRequired = selectionRequired
+        )
+
+        if (onSelectionChanged != null) {
+            context.own(
+                group.onSelectionChanged(onSelectionChanged)
+            )
+        }
+
+        return group
+    }
+
     /**
      * Updates UI actions and actors.
      */
     fun update(delta: Float) {
+        checkActive()
         stage.act(delta)
     }
 
@@ -48,6 +188,7 @@ class StrataUi(
      * Renders the UI.
      */
     fun render() {
+        checkActive()
         stage.draw()
     }
 
@@ -58,6 +199,8 @@ class StrataUi(
         width: Int,
         height: Int
     ) {
+        checkActive()
+
         if (width <= 0 || height <= 0) return
 
         stage.viewport.update(
@@ -73,6 +216,16 @@ class StrataUi(
      * The supplied skin remains owned by the caller.
      */
     override fun dispose() {
+        if (disposed) return
+
+        disposed = true
+        context.dispose()
         stage.dispose()
+    }
+
+    private fun checkActive() {
+        check(!disposed) {
+            "StrataUi has already been disposed."
+        }
     }
 }
