@@ -164,6 +164,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             configure(this)
             configurationOpen = false
 
+            terrain.freeze()
+            objects.freeze()
+            sounds.freeze()
+
             cameraSnapshot = cameraSettings.copy()
             renderingSnapshot = renderingSettings.copy()
             controlsSnapshot = controlsSettings.copy()

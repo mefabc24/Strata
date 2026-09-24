@@ -13,7 +13,8 @@ data class SoundDefinition<C : Enum<C>>(
 /**
  * Registers game-defined sound IDs and their audio settings.
  *
- * Sound assets are queued automatically during registration.
+ * Sound assets are queued automatically during scene setup registration.
+ * Definitions remain readable after the owning scene closes registration.
  */
 class SoundRegistry<C : Enum<C>> internal constructor(
     private val queueSound: (String) -> Unit
@@ -22,6 +23,7 @@ class SoundRegistry<C : Enum<C>> internal constructor(
     constructor(assets: StrataAssets) : this(assets::queueSound)
 
     private val definitions = mutableMapOf<SoundId, SoundDefinition<C>>()
+    private var registrationOpen = true
 
     /**
      * Registers a sound and queues its asset for loading.
@@ -31,6 +33,8 @@ class SoundRegistry<C : Enum<C>> internal constructor(
         path: String,
         category: C
     ) {
+        checkRegistrationOpen()
+
         require(id !in definitions) {
             "Sound is already registered: $id"
         }
@@ -47,11 +51,21 @@ class SoundRegistry<C : Enum<C>> internal constructor(
         )
     }
 
+    internal fun freeze() {
+        registrationOpen = false
+    }
+
     /**
      * Returns the definition of a registered sound.
      */
     operator fun get(id: SoundId): SoundDefinition<C> {
         return definitions[id]
             ?: error("Sound is not registered: $id")
+    }
+
+    private fun checkRegistrationOpen() {
+        check(registrationOpen) {
+            "Sound registry registration is already closed."
+        }
     }
 }

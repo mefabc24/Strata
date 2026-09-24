@@ -88,6 +88,9 @@ class ObjectEntry internal constructor(
 
 /**
  * Maps placeable types to their visual configuration in registration order.
+ *
+ * Registration is available only during scene setup. Runtime reads remain
+ * available after the owning scene closes registration and prepares entries.
  */
 class ObjectRegistry internal constructor(
     directory: String,
@@ -111,6 +114,7 @@ class ObjectRegistry internal constructor(
         linkedMapOf<KClass<out Placeable>, ObjectEntry>()
 
     private val alphaMasks = mutableMapOf<String, AlphaMask?>()
+    private var registrationOpen = true
 
     /**
      * A snapshot of registered object entries in registration order.
@@ -142,6 +146,8 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
+        checkRegistrationOpen()
+
         require(type !in registrations) {
             "Object type $type is already registered."
         }
@@ -193,7 +199,7 @@ class ObjectRegistry internal constructor(
     /**
      * Resolves textures and builds alpha masks after loading.
      */
-    fun prepare() {
+    internal fun prepare() {
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
@@ -222,6 +228,10 @@ class ObjectRegistry internal constructor(
         }
     }
 
+    internal fun freeze() {
+        registrationOpen = false
+    }
+
     /**
      * Returns the prepared visual for a placed object.
      */
@@ -230,6 +240,12 @@ class ObjectRegistry internal constructor(
             ?: return null
 
         return entry.visual
+    }
+
+    private fun checkRegistrationOpen() {
+        check(registrationOpen) {
+            "Object registry registration is already closed."
+        }
     }
 }
 

@@ -31,6 +31,9 @@ class TerrainEntry<T : Enum<T>> internal constructor(
 
 /**
  * Maps terrain types to their sprites in registration order.
+ *
+ * Registration is available only during scene setup. Runtime reads remain
+ * available after the owning scene closes registration and prepares entries.
  */
 class TerrainRegistry<T : Enum<T>> internal constructor(
     directory: String,
@@ -49,6 +52,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     private val baseDirectory = directory.trimEnd('/')
 
     private val registrations = linkedMapOf<T, TerrainEntry<T>>()
+    private var registrationOpen = true
 
     /**
      * A snapshot of registered terrain entries in registration order.
@@ -65,6 +69,8 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         type: T,
         sprite: String = "${type.name.lowercase()}.png"
     ) {
+        checkRegistrationOpen()
+
         require(type !in registrations) {
             "Terrain type $type is already registered."
         }
@@ -90,7 +96,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     /**
      * Resolves registered sprites after their textures have loaded.
      */
-    fun prepare() {
+    internal fun prepare() {
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
@@ -98,6 +104,10 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
                 regionFor(entry.spritePath)
             )
         }
+    }
+
+    internal fun freeze() {
+        registrationOpen = false
     }
 
     /**
@@ -131,5 +141,11 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     operator fun get(type: T): TextureRegion {
         return registrations[type]?.texture
             ?: error("Terrain type $type is not registered.")
+    }
+
+    private fun checkRegistrationOpen() {
+        check(registrationOpen) {
+            "Terrain registry registration is already closed."
+        }
     }
 }
