@@ -13,6 +13,9 @@ import com.mefabc24.strata.scene.StrataScene
 abstract class StrataSceneGame<T : Enum<T>, C : Enum<C>> : StrataGame {
     private var activeScene: StrataScene<T, C>? = null
 
+    /** Persistent default engine settings for this game instance. */
+    open override val engineSettings: EngineSettings = EngineSettings()
+
     /** The scene created during the game lifecycle. */
     val scene: StrataScene<T, C>
         get() = activeScene

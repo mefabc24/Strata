@@ -8,7 +8,7 @@ class StrataEngine(
     private val game: StrataGame
 ) : ApplicationAdapter() {
 
-    private val backgroundColor =
+    internal val backgroundColor =
         game.engineSettings.backgroundColorSnapshot()
 
     override fun create() {
@@ -25,7 +25,8 @@ class StrataEngine(
             backgroundColor.r,
             backgroundColor.g,
             backgroundColor.b,
-            backgroundColor.a)
+            backgroundColor.a
+        )
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         game.update(Gdx.graphics.deltaTime)
@@ -36,5 +37,4 @@ class StrataEngine(
         game.dispose()
         Gdx.app.log("Strata", "Engine disposed")
     }
-
 }
