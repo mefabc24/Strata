@@ -78,6 +78,51 @@ class IsoProjection(
         )
     }
 
+    /**
+     * Returns whether a world-space point lies within a tile's logical visual
+     * prism, including its top face and terrain sides.
+     */
+    internal fun containsLogicalTile(
+        worldX: Float,
+        worldY: Float,
+        x: Int,
+        y: Int,
+        elevation: Int
+    ): Boolean {
+        val tileTopX = (x - y) * tileWidth / 2f
+        val tileTopY = -(x + y) * tileHeight / 2f +
+                elevation * elevationStep
+        val depth = tileTopY - worldY
+
+        if (depth < -PICKING_EPSILON ||
+            depth > logicalTileHeight + PICKING_EPSILON
+        ) {
+            return false
+        }
+
+        val halfWidth = tileWidth / 2f
+        val halfFaceHeight = tileHeight / 2f
+        val lowerTaperStart = halfFaceHeight + elevationStep
+
+        val widthAtDepth = when {
+            depth <= halfFaceHeight -> {
+                halfWidth * (depth.coerceAtLeast(0f) / halfFaceHeight)
+            }
+
+            depth <= lowerTaperStart -> halfWidth
+
+            else -> {
+                val remainingDepth =
+                    (logicalTileHeight - depth).coerceAtLeast(0f)
+
+                halfWidth * remainingDepth / halfFaceHeight
+            }
+        }
+
+        return kotlin.math.abs(worldX - tileTopX) <=
+                widthAtDepth + PICKING_EPSILON
+    }
+
     fun worldBounds(
         width: Int,
         height: Int,
@@ -114,5 +159,9 @@ class IsoProjection(
             maxX - minX + padding * 2f,
             maxY - minY + padding * 2f
         )
+    }
+
+    private companion object {
+        const val PICKING_EPSILON = 0.0001f
     }
 }

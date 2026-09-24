@@ -14,45 +14,117 @@ class TilePickerTest {
     private val projection = IsoProjection(
         TileGeometry(
             width = 32f,
-            height = 32f
+            height = 24f
         )
     )
 
     @Test
-    fun `picks elevated tile at its rendered position`() {
+    fun `picks flat tile inside its top face`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val center = topFaceCenter(x = 2, y = 2, elevation = 0)
+
+        assertEquals(
+            TilePosition(2, 2),
+            picker.pickWorld(center.x, center.y)
+        )
+    }
+
+    @Test
+    fun `picks elevated tile inside its rendered top face`() {
         val world = createWorld()
 
         world.setHeight(1, 1, 1)
 
-        val picker = TilePicker(
-            camera = OrthographicCamera(),
-            projection = projection,
-            world = world
+        val picker = picker(world)
+        val center = topFaceCenter(x = 1, y = 1, elevation = 1)
+
+        assertEquals(
+            TilePosition(1, 1),
+            picker.pickWorld(center.x, center.y)
+        )
+    }
+
+    @Test
+    fun `picks adjacent elevated tiles across their shared edge`() {
+        val world = createWorld()
+
+        world.setHeight(1, 1, 1)
+        world.setHeight(2, 1, 1)
+
+        val picker = picker(world)
+        val secondCenter = topFaceCenter(x = 2, y = 1, elevation = 1)
+
+        assertEquals(
+            TilePosition(2, 1),
+            picker.pickWorld(secondCenter.x, secondCenter.y)
         )
 
-        val position = projection.tileToWorld(
-            x = 1,
+        val sharedVertex = projection.tileToWorld(
+            x = 2,
             y = 1,
             elevation = 1
         )
 
         assertEquals(
-            TilePosition(1, 1),
-            picker.pickWorld(position.x, position.y)
+            TilePosition(2, 1),
+            picker.pickWorld(sharedVertex.x, sharedVertex.y)
         )
     }
 
     @Test
-    fun `falls back to lower terrain when higher elevation does not match`() {
+    fun `picks multiple compact terrain elevation levels`() {
+        val world = createWorld()
+
+        world.setHeight(1, 1, 1)
+        world.setHeight(3, 2, 2)
+
+        val picker = picker(world)
+
+        for ((position, elevation) in listOf(
+            TilePosition(4, 0) to 0,
+            TilePosition(1, 1) to 1,
+            TilePosition(3, 2) to 2
+        )) {
+            val center = topFaceCenter(
+                x = position.x,
+                y = position.y,
+                elevation = elevation
+            )
+
+            assertEquals(
+                position,
+                picker.pickWorld(center.x, center.y)
+            )
+        }
+    }
+
+    @Test
+    fun `keeps a raised tile picked across its visible logical side`() {
+        val world = createWorld()
+        val picker = picker(world)
+
+        val originalCenter = topFaceCenter(
+            x = 2,
+            y = 2,
+            elevation = 0
+        )
+
+        world.setHeight(2, 2, 2)
+
+        assertEquals(
+            TilePosition(2, 2),
+            picker.pickWorld(originalCenter.x, originalCenter.y)
+        )
+    }
+
+    @Test
+    fun `falls back to lower terrain when elevated candidate does not match`() {
         val world = createWorld()
 
         world.setHeight(1, 1, 1)
 
-        val picker = TilePicker(
-            camera = OrthographicCamera(),
-            projection = projection,
-            world = world
-        )
+        val picker = picker(world)
 
         val position = projection.tileToWorld(
             x = 2,
@@ -64,6 +136,23 @@ class TilePickerTest {
             picker.pickWorld(position.x, position.y)
         )
     }
+
+    private fun picker(world: World): TilePicker {
+        return TilePicker(
+            camera = OrthographicCamera(),
+            projection = projection,
+            world = world
+        )
+    }
+
+    private fun topFaceCenter(
+        x: Int,
+        y: Int,
+        elevation: Int
+    ) = projection.tileToWorld(x, y, elevation).add(
+        0f,
+        -projection.tileHeight / 2f
+    )
 
     private fun createWorld(): World {
         return World(5, 5) { _, _ ->
