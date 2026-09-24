@@ -202,6 +202,24 @@ abstract class StrataLayout internal constructor(
         return actor(column)
     }
 
+    fun grid(
+        columns: Int,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid {
+        val grid = StrataGrid(
+            context = context,
+            columnCount = columns,
+            spacing = spacing,
+            padding = padding,
+            alignment = alignment
+        ).apply(configure)
+
+        return actor(grid)
+    }
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack {
@@ -315,6 +333,44 @@ class StrataRow internal constructor(
 
     override fun <A : Actor> place(actor: A): Cell<A> {
         return add(actor)
+    }
+}
+
+/**
+ * A fixed-column layout that places children left-to-right in insertion order.
+ *
+ * A new row starts automatically after [columnCount] children. The final row
+ * may contain fewer children.
+ */
+class StrataGrid internal constructor(
+    context: StrataUiContext,
+    val columnCount: Int,
+    spacing: Float,
+    padding: StrataInsets,
+    alignment: Int
+) : StrataLayout(
+    context = context,
+    spacing = spacing,
+    padding = padding,
+    alignment = alignment
+) {
+    private var itemCount = 0
+
+    init {
+        require(columnCount > 0) {
+            "Grid column count must be positive."
+        }
+    }
+
+    override fun <A : Actor> place(actor: A): Cell<A> {
+        val cell = add(actor)
+        itemCount++
+
+        if (itemCount % columnCount == 0) {
+            row()
+        }
+
+        return cell
     }
 }
 

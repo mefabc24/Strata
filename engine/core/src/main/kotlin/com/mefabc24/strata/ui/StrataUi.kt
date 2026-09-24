@@ -147,6 +147,20 @@ class StrataUi internal constructor(
         configure = configure
     )
 
+    fun grid(
+        columns: Int,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid = root.grid(
+        columns = columns,
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack = root.stack(configure)
