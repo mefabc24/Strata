@@ -5,11 +5,13 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Scaling
 
 /**
@@ -105,21 +107,17 @@ class StrataSelectableButton<T>(
     val selectionGroup: StrataSelectionGroup<T>,
     skin: Skin,
     styleName: String = "default"
-) : TextButton(text, skin, styleName) {
+) : TextButton(text, skin, styleName), StrataSelectionControl {
 
-    private var attached = true
-    private val subscription: StrataSelectionSubscription
+    private val selectionBinding = StrataSelectionBinding(
+        value = value,
+        selectionGroup = selectionGroup,
+        isChecked = { isChecked },
+        setChecked = { isChecked = it }
+    )
 
     init {
-        selectionGroup.attach(value)
         setProgrammaticChangeEvents(false)
-        isChecked = selectionGroup.selected == value
-
-        subscription = selectionGroup.onSelectionChanged { selected ->
-            if (attached) {
-                isChecked = selected == value
-            }
-        }
 
         addListener(
             object : ChangeListener() {
@@ -127,15 +125,7 @@ class StrataSelectableButton<T>(
                     event: ChangeEvent,
                     actor: Actor
                 ) {
-                    if (!attached) return
-
-                    if (isChecked) {
-                        selectionGroup.select(value)
-                    } else if (selectionGroup.selected == value) {
-                        if (!selectionGroup.clearSelection()) {
-                            isChecked = true
-                        }
-                    }
+                    selectionBinding.controlChanged()
                 }
             }
         )
@@ -144,12 +134,165 @@ class StrataSelectableButton<T>(
     /**
      * Stops synchronizing this button with its selection group.
      */
+    override fun detach() {
+        selectionBinding.detach()
+    }
+}
+
+/**
+ * A momentary image button with a Kotlin callback.
+ *
+ * The drawable is referenced but not owned. Button chrome and interaction
+ * states come from the caller-owned skin's [ImageButton.ImageButtonStyle].
+ */
+class StrataImageButton(
+    drawable: Drawable,
+    skin: Skin,
+    styleName: String = "default",
+    onClick: () -> Unit
+) : ImageButton(
+    imageButtonStyle(
+        skin = skin,
+        styleName = styleName,
+        drawable = drawable
+    )
+) {
+
+    /** Callback invoked after a completed, enabled click. */
+    var onClick: () -> Unit = onClick
+
+    init {
+        setProgrammaticChangeEvents(false)
+        preventCheckedState()
+
+        addListener(
+            object : ClickListener() {
+                override fun clicked(
+                    event: InputEvent,
+                    x: Float,
+                    y: Float
+                ) {
+                    if (isDisabled) return
+
+                    this@StrataImageButton.onClick()
+                }
+            }
+        )
+    }
+}
+
+/**
+ * An image button bound to one value in a [StrataSelectionGroup].
+ *
+ * The drawable is referenced but not owned. Exactly one control can be
+ * attached to each group value at a time.
+ */
+class StrataSelectableImageButton<T>(
+    drawable: Drawable,
+    val value: T,
+    val selectionGroup: StrataSelectionGroup<T>,
+    skin: Skin,
+    styleName: String = "default"
+) : ImageButton(
+    imageButtonStyle(
+        skin = skin,
+        styleName = styleName,
+        drawable = drawable
+    )
+), StrataSelectionControl {
+
+    private val selectionBinding = StrataSelectionBinding(
+        value = value,
+        selectionGroup = selectionGroup,
+        isChecked = { isChecked },
+        setChecked = { isChecked = it }
+    )
+
+    init {
+        setProgrammaticChangeEvents(false)
+
+        addListener(
+            object : ChangeListener() {
+                override fun changed(
+                    event: ChangeEvent,
+                    actor: Actor
+                ) {
+                    selectionBinding.controlChanged()
+                }
+            }
+        )
+    }
+
+    /** Stops synchronizing this button with its selection group. */
+    override fun detach() {
+        selectionBinding.detach()
+    }
+}
+
+internal interface StrataSelectionControl {
+    fun detach()
+}
+
+private class StrataSelectionBinding<T>(
+    private val value: T,
+    private val selectionGroup: StrataSelectionGroup<T>,
+    private val isChecked: () -> Boolean,
+    private val setChecked: (Boolean) -> Unit
+) {
+    private var attached = true
+
+    private val subscription: StrataSelectionSubscription
+
+    init {
+        selectionGroup.attach(value)
+        setChecked(selectionGroup.selected == value)
+
+        subscription = selectionGroup.onSelectionChanged { selected ->
+            if (attached) {
+                setChecked(selected == value)
+            }
+        }
+    }
+
+    fun controlChanged() {
+        if (!attached) return
+
+        if (isChecked()) {
+            selectionGroup.select(value)
+        } else if (selectionGroup.selected == value) {
+            if (!selectionGroup.clearSelection()) {
+                setChecked(true)
+            }
+        }
+    }
+
     fun detach() {
         if (!attached) return
 
         attached = false
         subscription.dispose()
         selectionGroup.detach(value)
+    }
+}
+
+private fun imageButtonStyle(
+    skin: Skin,
+    styleName: String,
+    drawable: Drawable
+): ImageButton.ImageButtonStyle {
+    return ImageButton.ImageButtonStyle(
+        skin.get(
+            styleName,
+            ImageButton.ImageButtonStyle::class.java
+        )
+    ).apply {
+        imageUp = drawable
+        imageDown = null
+        imageOver = null
+        imageDisabled = null
+        imageChecked = null
+        imageCheckedDown = null
+        imageCheckedOver = null
     }
 }
 

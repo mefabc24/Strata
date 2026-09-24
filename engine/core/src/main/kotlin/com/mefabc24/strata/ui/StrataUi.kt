@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
@@ -89,6 +90,28 @@ class StrataUi(
         styleName: String = theme.toggleButtonStyle
     ): StrataSelectableButton<T> = root.selectableButton(
         text = text,
+        value = value,
+        group = group,
+        styleName = styleName
+    )
+
+    fun imageButton(
+        drawable: Drawable,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton = root.imageButton(
+        drawable = drawable,
+        styleName = styleName,
+        onClick = onClick
+    )
+
+    fun <T> selectableImageButton(
+        drawable: Drawable,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> = root.selectableImageButton(
+        drawable = drawable,
         value = value,
         group = group,
         styleName = styleName

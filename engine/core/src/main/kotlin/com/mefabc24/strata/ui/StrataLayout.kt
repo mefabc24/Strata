@@ -5,17 +5,18 @@ import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 
 internal class StrataUiContext(
     val skin: Skin,
     val theme: StrataUiTheme
 ) {
-    private val selectionButtons = mutableListOf<StrataSelectableButton<*>>()
+    private val selectionControls = mutableListOf<StrataSelectionControl>()
     private val subscriptions = mutableListOf<StrataSelectionSubscription>()
 
-    fun own(button: StrataSelectableButton<*>) {
-        selectionButtons += button
+    fun own(control: StrataSelectionControl) {
+        selectionControls += control
     }
 
     fun own(subscription: StrataSelectionSubscription) {
@@ -23,15 +24,15 @@ internal class StrataUiContext(
     }
 
     fun dispose() {
-        for (button in selectionButtons) {
-            button.detach()
+        for (control in selectionControls) {
+            control.detach()
         }
 
         for (subscription in subscriptions) {
             subscription.dispose()
         }
 
-        selectionButtons.clear()
+        selectionControls.clear()
         subscriptions.clear()
     }
 }
@@ -125,6 +126,39 @@ abstract class StrataLayout internal constructor(
     ): StrataSelectableButton<T> {
         val button = StrataSelectableButton(
             text = text,
+            value = value,
+            selectionGroup = group,
+            skin = context.skin,
+            styleName = styleName
+        )
+
+        context.own(button)
+        return actor(button)
+    }
+
+    fun imageButton(
+        drawable: Drawable,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton {
+        return actor(
+            StrataImageButton(
+                drawable = drawable,
+                skin = context.skin,
+                styleName = styleName,
+                onClick = onClick
+            )
+        )
+    }
+
+    fun <T> selectableImageButton(
+        drawable: Drawable,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> {
+        val button = StrataSelectableImageButton(
+            drawable = drawable,
             value = value,
             selectionGroup = group,
             skin = context.skin,
