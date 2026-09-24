@@ -8,11 +8,19 @@ import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 /**
- * Manages geometric object placement and its preview.
+ * Manages object placement and its preview.
+ *
+ * Geometric placement is validated by the world.
+ * Additional game-specific rules can be supplied through
+ * the placement validator.
  */
 class PlacementController(
     private val world: World,
-    private val style: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
+    private val style: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT,
+    private val placementValidator: (
+        placeable: Placeable,
+        position: TilePosition
+    ) -> Boolean = { _, _ -> true }
 ) {
     var selectedPlaceable: Placeable? = null
 
@@ -25,20 +33,19 @@ class PlacementController(
     fun update(hoveredTile: TilePosition?) {
         val placeable = selectedPlaceable
 
-        preview = if (hoveredTile != null && placeable != null) {
-            val (x, y) = hoveredTile
-            val placedObject = PlacedObject(
-                placeable = placeable,
-                x = x,
-                y = y
-            )
-
+        preview = if (
+            hoveredTile != null &&
+            placeable != null
+        ) {
             PlacementPreview(
-                placedObject = placedObject,
-                valid = world.canPlace(
+                placedObject = PlacedObject(
                     placeable = placeable,
-                    x = x,
-                    y = y
+                    x = hoveredTile.x,
+                    y = hoveredTile.y
+                ),
+                valid = canPlace(
+                    placeable = placeable,
+                    position = hoveredTile
                 ),
                 style = style
             )
@@ -48,20 +55,56 @@ class PlacementController(
     }
 
     /**
-     * Places the selected object if its footprint is available.
+     * Places the selected object at the given position.
      *
      * Returns the placed object on success, or null otherwise.
+     */
+    fun placeAt(
+        position: TilePosition
+    ): PlacedObject? {
+        val placeable =
+            selectedPlaceable ?: return null
+
+        if (
+            !canPlace(
+                placeable = placeable,
+                position = position
+            )
+        ) {
+            return null
+        }
+
+        return world.place(
+            placeable = placeable,
+            position = position
+        )
+    }
+
+    /**
+     * Places the selected object at the given coordinates.
      */
     fun placeAt(
         x: Int,
         y: Int
     ): PlacedObject? {
-        val placeable = selectedPlaceable ?: return null
+        return placeAt(
+            TilePosition(
+                x = x,
+                y = y
+            )
+        )
+    }
 
-        return world.place(
+    private fun canPlace(
+        placeable: Placeable,
+        position: TilePosition
+    ): Boolean {
+        return world.canPlace(
             placeable = placeable,
-            x = x,
-            y = y
+            position = position
+        ) && placementValidator(
+            placeable,
+            position
         )
     }
 }
