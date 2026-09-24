@@ -26,11 +26,19 @@ class PlacementController(
 
         preview = if (hoveredTile != null && placeable != null) {
             val (x, y) = hoveredTile
-            val placedObject = PlacedObject(placeable, x, y)
+            val placedObject = PlacedObject(
+                placeable = placeable,
+                x = x,
+                y = y
+            )
 
             PlacementPreview(
                 placedObject = placedObject,
-                valid = world.canPlaceObject(placedObject),
+                valid = world.canPlace(
+                    placeable = placeable,
+                    x = x,
+                    y = y
+                ),
                 style = style
             )
         } else {
@@ -43,14 +51,16 @@ class PlacementController(
      *
      * Returns the placed object on success, or null otherwise.
      */
-    fun placeAt(x: Int, y: Int): PlacedObject? {
+    fun placeAt(
+        x: Int,
+        y: Int
+    ): PlacedObject? {
         val placeable = selectedPlaceable ?: return null
-        val placedObject = PlacedObject(placeable, x, y)
 
-        return if (world.placeObject(placedObject)) {
-            placedObject
-        } else {
-            null
-        }
+        return world.place(
+            placeable = placeable,
+            x = x,
+            y = y
+        )
     }
 }

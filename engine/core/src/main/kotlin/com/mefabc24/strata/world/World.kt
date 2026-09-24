@@ -68,9 +68,51 @@ class World(
     private val occupiedTiles = mutableMapOf<Pair<Int, Int>, PlacedObject>()
 
     /**
+     * Checks whether a placeable can be placed at the given position.
+     */
+    fun canPlace(
+        placeable: Placeable,
+        x: Int,
+        y: Int
+    ): Boolean {
+        return canPlaceObject(
+            PlacedObject(
+                placeable = placeable,
+                x = x,
+                y = y
+            )
+        )
+    }
+
+    /**
+     * Places an object at the given position.
+     *
+     * Returns the placed object on success, or null otherwise.
+     */
+    fun place(
+        placeable: Placeable,
+        x: Int,
+        y: Int
+    ): PlacedObject? {
+        val placedObject = PlacedObject(
+            placeable = placeable,
+            x = x,
+            y = y
+        )
+
+        return if (placeObject(placedObject)) {
+            placedObject
+        } else {
+            null
+        }
+    }
+
+    /**
      * Checks whether an object can be placed without modifying the world.
      */
-    fun canPlaceObject(placedObject: PlacedObject): Boolean {
+    internal fun canPlaceObject(
+        placedObject: PlacedObject
+    ): Boolean {
         if (placedObject in objects) return false
 
         val elevation = getHeight(
@@ -88,7 +130,9 @@ class World(
     /**
      * Places an object if its footprint is inside the world and unoccupied.
      */
-    fun placeObject(placedObject: PlacedObject): Boolean {
+    internal fun placeObject(
+        placedObject: PlacedObject
+    ): Boolean {
         if (!canPlaceObject(placedObject)) return false
 
         for (position in placedObject.occupiedTiles()) {
@@ -114,11 +158,22 @@ class World(
     fun getObjects(): Set<PlacedObject> = objectView
 
     /**
+     * Removes a placed object from the world.
+     */
+    fun remove(
+        placedObject: PlacedObject
+    ): Boolean {
+        return removeObject(placedObject)
+    }
+
+    /**
      * Removes a specific placed object from the world.
      *
      * Returns false if the object is not currently placed.
      */
-    fun removeObject(placedObject: PlacedObject): Boolean {
+    internal fun removeObject(
+        placedObject: PlacedObject
+    ): Boolean {
         if (placedObject !in objects) return false
 
         val positions = placedObject.occupiedTiles()
@@ -138,9 +193,22 @@ class World(
     }
 
     /**
+     * Removes the object occupying the given tile.
+     */
+    fun removeAt(
+        x: Int,
+        y: Int
+    ): PlacedObject? {
+        return removeObjectAt(x, y)
+    }
+
+    /**
      * Removes the entire object occupying the given tile.
      */
-    fun removeObjectAt(x: Int, y: Int): PlacedObject? {
+    internal fun removeObjectAt(
+        x: Int,
+        y: Int
+    ): PlacedObject? {
         val placedObject = getObjectAt(x, y) ?: return null
 
         return if (removeObject(placedObject)) {

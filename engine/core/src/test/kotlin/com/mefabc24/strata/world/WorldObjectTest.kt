@@ -363,4 +363,49 @@ class WorldObjectTest {
             assertFalse(world.canPlaceObject(placed))
         }
     }
+
+    @Test
+    fun `places object through public placement api`() {
+        val world = createWorld()
+
+        val placeable = object : Placeable {
+            override val footprint = Footprint.square(2)
+        }
+
+        assertTrue(
+            world.canPlace(
+                placeable = placeable,
+                x = 4,
+                y = 4
+            )
+        )
+
+        val placed = world.place(
+            placeable = placeable,
+            x = 4,
+            y = 4
+        )
+
+        assertTrue(placed != null)
+        assertSame(placed, world.getObjectAt(4, 4))
+        assertSame(placed, world.getObjectAt(5, 5))
+    }
+
+    @Test
+    fun `removes object through public placement api`() {
+        val world = createWorld()
+
+        val placeable = object : Placeable {
+            override val footprint = Footprint.square(1)
+        }
+
+        val placed = world.place(
+            placeable = placeable,
+            x = 4,
+            y = 4
+        )!!
+
+        assertTrue(world.remove(placed))
+        assertNull(world.getObjectAt(4, 4))
+    }
 }
