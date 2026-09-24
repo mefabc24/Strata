@@ -22,6 +22,21 @@ class PlacementController(
         position: TilePosition
     ) -> Boolean = { _, _ -> true }
 ) {
+    /**
+     * Controls preview generation and placement operations.
+     *
+     * Disabling placement clears the preview while retaining the selected
+     * placeable for later use.
+     */
+    var enabled: Boolean = true
+        set(value) {
+            field = value
+
+            if (!value) {
+                preview = null
+            }
+        }
+
     var selectedPlaceable: Placeable? = null
 
     var preview: PlacementPreview? = null
@@ -31,6 +46,11 @@ class PlacementController(
      * Updates the preview for the currently hovered tile.
      */
     fun update(hoveredTile: TilePosition?) {
+        if (!enabled) {
+            preview = null
+            return
+        }
+
         val placeable = selectedPlaceable
 
         preview = if (
@@ -62,6 +82,8 @@ class PlacementController(
     fun placeAt(
         position: TilePosition
     ): PlacedObject? {
+        if (!enabled) return null
+
         val placeable =
             selectedPlaceable ?: return null
 

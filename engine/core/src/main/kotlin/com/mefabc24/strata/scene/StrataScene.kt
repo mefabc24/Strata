@@ -8,8 +8,9 @@ import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.placement.PlacementSettings
 import com.mefabc24.strata.render.ObjectRegistry
-import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
@@ -101,11 +102,13 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private val cameraSettings = CameraSettings()
     private val renderingSettings = RenderingSettings()
     private val controlsSettings = ControlsSettings()
+    private var placementSettings: PlacementSettings? = null
 
     private var configurationOpen = true
 
     private var attachedWorld: World? = null
     private var attachedView: SceneWorldView? = null
+    private var attachedPlacement: PlacementController? = null
     private var attachedUi: StrataUi? = null
 
     private val sceneInput = StrataInput()
@@ -126,6 +129,16 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     val world: World
         get() = attachedWorld
             ?: error("No world is attached to this scene.")
+
+    /**
+     * Returns the scene-owned placement controller.
+     *
+     * Placement exists only when it was configured during scene setup and a
+     * world has subsequently been attached.
+     */
+    val placement: PlacementController
+        get() = attachedPlacement
+            ?: error("No placement controller is attached to this scene.")
 
     /**
      * Runtime input routing for the optional UI and world layers.
@@ -197,6 +210,22 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     }
 
     /**
+     * Enables and configures scene-owned object placement.
+     *
+     * The controller is created when a world is attached.
+     */
+    fun placement(configure: PlacementSettings.() -> Unit = {}) {
+        checkConfigurationOpen()
+
+        val settings = placementSettings
+            ?: PlacementSettings().also {
+                placementSettings = it
+            }
+
+        settings.apply(configure)
+    }
+
+    /**
      * Attaches a game-created world and creates its isometric view.
      *
      * Camera, rendering, and control settings are copied from the scene setup
@@ -234,9 +263,12 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             )
         )
 
+        val placement = placementSettings?.createController(world)
+
         attachView(
             world = world,
-            view = view
+            view = view,
+            placement = placement
         )
     }
 
@@ -298,7 +330,8 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      */
     private fun attachView(
         world: World,
-        view: SceneWorldView
+        view: SceneWorldView,
+        placement: PlacementController?
     ) {
         checkActive()
 
@@ -328,6 +361,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
         attachedWorld = world
         attachedView = view
+        attachedPlacement = placement
     }
 
     private fun installInputIfNeeded() {
@@ -341,7 +375,11 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     fun update(delta: Float) {
         checkActive()
 
-        attachedView?.update(delta)
+        attachedView?.let { view ->
+            view.update(delta)
+            attachedPlacement?.update(view.hoveredTile)
+        }
+
         attachedUi?.update(delta)
     }
 
@@ -349,7 +387,6 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      * Renders the optional world first, followed by the optional UI.
      */
     fun render(
-        preview: PlacementPreview? = null,
         raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f
     ) {
@@ -359,7 +396,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             view.render(
                 raisedTile = raisedTile,
                 raiseOffsetY = raiseOffsetY,
-                preview = preview
+                preview = attachedPlacement?.preview
             )
 
             debug.performance.record(
