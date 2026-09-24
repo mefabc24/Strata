@@ -83,6 +83,7 @@ class SandboxUi(
         }
     ) { selected ->
         painter.enabled = selected == SandboxMode.PAINT
+        placementController.enabled = selected == SandboxMode.BUILD
         updateStatus()
     }
 
@@ -245,6 +246,8 @@ class SandboxUi(
      * Reflects state changes made through retained keyboard controls.
      */
     fun sync() {
+        placementController.enabled = !painter.enabled
+
         modeSelection.select(
             if (painter.enabled) {
                 SandboxMode.PAINT
