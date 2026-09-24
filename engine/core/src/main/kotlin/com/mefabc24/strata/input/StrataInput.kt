@@ -77,10 +77,14 @@ class StrataInput(
         return true
     }
 
+    /** Installs this router as libGDX's active input processor. */
     fun install() {
         Gdx.input.inputProcessor = multiplexer
     }
 
+    /**
+     * Clears libGDX's input processor only when this router is still active.
+     */
     fun uninstall() {
         if (Gdx.input.inputProcessor === multiplexer) {
             Gdx.input.inputProcessor = null

@@ -121,7 +121,8 @@ class ObjectRegistry internal constructor(
         get() = registrations.values.toList()
 
     /**
-     * A snapshot containing only entries with an explicit factory.
+     * A registration-order snapshot containing entries with explicit factories.
+     * Every returned entry can safely be passed to [ObjectEntry.create].
      */
     val constructibleEntries: List<ObjectEntry>
         get() = registrations.values.filter {
@@ -130,6 +131,10 @@ class ObjectRegistry internal constructor(
 
     /**
      * Registers an object type and queues its texture.
+     *
+     * [factory] is optional because some registrations are needed only for
+     * rendering existing objects. Supply it when game code must construct new
+     * instances, such as from a build picker.
      */
     fun <T : Placeable> register(
         type: KClass<T>,
@@ -168,6 +173,9 @@ class ObjectRegistry internal constructor(
 
     /**
      * Registers a sprite using a reified placeable type.
+     *
+     * The optional [factory] has the same construction semantics as the
+     * non-reified overload.
      */
     inline fun <reified T : Placeable> register(
         sprite: String,

@@ -277,9 +277,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         inputInstalled = true
     }
 
-    /**
-     * Updates the attached world view.
-     */
+    /** Updates the optional world view and UI layers. */
     fun update(delta: Float) {
         checkActive()
 
@@ -288,7 +286,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     }
 
     /**
-     * Renders the world with optional rendering effects.
+     * Renders the optional world first, followed by the optional UI.
      */
     fun render(
         preview: PlacementPreview? = null,
@@ -313,9 +311,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         attachedUi?.render()
     }
 
-    /**
-     * Resizes the attached world view if one exists.
-     */
+    /** Resizes every attached layer. */
     fun resize(
         width: Int,
         height: Int
