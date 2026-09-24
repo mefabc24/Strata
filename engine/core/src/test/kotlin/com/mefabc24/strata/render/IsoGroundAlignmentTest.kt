@@ -101,6 +101,88 @@ class IsoGroundAlignmentTest {
         assertEquals(defaultBounds.y + 5f, adjustedBounds.y)
     }
 
+    @Test
+    fun `global object offset moves bounds at every elevation`() {
+        val projection = projection(height = 24f)
+        val placed = PlacedObject(SingleTileObject(), 0, 0)
+        val settings = ObjectRenderingSettings(
+            offsetX = 4f,
+            offsetY = -3f
+        )
+
+        for (elevation in listOf(0, 2)) {
+            val defaultBounds = objectBounds(
+                projection = projection,
+                placed = placed,
+                elevation = elevation
+            )
+            val adjustedBounds = objectBounds(
+                projection = projection,
+                placed = placed,
+                elevation = elevation,
+                objectSettings = settings
+            )
+
+            assertEquals(defaultBounds.x + 4f, adjustedBounds.x)
+            assertEquals(defaultBounds.y - 3f, adjustedBounds.y)
+        }
+    }
+
+    @Test
+    fun `global and per object offsets are additive`() {
+        val projection = projection(height = 24f)
+        val placed = PlacedObject(SingleTileObject(), 0, 0)
+        val bounds = objectBounds(
+            projection = projection,
+            placed = placed,
+            elevation = 1,
+            offsetX = -2f,
+            offsetY = 1f,
+            objectSettings = ObjectRenderingSettings(
+                offsetX = 5f,
+                offsetY = -3f
+            )
+        )
+        val defaults = objectBounds(
+            projection = projection,
+            placed = placed,
+            elevation = 1
+        )
+
+        assertEquals(defaults.x + 3f, bounds.x)
+        assertEquals(defaults.y - 2f, bounds.y)
+    }
+
+    @Test
+    fun `global object offset is independent of footprint size`() {
+        val projection = projection(height = 24f)
+        val settings = ObjectRenderingSettings(
+            offsetX = -4f,
+            offsetY = 6f
+        )
+
+        for (placeable in listOf(
+            SingleTileObject(),
+            MultiTileObject()
+        )) {
+            val placed = PlacedObject(placeable, 0, 0)
+            val defaults = objectBounds(
+                projection = projection,
+                placed = placed,
+                elevation = 1
+            )
+            val adjusted = objectBounds(
+                projection = projection,
+                placed = placed,
+                elevation = 1,
+                objectSettings = settings
+            )
+
+            assertEquals(defaults.x - 4f, adjusted.x)
+            assertEquals(defaults.y + 6f, adjusted.y)
+        }
+    }
+
     private fun projection(height: Float): IsoProjection {
         return IsoProjection(
             TileGeometry(
@@ -131,18 +213,22 @@ class IsoGroundAlignmentTest {
         projection: IsoProjection,
         placed: PlacedObject,
         elevation: Int,
-        offsetY: Float = 0f
+        offsetX: Float = 0f,
+        offsetY: Float = 0f,
+        objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
     ): Rectangle {
         return IsoObjectBounds.calculate(
             projection = projection,
             placed = placed,
             visual = ObjectVisual(
                 texture = TextureRegion(),
+                offsetX = offsetX,
                 offsetY = offsetY,
                 height = 32f
             ),
             result = Rectangle(),
-            elevation = elevation
+            elevation = elevation,
+            objectSettings = objectSettings
         )
     }
 

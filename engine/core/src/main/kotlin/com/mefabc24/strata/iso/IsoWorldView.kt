@@ -97,7 +97,10 @@ class IsoWorldView(
         maxSpriteHeight = boundsSpriteHeight
     )
 
-    private val worldRenderer = IsoWorldRenderer(projection)
+    private val worldRenderer = IsoWorldRenderer(
+        projection = projection,
+        objectSettings = renderingConfig.objects
+    )
 
     /**
      * Rendering statistics from the most recent frame.
@@ -162,7 +165,8 @@ class IsoWorldView(
         camera = camera,
         projection = projection,
         world = world,
-        visualFor = objectVisualFor
+        visualFor = objectVisualFor,
+        objectSettings = renderingConfig.objects
     )
 
     private val worldInputProcessor = WorldInputProcessor(

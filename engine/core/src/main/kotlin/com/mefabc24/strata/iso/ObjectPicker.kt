@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.render.IsoObjectBounds
+import com.mefabc24.strata.render.ObjectRenderingSettings
 import com.mefabc24.strata.render.ObjectVisual
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
@@ -15,8 +16,13 @@ class ObjectPicker(
     private val camera: OrthographicCamera,
     private val projection: IsoProjection,
     private val world: World,
-    private val visualFor: (PlacedObject) -> ObjectVisual?
+    private val visualFor: (PlacedObject) -> ObjectVisual?,
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
+    private val objectSettings = objectSettings.copy().also {
+        it.validate()
+    }
+
     private val cursor = Vector3()
     private val bounds = Rectangle()
 
@@ -24,6 +30,13 @@ class ObjectPicker(
         cursor.set(screenX, screenY, 0f)
         camera.unproject(cursor)
 
+        return pickWorld(cursor.x, cursor.y)
+    }
+
+    internal fun pickWorld(
+        worldX: Float,
+        worldY: Float
+    ): PlacedObject? {
         val objectsByDepth = world.getObjects().groupBy { placed ->
             placed.occupiedTiles().maxOf { (x, y) -> x + y }
         }
@@ -44,15 +57,16 @@ class ObjectPicker(
                     placed = placed,
                     visual = visual,
                     result = bounds,
-                    elevation = elevation
+                    elevation = elevation,
+                    objectSettings = objectSettings
                 )
 
-                if (!bounds.contains(cursor.x, cursor.y)) {
+                if (!bounds.contains(worldX, worldY)) {
                     continue
                 }
 
-                val u = (cursor.x - bounds.x) / bounds.width
-                val v = (cursor.y - bounds.y) / bounds.height
+                val u = (worldX - bounds.x) / bounds.width
+                val v = (worldY - bounds.y) / bounds.height
 
                 val alphaMask = visual.alphaMask
 

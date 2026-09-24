@@ -189,6 +189,10 @@ class StrataSceneWorldTest {
             rendering {
                 tileGeometry.width = 48f
                 tileGeometry.height = 24f
+                objects {
+                    offsetX = 2f
+                    offsetY = -3f
+                }
                 escapedRendering = this
             }
 
@@ -201,6 +205,8 @@ class StrataSceneWorldTest {
 
         escapedCamera.moveSpeed = 999f
         escapedRendering.tileGeometry.width = 999f
+        escapedRendering.objects.offsetX = 999f
+        escapedRendering.objects.offsetY = 999f
         escapedControls.camera.moveUp = 101
         mutableBindings.clear()
 
@@ -216,6 +222,8 @@ class StrataSceneWorldTest {
         assertEquals(0.25f, spec.cameraSettings.zoomEdgeAllowance)
         assertEquals(48f, spec.renderingSettings.tileGeometry.width)
         assertEquals(24f, spec.renderingSettings.tileGeometry.height)
+        assertEquals(2f, spec.renderingSettings.objects.offsetX)
+        assertEquals(-3f, spec.renderingSettings.objects.offsetY)
         assertEquals(99, spec.controlsSettings.camera.moveUp)
         assertEquals(listOf(binding), spec.controlsSettings.gameplay.bindings)
 

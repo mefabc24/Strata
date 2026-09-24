@@ -14,7 +14,8 @@ object IsoObjectBounds {
         placed: PlacedObject,
         visual: ObjectVisual,
         result: Rectangle,
-        elevation: Int = 0
+        elevation: Int = 0,
+        objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
     ): Rectangle {
         val occupied = placed.occupiedTiles()
 
@@ -48,8 +49,9 @@ object IsoObjectBounds {
         )
 
         return result.set(
-            left + (footprintWidth - spriteWidth) / 2f + visual.offsetX,
-            surfaceAnchor.y + visual.offsetY,
+            left + (footprintWidth - spriteWidth) / 2f +
+                    objectSettings.offsetX + visual.offsetX,
+            surfaceAnchor.y + objectSettings.offsetY + visual.offsetY,
             spriteWidth,
             spriteHeight
         )

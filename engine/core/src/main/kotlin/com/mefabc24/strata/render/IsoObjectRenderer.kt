@@ -11,8 +11,13 @@ import com.mefabc24.strata.world.PlacedObject
  * The caller owns the SpriteBatch and determines the draw order.
  */
 class IsoObjectRenderer(
-    private val projection: IsoProjection
+    private val projection: IsoProjection,
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
+
+    private val objectSettings = objectSettings.copy().also {
+        it.validate()
+    }
 
     private val bounds = Rectangle()
 
@@ -27,7 +32,8 @@ class IsoObjectRenderer(
             placed = placed,
             visual = visual,
             result = bounds,
-            elevation = elevation
+            elevation = elevation,
+            objectSettings = objectSettings
         )
 
         batch.draw(

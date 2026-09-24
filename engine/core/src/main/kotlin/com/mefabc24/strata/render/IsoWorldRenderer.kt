@@ -16,12 +16,20 @@ import kotlin.math.floor
  * Renders terrain and world objects in isometric depth order.
  */
 class IsoWorldRenderer(
-    private val projection: IsoProjection
+    private val projection: IsoProjection,
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
+    private val objectSettings = objectSettings.copy().also {
+        it.validate()
+    }
+
     private val batch = SpriteBatch()
 
     private val terrainRenderer = IsoTerrainRenderer(projection)
-    private val objectRenderer = IsoObjectRenderer(projection)
+    private val objectRenderer = IsoObjectRenderer(
+        projection = projection,
+        objectSettings = this.objectSettings
+    )
 
     private val visibleArea = Rectangle()
     private val tileBounds = Rectangle()
@@ -184,7 +192,8 @@ class IsoWorldRenderer(
                     placed = placed,
                     visual = visual,
                     result = objectBounds,
-                    elevation = elevation
+                    elevation = elevation,
+                    objectSettings = objectSettings
                 )
 
                 if (!objectBounds.overlaps(visibleArea)) {
@@ -215,7 +224,8 @@ class IsoWorldRenderer(
                         placed = preview.placedObject,
                         visual = visual,
                         result = objectBounds,
-                        elevation = elevation
+                        elevation = elevation,
+                        objectSettings = objectSettings
                     )
 
                     if (objectBounds.overlaps(visibleArea)) {
