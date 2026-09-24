@@ -15,6 +15,10 @@ class StrataSelectionGroup<T>(
 
     private val optionSet = LinkedHashSet<T>().apply {
         for (option in options) {
+            require(option != null) {
+                "Selection options must not contain null."
+            }
+
             require(add(option)) {
                 "Selection options must be unique. Duplicate: '$option'."
             }
