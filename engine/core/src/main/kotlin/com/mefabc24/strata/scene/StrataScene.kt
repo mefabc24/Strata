@@ -34,7 +34,9 @@ internal fun interface StrataUiFactory {
  * The scene owns its assets, audio, attached world view, and attached UI. The
  * game creates an optional [World] and attaches it; the world itself currently
  * has no disposal lifecycle. A scene can contain either runtime layer
- * independently or both together.
+ * independently or both together. Setup DSL values are frozen after the
+ * constructor configuration block completes and are applied when their
+ * runtime component is created.
  */
 class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     terrainDirectory: String,
@@ -104,6 +106,10 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private val controlsSettings = ControlsSettings()
     private var placementSettings: PlacementSettings? = null
 
+    private val cameraSnapshot: CameraSettings
+    private val renderingSnapshot: RenderingSettings
+    private val controlsSnapshot: ControlsSettings
+
     private var configurationOpen = true
 
     private var attachedWorld: World? = null
@@ -157,6 +163,14 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         try {
             configure(this)
             configurationOpen = false
+
+            cameraSnapshot = cameraSettings.copy()
+            renderingSnapshot = renderingSettings.copy()
+            controlsSnapshot = controlsSettings.copy()
+            placementSettings = placementSettings?.copy()
+
+            cameraSnapshot.validate()
+            renderingSnapshot.validate()
 
             assets.finishLoading()
 
@@ -228,21 +242,23 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     /**
      * Attaches a game-created world and creates its isometric view.
      *
-     * Camera, rendering, and control settings are copied from the scene setup
-     * configuration at this point. Terrain and object visuals are resolved
-     * through this scene's registries. A world can be attached only once.
+     * The frozen camera, rendering, control, and optional placement settings
+     * are applied to the new runtime components. Terrain and object visuals
+     * are resolved through this scene's registries. A world can be attached
+     * only once.
      */
     fun attachWorld(
         world: World,
         terrainFor: (Tile) -> T
     ) {
         checkActive()
+        checkConfigurationComplete()
 
         check(attachedView == null) {
             "A world is already attached to this scene."
         }
 
-        val renderingSnapshot = renderingSettings.copy().apply {
+        val renderingSnapshot = this.renderingSnapshot.copy().apply {
             validate()
 
             if (maxTerrainSpriteHeight == null) {
@@ -257,8 +273,8 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                     terrain[terrainFor(tile)]
                 },
                 objectVisualFor = objects::get,
-                cameraSettings = cameraSettings.copy(),
-                controlsSettings = controlsSettings.copy(),
+                cameraSettings = cameraSnapshot.copy(),
+                controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot
             )
         )
@@ -285,6 +301,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         configure: StrataUi.() -> Unit = {}
     ): StrataUi {
         checkActive()
+        checkConfigurationComplete()
 
         check(attachedUi == null) {
             "A UI layer is already attached to this scene."
@@ -374,6 +391,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     /** Updates the optional world view and UI layers. */
     fun update(delta: Float) {
         checkActive()
+        checkConfigurationComplete()
 
         attachedView?.let { view ->
             view.update(delta)
@@ -391,6 +409,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         raiseOffsetY: Float = 0f
     ) {
         checkActive()
+        checkConfigurationComplete()
 
         attachedView?.let { view ->
             view.render(
@@ -414,6 +433,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         height: Int
     ) {
         checkActive()
+        checkConfigurationComplete()
 
         attachedView?.resize(
             width,
@@ -435,6 +455,12 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private fun checkConfigurationOpen() {
         check(configurationOpen) {
             "Scene setup configuration is already complete."
+        }
+    }
+
+    private fun checkConfigurationComplete() {
+        check(!configurationOpen) {
+            "Scene runtime operations are unavailable during setup."
         }
     }
 

@@ -18,6 +18,9 @@ typealias PlacementValidator = (
  */
 class PlacementSettings {
     var previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
+        set(value) {
+            field = value.snapshot()
+        }
 
     private var placementValidator: PlacementValidator = { _, _ -> true }
 
@@ -26,15 +29,24 @@ class PlacementSettings {
     }
 
     internal fun createController(world: World): PlacementController {
-        val styleSnapshot = PlacementPreviewStyle(
-            validColor = previewStyle.validColor.cpy(),
-            invalidColor = previewStyle.invalidColor.cpy()
-        )
-
         return PlacementController(
             world = world,
-            style = styleSnapshot,
+            style = previewStyle.snapshot(),
             placementValidator = placementValidator
         )
     }
+
+    internal fun copy(): PlacementSettings {
+        return PlacementSettings().also { copy ->
+            copy.previewStyle = previewStyle
+            copy.placementValidator = placementValidator
+        }
+    }
+}
+
+private fun PlacementPreviewStyle.snapshot(): PlacementPreviewStyle {
+    return PlacementPreviewStyle(
+        validColor = validColor.cpy(),
+        invalidColor = invalidColor.cpy()
+    )
 }

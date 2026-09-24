@@ -5,6 +5,9 @@ package com.mefabc24.strata.input
  */
 class GameplayControlsSettings {
     var bindings: List<WorldInputBinding> = emptyList()
+        set(value) {
+            field = value.toList()
+        }
 
     internal fun copy(): GameplayControlsSettings {
         return GameplayControlsSettings().also {
