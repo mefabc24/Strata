@@ -172,7 +172,9 @@ class IsoWorldView(
 
     private val worldInputProcessor = WorldInputProcessor(
         bindings = controls.gameplay.bindings,
-        pickTile = tilePicker::pick,
+        pickTile = { screenX, screenY, mode ->
+            tilePicker.pick(screenX, screenY, mode)
+        },
         pickObject = { screenX, screenY, mode ->
             pickObject(screenX, screenY, mode)
         }
@@ -262,7 +264,8 @@ class IsoWorldView(
 
         hoveredTile = tilePicker.pick(
             Gdx.input.x.toFloat(),
-            Gdx.input.y.toFloat()
+            Gdx.input.y.toFloat(),
+            TilePickingMode.SURFACE
         )
     }
 
@@ -295,13 +298,14 @@ class IsoWorldView(
     }
 
     /**
-     * Returns the tile at the given screen position, or null.
+     * Returns the tile at the given screen position using [mode], or null.
      */
     fun pickTile(
         screenX: Float,
-        screenY: Float
+        screenY: Float,
+        mode: TilePickingMode = TilePickingMode.SURFACE
     ): TilePosition? {
-        return tilePicker.pick(screenX, screenY)
+        return tilePicker.pick(screenX, screenY, mode)
     }
 
     /**

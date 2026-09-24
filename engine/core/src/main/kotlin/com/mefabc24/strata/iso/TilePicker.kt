@@ -18,18 +18,40 @@ class TilePicker(
 
     fun pick(
         screenX: Float,
-        screenY: Float
+        screenY: Float,
+        mode: TilePickingMode = TilePickingMode.SURFACE
     ): TilePosition? {
         position.set(screenX, screenY, 0f)
         camera.unproject(position)
 
         return pickWorld(
             worldX = position.x,
-            worldY = position.y
+            worldY = position.y,
+            mode = mode
         )
     }
 
     internal fun pickWorld(
+        worldX: Float,
+        worldY: Float,
+        mode: TilePickingMode = TilePickingMode.SURFACE
+    ): TilePosition? {
+        return when (mode) {
+            TilePickingMode.SURFACE -> pickSurface(worldX, worldY)
+            TilePickingMode.BASE_GRID -> pickBaseGrid(worldX, worldY)
+        }
+    }
+
+    private fun pickBaseGrid(
+        worldX: Float,
+        worldY: Float
+    ): TilePosition? {
+        val tile = projection.worldToTile(worldX, worldY)
+
+        return tile.takeIf { (x, y) -> world.getTile(x, y) != null }
+    }
+
+    private fun pickSurface(
         worldX: Float,
         worldY: Float
     ): TilePosition? {

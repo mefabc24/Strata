@@ -119,6 +119,110 @@ class TilePickerTest {
     }
 
     @Test
+    fun `base grid ignores the target tile elevation`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val baseCenter = topFaceCenter(2, 2, elevation = 0)
+
+        world.setHeight(2, 2, 5)
+
+        assertEquals(
+            TilePosition(2, 2),
+            picker.pickWorld(
+                baseCenter.x,
+                baseCenter.y,
+                TilePickingMode.BASE_GRID
+            )
+        )
+    }
+
+    @Test
+    fun `base grid result remains stable while terrain height changes`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val baseCenter = topFaceCenter(3, 1, elevation = 0)
+
+        for (height in listOf(0, 1, 2, 5, 0)) {
+            world.setHeight(3, 1, height)
+
+            assertEquals(
+                TilePosition(3, 1),
+                picker.pickWorld(
+                    baseCenter.x,
+                    baseCenter.y,
+                    TilePickingMode.BASE_GRID
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `surface and base grid can resolve different coordinates`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val elevated = TilePosition(1, 1)
+
+        world.setHeight(elevated.x, elevated.y, 2)
+        val visibleCenter = topFaceCenter(
+            elevated.x,
+            elevated.y,
+            elevation = 2
+        )
+
+        assertEquals(
+            elevated,
+            picker.pickWorld(
+                visibleCenter.x,
+                visibleCenter.y,
+                TilePickingMode.SURFACE
+            )
+        )
+        assertEquals(
+            projection.worldToTile(visibleCenter.x, visibleCenter.y),
+            picker.pickWorld(
+                visibleCenter.x,
+                visibleCenter.y,
+                TilePickingMode.BASE_GRID
+            )
+        )
+    }
+
+    @Test
+    fun `base grid ignores elevated terrain overlapping another base cell`() {
+        val world = createWorld()
+        val picker = picker(world)
+        val elevated = TilePosition(1, 1)
+
+        world.setHeight(elevated.x, elevated.y, 2)
+        val elevatedCenter = topFaceCenter(
+            elevated.x,
+            elevated.y,
+            elevation = 2
+        )
+        val baseCell = projection.worldToTile(
+            elevatedCenter.x,
+            elevatedCenter.y
+        )
+
+        assertEquals(
+            elevated,
+            picker.pickWorld(
+                elevatedCenter.x,
+                elevatedCenter.y,
+                TilePickingMode.SURFACE
+            )
+        )
+        assertEquals(
+            baseCell,
+            picker.pickWorld(
+                elevatedCenter.x,
+                elevatedCenter.y,
+                TilePickingMode.BASE_GRID
+            )
+        )
+    }
+
+    @Test
     fun `falls back to lower terrain when elevated candidate does not match`() {
         val world = createWorld()
 
