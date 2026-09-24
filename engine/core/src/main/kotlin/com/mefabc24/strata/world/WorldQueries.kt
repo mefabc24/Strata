@@ -60,12 +60,14 @@ fun World.positionsIn(
     xRange: IntRange,
     yRange: IntRange
 ): List<TilePosition> {
+    val world = this
+
     return buildList {
         for (y in yRange) {
             for (x in xRange) {
                 val position = TilePosition(x, y)
 
-                if (contains(position)) {
+                if (world.contains(position)) {
                     add(position)
                 }
             }
