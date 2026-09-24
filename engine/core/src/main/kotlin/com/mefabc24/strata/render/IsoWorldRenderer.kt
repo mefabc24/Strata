@@ -85,6 +85,7 @@ class IsoWorldRenderer(
             visibleBottom = visibleArea.y,
             visibleTop = visibleArea.y + visibleArea.height,
             tileHeight = projection.tileHeight,
+            logicalTileHeight = projection.logicalTileHeight,
             maxSpriteHeight = maxTerrainSpriteHeight,
             raisedOffsetY = raiseOffsetY,
             maxDepth = world.width + world.height - 2,
@@ -140,20 +141,14 @@ class IsoWorldRenderer(
                             0f
                         }
 
-                        val scale = projection.tileWidth / texture.regionWidth
-
-                        val spriteWidth = texture.regionWidth * scale
-                        val spriteHeight = texture.regionHeight * scale
-
-                        val centerX = (x - y) * projection.tileWidth / 2f
-                        val topY = -depth * projection.tileHeight / 2f +
-                                elevation * projection.elevationStep + offsetY
-
-                        tileBounds.set(
-                            centerX - spriteWidth / 2f,
-                            topY - spriteHeight,
-                            spriteWidth,
-                            spriteHeight
+                        IsoTerrainBounds.calculate(
+                            projection = projection,
+                            x = x,
+                            y = y,
+                            texture = texture,
+                            result = tileBounds,
+                            offsetY = offsetY,
+                            elevation = elevation
                         )
 
                         if (!tileBounds.overlaps(visibleArea)) {

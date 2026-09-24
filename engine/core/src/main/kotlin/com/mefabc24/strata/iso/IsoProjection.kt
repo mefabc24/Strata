@@ -26,11 +26,20 @@ class IsoProjection(
         get() = geometry.faceHeight
 
     /**
+     * Full logical terrain height, independent of texture dimensions.
+     */
+    val logicalTileHeight: Float
+        get() = geometry.height
+
+    /**
      * Vertical world-space distance between two terrain levels.
      */
     val elevationStep: Float
         get() = geometry.elevationStep
 
+    /**
+     * Projects a tile to the back vertex of its logical top face.
+     */
     fun tileToWorld(
         x: Int,
         y: Int,
@@ -41,6 +50,19 @@ class IsoProjection(
             -(x + y) * tileHeight / 2f +
                     elevation * elevationStep
         )
+    }
+
+    /**
+     * Returns the front vertex of a tile's logical top face.
+     *
+     * This is the ground-contact anchor used by placed objects.
+     */
+    internal fun surfaceAnchor(
+        x: Int,
+        y: Int,
+        elevation: Int = 0
+    ): Vector2 {
+        return tileToWorld(x, y, elevation).add(0f, -tileHeight)
     }
 
     fun worldToTile(
@@ -78,8 +100,13 @@ class IsoProjection(
         val deepestTopY =
             -(width + height - 2) * tileHeight / 2f
 
-        val minY = deepestTopY - maxSpriteHeight
-        val maxY = highestTopY
+        val visualOverhang = maxOf(
+            0f,
+            maxSpriteHeight - logicalTileHeight
+        )
+
+        val minY = deepestTopY - logicalTileHeight
+        val maxY = highestTopY + visualOverhang
 
         return Rectangle(
             minX - padding,

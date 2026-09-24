@@ -41,7 +41,7 @@ object IsoObjectBounds {
         val left = projection.tileToWorld(minX, maxY).x -
                 projection.tileWidth / 2f
 
-        val front = projection.tileToWorld(
+        val surfaceAnchor = projection.surfaceAnchor(
             x = maxX,
             y = maxY,
             elevation = elevation
@@ -49,7 +49,7 @@ object IsoObjectBounds {
 
         return result.set(
             left + (footprintWidth - spriteWidth) / 2f + visual.offsetX,
-            front.y - projection.tileHeight + visual.offsetY,
+            surfaceAnchor.y + visual.offsetY,
             spriteWidth,
             spriteHeight
         )
