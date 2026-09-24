@@ -2,6 +2,7 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,7 +37,7 @@ class TilePickerTest {
         )
 
         assertEquals(
-            1 to 1,
+            TilePosition(1, 1),
             picker.pickWorld(position.x, position.y)
         )
     }
@@ -59,7 +60,7 @@ class TilePickerTest {
         )
 
         assertEquals(
-            2 to 0,
+            TilePosition(2, 0),
             picker.pickWorld(position.x, position.y)
         )
     }

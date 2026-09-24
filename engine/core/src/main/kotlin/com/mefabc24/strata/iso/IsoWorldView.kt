@@ -19,6 +19,7 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
+import com.mefabc24.strata.world.TilePosition
 
 /**
  * Determines how placed objects are picked.
@@ -85,7 +86,7 @@ class IsoWorldView(
         geometry = renderingConfig.tileGeometry
     )
 
-    var hoveredTile: Pair<Int, Int>? = null
+    var hoveredTile: TilePosition? = null
         private set
 
     private val worldBounds = projection.worldBounds(
@@ -293,7 +294,10 @@ class IsoWorldView(
     /**
      * Returns the tile at the given screen position, or null.
      */
-    fun pickTile(screenX: Float, screenY: Float): Pair<Int, Int>? {
+    fun pickTile(
+        screenX: Float,
+        screenY: Float
+    ): TilePosition? {
         return tilePicker.pick(screenX, screenY)
     }
 

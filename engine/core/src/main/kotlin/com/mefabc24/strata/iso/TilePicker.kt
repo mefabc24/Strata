@@ -2,6 +2,7 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Vector3
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 class TilePicker(
@@ -11,7 +12,10 @@ class TilePicker(
 ) {
     private val position = Vector3()
 
-    fun pick(screenX: Float, screenY: Float): Pair<Int, Int>? {
+    fun pick(
+        screenX: Float,
+        screenY: Float
+    ): TilePosition? {
         position.set(screenX, screenY, 0f)
         camera.unproject(position)
 
@@ -24,7 +28,7 @@ class TilePicker(
     internal fun pickWorld(
         worldX: Float,
         worldY: Float
-    ): Pair<Int, Int>? {
+    ): TilePosition? {
         for (elevation in world.maxHeight downTo 0) {
             val (x, y) = projection.worldToTile(
                 worldX = worldX,
@@ -36,7 +40,7 @@ class TilePicker(
                 world.getTile(x, y) != null &&
                 world.getHeight(x, y) == elevation
             ) {
-                return x to y
+                return TilePosition(x, y)
             }
         }
 

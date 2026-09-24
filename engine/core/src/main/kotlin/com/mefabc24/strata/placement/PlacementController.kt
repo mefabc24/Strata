@@ -4,6 +4,7 @@ import com.mefabc24.strata.render.PlacementPreview
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 /**
@@ -21,7 +22,7 @@ class PlacementController(
     /**
      * Updates the preview for the currently hovered tile.
      */
-    fun update(hoveredTile: Pair<Int, Int>?) {
+    fun update(hoveredTile: TilePosition?) {
         val placeable = selectedPlaceable
 
         preview = if (hoveredTile != null && placeable != null) {

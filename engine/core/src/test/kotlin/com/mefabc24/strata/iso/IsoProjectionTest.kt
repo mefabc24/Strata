@@ -1,5 +1,6 @@
 package com.mefabc24.strata.iso
 
+import com.mefabc24.strata.world.TilePosition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -52,7 +53,10 @@ class IsoProjectionTest {
                     position.y
                 )
 
-                assertEquals(x to y, result)
+                assertEquals(
+                    TilePosition(x, y),
+                    result
+                )
             }
         }
     }

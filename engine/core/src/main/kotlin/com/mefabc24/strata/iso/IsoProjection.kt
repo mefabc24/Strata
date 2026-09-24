@@ -2,6 +2,7 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
+import com.mefabc24.strata.world.TilePosition
 import kotlin.math.floor
 
 class IsoProjection(
@@ -45,11 +46,14 @@ class IsoProjection(
     fun worldToTile(
         worldX: Float,
         worldY: Float
-    ): Pair<Int, Int> {
+    ): TilePosition {
         val x = worldX / tileWidth - worldY / tileHeight
         val y = -worldX / tileWidth - worldY / tileHeight
 
-        return floor(x).toInt() to floor(y).toInt()
+        return TilePosition(
+            x = floor(x).toInt(),
+            y = floor(y).toInt()
+        )
     }
 
     fun worldBounds(
