@@ -38,8 +38,8 @@ data class StrataUiTheme(
             "The separator style name must not be blank."
         }
 
-        require(spacing >= 0f) {
-            "UI spacing must be non-negative."
+        require(spacing.isFinite() && spacing >= 0f) {
+            "UI spacing must be finite and non-negative."
         }
     }
 }
@@ -55,8 +55,13 @@ data class StrataInsets(
 ) {
 
     init {
-        require(top >= 0f && left >= 0f && bottom >= 0f && right >= 0f) {
-            "UI insets must be non-negative."
+        require(
+            top.isFinite() && top >= 0f &&
+                left.isFinite() && left >= 0f &&
+                bottom.isFinite() && bottom >= 0f &&
+                right.isFinite() && right >= 0f
+        ) {
+            "UI insets must be finite and non-negative."
         }
     }
 
@@ -127,8 +132,8 @@ class StrataSeparatorStyle {
         drawable: Drawable,
         thickness: Float = 1f
     ) {
-        require(thickness > 0f) {
-            "Separator thickness must be positive."
+        require(thickness.isFinite() && thickness > 0f) {
+            "Separator thickness must be finite and positive."
         }
 
         this.drawable = drawable

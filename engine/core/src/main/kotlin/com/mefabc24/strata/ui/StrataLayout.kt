@@ -54,8 +54,8 @@ abstract class StrataLayout internal constructor(
         get() = context.theme
 
     init {
-        require(spacing >= 0f) {
-            "Layout spacing must be non-negative."
+        require(spacing.isFinite() && spacing >= 0f) {
+            "Layout spacing must be finite and non-negative."
         }
 
         defaults().space(spacing)
@@ -333,12 +333,12 @@ class StrataPanel internal constructor(
 
     private fun applyStyle(style: StrataPanelStyle) {
         require(
-            style.padTop >= 0f &&
-                style.padLeft >= 0f &&
-                style.padBottom >= 0f &&
-                style.padRight >= 0f
+            style.padTop.isFinite() && style.padTop >= 0f &&
+                style.padLeft.isFinite() && style.padLeft >= 0f &&
+                style.padBottom.isFinite() && style.padBottom >= 0f &&
+                style.padRight.isFinite() && style.padRight >= 0f
         ) {
-            "Panel padding must be non-negative."
+            "Panel padding must be finite and non-negative."
         }
 
         this.style = StrataPanelStyle(style)

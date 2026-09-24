@@ -155,8 +155,8 @@ class StrataSeparator(
     }
 
     fun setStyle(style: StrataSeparatorStyle) {
-        require(style.thickness > 0f) {
-            "Separator thickness must be positive."
+        require(style.thickness.isFinite() && style.thickness > 0f) {
+            "Separator thickness must be finite and positive."
         }
 
         val drawable = requireNotNull(style.drawable) {
@@ -194,8 +194,11 @@ class StrataSpacer(
 ) : Widget() {
 
     init {
-        require(spacerWidth >= 0f && spacerHeight >= 0f) {
-            "Spacer dimensions must be non-negative."
+        require(
+            spacerWidth.isFinite() && spacerWidth >= 0f &&
+                spacerHeight.isFinite() && spacerHeight >= 0f
+        ) {
+            "Spacer dimensions must be finite and non-negative."
         }
     }
 

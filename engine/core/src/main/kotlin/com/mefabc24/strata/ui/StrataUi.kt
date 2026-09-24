@@ -214,6 +214,11 @@ class StrataUi(
      */
     fun update(delta: Float) {
         checkActive()
+
+        require(delta.isFinite() && delta >= 0f) {
+            "UI delta time must be finite and non-negative."
+        }
+
         stage.act(delta)
     }
 
