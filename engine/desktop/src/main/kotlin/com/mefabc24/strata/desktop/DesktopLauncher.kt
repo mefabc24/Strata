@@ -4,28 +4,66 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.mefabc24.strata.StrataEngine
 import com.mefabc24.strata.StrataGame
-import com.badlogic.gdx.graphics.Color
+
+/** Basic settings owned by the LWJGL3 desktop backend. */
+class DesktopSettings {
+    var title: String = "Strata Engine"
+        set(value) {
+            require(value.isNotBlank()) {
+                "Desktop window title must not be blank."
+            }
+
+            field = value
+        }
+
+    var width: Int = 1280
+        set(value) {
+            require(value > 0) {
+                "Desktop window width must be positive."
+            }
+
+            field = value
+        }
+
+    var height: Int = 720
+        set(value) {
+            require(value > 0) {
+                "Desktop window height must be positive."
+            }
+
+            field = value
+        }
+
+    var vsync: Boolean = true
+
+    var foregroundFps: Int = 60
+        set(value) {
+            require(value > 0) {
+                "Desktop foreground FPS must be positive."
+            }
+
+            field = value
+        }
+
+    internal fun applyTo(config: Lwjgl3ApplicationConfiguration) {
+        config.setTitle(title)
+        config.setWindowedMode(width, height)
+        config.useVsync(vsync)
+        config.setForegroundFPS(foregroundFps)
+    }
+}
 
 object DesktopLauncher {
     fun launch(
         game: StrataGame,
-        title: String = "Strata Engine",
-        width: Int = 1280,
-        height: Int = 720,
-        backgroundColor: Color = Color(0.1f, 0.1f, 0.1f, 1f)
+        configure: DesktopSettings.() -> Unit = {}
     ) {
-        val config = Lwjgl3ApplicationConfiguration().apply {
-            setTitle(title)
-            setWindowedMode(width, height)
-            useVsync(true)
-            setForegroundFPS(60)
-        }
+        val settings = DesktopSettings().apply(configure)
+        val config = Lwjgl3ApplicationConfiguration()
+        settings.applyTo(config)
 
         Lwjgl3Application(
-            StrataEngine(
-                game = game,
-                backgroundColor = backgroundColor
-            ),
+            StrataEngine(game),
             config
         )
     }
