@@ -84,7 +84,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             rendering {
                 tileGeometry {
                     width = 32f
-                    height = 32f
+                    height = 24f
                 }
             }
 
