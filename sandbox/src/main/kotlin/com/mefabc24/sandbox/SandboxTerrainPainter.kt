@@ -39,6 +39,10 @@ class SandboxTerrainPainter(
 
     var terrain: TerrainType = TerrainType.WATER
 
+    /** Overlay layer identifiers in world rendering order. */
+    val overlayLayerIds: List<String>
+        get() = world.overlayLayerIds
+
     private var activeStroke: Stroke? = null
     private var lastTile: Pair<Int, Int>? = null
 

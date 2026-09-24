@@ -30,18 +30,41 @@ private enum class SandboxMode(
     PAINT("Paint")
 }
 
-private enum class SandboxPaintLayer(
-    val displayName: String,
+private sealed interface SandboxPaintLayer {
     val layerId: String?
-) {
-    GROUND("Ground", null),
-    DEMO_OVERLAY("Demo overlay", "demo");
 
-    companion object {
-        fun from(layerId: String?): SandboxPaintLayer? {
-            return entries.firstOrNull {
-                it.layerId == layerId
-            }
+    data object Ground : SandboxPaintLayer {
+        override val layerId: String? = null
+    }
+
+    data class Overlay(
+        override val layerId: String
+    ) : SandboxPaintLayer
+
+    val displayName: String
+        get() = when (this) {
+            Ground -> "Ground"
+            is Overlay -> layerId.toDisplayName()
+        }
+}
+
+private fun String.toDisplayName(): String {
+    return replace('-', ' ')
+        .replace('_', ' ')
+        .lowercase()
+        .replaceFirstChar {
+            it.titlecase()
+        }
+}
+
+private fun paintLayersFor(
+    overlayLayerIds: List<String>
+): List<SandboxPaintLayer> {
+    return buildList {
+        add(SandboxPaintLayer.Ground)
+
+        for (id in overlayLayerIds) {
+            add(SandboxPaintLayer.Overlay(id))
         }
     }
 }
@@ -74,6 +97,8 @@ class SandboxUi(
         }
     }
 
+    private val paintLayers = paintLayersFor(painter.overlayLayerIds)
+
     private val modeSelection = ui.selectionGroup(
         options = SandboxMode.entries,
         initialSelection = if (painter.enabled) {
@@ -97,9 +122,10 @@ class SandboxUi(
     }
 
     private val layerSelection = ui.selectionGroup(
-        options = SandboxPaintLayer.entries,
-        initialSelection = SandboxPaintLayer.from(painter.layerId)
-            ?: SandboxPaintLayer.GROUND
+        options = paintLayers,
+        initialSelection = paintLayers.first {
+            it.layerId == painter.layerId
+        }
     ) { selected ->
         painter.layerId = selected.layerId
         updateStatus()
@@ -211,10 +237,10 @@ class SandboxUi(
                         }
                     }
 
-                    label("Paint layer")
+                    label("Layer")
 
-                    row {
-                        for (layer in SandboxPaintLayer.entries) {
+                    grid(columns = 2) {
+                        for (layer in paintLayers) {
                             selectableButton(
                                 text = layer.displayName,
                                 value = layer,
@@ -260,8 +286,10 @@ class SandboxUi(
             terrainSelection.select(painter.terrain)
         }
 
-        SandboxPaintLayer.from(painter.layerId)?.let {
-            layerSelection.select(it)
+        paintLayers.firstOrNull {
+            it.layerId == painter.layerId
+        }?.let { layer ->
+            layerSelection.select(layer)
         }
 
         buildEntries.firstOrNull { entry ->
