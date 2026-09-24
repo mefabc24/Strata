@@ -250,15 +250,11 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 true
             },
 
-            // Switch between ground and the demo overlay.
+            // Cycle ground and overlays in world rendering order.
             WorldInputBinding.NoPicking(
                 trigger = WorldInputTrigger.KeyDown(Input.Keys.O)
             ) {
-                painter.layerId = if (painter.layerId == null) {
-                    "demo"
-                } else {
-                    null
-                }
+                painter.cycleLayer()
 
                 println("Selected layer: ${painter.layerId ?: "ground"}")
                 true

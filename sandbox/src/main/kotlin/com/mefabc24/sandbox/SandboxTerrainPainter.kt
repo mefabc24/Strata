@@ -60,6 +60,14 @@ class SandboxTerrainPainter(
     val overlayLayerIds: List<String>
         get() = world.overlayLayerIds
 
+    /** Selects the next ground or overlay layer in world rendering order. */
+    fun cycleLayer() {
+        val layers = listOf<String?>(null) + overlayLayerIds
+        val currentIndex = layers.indexOf(layerId)
+
+        layerId = layers[(currentIndex + 1) % layers.size]
+    }
+
     private var activeStroke: Stroke? = null
     private var lastTile: Pair<Int, Int>? = null
 

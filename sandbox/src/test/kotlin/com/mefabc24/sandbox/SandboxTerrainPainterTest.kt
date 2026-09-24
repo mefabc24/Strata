@@ -100,6 +100,24 @@ class SandboxTerrainPainterTest {
     }
 
     @Test
+    fun `layer cycling follows dynamic world order`() {
+        val world = world().apply {
+            addOverlayLayer("demo")
+            addOverlayLayer("roads")
+        }
+        val painter = painter(world)
+
+        painter.cycleLayer()
+        assertEquals("demo", painter.layerId)
+
+        painter.cycleLayer()
+        assertEquals("roads", painter.layerId)
+
+        painter.cycleLayer()
+        assertNull(painter.layerId)
+    }
+
+    @Test
     fun `changing layer cancels the active stroke`() {
         val world = world().apply {
             addOverlayLayer("demo")
