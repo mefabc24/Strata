@@ -49,6 +49,26 @@ class IsoGridRenderer(
             shapes.end()
         }
 
+        if (
+            hoveredTile != null &&
+            settings.hoverBackgroundColor != null
+        ) {
+            val position = projection.tileToWorld(
+                hoveredTile.x,
+                hoveredTile.y
+            )
+
+            shapes.begin(ShapeRenderer.ShapeType.Filled)
+            shapes.setColor(settings.hoverBackgroundColor)
+
+            drawFilledTile(
+                x = position.x,
+                y = position.y
+            )
+
+            shapes.end()
+        }
+
         val effectiveLineWidth =
             (settings.lineWidth / camera.zoom)
                 .coerceAtLeast(1f)

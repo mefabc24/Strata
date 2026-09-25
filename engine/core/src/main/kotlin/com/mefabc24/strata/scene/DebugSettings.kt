@@ -73,6 +73,11 @@ class DebugGridSettings {
             field = value?.cpy()
         }
 
+    var hoverBackgroundColor: Color? = null
+        set(value) {
+            field = value?.cpy()
+        }
+
     internal fun copy(): DebugGridSettings {
         return DebugGridSettings().also {
             it.enabled = enabled
@@ -81,6 +86,7 @@ class DebugGridSettings {
             it.hoverColor = hoverColor
             it.lineWidth = lineWidth
             it.backgroundColor = backgroundColor
+            it.hoverBackgroundColor = hoverBackgroundColor
         }
     }
 }
