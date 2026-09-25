@@ -75,10 +75,8 @@ internal object IsoRenderOrder {
     ): Comparator<T> {
         return compareByDescending<T> {
             it.sortVolume.projectedFrontY(projection)
-        }.thenBy { it.sortVolume.minZ }
-            .thenBy { it.sortVolume.minY }
+        }.thenBy { it.sortVolume.minY }
             .thenBy { it.sortVolume.minX }
-            .thenBy { it.sortVolume.maxZ }
             .thenBy { it.sortVolume.maxY }
             .thenBy { it.sortVolume.maxX }
             .thenBy { it.sortKind }

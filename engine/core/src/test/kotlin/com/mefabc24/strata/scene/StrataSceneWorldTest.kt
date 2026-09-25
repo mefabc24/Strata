@@ -395,11 +395,7 @@ class StrataSceneWorldTest {
             hoveredTile = nextHoveredTile
         }
 
-        override fun render(
-            raisedTile: TilePosition?,
-            raiseOffsetY: Float,
-            preview: PlacementPreview?
-        ) {
+        override fun render(preview: PlacementPreview?) {
             renderedPreviews += preview
         }
 

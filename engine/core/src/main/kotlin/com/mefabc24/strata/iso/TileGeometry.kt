@@ -17,12 +17,6 @@ data class TileGeometry(
     val faceHeight: Float
         get() = width / 2f
 
-    /**
-     * Vertical distance between two terrain elevation levels.
-     */
-    val elevationStep: Float
-        get() = height - faceHeight
-
     internal fun validate() {
         require(width.isFinite() && width > 0f) {
             "Tile width must be finite and positive."

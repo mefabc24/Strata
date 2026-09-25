@@ -14,7 +14,6 @@ class TerrainDepthCullingTest {
             tileHeight = 32f,
             logicalTileHeight = 64f,
             maxSpriteHeight = 160f,
-            raisedOffsetY = 0f,
             maxDepth = 398
         )
 
@@ -25,19 +24,6 @@ class TerrainDepthCullingTest {
     }
 
     @Test
-    fun `accounts for positive and negative raised offsets`() {
-        val normal = visibleDepths(0f)
-        val raised = visibleDepths(100f)
-        val lowered = visibleDepths(-100f)
-
-        assertFalse(12 in normal)
-        assertTrue(12 in raised)
-
-        assertFalse(0 in normal)
-        assertTrue(0 in lowered)
-    }
-
-    @Test
     fun `unknown sprite height preserves potentially visible deep terrain`() {
         val depths = TerrainDepthCulling.visibleDepths(
             visibleBottom = -120f,
@@ -45,7 +31,6 @@ class TerrainDepthCullingTest {
             tileHeight = 32f,
             logicalTileHeight = 64f,
             maxSpriteHeight = Float.POSITIVE_INFINITY,
-            raisedOffsetY = 0f,
             maxDepth = 398
         )
 
@@ -55,30 +40,16 @@ class TerrainDepthCullingTest {
     }
 
     @Test
-    fun `elevation range keeps supporting fill segments visible`() {
+    fun `compact geometry keeps padded terrain sprites visible`() {
         val depths = TerrainDepthCulling.visibleDepths(
             visibleBottom = -96f,
             visibleTop = -88f,
             tileHeight = 16f,
             logicalTileHeight = 24f,
             maxSpriteHeight = 32f,
-            raisedOffsetY = 0f,
-            maxDepth = 20,
-            maxElevationOffset = 24f
+            maxDepth = 20
         )
 
         assertTrue(10 in depths)
-    }
-
-    private fun visibleDepths(offset: Float): IntRange {
-        return TerrainDepthCulling.visibleDepths(
-            visibleBottom = -120f,
-            visibleTop = -110f,
-            tileHeight = 32f,
-            logicalTileHeight = 64f,
-            maxSpriteHeight = 64f,
-            raisedOffsetY = offset,
-            maxDepth = 398
-        )
     }
 }

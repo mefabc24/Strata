@@ -47,52 +47,21 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `elevated terrain creates only one terrain cell`() {
+    fun `each world coordinate creates one flat terrain cell`() {
         val world = world()
-        world.terrain.setHeight(1, 1, 4)
 
         val plan = WorldRenderPlan.create(world, projection)
 
         assertEquals(world.width * world.height, plan.size)
         assertEquals(
-            TerrainCell(x = 1, y = 1, elevation = 4),
+            TerrainCell(x = 1, y = 1),
             plan.single { it is TerrainCell && it.x == 1 && it.y == 1 }
         )
     }
 
     @Test
-    fun `ascending and descending staircases remain deterministic`() {
-        for (heights in listOf(
-            listOf(0, 1, 2, 3),
-            listOf(3, 2, 1, 0)
-        )) {
-            val world = world(size = 4)
-
-            for ((x, height) in heights.withIndex()) {
-                world.terrain.setHeight(x, 0, height)
-            }
-
-            val first = WorldRenderPlan.create(world, projection)
-            val second = WorldRenderPlan.create(world, projection)
-            val cells = heights.indices.map { first.indexOfCell(it, 0) }
-
-            assertEquals(first, second)
-            assertEquals(cells.sorted(), cells)
-        }
-    }
-
-    @Test
     fun `house on flat ground follows every supporting terrain cell`() {
         val world = world()
-        val house = requireNotNull(world.place(House(), 1, 1))
-
-        assertSupportingTerrainBeforeObject(world, house)
-    }
-
-    @Test
-    fun `house on height three follows every supporting terrain cell`() {
-        val world = world()
-        world.terrain.setHeight(1..4, 1..4, 3)
         val house = requireNotNull(world.place(House(), 1, 1))
 
         assertSupportingTerrainBeforeObject(world, house)
@@ -119,10 +88,9 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `object behind high terrain renders before its cell`() {
+    fun `object behind foreground terrain renders before its cell`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))
-        world.terrain.setHeight(4, 2, 3)
 
         val plan = WorldRenderPlan.create(world, projection)
         val treeIndex = plan.indexOfObject(tree)
@@ -134,9 +102,8 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `object in front of high terrain renders after its cell`() {
+    fun `object in front of background terrain renders after its cell`() {
         val world = world()
-        world.terrain.setHeight(1, 2, 3)
         val tree = requireNotNull(world.place(Tree(), 4, 2))
 
         val plan = WorldRenderPlan.create(world, projection)
@@ -149,14 +116,8 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `random uneven terrain produces a stable complete plan`() {
+    fun `flat terrain produces a stable complete plan`() {
         val world = world(size = 12)
-
-        for (y in 0 until world.height) {
-            for (x in 0 until world.width) {
-                world.terrain.setHeight(x, y, (x * 7 + y * 11) % 6)
-            }
-        }
 
         val first = WorldRenderPlan.create(world, projection)
         repeat(5) {
@@ -176,15 +137,6 @@ class WorldRenderPlanTest {
             requireNotNull(world.place(Tree(), 35, 18)),
             requireNotNull(world.place(Tree(), 44, 44))
         )
-        val occupied = objects.flatMap(PlacedObject::occupiedTiles).toSet()
-
-        for (y in 0 until world.height) {
-            for (x in 0 until world.width) {
-                if (TilePosition(x, y) !in occupied) {
-                    world.terrain.setHeight(x, y, (x * 3 + y * 5) % 5)
-                }
-            }
-        }
 
         val metrics = IsoRenderOrderMetrics()
         val first = WorldRenderPlan.create(world, projection, metrics = metrics)
@@ -193,10 +145,7 @@ class WorldRenderPlanTest {
         assertEquals(objects.size * (objects.size - 1) / 2, metrics.relationChecks)
         assertTrue(metrics.relationChecks < 100)
 
-        repeat(10) { edit ->
-            val position = TilePosition(10 + edit, 40)
-            world.terrain.setHeight(position.x, position.y, edit % 7)
-
+        repeat(10) {
             val nextMetrics = IsoRenderOrderMetrics()
             val firstPlan = WorldRenderPlan.create(
                 world,

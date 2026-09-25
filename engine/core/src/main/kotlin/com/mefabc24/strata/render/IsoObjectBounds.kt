@@ -14,7 +14,6 @@ object IsoObjectBounds {
         placed: PlacedObject,
         visual: ObjectVisual,
         result: Rectangle,
-        elevation: Int = 0,
         objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
     ): Rectangle {
         val occupied = placed.occupiedTiles()
@@ -42,11 +41,7 @@ object IsoObjectBounds {
         val left = projection.tileToWorld(minX, maxY).x -
                 projection.tileWidth / 2f
 
-        val surfaceAnchor = projection.surfaceAnchor(
-            x = maxX,
-            y = maxY,
-            elevation = elevation
-        )
+        val surfaceAnchor = projection.surfaceAnchor(maxX, maxY)
 
         return result.set(
             left + (footprintWidth - spriteWidth) / 2f +

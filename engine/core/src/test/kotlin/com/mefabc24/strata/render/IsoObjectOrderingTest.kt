@@ -84,27 +84,10 @@ class IsoObjectOrderingTest {
         )
     }
 
-    @Test
-    fun `fallback accounts for terrain elevation`() {
-        val flat = placed(SmallObject(), x = 2, y = 0)
-        val elevated = placed(SmallObject(), x = 0, y = 2)
-
-        assertEquals(
-            listOf(elevated, flat),
-            order(flat, elevated) { placed ->
-                if (placed === elevated) 2 else 0
-            }
-        )
-    }
-
-    private fun order(
-        vararg placed: PlacedObject,
-        elevationFor: (PlacedObject) -> Int = { 0 }
-    ): List<PlacedObject> {
+    private fun order(vararg placed: PlacedObject): List<PlacedObject> {
         return IsoObjectOrdering.backToFront(
             objects = placed.toList(),
-            projection = projection,
-            elevationFor = elevationFor
+            projection = projection
         )
     }
 

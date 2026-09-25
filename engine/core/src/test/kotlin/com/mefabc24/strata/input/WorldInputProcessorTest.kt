@@ -1,7 +1,6 @@
 package com.mefabc24.strata.input
 
 import com.badlogic.gdx.Input
-import com.mefabc24.strata.iso.TilePickingMode
 import com.mefabc24.strata.world.TilePosition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,15 +12,13 @@ class WorldInputProcessorTest {
     @Test
     fun `mouse down and drag use the same tile picker`() {
         val pickedScreens = mutableListOf<Pair<Float, Float>>()
-        val pickedModes = mutableListOf<TilePickingMode>()
         val dispatchedTiles = mutableListOf<Pair<Int, Int>>()
         val processor = WorldInputProcessor(
             bindings = listOf(
                 WorldInputBinding.Tile(
                     trigger = WorldInputTrigger.MouseDown(
                         Input.Buttons.LEFT
-                    ),
-                    mode = TilePickingMode.BASE_GRID
+                    )
                 ) { x, y ->
                     dispatchedTiles += x to y
                     true
@@ -29,16 +26,14 @@ class WorldInputProcessorTest {
                 WorldInputBinding.Tile(
                     trigger = WorldInputTrigger.MouseDrag(
                         Input.Buttons.LEFT
-                    ),
-                    mode = TilePickingMode.BASE_GRID
+                    )
                 ) { x, y ->
                     dispatchedTiles += x to y
                     true
                 }
             ),
-            pickTile = { x, y, mode ->
+            pickTile = { x, y ->
                 pickedScreens += x to y
-                pickedModes += mode
                 TilePosition(x.toInt(), y.toInt())
             },
             pickObject = { _, _, _ -> null }
@@ -65,21 +60,14 @@ class WorldInputProcessorTest {
             pickedScreens
         )
         assertEquals(
-            listOf(
-                TilePickingMode.BASE_GRID,
-                TilePickingMode.BASE_GRID
-            ),
-            pickedModes
-        )
-        assertEquals(
             listOf(2 to 3, 4 to 5),
             dispatchedTiles
         )
     }
 
     @Test
-    fun `tile bindings use surface picking by default`() {
-        var pickedMode: TilePickingMode? = null
+    fun `tile binding uses the configured flat tile picker`() {
+        var picks = 0
         val processor = WorldInputProcessor(
             bindings = listOf(
                 WorldInputBinding.Tile(
@@ -88,8 +76,8 @@ class WorldInputProcessorTest {
                     )
                 ) { _, _ -> true }
             ),
-            pickTile = { _, _, mode ->
-                pickedMode = mode
+            pickTile = { _, _ ->
+                picks++
                 TilePosition(0, 0)
             },
             pickObject = { _, _, _ -> null }
@@ -97,7 +85,7 @@ class WorldInputProcessorTest {
 
         processor.touchDown(0, 0, 0, Input.Buttons.LEFT)
 
-        assertEquals(TilePickingMode.SURFACE, pickedMode)
+        assertEquals(1, picks)
     }
 
     @Test
@@ -115,7 +103,7 @@ class WorldInputProcessorTest {
                     true
                 }
             ),
-            pickTile = { _, _, _ -> null },
+            pickTile = { _, _ -> null },
             pickObject = { _, _, _ -> null }
         )
 
@@ -165,7 +153,7 @@ class WorldInputProcessorTest {
                     true
                 }
             ),
-            pickTile = { _, _, _ -> null },
+            pickTile = { _, _ -> null },
             pickObject = { _, _, _ -> null }
         )
 

@@ -15,30 +15,7 @@ class World(
         Array(width) { x -> createTile(x, y) }
     }
 
-    /**
-     * Terrain elevation for each world coordinate.
-     *
-     * All tiles start at elevation zero.
-     */
-    private val heights = Array(height) {
-        IntArray(width)
-    }
-
-    /**
-     * Highest terrain level currently present in the world.
-     */
-    var maxHeight: Int = 0
-        private set
-
-    /**
-     * Changes whenever terrain elevation is modified.
-     */
-    var heightVersion: Long = 0L
-        private set
-
-    /**
-     * Provides safe terrain elevation modifications.
-     */
+    /** Provides ground terrain modification operations. */
     val terrain = TerrainManipulator(this)
 
     /**
@@ -116,15 +93,9 @@ class World(
     ): Boolean {
         if (placedObject in objects) return false
 
-        val elevation = getHeight(
-            placedObject.x,
-            placedObject.y
-        ) ?: return false
-
         return placedObject.occupiedTiles().all { (x, y) ->
             getTile(x, y) != null &&
-                    getObjectAt(x, y) == null &&
-                    getHeight(x, y) == elevation
+                    getObjectAt(x, y) == null
         }
     }
 
@@ -164,10 +135,6 @@ class World(
 
     fun getTile(position: TilePosition): Tile? {
         return getTile(position.x, position.y)
-    }
-
-    fun getHeight(position: TilePosition): Int? {
-        return getHeight(position.x, position.y)
     }
 
     fun canPlace(
@@ -277,94 +244,6 @@ class World(
         }
 
         tiles[y][x] = tile
-    }
-
-    /**
-     * Returns the terrain height at the given position.
-     *
-     * Returns null when the position is outside the world.
-     */
-    fun getHeight(x: Int, y: Int): Int? {
-        return heights.getOrNull(y)?.getOrNull(x)
-    }
-
-    /**
-     * Sets the terrain height at the given position.
-     *
-     * Height zero represents the base terrain level.
-     */
-    internal fun setHeight(
-        x: Int,
-        y: Int,
-        level: Int
-    ) {
-        require(x in 0 until width && y in 0 until height) {
-            "Tile position ($x, $y) is outside the world."
-        }
-
-        require(level >= 0) {
-            "Terrain height must not be negative."
-        }
-
-        applyHeightChanges(
-            mapOf(
-                TilePosition(x, y) to level
-            )
-        )
-    }
-
-    /**
-     * Applies a validated terrain elevation change as one operation.
-     */
-    internal fun applyHeightChanges(
-        changes: Map<TilePosition, Int>
-    ) {
-        if (changes.isEmpty()) return
-
-        var changed = false
-        var requiresMaxHeightRefresh = false
-        var highestNewLevel = maxHeight
-
-        for ((position, level) in changes) {
-            val (x, y) = position
-
-            require(x in 0 until width && y in 0 until height)
-            require(level >= 0)
-
-            val previousLevel = heights[y][x]
-
-            if (previousLevel == level) {
-                continue
-            }
-
-            if (
-                previousLevel == maxHeight &&
-                level < previousLevel
-            ) {
-                requiresMaxHeightRefresh = true
-            }
-
-            heights[y][x] = level
-
-            highestNewLevel = maxOf(
-                highestNewLevel,
-                level
-            )
-
-            changed = true
-        }
-
-        if (!changed) return
-
-        maxHeight = if (requiresMaxHeightRefresh) {
-            heights.maxOf { row ->
-                row.maxOrNull() ?: 0
-            }
-        } else {
-            highestNewLevel
-        }
-
-        heightVersion++
     }
 
     /**

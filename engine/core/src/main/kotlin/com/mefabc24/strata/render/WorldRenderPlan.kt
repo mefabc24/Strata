@@ -16,16 +16,13 @@ internal sealed interface WorldRenderPrimitive :
 /** One complete authored terrain sprite at its logical world position. */
 internal data class TerrainCell(
     val x: Int,
-    val y: Int,
-    val elevation: Int
+    val y: Int
 ) : WorldRenderPrimitive {
     override val sortVolume = IsoSortVolume(
         minX = x,
         maxX = x + 1,
         minY = y,
-        maxY = y + 1,
-        minZ = elevation,
-        maxZ = elevation
+        maxY = y + 1
     )
 
     override val sortKind: Int = 0
@@ -34,8 +31,7 @@ internal data class TerrainCell(
 
 /** A placed object represented by its complete footprint and support level. */
 internal data class WorldObjectPrimitive(
-    val placedObject: PlacedObject,
-    val supportElevation: Int
+    val placedObject: PlacedObject
 ) : WorldRenderPrimitive {
     val occupiedTiles: Set<TilePosition> = placedObject.occupiedTiles()
 
@@ -43,9 +39,7 @@ internal data class WorldObjectPrimitive(
         minX = occupiedTiles.minOf(TilePosition::x),
         maxX = occupiedTiles.maxOf(TilePosition::x) + 1,
         minY = occupiedTiles.minOf(TilePosition::y),
-        maxY = occupiedTiles.maxOf(TilePosition::y) + 1,
-        minZ = supportElevation,
-        maxZ = supportElevation + 1
+        maxY = occupiedTiles.maxOf(TilePosition::y) + 1
     )
 
     override val sortKind: Int = 2
@@ -76,11 +70,10 @@ internal object WorldRenderPlan {
 
             for (x in minX..maxX) {
                 val y = depth - x
-                val elevation = world.getHeight(x, y) ?: continue
                 world.getTile(x, y) ?: continue
 
                 val cellIndex = primitives.size
-                primitives += TerrainCell(x, y, elevation)
+                primitives += TerrainCell(x, y)
                 terrainIndexByCell[y * world.width + x] = cellIndex
             }
         }
@@ -89,10 +82,7 @@ internal object WorldRenderPlan {
 
         for (placed in world.getObjects()) {
             val objectIndex = primitives.size
-            val primitive = WorldObjectPrimitive(
-                placedObject = placed,
-                supportElevation = world.getHeight(placed.x, placed.y) ?: 0
-            )
+            val primitive = WorldObjectPrimitive(placed)
 
             primitives += primitive
             objectIndices += objectIndex

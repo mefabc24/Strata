@@ -32,23 +32,12 @@ class IsoProjection(
         get() = geometry.height
 
     /**
-     * Vertical world-space distance between two terrain levels.
-     */
-    val elevationStep: Float
-        get() = geometry.elevationStep
-
-    /**
      * Projects a tile to the back vertex of its logical top face.
      */
-    fun tileToWorld(
-        x: Int,
-        y: Int,
-        elevation: Int = 0
-    ): Vector2 {
+    fun tileToWorld(x: Int, y: Int): Vector2 {
         return Vector2(
             (x - y) * tileWidth / 2f,
-            -(x + y) * tileHeight / 2f +
-                    elevation * elevationStep
+            -(x + y) * tileHeight / 2f
         )
     }
 
@@ -57,12 +46,8 @@ class IsoProjection(
      *
      * This is the ground-contact anchor used by placed objects.
      */
-    internal fun surfaceAnchor(
-        x: Int,
-        y: Int,
-        elevation: Int = 0
-    ): Vector2 {
-        return tileToWorld(x, y, elevation).add(0f, -tileHeight)
+    internal fun surfaceAnchor(x: Int, y: Int): Vector2 {
+        return tileToWorld(x, y).add(0f, -tileHeight)
     }
 
     fun worldToTile(
@@ -78,69 +63,20 @@ class IsoProjection(
         )
     }
 
-    /**
-     * Returns whether a world-space point lies within a tile's logical visual
-     * prism, including its top face and terrain sides.
-     */
-    internal fun containsLogicalTile(
-        worldX: Float,
-        worldY: Float,
-        x: Int,
-        y: Int,
-        elevation: Int
-    ): Boolean {
-        val tileTopX = (x - y) * tileWidth / 2f
-        val tileTopY = -(x + y) * tileHeight / 2f +
-                elevation * elevationStep
-        val depth = tileTopY - worldY
-
-        if (depth < -PICKING_EPSILON ||
-            depth > logicalTileHeight + PICKING_EPSILON
-        ) {
-            return false
-        }
-
-        val halfWidth = tileWidth / 2f
-        val halfFaceHeight = tileHeight / 2f
-        val lowerTaperStart = halfFaceHeight + elevationStep
-
-        val widthAtDepth = when {
-            depth <= halfFaceHeight -> {
-                halfWidth * (depth.coerceAtLeast(0f) / halfFaceHeight)
-            }
-
-            depth <= lowerTaperStart -> halfWidth
-
-            else -> {
-                val remainingDepth =
-                    (logicalTileHeight - depth).coerceAtLeast(0f)
-
-                halfWidth * remainingDepth / halfFaceHeight
-            }
-        }
-
-        return kotlin.math.abs(worldX - tileTopX) <=
-                widthAtDepth + PICKING_EPSILON
-    }
-
     fun worldBounds(
         width: Int,
         height: Int,
         padding: Float = 0f,
-        maxElevation: Int = 0,
         maxSpriteHeight: Float = tileHeight
     ): Rectangle {
         require(width > 0 && height > 0)
         require(padding >= 0f && padding.isFinite())
-        require(maxElevation >= 0)
         require(maxSpriteHeight > 0f && maxSpriteHeight.isFinite())
 
         val halfWidth = tileWidth / 2f
 
         val minX = -(height - 1) * halfWidth - halfWidth
         val maxX = (width - 1) * halfWidth + halfWidth
-
-        val highestTopY = maxElevation * elevationStep
 
         val deepestTopY =
             -(width + height - 2) * tileHeight / 2f
@@ -151,7 +87,7 @@ class IsoProjection(
         )
 
         val minY = deepestTopY - logicalTileHeight
-        val maxY = highestTopY + visualOverhang
+        val maxY = visualOverhang
 
         return Rectangle(
             minX - padding,
@@ -161,7 +97,4 @@ class IsoProjection(
         )
     }
 
-    private companion object {
-        const val PICKING_EPSILON = 0.0001f
-    }
 }

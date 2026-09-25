@@ -3,7 +3,6 @@ package com.mefabc24.strata.input
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputAdapter
 import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.iso.TilePickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 
@@ -12,11 +11,7 @@ import com.mefabc24.strata.world.TilePosition
  */
 class WorldInputProcessor(
     private val bindings: List<WorldInputBinding>,
-    private val pickTile: (
-        Float,
-        Float,
-        TilePickingMode
-    ) -> TilePosition?,
+    private val pickTile: (Float, Float) -> TilePosition?,
     private val pickObject: (
         Float,
         Float,
@@ -120,11 +115,7 @@ class WorldInputProcessor(
 
             val handled = when (binding) {
                 is WorldInputBinding.Tile -> {
-                    val tile = pickTile(
-                        screenX,
-                        screenY,
-                        binding.mode
-                    )
+                    val tile = pickTile(screenX, screenY)
 
                     if (tile != null) {
                         binding.action(tile.x, tile.y)

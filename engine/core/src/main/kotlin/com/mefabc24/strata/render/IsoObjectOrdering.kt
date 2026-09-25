@@ -8,14 +8,10 @@ internal object IsoObjectOrdering {
 
     fun backToFront(
         objects: Collection<PlacedObject>,
-        projection: IsoProjection,
-        elevationFor: (PlacedObject) -> Int
+        projection: IsoProjection
     ): List<PlacedObject> {
         val primitives = objects.map { placed ->
-            WorldObjectPrimitive(
-                placedObject = placed,
-                supportElevation = elevationFor(placed)
-            )
+            WorldObjectPrimitive(placed)
         }
         val candidates = buildList {
             for (first in primitives.indices) {

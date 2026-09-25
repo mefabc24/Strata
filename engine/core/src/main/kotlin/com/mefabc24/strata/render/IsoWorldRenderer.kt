@@ -7,7 +7,6 @@ import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
-import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 /**
@@ -35,7 +34,6 @@ class IsoWorldRenderer(
 
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
-    private var cachedHeightVersion = -1L
 
     private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
 
@@ -45,8 +43,6 @@ class IsoWorldRenderer(
         world: World,
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
-        raisedTile: TilePosition? = null,
-        raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         preview: PlacementPreview? = null,
         maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
@@ -57,8 +53,7 @@ class IsoWorldRenderer(
 
         if (
             cachedWorld !== world ||
-            cachedObjectVersion != world.objectVersion ||
-            cachedHeightVersion != world.heightVersion
+            cachedObjectVersion != world.objectVersion
         ) {
             normalRenderPlan = WorldRenderPlan.create(
                 world = world,
@@ -67,7 +62,6 @@ class IsoWorldRenderer(
 
             cachedWorld = world
             cachedObjectVersion = world.objectVersion
-            cachedHeightVersion = world.heightVersion
         }
 
         val viewWidth = camera.viewportWidth * camera.zoom
@@ -88,9 +82,7 @@ class IsoWorldRenderer(
             tileHeight = projection.tileHeight,
             logicalTileHeight = projection.logicalTileHeight,
             maxSpriteHeight = maxTerrainSpriteHeight,
-            raisedOffsetY = raiseOffsetY,
-            maxDepth = world.width + world.height - 2,
-            maxElevationOffset = world.maxHeight * projection.elevationStep
+            maxDepth = world.width + world.height - 2
         )
 
         val overlayIds = world.overlayLayerIds
@@ -110,15 +102,12 @@ class IsoWorldRenderer(
                         world = world,
                         item = item,
                         overlayIds = overlayIds,
-                        textureFor = textureFor,
-                        raisedTile = raisedTile,
-                        raiseOffsetY = raiseOffsetY
+                        textureFor = textureFor
                     )
                 }
 
                 is WorldObjectPrimitive -> {
                     renderObject(
-                        world = world,
                         placed = item.placedObject,
                         visual = objectVisualFor(item.placedObject),
                         preview = null
@@ -127,7 +116,6 @@ class IsoWorldRenderer(
 
                 is PreviewRenderItem -> {
                     renderObject(
-                        world = world,
                         placed = item.preview.placedObject,
                         visual = objectVisualFor(item.preview.placedObject),
                         preview = item.preview
@@ -148,17 +136,8 @@ class IsoWorldRenderer(
         world: World,
         item: TerrainCell,
         overlayIds: List<String>,
-        textureFor: (Tile) -> TextureRegion?,
-        raisedTile: TilePosition?,
-        raiseOffsetY: Float
+        textureFor: (Tile) -> TextureRegion?
     ) {
-        val offsetY = terrainOffsetY(
-            x = item.x,
-            y = item.y,
-            raisedTile = raisedTile,
-            raiseOffsetY = raiseOffsetY
-        )
-
         stats.terrainChecked++
 
         world.getTile(item.x, item.y)
@@ -167,9 +146,7 @@ class IsoWorldRenderer(
                 renderTerrainSprite(
                     x = item.x,
                     y = item.y,
-                    elevation = item.elevation,
-                    texture = texture,
-                    offsetY = offsetY
+                    texture = texture
                 )
             }
 
@@ -182,16 +159,13 @@ class IsoWorldRenderer(
                     renderTerrainSprite(
                         x = item.x,
                         y = item.y,
-                        elevation = item.elevation,
-                        texture = texture,
-                        offsetY = offsetY
+                        texture = texture
                     )
                 }
         }
     }
 
     private fun renderObject(
-        world: World,
         placed: PlacedObject,
         visual: ObjectVisual?,
         preview: PlacementPreview?
@@ -202,14 +176,11 @@ class IsoWorldRenderer(
 
         if (visual == null) return
 
-        val elevation = world.getHeight(placed.x, placed.y) ?: 0
-
         IsoObjectBounds.calculate(
             projection = projection,
             placed = placed,
             visual = visual,
             result = objectBounds,
-            elevation = elevation,
             objectSettings = objectSettings
         )
 
@@ -226,8 +197,7 @@ class IsoWorldRenderer(
         objectRenderer.render(
             batch = batch,
             placed = placed,
-            visual = visual,
-            elevation = elevation
+            visual = visual
         )
 
         if (preview == null) {
@@ -241,18 +211,14 @@ class IsoWorldRenderer(
     private fun renderTerrainSprite(
         x: Int,
         y: Int,
-        elevation: Int,
-        texture: TextureRegion,
-        offsetY: Float
+        texture: TextureRegion
     ) {
         IsoTerrainBounds.calculate(
             projection = projection,
             x = x,
             y = y,
             texture = texture,
-            result = tileBounds,
-            offsetY = offsetY,
-            elevation = elevation
+            result = tileBounds
         )
 
         if (!tileBounds.overlaps(visibleArea)) return
@@ -261,28 +227,9 @@ class IsoWorldRenderer(
             batch = batch,
             x = x,
             y = y,
-            texture = texture,
-            offsetY = offsetY,
-            elevation = elevation
+            texture = texture
         )
         stats.terrainDrawn++
-    }
-
-    private fun terrainOffsetY(
-        x: Int,
-        y: Int,
-        raisedTile: TilePosition?,
-        raiseOffsetY: Float
-    ): Float {
-        return if (
-            raisedTile != null &&
-            raisedTile.x == x &&
-            raisedTile.y == y
-        ) {
-            raiseOffsetY
-        } else {
-            0f
-        }
     }
 
     fun dispose() {

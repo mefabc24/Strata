@@ -40,26 +40,17 @@ class ObjectPicker(
     ): PlacedObject? {
         val orderedObjects = IsoObjectOrdering.backToFront(
             objects = world.getObjects(),
-            projection = projection,
-            elevationFor = { placed ->
-                world.getHeight(placed.x, placed.y) ?: 0
-            }
+            projection = projection
         )
 
         for (placed in orderedObjects.asReversed()) {
             val visual = visualFor(placed) ?: continue
-
-            val elevation = world.getHeight(
-                placed.x,
-                placed.y
-            ) ?: 0
 
             IsoObjectBounds.calculate(
                 projection = projection,
                 placed = placed,
                 visual = visual,
                 result = bounds,
-                elevation = elevation,
                 objectSettings = objectSettings
             )
 

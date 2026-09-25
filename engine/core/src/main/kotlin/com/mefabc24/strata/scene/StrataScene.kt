@@ -408,19 +408,12 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     /**
      * Renders the optional world first, followed by the optional UI.
      */
-    fun render(
-        raisedTile: TilePosition? = null,
-        raiseOffsetY: Float = 0f
-    ) {
+    fun render() {
         checkActive()
         checkConfigurationComplete()
 
         attachedView?.let { view ->
-            view.render(
-                raisedTile = raisedTile,
-                raiseOffsetY = raiseOffsetY,
-                preview = attachedPlacement?.preview
-            )
+            view.render(attachedPlacement?.preview)
 
             debug.performance.record(
                 stats = view.renderStats,

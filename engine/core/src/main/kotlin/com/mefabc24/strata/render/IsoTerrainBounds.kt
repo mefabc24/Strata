@@ -18,9 +18,7 @@ internal object IsoTerrainBounds {
         x: Int,
         y: Int,
         texture: TextureRegion,
-        result: Rectangle,
-        offsetY: Float = 0f,
-        elevation: Int = 0
+        result: Rectangle
     ): Rectangle {
         return calculate(
             projection = projection,
@@ -28,9 +26,7 @@ internal object IsoTerrainBounds {
             y = y,
             textureWidth = texture.regionWidth,
             textureHeight = texture.regionHeight,
-            result = result,
-            offsetY = offsetY,
-            elevation = elevation
+            result = result
         )
     }
 
@@ -40,9 +36,7 @@ internal object IsoTerrainBounds {
         y: Int,
         textureWidth: Int,
         textureHeight: Int,
-        result: Rectangle,
-        offsetY: Float = 0f,
-        elevation: Int = 0
+        result: Rectangle
     ): Rectangle {
         require(textureWidth > 0 && textureHeight > 0) {
             "Terrain texture dimensions must be positive."
@@ -52,11 +46,11 @@ internal object IsoTerrainBounds {
 
         val spriteWidth = textureWidth * scale
         val spriteHeight = textureHeight * scale
-        val tileTop = projection.tileToWorld(x, y, elevation)
+        val tileTop = projection.tileToWorld(x, y)
 
         return result.set(
             tileTop.x - spriteWidth / 2f,
-            tileTop.y - projection.logicalTileHeight + offsetY,
+            tileTop.y - projection.logicalTileHeight,
             spriteWidth,
             spriteHeight
         )

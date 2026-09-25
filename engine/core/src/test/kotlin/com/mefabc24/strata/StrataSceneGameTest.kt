@@ -160,11 +160,7 @@ class StrataSceneGameTest {
             events += "scene update $delta"
         }
 
-        override fun render(
-            raisedTile: TilePosition?,
-            raiseOffsetY: Float,
-            preview: PlacementPreview?
-        ) {
+        override fun render(preview: PlacementPreview?) {
             events += "scene render"
         }
 

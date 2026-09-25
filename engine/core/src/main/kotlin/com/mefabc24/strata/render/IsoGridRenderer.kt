@@ -23,13 +23,7 @@ class IsoGridRenderer(
 
         for (y in 0 until world.height) {
             for (x in 0 until world.width) {
-                val elevation = world.getHeight(x, y) ?: continue
-
-                val position = projection.tileToWorld(
-                    x = x,
-                    y = y,
-                    elevation = elevation
-                )
+                val position = projection.tileToWorld(x, y)
 
                 val coordinates = TilePosition(x, y)
 

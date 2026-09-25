@@ -15,15 +15,6 @@ class IsoSortVolumeTest {
     }
 
     @Test
-    fun `lower elevation is behind higher elevation`() {
-        val lower = volume(minZ = 0, maxZ = 1)
-        val higher = volume(minZ = 1, maxZ = 2)
-
-        assertEquals(IsoSpatialRelation.BEHIND, lower.relationTo(higher))
-        assertEquals(IsoSpatialRelation.IN_FRONT, higher.relationTo(lower))
-    }
-
-    @Test
     fun `conflicting axis relations remain ambiguous`() {
         val first = volume(
             minX = 0,
@@ -49,9 +40,9 @@ class IsoSortVolumeTest {
     }
 
     @Test
-    fun `identical zero thickness planes remain ambiguous`() {
-        val first = volume(minZ = 2, maxZ = 2)
-        val second = volume(minZ = 2, maxZ = 2)
+    fun `identical flat volumes remain ambiguous`() {
+        val first = volume()
+        val second = volume()
 
         assertEquals(
             IsoSpatialRelation.AMBIGUOUS,
@@ -63,17 +54,13 @@ class IsoSortVolumeTest {
         minX: Int = 0,
         maxX: Int = 1,
         minY: Int = 0,
-        maxY: Int = 1,
-        minZ: Int = 0,
-        maxZ: Int = 1
+        maxY: Int = 1
     ): IsoSortVolume {
         return IsoSortVolume(
             minX = minX,
             maxX = maxX,
             minY = minY,
-            maxY = maxY,
-            minZ = minZ,
-            maxZ = maxZ
+            maxY = maxY
         )
     }
 }

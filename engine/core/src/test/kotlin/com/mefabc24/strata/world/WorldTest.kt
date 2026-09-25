@@ -3,10 +3,16 @@ package com.mefabc24.strata.world
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class WorldTest {
     private data class TestTile(val id: Int) : Tile
+
+    private data class GameTile(
+        val terrain: String,
+        val elevation: Int
+    ) : Tile
 
     @Test
     fun `world is initialized with provided tiles`() {
@@ -29,6 +35,23 @@ class WorldTest {
         world.setTile(1, 2, TestTile(42))
 
         assertEquals(TestTile(42), world.getTile(1, 2))
+    }
+
+    @Test
+    fun `game specific tile metadata remains opaque to the world`() {
+        val world = World(2, 1) { x, _ ->
+            GameTile(
+                terrain = "grass",
+                elevation = x * 5
+            )
+        }
+        val placeable = object : Placeable {
+            override val footprint = Footprint.rectangle(2, 1)
+        }
+
+        assertEquals(0, (world.getTile(0, 0) as GameTile).elevation)
+        assertEquals(5, (world.getTile(1, 0) as GameTile).elevation)
+        assertNotNull(world.place(placeable, 0, 0))
     }
 
     @Test
@@ -114,103 +137,6 @@ class WorldTest {
         }
 
         assertNull(world.getOverlayTile("infrastructure", -1, 0))
-    }
-
-    @Test
-    fun `terrain starts at height zero`() {
-        val world = World(3, 2) { _, _ -> TestTile(0) }
-
-        for (y in 0 until world.height) {
-            for (x in 0 until world.width) {
-                assertEquals(0, world.getHeight(x, y))
-            }
-        }
-    }
-
-    @Test
-    fun `terrain height can be changed independently`() {
-        val world = World(3, 3) { _, _ -> TestTile(0) }
-
-        world.setHeight(1, 1, 3)
-
-        assertEquals(3, world.getHeight(1, 1))
-        assertEquals(0, world.getHeight(0, 1))
-        assertEquals(0, world.getHeight(1, 0))
-
-        world.setTile(1, 1, TestTile(42))
-
-        assertEquals(3, world.getHeight(1, 1))
-        assertEquals(TestTile(42), world.getTile(1, 1))
-    }
-
-    @Test
-    fun `height lookup outside the world returns null`() {
-        val world = World(3, 3) { _, _ -> TestTile(0) }
-
-        assertNull(world.getHeight(-1, 0))
-        assertNull(world.getHeight(0, -1))
-        assertNull(world.getHeight(3, 0))
-        assertNull(world.getHeight(0, 3))
-    }
-
-    @Test
-    fun `invalid terrain heights are rejected`() {
-        val world = World(3, 3) { _, _ -> TestTile(0) }
-
-        assertFailsWith<IllegalArgumentException> {
-            world.setHeight(1, 1, -1)
-        }
-
-        assertFailsWith<IllegalArgumentException> {
-            world.setHeight(3, 0, 1)
-        }
-
-        assertFailsWith<IllegalArgumentException> {
-            world.setHeight(0, -1, 1)
-        }
-
-        assertEquals(0, world.getHeight(1, 1))
-    }
-
-    @Test
-    fun `height version changes only when terrain elevation changes`() {
-        val world = World(3, 3) { _, _ ->
-            TestTile(0)
-        }
-
-        assertEquals(0L, world.heightVersion)
-
-        world.setHeight(1, 1, 2)
-
-        assertEquals(1L, world.heightVersion)
-
-        world.setHeight(1, 1, 2)
-
-        assertEquals(1L, world.heightVersion)
-
-        world.setHeight(1, 1, 1)
-
-        assertEquals(2L, world.heightVersion)
-    }
-
-    @Test
-    fun `maximum terrain height updates when highest tile is lowered`() {
-        val world = World(3, 3) { _, _ ->
-            TestTile(0)
-        }
-
-        world.setHeight(0, 0, 3)
-        world.setHeight(1, 1, 2)
-
-        assertEquals(3, world.maxHeight)
-
-        world.setHeight(0, 0, 1)
-
-        assertEquals(2, world.maxHeight)
-
-        world.setHeight(1, 1, 0)
-
-        assertEquals(1, world.maxHeight)
     }
 
     @Test

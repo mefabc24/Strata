@@ -31,11 +31,7 @@ internal interface SceneWorldView {
 
     fun update(delta: Float)
 
-    fun render(
-        raisedTile: TilePosition?,
-        raiseOffsetY: Float,
-        preview: PlacementPreview?
-    )
+    fun render(preview: PlacementPreview?)
 
     fun resize(width: Int, height: Int)
 
@@ -77,16 +73,8 @@ private class DefaultSceneWorldView(
         publicView.update(delta)
     }
 
-    override fun render(
-        raisedTile: TilePosition?,
-        raiseOffsetY: Float,
-        preview: PlacementPreview?
-    ) {
-        publicView.render(
-            raisedTile = raisedTile,
-            raiseOffsetY = raiseOffsetY,
-            preview = preview
-        )
+    override fun render(preview: PlacementPreview?) {
+        publicView.render(preview)
     }
 
     override fun resize(width: Int, height: Int) {

@@ -24,15 +24,13 @@ class IsoObjectRenderer(
     fun render(
         batch: SpriteBatch,
         placed: PlacedObject,
-        visual: ObjectVisual,
-        elevation: Int = 0
+        visual: ObjectVisual
     ) {
         IsoObjectBounds.calculate(
             projection = projection,
             placed = placed,
             visual = visual,
             result = bounds,
-            elevation = elevation,
             objectSettings = objectSettings
         )
 

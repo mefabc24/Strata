@@ -78,8 +78,6 @@ class IsoWorldView(
             renderingConfig.tileGeometry.height
         }
 
-    private var knownHeightVersion = world.heightVersion
-
     val camera = OrthographicCamera()
 
     private val projection = IsoProjection(
@@ -93,7 +91,6 @@ class IsoWorldView(
         width = world.width,
         height = world.height,
         padding = 0f,
-        maxElevation = world.maxHeight,
         maxSpriteHeight = boundsSpriteHeight
     )
 
@@ -112,7 +109,6 @@ class IsoWorldView(
         width = world.width,
         height = world.height,
         padding = cameraConfig.cameraPadding,
-        maxElevation = world.maxHeight,
         maxSpriteHeight = boundsSpriteHeight
     ).let {
         CameraBounds(
@@ -127,7 +123,6 @@ class IsoWorldView(
         width = world.width,
         height = world.height,
         padding = cameraConfig.cameraPadding,
-        maxElevation = world.maxHeight,
         maxSpriteHeight = boundsSpriteHeight
     ).let {
         CameraBounds(
@@ -171,8 +166,8 @@ class IsoWorldView(
 
     private val worldInputProcessor = WorldInputProcessor(
         bindings = controls.gameplay.bindings,
-        pickTile = { screenX, screenY, mode ->
-            tilePicker.pick(screenX, screenY, mode)
+        pickTile = { screenX, screenY ->
+            tilePicker.pick(screenX, screenY)
         },
         pickObject = { screenX, screenY, mode ->
             pickObject(screenX, screenY, mode)
@@ -212,76 +207,26 @@ class IsoWorldView(
         }
     }
 
-    private fun refreshElevationBounds() {
-        if (knownHeightVersion == world.heightVersion) return
-
-        knownHeightVersion = world.heightVersion
-
-        val updatedWorldBounds = projection.worldBounds(
-            width = world.width,
-            height = world.height,
-            padding = 0f,
-            maxElevation = world.maxHeight,
-            maxSpriteHeight = boundsSpriteHeight
-        )
-
-        worldBounds.set(updatedWorldBounds)
-
-        val updatedCameraBounds = projection.worldBounds(
-            width = world.width,
-            height = world.height,
-            padding = cameraConfig.cameraPadding,
-            maxElevation = world.maxHeight,
-            maxSpriteHeight = boundsSpriteHeight
-        )
-
-        cameraBounds.update(
-            minX = updatedCameraBounds.x,
-            minY = updatedCameraBounds.y,
-            maxX = updatedCameraBounds.x + updatedCameraBounds.width,
-            maxY = updatedCameraBounds.y + updatedCameraBounds.height
-        )
-
-        zoomBounds.update(
-            minX = updatedCameraBounds.x,
-            minY = updatedCameraBounds.y,
-            maxX = updatedCameraBounds.x + updatedCameraBounds.width,
-            maxY = updatedCameraBounds.y + updatedCameraBounds.height
-        )
-
-        cameraBounds.clamp(camera)
-        cameraController.refreshZoomBounds()
-    }
-
     /**
      * Updates the state of the world view.
      */
     fun update(delta: Float) {
-        refreshElevationBounds()
-
         cameraController.update(delta)
 
         hoveredTile = tilePicker.pick(
             Gdx.input.x.toFloat(),
-            Gdx.input.y.toFloat(),
-            TilePickingMode.SURFACE
+            Gdx.input.y.toFloat()
         )
     }
 
     /**
      * Renders terrain, world objects, and an optional placement preview.
      */
-    fun render(
-        raisedTile: TilePosition? = null,
-        raiseOffsetY: Float = 0f,
-        preview: PlacementPreview? = null
-    ) {
+    fun render(preview: PlacementPreview? = null) {
         worldRenderer.render(
             world = world,
             camera = camera,
             textureFor = textureFor,
-            raisedTile = raisedTile,
-            raiseOffsetY = raiseOffsetY,
             objectVisualFor = objectVisualFor,
             preview = preview,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
@@ -295,15 +240,9 @@ class IsoWorldView(
         cameraController.refreshZoomBounds()
     }
 
-    /**
-     * Returns the tile at the given screen position using [mode], or null.
-     */
-    fun pickTile(
-        screenX: Float,
-        screenY: Float,
-        mode: TilePickingMode = TilePickingMode.SURFACE
-    ): TilePosition? {
-        return tilePicker.pick(screenX, screenY, mode)
+    /** Returns the tile at the given screen position, or null. */
+    fun pickTile(screenX: Float, screenY: Float): TilePosition? {
+        return tilePicker.pick(screenX, screenY)
     }
 
     /**

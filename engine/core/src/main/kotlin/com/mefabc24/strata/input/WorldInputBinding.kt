@@ -1,7 +1,6 @@
 package com.mefabc24.strata.input
 
 import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.iso.TilePickingMode
 import com.mefabc24.strata.world.PlacedObject
 
 /**
@@ -39,12 +38,9 @@ sealed interface WorldInputBinding {
 
     val enabled: () -> Boolean
 
-    /**
-     * Picks a tile with [mode] before invoking the action.
-     */
+    /** Picks a tile before invoking the action. */
     class Tile(
         override val trigger: WorldInputTrigger,
-        val mode: TilePickingMode = TilePickingMode.SURFACE,
         override val enabled: () -> Boolean = { true },
         val action: (x: Int, y: Int) -> Boolean
     ) : WorldInputBinding

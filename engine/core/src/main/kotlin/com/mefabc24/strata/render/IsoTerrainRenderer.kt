@@ -19,18 +19,14 @@ class IsoTerrainRenderer(
         batch: SpriteBatch,
         x: Int,
         y: Int,
-        texture: TextureRegion,
-        offsetY: Float = 0f,
-        elevation: Int = 0
+        texture: TextureRegion
     ) {
         IsoTerrainBounds.calculate(
             projection = projection,
             x = x,
             y = y,
             texture = texture,
-            result = bounds,
-            offsetY = offsetY,
-            elevation = elevation
+            result = bounds
         )
 
         batch.draw(

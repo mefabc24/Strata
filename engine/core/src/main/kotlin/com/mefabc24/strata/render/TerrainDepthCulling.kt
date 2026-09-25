@@ -14,28 +14,21 @@ internal object TerrainDepthCulling {
         tileHeight: Float,
         logicalTileHeight: Float,
         maxSpriteHeight: Float,
-        raisedOffsetY: Float,
-        maxDepth: Int,
-        maxElevationOffset: Float = 0f
+        maxDepth: Int
     ): IntRange {
         require(maxDepth >= 0)
         require(tileHeight > 0f && tileHeight.isFinite())
         require(logicalTileHeight >= tileHeight && logicalTileHeight.isFinite())
         require(maxSpriteHeight > 0f && !maxSpriteHeight.isNaN())
-        require(raisedOffsetY.isFinite())
-        require(maxElevationOffset >= 0f && maxElevationOffset.isFinite())
 
         val halfTileHeight = tileHeight / 2f
-
-        val minOffset = minOf(0f, raisedOffsetY)
-        val maxOffset = maxOf(0f, raisedOffsetY) + maxElevationOffset
         val visualOverhang = maxOf(
             0f,
             maxSpriteHeight - logicalTileHeight
         )
 
         val firstDepth = floor(
-            (minOffset - logicalTileHeight - visibleTop) /
+            (-logicalTileHeight - visibleTop) /
                     halfTileHeight
         ).toInt().coerceIn(0, maxDepth + 1)
 
@@ -43,7 +36,7 @@ internal object TerrainDepthCulling {
             maxDepth
         } else {
             ceil(
-                (maxOffset + visualOverhang - visibleBottom) /
+                (visualOverhang - visibleBottom) /
                         halfTileHeight
             ).toInt().coerceIn(-1, maxDepth)
         }

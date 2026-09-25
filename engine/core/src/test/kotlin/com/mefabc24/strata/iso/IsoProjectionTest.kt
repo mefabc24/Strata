@@ -31,18 +31,6 @@ class IsoProjectionTest {
     }
 
     @Test
-    fun `elevation shifts tile vertically`() {
-        val position = projection.tileToWorld(
-            x = 2,
-            y = 3,
-            elevation = 2
-        )
-
-        assertEquals(-32f, position.x)
-        assertEquals(-16f, position.y)
-    }
-
-    @Test
     fun `tile origins can be converted back to tile coordinates`() {
         for (y in 0 until 10) {
             for (x in 0 until 10) {
@@ -83,18 +71,17 @@ class IsoProjectionTest {
     }
 
     @Test
-    fun `world bounds include terrain elevation and sprite height`() {
+    fun `world bounds include logical terrain and sprite height`() {
         val bounds = projection.worldBounds(
             width = 3,
             height = 2,
-            maxElevation = 2,
             maxSpriteHeight = 64f
         )
 
         assertEquals(-64f, bounds.x)
         assertEquals(-112f, bounds.y)
         assertEquals(160f, bounds.width)
-        assertEquals(176f, bounds.height)
+        assertEquals(112f, bounds.height)
     }
 
     @Test
@@ -109,13 +96,12 @@ class IsoProjectionTest {
         val bounds = compactProjection.worldBounds(
             width = 3,
             height = 2,
-            maxElevation = 2,
             maxSpriteHeight = 32f
         )
 
         assertEquals(-32f, bounds.x)
         assertEquals(-48f, bounds.y)
         assertEquals(80f, bounds.width)
-        assertEquals(72f, bounds.height)
+        assertEquals(56f, bounds.height)
     }
 }

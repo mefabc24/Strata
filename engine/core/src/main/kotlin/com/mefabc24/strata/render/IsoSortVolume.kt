@@ -20,12 +20,10 @@ internal data class IsoSortVolume(
     val minX: Int,
     val maxX: Int,
     val minY: Int,
-    val maxY: Int,
-    val minZ: Int,
-    val maxZ: Int
+    val maxY: Int
 ) {
     init {
-        require(minX <= maxX && minY <= maxY && minZ <= maxZ) {
+        require(minX <= maxX && minY <= maxY) {
             "Isometric sort volume bounds must be ordered."
         }
     }
@@ -42,14 +40,12 @@ internal data class IsoSortVolume(
     }
 
     fun projectedFrontY(projection: IsoProjection): Float {
-        return -(maxX + maxY) * projection.tileHeight / 2f +
-                minZ * projection.elevationStep
+        return -(maxX + maxY) * projection.tileHeight / 2f
     }
 
     private fun isDefinitelyBehind(other: IsoSortVolume): Boolean {
         return axisEndsBefore(minX, maxX, other.minX, other.maxX) ||
-                axisEndsBefore(minY, maxY, other.minY, other.maxY) ||
-                axisEndsBefore(minZ, maxZ, other.minZ, other.maxZ)
+                axisEndsBefore(minY, maxY, other.minY, other.maxY)
     }
 
     private fun axisEndsBefore(

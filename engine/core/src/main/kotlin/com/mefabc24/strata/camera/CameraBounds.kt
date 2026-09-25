@@ -5,46 +5,16 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.MathUtils
 
 class CameraBounds(
-    minX: Float,
-    minY: Float,
-    maxX: Float,
-    maxY: Float,
+    val minX: Float,
+    val minY: Float,
+    val maxX: Float,
+    val maxY: Float,
     private val edgeAllowance: Float = 0f
 ) {
-
-    var minX: Float = minX
-        private set
-
-    var minY: Float = minY
-        private set
-
-    var maxX: Float = maxX
-        private set
-
-    var maxY: Float = maxY
-        private set
     init {
         require(minX <= maxX)
         require(minY <= maxY)
         require(edgeAllowance in 0f..1f)
-    }
-
-    /**
-     * Updates the world-space limits used by this camera bound.
-     */
-    fun update(
-        minX: Float,
-        minY: Float,
-        maxX: Float,
-        maxY: Float
-    ) {
-        require(minX <= maxX)
-        require(minY <= maxY)
-
-        this.minX = minX
-        this.minY = minY
-        this.maxX = maxX
-        this.maxY = maxY
     }
 
     fun clamp(camera: OrthographicCamera) {
