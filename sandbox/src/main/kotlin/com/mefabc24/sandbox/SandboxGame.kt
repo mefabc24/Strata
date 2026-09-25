@@ -168,11 +168,12 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 }
 
                 grid {
-                    enabled = true
+                    enabled = false
                     color = Color(1f, 1f, 1f, 0.4f)
-                    hoverColor = Color(1f, 0.8f, 0.2f, 1f)
-                    lineWidth = 4f
-                    backgroundColor = Color(1f, 1f, 1f, 0.04f)
+                    hoverColor = Color(1f, 0f, 0f, 1f)
+                    lineWidth = 1f
+                    backgroundColor = Color(1f, 1f, 1f, 0.2f)
+                    hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
                 }
             }
 
@@ -229,6 +230,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 ui = this,
                 painter = painter,
                 placementController = scene.placement,
+                debugSettings = scene.debug,
                 terrainEntries = scene.terrain.entries,
                 objectEntries = scene.objects.constructibleEntries
             )

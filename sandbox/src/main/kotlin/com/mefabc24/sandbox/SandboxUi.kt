@@ -14,14 +14,25 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.ObjectEntry
+import com.mefabc24.strata.scene.DebugGridRenderLayer
+import com.mefabc24.strata.scene.DebugSettings
 import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.ui.StrataColumn
 import com.mefabc24.strata.ui.StrataInsets
+import com.mefabc24.strata.ui.StrataLayout
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataSeparatorStyle
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.ui.cell
+import java.util.Locale
+
+private enum class SandboxPanelTab(
+    val displayName: String
+) {
+    TOOLS("Tools"),
+    DEBUG("Debug")
+}
 
 private enum class SandboxMode(
     val displayName: String
@@ -73,6 +84,7 @@ class SandboxUi(
     private val ui: StrataUi,
     private val painter: SandboxTerrainPainter,
     private val placementController: PlacementController,
+    private val debugSettings: DebugSettings,
     terrainEntries: List<TerrainEntry<TerrainType>>,
     objectEntries: List<ObjectEntry>
 ) {
@@ -98,6 +110,13 @@ class SandboxUi(
     }
 
     private val paintLayers = paintLayersFor(painter.overlayLayerIds)
+
+    private val tabSelection = ui.selectionGroup(
+        options = SandboxPanelTab.entries,
+        initialSelection = SandboxPanelTab.TOOLS
+    ) {
+        updatePanelTab()
+    }
 
     private val modeSelection = ui.selectionGroup(
         options = SandboxMode.entries,
@@ -142,6 +161,25 @@ class SandboxUi(
         updateStatus()
     }
 
+    private val renderLayerSelection = ui.selectionGroup(
+        options = DebugGridRenderLayer.entries,
+        initialSelection = debugSettings.grid.renderLayer
+    ) { selected ->
+        debugSettings.grid.renderLayer = selected
+    }
+
+    private var gridBackgroundColor =
+        debugSettings.grid.backgroundColor ?: Color.WHITE.cpy().apply {
+            a = DEFAULT_BACKGROUND_ALPHA
+        }
+
+    private var hoverBackgroundColor =
+        debugSettings.grid.hoverBackgroundColor ?: Color.WHITE.cpy().apply {
+            a = DEFAULT_BACKGROUND_ALPHA
+        }
+
+    private lateinit var toolsControls: StrataColumn
+    private lateinit var debugControls: StrataColumn
     private lateinit var buildControls: StrataColumn
     private lateinit var paintControls: StrataColumn
     private lateinit var modeStatus: Label
@@ -164,113 +202,372 @@ class SandboxUi(
     }
 
     private fun buildUi() {
-        ui.root.pad(16f)
+        ui.root.pad(ROOT_MARGIN)
 
-        ui.panel(spacing = 6f) {
-            label(
-                text = "Strata tools",
-                styleName = "title"
-            )
+        ui.panel(spacing = 0f) {
+            defaults().growX().fillX()
 
-            separator()
+            expander(
+                title = "Strata tools",
+                spacing = SECTION_GAP
+            ) {
+                defaults().growX().fillX()
 
-            label("Mode")
+                row(spacing = CONTROL_GAP) {
+                    defaults()
+                        .growX()
+                        .fillX()
+                        .uniformX()
+                        .height(MODE_BUTTON_HEIGHT)
 
-            row {
-                for (mode in SandboxMode.entries) {
-                    selectableButton(
-                        text = mode.displayName,
-                        value = mode,
-                        group = modeSelection
-                    ).cell {
-                        width(116f)
-                        height(36f)
-                    }
-                }
-            }
-
-            stack {
-                buildControls = column {
-                    label("Build object")
-
-                    grid(columns = 3) {
-                        for (entry in buildEntries) {
-                            column(
-                                spacing = 4f,
-                                alignment = Align.center
-                            ) {
-                                selectableImageButton(
-                                    drawable = TextureRegionDrawable(
-                                        entry.visual.texture
-                                    ),
-                                    value = entry,
-                                    group = buildSelection
-                                ).apply {
-                                    image.setScaling(Scaling.fit)
-                                    imageCell.pad(6f)
-                                }.cell {
-                                    width(72f)
-                                    height(72f)
-                                }
-
-                                label(entry.displayName()).cell {
-                                    center()
-                                }
-                            }
-                        }
+                    for (tab in SandboxPanelTab.entries) {
+                        selectableButton(
+                            text = tab.displayName,
+                            value = tab,
+                            group = tabSelection
+                        )
                     }
                 }
 
-                paintControls = column(spacing = 6f) {
-                    label("Terrain")
+                separator()
 
-                    grid(
-                        columns = 3,
-                        spacing = 4f
-                    ) {
-                        for (terrain in terrains) {
-                            selectableButton(
-                                text = terrain.displayName(),
-                                value = terrain,
-                                group = terrainSelection
-                            ).cell {
-                                width(74f)
-                                height(30f)
-                            }
-                        }
+                stack {
+                    toolsControls = column(spacing = SECTION_GAP) {
+                        defaults().growX().fillX()
+                        buildToolsTab()
                     }
 
-                    label("Layer")
-
-                    grid(
-                        columns = 2,
-                        spacing = 4f
-                    ) {
-                        for (layer in paintLayers) {
-                            selectableButton(
-                                text = layer.displayName,
-                                value = layer,
-                                group = layerSelection
-                            ).cell {
-                                width(116f)
-                                height(30f)
-                            }
-                        }
+                    debugControls = column(spacing = SECTION_GAP) {
+                        defaults().growX().fillX()
+                        buildDebugTab()
                     }
+                }.cell {
+                    growX()
+                    fillX()
                 }
             }.cell {
                 growX()
+                fillX()
             }
-
-            separator()
-            label("Status", styleName = "title")
-
-            modeStatus = label("")
-            selectionStatus = label("")
         }.cell {
-            width(TOOLS_PANEL_WIDTH)
+            width(PANEL_WIDTH)
             top()
             left()
+        }
+    }
+
+    private fun StrataColumn.buildToolsTab() {
+        label("Mode")
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .growX()
+                .fillX()
+                .uniformX()
+                .height(MODE_BUTTON_HEIGHT)
+
+            for (mode in SandboxMode.entries) {
+                selectableButton(
+                    text = mode.displayName,
+                    value = mode,
+                    group = modeSelection
+                )
+            }
+        }
+
+        stack {
+            buildControls = column(spacing = SECTION_GAP) {
+                defaults().growX().fillX()
+                label("Build object")
+
+                grid(
+                    columns = BUILD_COLUMNS,
+                    spacing = CONTROL_GAP,
+                    alignment = Align.center
+                ) {
+                    defaults().growX().fillX().uniformX()
+
+                    for (entry in buildEntries) {
+                        column(
+                            spacing = CONTROL_GAP,
+                            alignment = Align.center
+                        ) {
+                            defaults().growX().fillX()
+
+                            selectableImageButton(
+                                drawable = TextureRegionDrawable(
+                                    entry.visual.texture
+                                ),
+                                value = entry,
+                                group = buildSelection
+                            ).apply {
+                                image.setScaling(Scaling.fit)
+                                imageCell.pad(IMAGE_PADDING)
+                            }.cell {
+                                growX()
+                                fillX()
+                                height(BUILD_BUTTON_HEIGHT)
+                                maxWidth(BUILD_CELL_WIDTH)
+                            }
+
+                            label(entry.displayName()).cell {
+                                center()
+                            }
+                        }.cell {
+                            width(BUILD_CELL_WIDTH)
+                            maxWidth(BUILD_CELL_WIDTH)
+                        }
+                    }
+                }
+            }
+
+            paintControls = column(spacing = SECTION_GAP) {
+                defaults().growX().fillX()
+                label("Terrain")
+
+                grid(
+                    columns = TERRAIN_COLUMNS,
+                    spacing = CONTROL_GAP,
+                    alignment = Align.center
+                ) {
+                    defaults()
+                        .growX()
+                        .fillX()
+                        .uniformX()
+                        .height(COMPACT_CONTROL_HEIGHT)
+
+                    for (terrain in terrains) {
+                        selectableButton(
+                            text = terrain.displayName(),
+                            value = terrain,
+                            group = terrainSelection
+                        )
+                    }
+                }
+
+                label("Layer")
+
+                grid(
+                    columns = LAYER_COLUMNS,
+                    spacing = CONTROL_GAP,
+                    alignment = Align.center
+                ) {
+                    defaults()
+                        .growX()
+                        .fillX()
+                        .uniformX()
+                        .height(COMPACT_CONTROL_HEIGHT)
+
+                    for (layer in paintLayers) {
+                        selectableButton(
+                            text = layer.displayName,
+                            value = layer,
+                            group = layerSelection
+                        )
+                    }
+                }
+            }
+        }.cell {
+            growX()
+            fillX()
+        }
+
+        separator()
+        label("Status", styleName = "title")
+        modeStatus = label("")
+        selectionStatus = label("")
+    }
+
+    private fun StrataColumn.buildDebugTab() {
+        label("Runtime debug", styleName = "title")
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .growX()
+                .fillX()
+                .uniformX()
+                .height(MODE_BUTTON_HEIGHT)
+
+            toggleButton(
+                text = "Performance",
+                checked = debugSettings.performance.enabled
+            ) { enabled ->
+                debugSettings.performance.enabled = enabled
+            }
+
+            toggleButton(
+                text = "Grid",
+                checked = debugSettings.grid.enabled
+            ) { enabled ->
+                debugSettings.grid.enabled = enabled
+            }
+        }
+
+        label("Grid render layer")
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .growX()
+                .fillX()
+                .uniformX()
+                .height(COMPACT_CONTROL_HEIGHT)
+
+            selectableButton(
+                text = "Below objects",
+                value = DebugGridRenderLayer.BELOW_OBJECTS,
+                group = renderLayerSelection
+            )
+
+            selectableButton(
+                text = "Above objects",
+                value = DebugGridRenderLayer.ABOVE_OBJECTS,
+                group = renderLayerSelection
+            )
+        }
+
+        numericControl(
+            label = "Line width",
+            initialValue = debugSettings.grid.lineWidth,
+            step = 0.25f,
+            range = 0.25f..8f
+        ) { value ->
+            debugSettings.grid.lineWidth = value
+        }
+
+        numericControl(
+            label = "Grid alpha",
+            initialValue = debugSettings.grid.color.a,
+            step = ALPHA_STEP,
+            range = ALPHA_RANGE
+        ) { value ->
+            debugSettings.grid.color = debugSettings.grid.color.apply {
+                a = value
+            }
+        }
+
+        numericControl(
+            label = "Hover alpha",
+            initialValue = debugSettings.grid.hoverColor.a,
+            step = ALPHA_STEP,
+            range = ALPHA_RANGE
+        ) { value ->
+            debugSettings.grid.hoverColor =
+                debugSettings.grid.hoverColor.apply {
+                a = value
+            }
+        }
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .growX()
+                .fillX()
+                .uniformX()
+                .height(COMPACT_CONTROL_HEIGHT)
+
+            toggleButton(
+                text = "Background",
+                checked = debugSettings.grid.backgroundColor != null
+            ) { enabled ->
+                if (enabled) {
+                    debugSettings.grid.backgroundColor = gridBackgroundColor
+                } else {
+                    debugSettings.grid.backgroundColor?.let {
+                        gridBackgroundColor = it
+                    }
+                    debugSettings.grid.backgroundColor = null
+                }
+            }
+
+            toggleButton(
+                text = "Hover background",
+                checked = debugSettings.grid.hoverBackgroundColor != null
+            ) { enabled ->
+                if (enabled) {
+                    debugSettings.grid.hoverBackgroundColor =
+                        hoverBackgroundColor
+                } else {
+                    debugSettings.grid.hoverBackgroundColor?.let {
+                        hoverBackgroundColor = it
+                    }
+                    debugSettings.grid.hoverBackgroundColor = null
+                }
+            }
+        }
+
+        numericControl(
+            label = "Background alpha",
+            initialValue = gridBackgroundColor.a,
+            step = ALPHA_STEP,
+            range = ALPHA_RANGE
+        ) { value ->
+            gridBackgroundColor = gridBackgroundColor.apply {
+                a = value
+            }
+
+            if (debugSettings.grid.backgroundColor != null) {
+                debugSettings.grid.backgroundColor = gridBackgroundColor
+            }
+        }
+
+        numericControl(
+            label = "Hover-bg alpha",
+            initialValue = hoverBackgroundColor.a,
+            step = ALPHA_STEP,
+            range = ALPHA_RANGE
+        ) { value ->
+            hoverBackgroundColor = hoverBackgroundColor.apply {
+                a = value
+            }
+
+            if (debugSettings.grid.hoverBackgroundColor != null) {
+                debugSettings.grid.hoverBackgroundColor =
+                    hoverBackgroundColor
+            }
+        }
+    }
+
+    private fun StrataLayout.numericControl(
+        label: String,
+        initialValue: Float,
+        step: Float,
+        range: ClosedFloatingPointRange<Float>,
+        onChanged: (Float) -> Unit
+    ) {
+        var value = initialValue.coerceIn(range.start, range.endInclusive)
+        lateinit var valueLabel: Label
+
+        row(spacing = CONTROL_GAP) {
+            label(label).cell {
+                growX()
+                left()
+            }
+
+            button("-") {
+                value = (value - step).coerceIn(
+                    range.start,
+                    range.endInclusive
+                )
+                onChanged(value)
+                valueLabel.setText(formatValue(value))
+            }.cell {
+                size(NUMERIC_BUTTON_SIZE)
+            }
+
+            valueLabel = label(formatValue(value)).cell {
+                width(NUMERIC_VALUE_WIDTH)
+                center()
+            }
+
+            button("+") {
+                value = (value + step).coerceIn(
+                    range.start,
+                    range.endInclusive
+                )
+                onChanged(value)
+                valueLabel.setText(formatValue(value))
+            }.cell {
+                size(NUMERIC_BUTTON_SIZE)
+            }
         }
     }
 
@@ -307,8 +604,24 @@ class SandboxUi(
 
         buildControls.isVisible = !painter.enabled
         paintControls.isVisible = painter.enabled
+        updatePanelTab()
 
         updateStatus()
+    }
+
+    private fun updatePanelTab() {
+        if (
+            !::toolsControls.isInitialized ||
+            !::debugControls.isInitialized
+        ) {
+            return
+        }
+
+        val toolsSelected =
+            tabSelection.selected == SandboxPanelTab.TOOLS
+
+        toolsControls.isVisible = toolsSelected
+        debugControls.isVisible = !toolsSelected
     }
 
     private fun updateStatus() {
@@ -330,7 +643,32 @@ class SandboxUi(
 
     companion object {
 
-        private const val TOOLS_PANEL_WIDTH = 280f
+        private const val PANEL_WIDTH = 280f
+        private const val PANEL_PADDING = 12f
+        private const val CONTENT_WIDTH =
+            PANEL_WIDTH - PANEL_PADDING * 2f
+        private const val ROOT_MARGIN = 16f
+        private const val SECTION_GAP = 6f
+        private const val CONTROL_GAP = 4f
+        private const val MODE_BUTTON_HEIGHT = 36f
+        private const val COMPACT_CONTROL_HEIGHT = 30f
+        private const val BUILD_BUTTON_HEIGHT = 72f
+        private const val IMAGE_PADDING = 6f
+        private const val BUILD_COLUMNS = 3
+        private const val TERRAIN_COLUMNS = 3
+        private const val LAYER_COLUMNS = 2
+        private const val BUILD_CELL_WIDTH =
+            (CONTENT_WIDTH - CONTROL_GAP * (BUILD_COLUMNS - 1)) /
+                BUILD_COLUMNS
+        private const val NUMERIC_BUTTON_SIZE = 28f
+        private const val NUMERIC_VALUE_WIDTH = 44f
+        private const val ALPHA_STEP = 0.05f
+        private const val DEFAULT_BACKGROUND_ALPHA = 0.25f
+        private val ALPHA_RANGE = 0f..1f
+
+        private fun formatValue(value: Float): String {
+            return String.format(Locale.ROOT, "%.2f", value)
+        }
 
         fun createTheme() = StrataUiTheme(
             labelStyle = "default",
