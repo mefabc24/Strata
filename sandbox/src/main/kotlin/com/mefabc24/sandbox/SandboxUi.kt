@@ -268,7 +268,7 @@ class SandboxUi(
             modeStatus = label("")
             selectionStatus = label("")
         }.cell {
-            width(272f)
+            width(TOOLS_PANEL_WIDTH)
             top()
             left()
         }
@@ -329,6 +329,8 @@ class SandboxUi(
     }
 
     companion object {
+
+        private const val TOOLS_PANEL_WIDTH = 264f
 
         fun createTheme() = StrataUiTheme(
             labelStyle = "default",
