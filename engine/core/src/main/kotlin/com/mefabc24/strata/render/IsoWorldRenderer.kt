@@ -168,9 +168,10 @@ class IsoWorldRenderer(
     private fun renderObject(
         placed: PlacedObject,
         visual: ObjectVisual?,
-        preview: PlacementPreview?
+        preview: PlacementPreview?,
+        recordStats: Boolean = true
     ) {
-        if (preview == null) {
+        if (preview == null && recordStats) {
             stats.objectsChecked++
         }
 
@@ -200,12 +201,49 @@ class IsoWorldRenderer(
             visual = visual
         )
 
-        if (preview == null) {
-            stats.objectsDrawn++
-        } else {
-            stats.previewsDrawn++
+        if (recordStats) {
+            if (preview == null) {
+                stats.objectsDrawn++
+            } else {
+                stats.previewsDrawn++
+            }
+        }
+
+        if (preview != null) {
             batch.setColor(1f, 1f, 1f, 1f)
         }
+    }
+
+    internal fun renderObjectsOverlay(
+        camera: OrthographicCamera,
+        objectVisualFor: (PlacedObject) -> ObjectVisual?,
+        preview: PlacementPreview?
+    ) {
+        batch.projectionMatrix = camera.combined
+
+        batch.begin()
+
+        for (item in normalRenderPlan) {
+            if (item is WorldObjectPrimitive) {
+                renderObject(
+                    placed = item.placedObject,
+                    visual = objectVisualFor(item.placedObject),
+                    preview = null,
+                    recordStats = false
+                )
+            }
+        }
+
+        preview?.let {
+            renderObject(
+                placed = it.placedObject,
+                visual = objectVisualFor(it.placedObject),
+                preview = it,
+                recordStats = false
+            )
+        }
+
+        batch.end()
     }
 
     private fun renderTerrainSprite(

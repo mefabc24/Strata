@@ -22,6 +22,7 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.scene.DebugGridSettings
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.scene.DebugGridRenderLayer
 
 /**
  * Determines how placed objects are picked.
@@ -251,6 +252,18 @@ class IsoWorldView(
             camera = camera,
             hoveredTile = hoveredTile
         )
+
+        if (
+            gridRenderer != null &&
+            debugGridConfig.renderLayer ==
+            DebugGridRenderLayer.BELOW_OBJECTS
+        ) {
+            worldRenderer.renderObjectsOverlay(
+                camera = camera,
+                objectVisualFor = objectVisualFor,
+                preview = preview
+            )
+        }
     }
 
     fun resize(width: Int, height: Int) {

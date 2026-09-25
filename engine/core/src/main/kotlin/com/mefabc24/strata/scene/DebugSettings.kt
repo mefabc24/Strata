@@ -2,6 +2,11 @@ package com.mefabc24.strata.scene
 
 import com.badlogic.gdx.graphics.Color
 
+enum class DebugGridRenderLayer {
+    BELOW_OBJECTS,
+    ABOVE_OBJECTS
+}
+
 /**
  * Groups the scene's debugging facilities.
  */
@@ -30,6 +35,9 @@ class DebugSettings {
 class DebugGridSettings {
 
     var enabled: Boolean = false
+
+    var renderLayer: DebugGridRenderLayer =
+        DebugGridRenderLayer.BELOW_OBJECTS
 
     var color: Color = Color(
         0.4f,
@@ -68,6 +76,7 @@ class DebugGridSettings {
     internal fun copy(): DebugGridSettings {
         return DebugGridSettings().also {
             it.enabled = enabled
+            it.renderLayer = renderLayer
             it.color = color
             it.hoverColor = hoverColor
             it.lineWidth = lineWidth
