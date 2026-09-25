@@ -75,6 +75,10 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                     enabled = true
                     intervalSeconds = 2f
                 }
+
+                grid {
+                    enabled = true
+                }
             }
 
             camera {
