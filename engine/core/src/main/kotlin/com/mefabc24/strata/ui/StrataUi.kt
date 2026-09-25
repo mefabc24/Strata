@@ -165,6 +165,18 @@ class StrataUi internal constructor(
         configure: StrataStack.() -> Unit
     ): StrataStack = root.stack(configure)
 
+    fun expander(
+        title: String,
+        expanded: Boolean = true,
+        spacing: Float = theme.spacing,
+        configure: StrataColumn.() -> Unit
+    ): StrataExpander = root.expander(
+        title = title,
+        expanded = expanded,
+        spacing = spacing,
+        configure = configure
+    )
+
     fun panel(
         styleName: String? = theme.panelStyle,
         spacing: Float = theme.spacing,

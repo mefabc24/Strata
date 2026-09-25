@@ -506,6 +506,38 @@ class StrataWidgetsTest {
         skin.dispose()
     }
 
+    @Test
+    fun `expander removes collapsed content from layout`() {
+        val skin = createSkin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme()
+        )
+        val expander = StrataExpander(
+            context = context,
+            title = "Tools",
+            expanded = true,
+            spacing = 6f
+        ) {
+            spacer(height = 40f)
+        }
+
+        val expandedHeight = expander.prefHeight
+        expander.expanded = false
+
+        assertFalse(expander.content.isVisible)
+        assertTrue(expander.prefHeight < expandedHeight)
+        assertEquals("Tools  >", expander.header.text.toString())
+
+        expander.expanded = true
+
+        assertTrue(expander.content.isVisible)
+        assertEquals(expandedHeight, expander.prefHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
     private fun createSkin(): Skin {
         val font = BitmapFont(
             BitmapFont.BitmapFontData(),

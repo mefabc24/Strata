@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Stack
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 
@@ -228,6 +229,23 @@ abstract class StrataLayout internal constructor(
         )
     }
 
+    fun expander(
+        title: String,
+        expanded: Boolean = true,
+        spacing: Float = theme.spacing,
+        configure: StrataColumn.() -> Unit
+    ): StrataExpander {
+        return actor(
+            StrataExpander(
+                context = context,
+                title = title,
+                expanded = expanded,
+                spacing = spacing,
+                configure = configure
+            )
+        )
+    }
+
     fun panel(
         styleName: String? = theme.panelStyle,
         spacing: Float = theme.spacing,
@@ -401,6 +419,71 @@ class StrataStack internal constructor(
                 alignment = alignment
             ).apply(configure)
         )
+    }
+}
+
+/**
+ * A compact header that shows or removes its content from layout on click.
+ */
+class StrataExpander internal constructor(
+    context: StrataUiContext,
+    val title: String,
+    expanded: Boolean,
+    private val spacing: Float,
+    configure: StrataColumn.() -> Unit
+) : Table(context.skin) {
+
+    val content = StrataColumn(
+        context = context,
+        spacing = context.theme.spacing,
+        padding = StrataInsets.NONE,
+        alignment = Align.topLeft
+    ).apply(configure)
+
+    val header = StrataButton(
+        text = title,
+        skin = context.skin,
+        styleName = context.theme.buttonStyle,
+        onClick = ::toggle
+    )
+
+    private val contentCell: Cell<StrataColumn>
+
+    var expanded: Boolean = expanded
+        set(value) {
+            if (field == value) return
+
+            field = value
+            updateExpansion()
+        }
+
+    init {
+        require(spacing.isFinite() && spacing >= 0f) {
+            "Expander spacing must be finite and non-negative."
+        }
+
+        top().left()
+        add(header).growX().fillX()
+        row()
+        contentCell = add(content).growX().fillX()
+        updateExpansion()
+    }
+
+    fun toggle() {
+        expanded = !expanded
+    }
+
+    private fun updateExpansion() {
+        header.setText("$title  ${if (expanded) "v" else ">"}")
+        content.isVisible = expanded
+
+        if (expanded) {
+            contentCell.height(Value.prefHeight).padTop(spacing)
+        } else {
+            contentCell.height(0f).padTop(0f)
+        }
+
+        invalidateHierarchy()
     }
 }
 
