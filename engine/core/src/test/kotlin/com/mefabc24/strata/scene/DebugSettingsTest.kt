@@ -3,6 +3,7 @@ package com.mefabc24.strata.scene
 import com.badlogic.gdx.graphics.Color
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -38,5 +39,22 @@ class DebugSettingsTest {
 
         assertEquals(0.75f, settings.color.a)
         assertEquals(0.75f, settings.backgroundColor?.a)
+    }
+
+    @Test
+    fun `grid line width rejects invalid values`() {
+        val settings = DebugGridSettings()
+
+        for (invalid in listOf(
+            0f,
+            -1f,
+            Float.NaN,
+            Float.POSITIVE_INFINITY,
+            Float.NEGATIVE_INFINITY
+        )) {
+            assertFailsWith<IllegalArgumentException> {
+                settings.lineWidth = invalid
+            }
+        }
     }
 }
