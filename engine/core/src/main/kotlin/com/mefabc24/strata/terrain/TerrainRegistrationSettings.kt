@@ -4,7 +4,7 @@ package com.mefabc24.strata.terrain
 class TerrainRegistrationSettings {
 
     /**
-     * Optional sprite repeated for each additional exposed elevation step.
+     * Optional sprite repeated for each exposed elevation step.
      *
      * A fill sprite may use the same canvas dimensions and alignment as the
      * surface sprite, but should omit its top face. It represents exactly one

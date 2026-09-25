@@ -29,14 +29,13 @@ internal object TerrainFillSlices {
     }
 }
 
-/** Draws full or internally clipped faces from one elevation-fill sprite. */
+/** Draws one atomic face sliced from a shared elevation-fill sprite. */
 internal class IsoTerrainFillRenderer(
     private val projection: IsoProjection
 ) {
     private data class Slices(
         val left: TextureRegion,
-        val right: TextureRegion,
-        val leftRatio: Float
+        val right: TextureRegion
     )
 
     private val bounds = Rectangle()
@@ -46,21 +45,37 @@ internal class IsoTerrainFillRenderer(
         x: Int,
         y: Int,
         elevation: Int,
-        part: TerrainFillPart,
+        levelBelowSurface: Int,
+        face: TerrainFace,
         texture: TextureRegion,
         result: Rectangle,
         offsetY: Float = 0f
     ): Rectangle {
-        return IsoTerrainFillBounds.calculate(
+        IsoTerrainFillBounds.calculate(
             projection = projection,
             x = x,
             y = y,
             elevation = elevation,
-            levelBelowSurface = part.levelBelowSurface,
+            levelBelowSurface = levelBelowSurface,
             texture = texture,
             result = result,
             offsetY = offsetY
         )
+
+        val layout = TerrainFillSlices.calculate(texture.regionWidth)
+        val leftWidth = result.width * layout.leftRatio
+
+        if (face == TerrainFace.RIGHT) {
+            result.x += leftWidth
+        }
+
+        result.width = if (face == TerrainFace.LEFT) {
+            leftWidth
+        } else {
+            result.width - leftWidth
+        }
+
+        return result
     }
 
     fun render(
@@ -68,7 +83,8 @@ internal class IsoTerrainFillRenderer(
         x: Int,
         y: Int,
         elevation: Int,
-        part: TerrainFillPart,
+        levelBelowSurface: Int,
+        face: TerrainFace,
         texture: TextureRegion,
         offsetY: Float = 0f
     ) {
@@ -76,41 +92,23 @@ internal class IsoTerrainFillRenderer(
             x = x,
             y = y,
             elevation = elevation,
-            part = part,
+            levelBelowSurface = levelBelowSurface,
+            face = face,
             texture = texture,
             result = bounds,
             offsetY = offsetY
         )
 
-        if (part.leftExposed && part.rightExposed) {
-            batch.draw(texture, bounds.x, bounds.y, bounds.width, bounds.height)
-            return
-        }
-
         val slices = slicesByTexture.getOrPut(texture) {
             createSlices(texture)
         }
-        val leftWidth = bounds.width * slices.leftRatio
-
-        if (part.leftExposed) {
-            batch.draw(
-                slices.left,
-                bounds.x,
-                bounds.y,
-                leftWidth,
-                bounds.height
-            )
+        val region = if (face == TerrainFace.LEFT) {
+            slices.left
+        } else {
+            slices.right
         }
 
-        if (part.rightExposed) {
-            batch.draw(
-                slices.right,
-                bounds.x + leftWidth,
-                bounds.y,
-                bounds.width - leftWidth,
-                bounds.height
-            )
-        }
+        batch.draw(region, bounds.x, bounds.y, bounds.width, bounds.height)
     }
 
     private fun createSlices(texture: TextureRegion): Slices {
@@ -134,8 +132,7 @@ internal class IsoTerrainFillRenderer(
                 0,
                 layout.rightWidth,
                 texture.regionHeight
-            ),
-            leftRatio = layout.leftRatio
+            )
         )
     }
 }

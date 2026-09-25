@@ -36,6 +36,10 @@ class World(
     var heightVersion: Long = 0L
         private set
 
+    /** Changes whenever a ground terrain tile is replaced. */
+    var terrainVersion: Long = 0L
+        private set
+
     /**
      * Provides safe terrain elevation modifications.
      */
@@ -277,6 +281,7 @@ class World(
         }
 
         tiles[y][x] = tile
+        terrainVersion++
     }
 
     /**

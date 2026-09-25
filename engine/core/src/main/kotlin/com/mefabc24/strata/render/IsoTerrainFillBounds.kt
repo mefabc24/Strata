@@ -57,8 +57,7 @@ internal object IsoTerrainFillBounds {
         return result.set(
             tileTop.x - spriteWidth / 2f,
             surfaceSpriteBottom -
-                    (levelBelowSurface + 1) *
-                    projection.elevationStep + offsetY,
+                    levelBelowSurface * projection.elevationStep + offsetY,
             spriteWidth,
             spriteHeight
         )
