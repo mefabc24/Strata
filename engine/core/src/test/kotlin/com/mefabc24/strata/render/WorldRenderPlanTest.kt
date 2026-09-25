@@ -29,16 +29,19 @@ class WorldRenderPlanTest {
     )
 
     @Test
-    fun `flat terrain surfaces render before a house`() {
+    fun `flat supporting terrain surfaces render before a house`() {
         val world = world()
         val house = requireNotNull(world.place(House(), 1, 1))
 
         val plan = WorldRenderPlan.create(world, projection)
-        val lastSurface = plan.indexOfLast {
-            it is WorldRenderItem.TerrainSurface
-        }
+        val houseIndex = plan.indexOfObject(house)
 
-        assertTrue(lastSurface < plan.indexOfObject(house))
+        for (position in house.occupiedTiles()) {
+            assertTrue(
+                plan.indexOfSurface(position.x, position.y) < houseIndex,
+                "Supporting surface $position rendered after the house."
+            )
+        }
     }
 
     @Test
@@ -56,11 +59,121 @@ class WorldRenderPlanTest {
                 "Supporting surface $position rendered after the house."
             )
         }
-        val lastTerrain = plan.indexOfLast { item ->
-            item is WorldRenderItem.TerrainFill ||
-                    item is WorldRenderItem.TerrainSurface
+    }
+
+    @Test
+    fun `complex terrain and objects produce a deterministic complete plan`() {
+        val world = world(size = 10)
+        world.terrain.setHeight(1..4, 1..4, 2)
+        world.terrain.setHeight(5..8, 5..8, 1)
+        world.terrain.setHeight(6, 3, 4)
+        world.terrain.setHeight(3, 6, 3)
+
+        requireNotNull(world.place(House(), 1, 1))
+        requireNotNull(world.place(House(), 5, 5))
+        requireNotNull(world.place(Tree(), 0, 6))
+        requireNotNull(world.place(Tree(), 6, 0))
+        requireNotNull(world.place(Tree(), 9, 4))
+
+        val first = WorldRenderPlan.create(world, projection)
+
+        repeat(5) {
+            assertEquals(first, WorldRenderPlan.create(world, projection))
         }
-        assertTrue(lastTerrain < houseIndex)
+
+        val expectedCount = world.width * world.height +
+                world.getObjects().size +
+                first.count { it is WorldRenderItem.TerrainFill }
+
+        assertEquals(expectedCount, first.size)
+    }
+
+    @Test
+    fun `terrain edits around several objects always produce a complete plan`() {
+        val world = world(size = 10)
+        requireNotNull(world.place(House(), 1, 1))
+        requireNotNull(world.place(Tree(), 6, 2))
+        requireNotNull(world.place(Tree(), 2, 6))
+        requireNotNull(world.place(Tree(), 8, 7))
+
+        val edits = listOf(
+            Triple(5, 5, 1),
+            Triple(6, 5, 2),
+            Triple(7, 5, 4),
+            Triple(5, 6, 3),
+            Triple(6, 5, 0),
+            Triple(7, 5, 1),
+            Triple(5, 5, 4),
+            Triple(5, 5, 0)
+        )
+
+        for ((x, y, height) in edits) {
+            assertTrue(world.terrain.setHeight(x, y, height))
+
+            val first = WorldRenderPlan.create(world, projection)
+            val second = WorldRenderPlan.create(world, projection)
+
+            assertEquals(first, second)
+            assertEquals(first.size, first.toSet().size)
+        }
+    }
+
+    @Test
+    fun `height one fill renders behind a flat foreground surface`() {
+        val world = world()
+        world.terrain.setHeight(1, 1, 1)
+        requireNotNull(world.place(Tree(), 7, 7))
+
+        val plan = WorldRenderPlan.create(world, projection)
+
+        assertTrue(
+            plan.indexOfFill(x = 1, y = 1) <
+                    plan.indexOfSurface(x = 2, y = 1)
+        )
+    }
+
+    @Test
+    fun `terrain only plans sort every fill behind the flat foreground`() {
+        for (height in 1..3) {
+            val world = world()
+            world.terrain.setHeight(1, 1, height)
+
+            val plan = WorldRenderPlan.create(world, projection)
+            val foreground = plan.indexOfSurface(x = 2, y = 1)
+            val fillIndices = plan.indices.filter { index ->
+                val item = plan[index]
+                item is WorldRenderItem.TerrainFill &&
+                        item.x == 1 &&
+                        item.y == 1
+            }
+
+            assertEquals(height, fillIndices.size)
+            assertTrue(fillIndices.all { it < foreground })
+        }
+    }
+
+    @Test
+    fun `terrain items expose their effective elevation`() {
+        val fills = (0..3).map { level ->
+            WorldRenderItem.TerrainFill(
+                x = 0,
+                y = 0,
+                elevation = 4,
+                part = TerrainFillPart(
+                    levelBelowSurface = level,
+                    leftExposed = true,
+                    rightExposed = true
+                )
+            )
+        }
+        val surface = WorldRenderItem.TerrainSurface(
+            x = 0,
+            y = 0,
+            elevation = 4
+        )
+
+        assertEquals(listOf(3, 2, 1, 0), fills.map { it.effectiveElevation })
+        assertEquals(4, surface.effectiveElevation)
     }
 
     @Test
@@ -185,7 +298,7 @@ class WorldRenderPlanTest {
         }
     }
 
-    private fun world(): World {
-        return World(width = 8, height = 8) { _, _ -> TestTile() }
+    private fun world(size: Int = 8): World {
+        return World(width = size, height = size) { _, _ -> TestTile() }
     }
 }
