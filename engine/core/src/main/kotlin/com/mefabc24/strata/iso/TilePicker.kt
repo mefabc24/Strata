@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+
 class TilePicker(
     private val camera: OrthographicCamera,
     private val projection: IsoProjection,
@@ -23,6 +24,9 @@ class TilePicker(
     ): TilePosition? {
         val tile = projection.worldToTile(worldX, worldY)
 
-        return tile.takeIf { (x, y) -> world.getTile(x, y) != null }
+        return tile.takeIf { (x, y) ->
+            world.getTile(x, y) != null &&
+                projection.containsTopFace(worldX, worldY, x, y)
+        }
     }
 }

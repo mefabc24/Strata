@@ -3,6 +3,7 @@ package com.mefabc24.strata.iso
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.world.TilePosition
+import kotlin.math.abs
 import kotlin.math.floor
 
 class IsoProjection(
@@ -63,6 +64,31 @@ class IsoProjection(
         )
     }
 
+    /**
+     * Returns whether a world position lies on a tile's logical top face.
+     *
+     * The interaction surface uses the isometric face dimensions only. The
+     * terrain's full logical height and texture dimensions do not enlarge it.
+     * Shared edges are included; [worldToTile] provides the deterministic
+     * candidate when two adjacent faces share that edge.
+     */
+    fun containsTopFace(
+        worldX: Float,
+        worldY: Float,
+        x: Int,
+        y: Int
+    ): Boolean {
+        val top = tileToWorld(x, y)
+        val centerX = top.x
+        val centerY = top.y - tileHeight / 2f
+
+        val normalizedDistance =
+            abs(worldX - centerX) / (tileWidth / 2f) +
+                abs(worldY - centerY) / (tileHeight / 2f)
+
+        return normalizedDistance <= 1f + TOP_FACE_EPSILON
+    }
+
     fun worldBounds(
         width: Int,
         height: Int,
@@ -95,6 +121,10 @@ class IsoProjection(
             maxX - minX + padding * 2f,
             maxY - minY + padding * 2f
         )
+    }
+
+    private companion object {
+        const val TOP_FACE_EPSILON = 0.0001f
     }
 
 }
