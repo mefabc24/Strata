@@ -330,7 +330,7 @@ class SandboxUi(
 
     companion object {
 
-        private const val TOOLS_PANEL_WIDTH = 264f
+        private const val TOOLS_PANEL_WIDTH = 280f
 
         fun createTheme() = StrataUiTheme(
             labelStyle = "default",
