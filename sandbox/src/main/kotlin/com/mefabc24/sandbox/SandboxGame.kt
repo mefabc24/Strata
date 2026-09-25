@@ -171,7 +171,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                     enabled = true
                     color = Color(1f, 1f, 1f, 0.4f)
                     hoverColor = Color(1f, 0.8f, 0.2f, 1f)
-                    lineWidth = 2f
+                    lineWidth = 4f
                     backgroundColor = Color(1f, 1f, 1f, 0.04f)
                 }
             }
