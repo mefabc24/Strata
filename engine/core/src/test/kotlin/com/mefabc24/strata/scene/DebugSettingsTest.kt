@@ -1,6 +1,8 @@
 package com.mefabc24.strata.scene
 
+import com.badlogic.gdx.graphics.Color
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -20,5 +22,21 @@ class DebugSettingsTest {
         }
 
         assertTrue(settings.grid.enabled)
+    }
+
+    @Test
+    fun `grid colors are copied on assignment and access`() {
+        val supplied = Color(1f, 0.5f, 0.25f, 0.75f)
+        val settings = DebugGridSettings().apply {
+            color = supplied
+            backgroundColor = supplied
+        }
+
+        supplied.a = 0.1f
+        settings.color.a = 0.2f
+        settings.backgroundColor?.a = 0.3f
+
+        assertEquals(0.75f, settings.color.a)
+        assertEquals(0.75f, settings.backgroundColor?.a)
     }
 }

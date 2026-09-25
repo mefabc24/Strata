@@ -103,16 +103,12 @@ class IsoWorldView(
         objectSettings = renderingConfig.objects
     )
 
-    private val debugGridConfig = debugGridSettings.copy()
+    private val debugGridConfig = debugGridSettings
 
-    private val gridRenderer = if (debugGridConfig.enabled) {
-        IsoGridRenderer(
-            projection = projection,
-            settings = debugGridConfig
-        )
-    } else {
-        null
-    }
+    private val gridRenderer = IsoGridRenderer(
+        projection = projection,
+        settings = debugGridConfig
+    )
 
     /**
      * Rendering statistics from the most recent frame.
@@ -247,22 +243,23 @@ class IsoWorldView(
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
 
-        gridRenderer?.render(
-            world = world,
-            camera = camera,
-            hoveredTile = hoveredTile
-        )
-
-        if (
-            gridRenderer != null &&
-            debugGridConfig.renderLayer ==
-            DebugGridRenderLayer.BELOW_OBJECTS
-        ) {
-            worldRenderer.renderObjectsOverlay(
+        if (debugGridConfig.enabled) {
+            gridRenderer.render(
+                world = world,
                 camera = camera,
-                objectVisualFor = objectVisualFor,
-                preview = preview
+                hoveredTile = hoveredTile
             )
+
+            if (
+                debugGridConfig.renderLayer ==
+                DebugGridRenderLayer.BELOW_OBJECTS
+            ) {
+                worldRenderer.renderObjectsOverlay(
+                    camera = camera,
+                    objectVisualFor = objectVisualFor,
+                    preview = preview
+                )
+            }
         }
     }
 
@@ -315,7 +312,7 @@ class IsoWorldView(
      */
     fun dispose() {
         try {
-            gridRenderer?.dispose()
+            gridRenderer.dispose()
         } finally {
             worldRenderer.dispose()
         }

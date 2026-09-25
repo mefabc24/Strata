@@ -11,10 +11,8 @@ import com.mefabc24.strata.world.World
 
 class IsoGridRenderer(
     private val projection: IsoProjection,
-    settings: DebugGridSettings
+    private val settings: DebugGridSettings
 ) {
-    private val settings = settings.copy()
-
     private val shapes = ShapeRenderer()
 
     fun render(
@@ -23,6 +21,8 @@ class IsoGridRenderer(
         hoveredTile: TilePosition? = null,
         selectedTile: TilePosition? = null
     ) {
+        if (!settings.enabled) return
+
         shapes.projectionMatrix = camera.combined
 
         Gdx.gl.glEnable(GL20.GL_BLEND)

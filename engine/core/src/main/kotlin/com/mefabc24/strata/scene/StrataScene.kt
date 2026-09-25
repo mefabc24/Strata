@@ -108,7 +108,6 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private val cameraSnapshot: CameraSettings
     private val renderingSnapshot: RenderingSettings
     private val controlsSnapshot: ControlsSettings
-    private val debugGridSnapshot: DebugGridSettings
 
     private var configurationOpen = true
 
@@ -171,7 +170,6 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             cameraSnapshot = cameraSettings.copy()
             renderingSnapshot = renderingSettings.copy()
             controlsSnapshot = controlsSettings.copy()
-            debugGridSnapshot = debug.grid.copy()
             placementSettings = placementSettings?.copy()
 
             cameraSnapshot.validate()
@@ -281,7 +279,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,
-                debugGridSettings = debugGridSnapshot.copy()
+                debugGridSettings = debug.grid
             )
         )
 

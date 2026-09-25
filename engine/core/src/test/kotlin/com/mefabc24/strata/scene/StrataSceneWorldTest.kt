@@ -156,7 +156,7 @@ class StrataSceneWorldTest {
     }
 
     @Test
-    fun `world attachment uses frozen scene configuration`() {
+    fun `world attachment freezes setup except runtime debug grid`() {
         val binding = WorldInputBinding.NoPicking(
             trigger = WorldInputTrigger.KeyDown(1)
         ) {
@@ -225,7 +225,8 @@ class StrataSceneWorldTest {
         assertSame(world, scene.world)
         assertEquals(0.75f, scene.audio.masterVolume)
         assertEquals(3f, scene.debug.performance.intervalSeconds)
-        assertTrue(spec.debugGridEnabled)
+        assertSame(scene.debug.grid, spec.debugGridSettings)
+        assertFalse(spec.debugGridSettings.enabled)
         assertEquals(123f, spec.cameraSettings.moveSpeed)
         assertEquals(0.25f, spec.cameraSettings.zoomEdgeAllowance)
         assertEquals(48f, spec.renderingSettings.tileGeometry.width)

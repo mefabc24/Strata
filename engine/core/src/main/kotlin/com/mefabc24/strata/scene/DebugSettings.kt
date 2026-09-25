@@ -30,7 +30,7 @@ class DebugSettings {
 }
 
 /**
- * Setup-time configuration for the isometric world-grid overlay.
+ * Runtime configuration for the isometric world-grid overlay.
  */
 class DebugGridSettings {
 
@@ -39,24 +39,30 @@ class DebugGridSettings {
     var renderLayer: DebugGridRenderLayer =
         DebugGridRenderLayer.BELOW_OBJECTS
 
-    var color: Color = Color(
+    private var storedColor = Color(
         0.4f,
         0.8f,
         0.5f,
         1f
     )
+
+    var color: Color
+        get() = storedColor.cpy()
         set(value) {
-            field = value.cpy()
+            storedColor = value.cpy()
         }
 
-    var hoverColor: Color = Color(
+    private var storedHoverColor = Color(
         1f,
         0.85f,
         0.2f,
         1f
     )
+
+    var hoverColor: Color
+        get() = storedHoverColor.cpy()
         set(value) {
-            field = value.cpy()
+            storedHoverColor = value.cpy()
         }
 
     var lineWidth: Float = 1f
@@ -68,14 +74,20 @@ class DebugGridSettings {
             field = value
         }
 
-    var backgroundColor: Color? = null
+    private var storedBackgroundColor: Color? = null
+
+    var backgroundColor: Color?
+        get() = storedBackgroundColor?.cpy()
         set(value) {
-            field = value?.cpy()
+            storedBackgroundColor = value?.cpy()
         }
 
-    var hoverBackgroundColor: Color? = null
+    private var storedHoverBackgroundColor: Color? = null
+
+    var hoverBackgroundColor: Color?
+        get() = storedHoverBackgroundColor?.cpy()
         set(value) {
-            field = value?.cpy()
+            storedHoverBackgroundColor = value?.cpy()
         }
 
     internal fun copy(): DebugGridSettings {
