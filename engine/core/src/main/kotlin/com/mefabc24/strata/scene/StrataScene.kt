@@ -19,7 +19,6 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
-import com.mefabc24.strata.world.TilePosition
 
 internal fun interface StrataUiFactory {
     fun create(
@@ -109,7 +108,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     private val cameraSnapshot: CameraSettings
     private val renderingSnapshot: RenderingSettings
     private val controlsSnapshot: ControlsSettings
-    private val debugGridEnabledSnapshot: Boolean
+    private val debugGridSnapshot: DebugGridSettings
 
     private var configurationOpen = true
 
@@ -172,7 +171,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
             cameraSnapshot = cameraSettings.copy()
             renderingSnapshot = renderingSettings.copy()
             controlsSnapshot = controlsSettings.copy()
-            debugGridEnabledSnapshot = debug.grid.enabled
+            debugGridSnapshot = debug.grid.copy()
             placementSettings = placementSettings?.copy()
 
             cameraSnapshot.validate()
@@ -282,7 +281,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,
-                debugGridEnabled = debugGridEnabledSnapshot
+                debugGridSettings = debugGridSnapshot.copy()
             )
         )
 

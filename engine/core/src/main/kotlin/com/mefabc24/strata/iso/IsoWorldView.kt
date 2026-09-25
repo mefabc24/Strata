@@ -20,6 +20,7 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
+import com.mefabc24.strata.scene.DebugGridSettings
 import com.mefabc24.strata.world.TilePosition
 
 /**
@@ -59,7 +60,7 @@ class IsoWorldView(
     cameraSettings: CameraSettings = CameraSettings(),
     controls: ControlsSettings = ControlsSettings(),
     renderingSettings: RenderingSettings = RenderingSettings(),
-    debugGridEnabled: Boolean = false
+    debugGridSettings: DebugGridSettings = DebugGridSettings()
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -101,8 +102,13 @@ class IsoWorldView(
         objectSettings = renderingConfig.objects
     )
 
-    private val gridRenderer = if (debugGridEnabled) {
-        IsoGridRenderer(projection)
+    private val debugGridConfig = debugGridSettings.copy()
+
+    private val gridRenderer = if (debugGridConfig.enabled) {
+        IsoGridRenderer(
+            projection = projection,
+            settings = debugGridConfig
+        )
     } else {
         null
     }

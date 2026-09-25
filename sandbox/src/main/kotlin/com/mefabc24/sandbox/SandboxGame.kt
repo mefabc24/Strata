@@ -35,14 +35,27 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             )
 
             terrain.register(
-                TerrainType.WATER,
-                sprite = "water3.png"
+                TerrainType.BUSH,
+                sprite = "bush.png"
             )
 
             terrain.register(
-                TerrainType.SAND,
-                sprite = "flowers.png"
+                TerrainType.LOW_GRASS,
+                sprite = "lowgrass.png"
             )
+
+            terrain.register(
+                TerrainType.WATER,
+                sprite = "water4.png"
+            )
+
+            terrain.register(
+                TerrainType.ROCK
+            )
+
+            terrain.register(TerrainType.SAND)
+            terrain.register(TerrainType.STONE)
+            terrain.register(TerrainType.DIRT)
 
             objects.register<House>(
                 sprite = "house.png",
@@ -53,7 +66,85 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 sprite = "oak.png",
                 factory = ::OakTree
             ) {
-                offsetY = 5f
+                offsetY = 3f
+            }
+
+            objects.register<Villa>(
+                sprite = "villa.png",
+                factory = ::Villa
+            ) {
+                offsetY = -16f
+                offsetX = -6f
+            }
+
+            objects.register<Pine>(
+                sprite = "pine.png",
+                factory = ::Pine
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Trunk1>(
+                sprite = "trunk1.png",
+                factory = ::Trunk1
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Trunk2>(
+                sprite = "trunk2.png",
+                factory = ::Trunk2
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Trunk3>(
+                sprite = "trunk3.png",
+                factory = ::Trunk3
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Trunk4>(
+                sprite = "trunk4.png",
+                factory = ::Trunk4
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Flower1>(
+                sprite = "flower1.png",
+                factory = ::Flower1
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<Flower2>(
+                sprite = "flower2.png",
+                factory = ::Flower2
+            ) {
+                offsetY = 3f
+            }
+
+            objects.register<RockWater1>(
+                sprite = "rock_water1.png",
+                factory = ::RockWater1
+            ) {
+                offsetY = -3f
+            }
+
+            objects.register<RockWater2>(
+                sprite = "rock_water2.png",
+                factory = ::RockWater2
+            ) {
+                offsetY = -3f
+            }
+
+            objects.register<RockWater3>(
+                sprite = "rock_water3.png",
+                factory = ::RockWater3
+            ) {
+                offsetY = -3f
             }
 
             sounds.register(
@@ -78,6 +169,10 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
                 grid {
                     enabled = true
+                    color = Color(1f, 1f, 1f, 0.4f)
+                    hoverColor = Color(1f, 0.8f, 0.2f, 1f)
+                    lineWidth = 2f
+                    backgroundColor = Color(1f, 1f, 1f, 0.04f)
                 }
             }
 
@@ -89,6 +184,10 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 tileGeometry {
                     width = 32f
                     height = 24f
+                }
+
+                objects {
+                    offsetY = 1f
                 }
             }
 
@@ -276,7 +375,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             val terrain = if (x in 12..18 && y in 12..18) {
                 TerrainType.WATER
             } else {
-                TerrainType.GRASS
+                TerrainType.LOW_GRASS
             }
 
             SandboxTile(terrain)
@@ -291,7 +390,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                     layerId = "demo",
                     x = x,
                     y = y,
-                    tile = SandboxTile(TerrainType.WATER)
+                    tile = SandboxTile(TerrainType.BUSH)
                 )
             }
         }

@@ -1,30 +1,77 @@
 package com.mefabc24.strata.scene
 
+import com.badlogic.gdx.graphics.Color
+
 /**
  * Groups the scene's debugging facilities.
  */
 class DebugSettings {
+
     val performance = ScenePerformanceLogger()
 
-    /** Isometric world-grid debug rendering configuration. */
     val grid = DebugGridSettings()
 
-    fun performance(configure: ScenePerformanceLogger.() -> Unit) {
+    fun performance(
+        configure: ScenePerformanceLogger.() -> Unit
+    ) {
         performance.apply(configure)
     }
 
-    /** Configures the optional isometric world-grid overlay. */
-    fun grid(configure: DebugGridSettings.() -> Unit) {
+    fun grid(
+        configure: DebugGridSettings.() -> Unit
+    ) {
         grid.apply(configure)
     }
 }
 
 /**
  * Setup-time configuration for the isometric world-grid overlay.
- *
- * The grid is disabled by default. A scene snapshots this value when setup
- * completes and passes it to a subsequently attached world view.
  */
 class DebugGridSettings {
+
     var enabled: Boolean = false
+
+    var color: Color = Color(
+        0.4f,
+        0.8f,
+        0.5f,
+        1f
+    )
+        set(value) {
+            field = value.cpy()
+        }
+
+    var hoverColor: Color = Color(
+        1f,
+        0.85f,
+        0.2f,
+        1f
+    )
+        set(value) {
+            field = value.cpy()
+        }
+
+    var lineWidth: Float = 1f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Debug grid line width must be finite and positive."
+            }
+
+            field = value
+        }
+
+    var backgroundColor: Color? = null
+        set(value) {
+            field = value?.cpy()
+        }
+
+    internal fun copy(): DebugGridSettings {
+        return DebugGridSettings().also {
+            it.enabled = enabled
+            it.color = color
+            it.hoverColor = hoverColor
+            it.lineWidth = lineWidth
+            it.backgroundColor = backgroundColor
+        }
+    }
 }

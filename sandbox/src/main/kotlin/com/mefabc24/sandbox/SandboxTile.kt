@@ -5,7 +5,12 @@ import com.mefabc24.strata.world.Tile
 enum class TerrainType {
     GRASS,
     WATER,
-    SAND
+    BUSH,
+    SAND,
+    STONE,
+    DIRT,
+    LOW_GRASS,
+    ROCK
 }
 
 data class SandboxTile(
