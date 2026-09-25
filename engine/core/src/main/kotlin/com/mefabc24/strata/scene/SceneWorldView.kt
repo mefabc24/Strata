@@ -20,7 +20,8 @@ internal data class SceneWorldViewSpec(
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,
-    val renderingSettings: RenderingSettings
+    val renderingSettings: RenderingSettings,
+    val debugGridEnabled: Boolean
 )
 
 internal interface SceneWorldView {
@@ -51,7 +52,8 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
                 objectVisualFor = spec.objectVisualFor,
                 cameraSettings = spec.cameraSettings,
                 controls = spec.controlsSettings,
-                renderingSettings = spec.renderingSettings
+                renderingSettings = spec.renderingSettings,
+                debugGridEnabled = spec.debugGridEnabled
             )
         )
     }

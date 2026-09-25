@@ -167,6 +167,7 @@ class StrataSceneWorldTest {
         lateinit var escapedCamera: CameraSettings
         lateinit var escapedRendering: RenderingSettings
         lateinit var escapedControls: ControlsSettings
+        lateinit var escapedGrid: DebugGridSettings
         val factory = RecordingViewFactory()
 
         val scene = sceneWith(factory) {
@@ -177,6 +178,11 @@ class StrataSceneWorldTest {
             debug {
                 performance {
                     intervalSeconds = 3f
+                }
+
+                grid {
+                    enabled = true
+                    escapedGrid = this
                 }
             }
 
@@ -208,6 +214,7 @@ class StrataSceneWorldTest {
         escapedRendering.objects.offsetX = 999f
         escapedRendering.objects.offsetY = 999f
         escapedControls.camera.moveUp = 101
+        escapedGrid.enabled = false
         mutableBindings.clear()
 
         val world = world()
@@ -218,6 +225,7 @@ class StrataSceneWorldTest {
         assertSame(world, scene.world)
         assertEquals(0.75f, scene.audio.masterVolume)
         assertEquals(3f, scene.debug.performance.intervalSeconds)
+        assertTrue(spec.debugGridEnabled)
         assertEquals(123f, spec.cameraSettings.moveSpeed)
         assertEquals(0.25f, spec.cameraSettings.zoomEdgeAllowance)
         assertEquals(48f, spec.renderingSettings.tileGeometry.width)

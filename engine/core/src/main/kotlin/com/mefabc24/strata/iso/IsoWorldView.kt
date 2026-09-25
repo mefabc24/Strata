@@ -9,6 +9,7 @@ import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.IsoWorldRenderer
+import com.mefabc24.strata.render.IsoGridRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.ObjectVisual
@@ -57,7 +58,8 @@ class IsoWorldView(
 
     cameraSettings: CameraSettings = CameraSettings(),
     controls: ControlsSettings = ControlsSettings(),
-    renderingSettings: RenderingSettings = RenderingSettings()
+    renderingSettings: RenderingSettings = RenderingSettings(),
+    debugGridEnabled: Boolean = false
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -98,6 +100,12 @@ class IsoWorldView(
         projection = projection,
         objectSettings = renderingConfig.objects
     )
+
+    private val gridRenderer = if (debugGridEnabled) {
+        IsoGridRenderer(projection)
+    } else {
+        null
+    }
 
     /**
      * Rendering statistics from the most recent frame.
@@ -231,6 +239,12 @@ class IsoWorldView(
             preview = preview,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
+
+        gridRenderer?.render(
+            world = world,
+            camera = camera,
+            hoveredTile = hoveredTile
+        )
     }
 
     fun resize(width: Int, height: Int) {
@@ -281,6 +295,10 @@ class IsoWorldView(
      * Releases resources owned by this world view.
      */
     fun dispose() {
-        worldRenderer.dispose()
+        try {
+            gridRenderer?.dispose()
+        } finally {
+            worldRenderer.dispose()
+        }
     }
 }
