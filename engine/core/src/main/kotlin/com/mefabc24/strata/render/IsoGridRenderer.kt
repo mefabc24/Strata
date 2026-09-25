@@ -49,7 +49,11 @@ class IsoGridRenderer(
             shapes.end()
         }
 
-        Gdx.gl.glLineWidth(settings.lineWidth)
+        val effectiveLineWidth =
+            (settings.lineWidth / camera.zoom)
+                .coerceAtLeast(1f)
+
+        Gdx.gl.glLineWidth(effectiveLineWidth)
 
         shapes.begin(ShapeRenderer.ShapeType.Line)
 
