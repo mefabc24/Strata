@@ -4,7 +4,6 @@ import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
-import java.util.PriorityQueue
 
 /** One terrain or object operation in back-to-front world rendering order. */
 internal sealed interface WorldRenderItem {
@@ -14,13 +13,19 @@ internal sealed interface WorldRenderItem {
         val y: Int,
         val elevation: Int,
         val part: TerrainFillPart
-    ) : WorldRenderItem
+    ) : WorldRenderItem {
+        val effectiveElevation: Int
+            get() = elevation - part.levelBelowSurface - 1
+    }
 
     data class TerrainSurface(
         val x: Int,
         val y: Int,
         val elevation: Int
-    ) : WorldRenderItem
+    ) : WorldRenderItem {
+        val effectiveElevation: Int
+            get() = elevation
+    }
 
     data class WorldObject(
         val placedObject: PlacedObject
@@ -39,15 +44,8 @@ internal object WorldRenderPlan {
         projection: IsoProjection
     ): List<WorldRenderItem> {
         val terrainItems = terrainItems(world)
-        val objectItems = IsoObjectOrdering.backToFront(
-            objects = world.getObjects(),
-            projection = projection,
-            elevationFor = { placed ->
-                world.getHeight(placed.x, placed.y) ?: 0
-            }
-        ).map(WorldRenderItem::WorldObject)
-
-        if (objectItems.isEmpty()) return terrainItems
+        val objectItems = world.getObjects()
+            .map(WorldRenderItem::WorldObject)
 
         val terrainNodes = terrainItems.mapIndexed { index, item ->
             Node(index, item, projection, world::getHeight)
@@ -112,15 +110,13 @@ internal object WorldRenderPlan {
         objectNodes: List<Node>
     ): List<WorldRenderItem> {
         val nodes = terrainNodes + objectNodes
-        val edges = List(nodes.size) { mutableSetOf<Int>() }
-        val incoming = IntArray(nodes.size)
+        val dependencies = StableDependencyOrder(
+            items = nodes,
+            comparator = nodeComparator
+        )
 
         fun addEdge(source: Node, target: Node) {
-            if (source.index == target.index) return
-
-            if (edges[source.index].add(target.index)) {
-                incoming[target.index]++
-            }
+            dependencies.add(source.index, target.index)
         }
 
         // Each terrain column draws its deepest fill first and its surface last.
@@ -133,49 +129,32 @@ internal object WorldRenderPlan {
             }
         }
 
-        // IsoObjectOrdering already establishes footprint-aware object order.
-        for (index in 0 until objectNodes.lastIndex) {
-            addEdge(objectNodes[index], objectNodes[index + 1])
+        // Only definite footprint relationships become hard dependencies.
+        for (firstIndex in objectNodes.indices) {
+            for (secondIndex in firstIndex + 1 until objectNodes.size) {
+                val first = objectNodes[firstIndex]
+                val second = objectNodes[secondIndex]
+                val firstBehind = first.isBehind(second)
+                val secondBehind = second.isBehind(first)
+
+                when {
+                    firstBehind && !secondBehind -> addEdge(first, second)
+                    secondBehind && !firstBehind -> addEdge(second, first)
+                }
+            }
         }
 
         for (terrain in terrainNodes) {
             for (objectNode in objectNodes) {
-                if (terrain.mustRenderBefore(objectNode)) {
+                if (terrain.isSupportingSurfaceFor(objectNode)) {
                     addEdge(terrain, objectNode)
-                } else {
+                } else if (terrain.definitelyOccludes(objectNode)) {
                     addEdge(objectNode, terrain)
                 }
             }
         }
 
-        val available = PriorityQueue(nodeComparator)
-
-        for (node in nodes) {
-            if (incoming[node.index] == 0) {
-                available += node
-            }
-        }
-
-        val result = ArrayList<WorldRenderItem>(nodes.size)
-
-        while (available.isNotEmpty()) {
-            val current = available.remove()
-            result += current.item
-
-            for (target in edges[current.index]) {
-                incoming[target]--
-
-                if (incoming[target] == 0) {
-                    available += nodes[target]
-                }
-            }
-        }
-
-        check(result.size == nodes.size) {
-            "World render dependencies must not contain a cycle."
-        }
-
-        return result
+        return dependencies.resolve().map(Node::item)
     }
 
     private class Node(
@@ -206,11 +185,9 @@ internal object WorldRenderPlan {
             is WorldRenderItem.Preview -> error("Preview is not a normal world item.")
         }
 
-        val elevation = when (item) {
-            is WorldRenderItem.TerrainFill -> {
-                item.elevation - item.part.levelBelowSurface - 1
-            }
-            is WorldRenderItem.TerrainSurface -> item.elevation
+        val effectiveElevation = when (item) {
+            is WorldRenderItem.TerrainFill -> item.effectiveElevation
+            is WorldRenderItem.TerrainSurface -> item.effectiveElevation
             is WorldRenderItem.WorldObject -> {
                 elevationFor(item.placedObject.x, item.placedObject.y) ?: 0
             }
@@ -220,7 +197,7 @@ internal object WorldRenderPlan {
         val groundY = projection.surfaceAnchor(
             x = maxX,
             y = maxY,
-            elevation = elevation
+            elevation = effectiveElevation
         ).y
 
         val kindOrder = when (item) {
@@ -241,29 +218,32 @@ internal object WorldRenderPlan {
             return maxX < other.minX || maxY < other.minY
         }
 
-        fun mustRenderBefore(objectNode: Node): Boolean {
-            check(item !is WorldRenderItem.WorldObject)
+        fun isSupportingSurfaceFor(objectNode: Node): Boolean {
+            check(
+                item is WorldRenderItem.TerrainFill ||
+                        item is WorldRenderItem.TerrainSurface
+            )
             check(objectNode.item is WorldRenderItem.WorldObject)
 
-            if (position in objectNode.occupiedTiles) return true
+            return item is WorldRenderItem.TerrainSurface &&
+                    position in objectNode.occupiedTiles
+        }
 
-            // Terrain at or below the object's supporting level cannot cover
-            // an object that stands on that level.
-            if (columnElevation <= objectNode.elevation) return true
+        fun definitelyOccludes(objectNode: Node): Boolean {
+            check(
+                item is WorldRenderItem.TerrainFill ||
+                        item is WorldRenderItem.TerrainSurface
+            )
+            check(objectNode.item is WorldRenderItem.WorldObject)
+
+            if (effectiveElevation <= objectNode.effectiveElevation) {
+                return false
+            }
 
             val terrainBehind = isBehind(objectNode)
             val objectBehind = objectNode.isBehind(this)
 
-            // Only a strictly higher terrain column that is definitely in
-            // front of the object is allowed to occlude it.
-            return !(objectBehind && !terrainBehind)
-        }
-
-        private val columnElevation = when (item) {
-            is WorldRenderItem.TerrainFill -> item.elevation
-            is WorldRenderItem.TerrainSurface -> item.elevation
-            is WorldRenderItem.WorldObject -> elevation
-            is WorldRenderItem.Preview -> error("Preview is not a normal world item.")
+            return objectBehind && !terrainBehind
         }
     }
 
