@@ -17,8 +17,19 @@ internal object IsoObjectOrdering {
                 supportElevation = elevationFor(placed)
             )
         }
+        val candidates = buildList {
+            for (first in primitives.indices) {
+                for (second in first + 1 until primitives.size) {
+                    add(IsoRenderCandidate(first, second))
+                }
+            }
+        }
 
-        return IsoRenderOrder.backToFront(primitives, projection)
+        return IsoRenderOrder.backToFront(
+            items = primitives,
+            projection = projection,
+            relationCandidates = candidates
+        )
             .map(WorldObjectPrimitive::placedObject)
     }
 }

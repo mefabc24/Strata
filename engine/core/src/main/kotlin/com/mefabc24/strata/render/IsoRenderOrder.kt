@@ -8,36 +8,58 @@ internal data class IsoRenderDependency(
     val after: Int
 )
 
-/** Orders all isometric primitives through their shared spatial model. */
+/** A selected primitive pair whose spatial relationship should be checked. */
+internal data class IsoRenderCandidate(
+    val first: Int,
+    val second: Int
+)
+
+/** Structural diagnostics for render-plan complexity tests. */
+internal class IsoRenderOrderMetrics {
+    var relationChecks: Int = 0
+        internal set
+}
+
+/** Orders primitives by depth plus explicitly selected spatial candidates. */
 internal object IsoRenderOrder {
 
     fun <T : IsoSortable> backToFront(
         items: List<T>,
         projection: IsoProjection,
-        explicitDependencies: List<IsoRenderDependency> = emptyList()
+        relationCandidates: List<IsoRenderCandidate> = emptyList(),
+        explicitDependencies: List<IsoRenderDependency> = emptyList(),
+        metrics: IsoRenderOrderMetrics? = null
     ): List<T> {
+        metrics?.relationChecks = 0
+
         val dependencies = StableDependencyOrder(
             items = items,
             comparator = comparator(projection)
         )
 
-        for (firstIndex in items.indices) {
-            for (secondIndex in firstIndex + 1 until items.size) {
-                when (
-                    items[firstIndex].sortVolume.relationTo(
-                        items[secondIndex].sortVolume
-                    )
-                ) {
-                    IsoSpatialRelation.BEHIND -> {
-                        dependencies.add(firstIndex, secondIndex)
-                    }
+        for ((firstIndex, secondIndex) in relationCandidates) {
+            require(
+                firstIndex in items.indices && secondIndex in items.indices
+            ) {
+                "Render candidates must refer to existing items."
+            }
 
-                    IsoSpatialRelation.IN_FRONT -> {
-                        dependencies.add(secondIndex, firstIndex)
-                    }
+            metrics?.let { it.relationChecks++ }
 
-                    IsoSpatialRelation.AMBIGUOUS -> Unit
+            when (
+                items[firstIndex].sortVolume.relationTo(
+                    items[secondIndex].sortVolume
+                )
+            ) {
+                IsoSpatialRelation.BEHIND -> {
+                    dependencies.add(firstIndex, secondIndex)
                 }
+
+                IsoSpatialRelation.IN_FRONT -> {
+                    dependencies.add(secondIndex, firstIndex)
+                }
+
+                IsoSpatialRelation.AMBIGUOUS -> Unit
             }
         }
 

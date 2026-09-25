@@ -9,13 +9,13 @@ import com.mefabc24.strata.world.World
 /** One operation in the complete world rendering sequence. */
 internal sealed interface WorldRenderItem
 
-/** A normal world visual that participates in shared isometric ordering. */
+/** A normal world visual ordered through the shared isometric depth model. */
 internal sealed interface WorldRenderPrimitive :
     WorldRenderItem,
     IsoSortable
 
-/** The logical diamond-shaped top face of one terrain cell. */
-internal data class TerrainTop(
+/** One complete authored terrain sprite at its logical world position. */
+internal data class TerrainCell(
     val x: Int,
     val y: Int,
     val elevation: Int
@@ -29,12 +29,12 @@ internal data class TerrainTop(
         maxZ = elevation
     )
 
-    override val sortKind: Int = 1
+    override val sortKind: Int = 0
     override val stableSortKey: String = ""
 }
 
-/** One exposed terrain face spanning exactly one elevation interval. */
-internal data class TerrainSide(
+/** One exposed face from a repeated elevation-fill sprite. */
+internal data class TerrainFill(
     val x: Int,
     val y: Int,
     val surfaceElevation: Int,
@@ -65,8 +65,8 @@ internal data class TerrainSide(
             )
         }
 
-    override val sortKind: Int = 0
-    override val stableSortKey: String = ""
+    override val sortKind: Int = 1
+    override val stableSortKey: String = face.name
 }
 
 /** A placed object represented by its complete footprint and support level. */
@@ -95,16 +95,18 @@ internal data class PreviewRenderItem(
     val preview: PlacementPreview
 ) : WorldRenderItem
 
-/** Builds the atomic, deterministic world rendering sequence. */
+/** Builds a grid-aware, deterministic world rendering sequence. */
 internal object WorldRenderPlan {
 
     fun create(
         world: World,
         projection: IsoProjection,
-        hasFillFor: (Tile) -> Boolean = { true }
+        hasFillFor: (Tile) -> Boolean = { true },
+        metrics: IsoRenderOrderMetrics? = null
     ): List<WorldRenderPrimitive> {
         val primitives = mutableListOf<WorldRenderPrimitive>()
-        val topIndexByPosition = mutableMapOf<TilePosition, Int>()
+        val terrainIndicesByCell =
+            arrayOfNulls<MutableList<Int>>(world.width * world.height)
         val explicitDependencies = mutableListOf<IsoRenderDependency>()
 
         for (depth in 0 until world.width + world.height - 1) {
@@ -115,50 +117,43 @@ internal object WorldRenderPlan {
                 val y = depth - x
                 val elevation = world.getHeight(x, y) ?: continue
                 val tile = world.getTile(x, y) ?: continue
-                val sideIndices = mutableListOf<Int>()
+                val terrainIndices = mutableListOf<Int>()
+
+                val cellIndex = primitives.size
+                primitives += TerrainCell(x, y, elevation)
+                terrainIndices += cellIndex
 
                 if (hasFillFor(tile)) {
-                    for (part in TerrainSidePlan.create(world, x, y)) {
-                        sideIndices += primitives.size
-                        primitives += TerrainSide(
+                    val previousFillByFace = mutableMapOf<TerrainFace, Int>()
+
+                    for (part in TerrainFillPlan.create(world, x, y)) {
+                        val fillIndex = primitives.size
+                        primitives += TerrainFill(
                             x = x,
                             y = y,
                             surfaceElevation = elevation,
                             levelBelowSurface = part.levelBelowSurface,
                             face = part.face
                         )
+                        terrainIndices += fillIndex
+
+                        val previous = previousFillByFace.put(
+                            part.face,
+                            fillIndex
+                        )
+
+                        explicitDependencies += IsoRenderDependency(
+                            before = previous ?: cellIndex,
+                            after = fillIndex
+                        )
                     }
                 }
 
-                topIndexByPosition[TilePosition(x, y)] = primitives.size
-                primitives += TerrainTop(x, y, elevation)
-                val topIndex = primitives.lastIndex
-
-                for (sideIndex in sideIndices) {
-                    explicitDependencies += IsoRenderDependency(
-                        before = sideIndex,
-                        after = topIndex
-                    )
-                }
-
-                for (first in sideIndices) {
-                    for (second in sideIndices) {
-                        val firstSide = primitives[first] as TerrainSide
-                        val secondSide = primitives[second] as TerrainSide
-
-                        if (
-                            firstSide.bottomElevation <
-                            secondSide.bottomElevation
-                        ) {
-                            explicitDependencies += IsoRenderDependency(
-                                before = first,
-                                after = second
-                            )
-                        }
-                    }
-                }
+                terrainIndicesByCell[y * world.width + x] = terrainIndices
             }
         }
+
+        val objectIndices = mutableListOf<Int>()
 
         for (placed in world.getObjects()) {
             val objectIndex = primitives.size
@@ -168,20 +163,42 @@ internal object WorldRenderPlan {
             )
 
             primitives += primitive
+            objectIndices += objectIndex
 
             for (position in primitive.occupiedTiles) {
-                val topIndex = topIndexByPosition[position] ?: continue
-                explicitDependencies += IsoRenderDependency(
-                    before = topIndex,
-                    after = objectIndex
-                )
+                val cellIndex = position.y * world.width + position.x
+
+                for (
+                    terrainIndex in
+                    terrainIndicesByCell[cellIndex].orEmpty()
+                ) {
+                    explicitDependencies += IsoRenderDependency(
+                        before = terrainIndex,
+                        after = objectIndex
+                    )
+                }
+            }
+        }
+
+        val objectCandidates = buildList {
+            for (first in objectIndices.indices) {
+                for (second in first + 1 until objectIndices.size) {
+                    add(
+                        IsoRenderCandidate(
+                            first = objectIndices[first],
+                            second = objectIndices[second]
+                        )
+                    )
+                }
             }
         }
 
         return IsoRenderOrder.backToFront(
             items = primitives,
             projection = projection,
-            explicitDependencies = explicitDependencies
+            relationCandidates = objectCandidates,
+            explicitDependencies = explicitDependencies,
+            metrics = metrics
         )
     }
 

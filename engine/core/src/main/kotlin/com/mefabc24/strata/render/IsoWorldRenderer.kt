@@ -109,7 +109,7 @@ class IsoWorldRenderer(
 
         for (item in renderPlan) {
             when (item) {
-                is TerrainSide -> {
+                is TerrainFill -> {
                     if (item.x + item.y !in terrainDepths) continue
 
                     val tile = world.getTile(item.x, item.y) ?: continue
@@ -121,17 +121,17 @@ class IsoWorldRenderer(
                         raiseOffsetY = raiseOffsetY
                     )
 
-                    renderSide(
+                    renderFill(
                         item = item,
                         texture = texture,
                         offsetY = offsetY
                     )
                 }
 
-                is TerrainTop -> {
+                is TerrainCell -> {
                     if (item.x + item.y !in terrainDepths) continue
 
-                    renderTop(
+                    renderCell(
                         world = world,
                         item = item,
                         overlayIds = overlayIds,
@@ -169,8 +169,8 @@ class IsoWorldRenderer(
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
     }
 
-    private fun renderSide(
-        item: TerrainSide,
+    private fun renderFill(
+        item: TerrainFill,
         texture: TextureRegion,
         offsetY: Float
     ) {
@@ -200,9 +200,9 @@ class IsoWorldRenderer(
         stats.terrainDrawn++
     }
 
-    private fun renderTop(
+    private fun renderCell(
         world: World,
-        item: TerrainTop,
+        item: TerrainCell,
         overlayIds: List<String>,
         textureFor: (Tile) -> TextureRegion?,
         raisedTile: TilePosition?,
@@ -220,7 +220,7 @@ class IsoWorldRenderer(
         world.getTile(item.x, item.y)
             ?.let(textureFor)
             ?.let { texture ->
-                renderTerrainTop(
+                renderTerrainSprite(
                     x = item.x,
                     y = item.y,
                     elevation = item.elevation,
@@ -235,7 +235,7 @@ class IsoWorldRenderer(
             world.getOverlayTile(layerId, item.x, item.y)
                 ?.let(textureFor)
                 ?.let { texture ->
-                    renderOverlaySprite(
+                    renderTerrainSprite(
                         x = item.x,
                         y = item.y,
                         elevation = item.elevation,
@@ -294,36 +294,7 @@ class IsoWorldRenderer(
         }
     }
 
-    private fun renderTerrainTop(
-        x: Int,
-        y: Int,
-        elevation: Int,
-        texture: TextureRegion,
-        offsetY: Float
-    ) {
-        IsoTerrainTopBounds.calculate(
-            projection = projection,
-            x = x,
-            y = y,
-            result = tileBounds,
-            offsetY = offsetY,
-            elevation = elevation
-        )
-
-        if (!tileBounds.overlaps(visibleArea)) return
-
-        terrainRenderer.render(
-            batch = batch,
-            x = x,
-            y = y,
-            texture = texture,
-            offsetY = offsetY,
-            elevation = elevation
-        )
-        stats.terrainDrawn++
-    }
-
-    private fun renderOverlaySprite(
+    private fun renderTerrainSprite(
         x: Int,
         y: Int,
         elevation: Int,
@@ -342,12 +313,13 @@ class IsoWorldRenderer(
 
         if (!tileBounds.overlaps(visibleArea)) return
 
-        batch.draw(
-            texture,
-            tileBounds.x,
-            tileBounds.y,
-            tileBounds.width,
-            tileBounds.height
+        terrainRenderer.render(
+            batch = batch,
+            x = x,
+            y = y,
+            texture = texture,
+            offsetY = offsetY,
+            elevation = elevation
         )
         stats.terrainDrawn++
     }
