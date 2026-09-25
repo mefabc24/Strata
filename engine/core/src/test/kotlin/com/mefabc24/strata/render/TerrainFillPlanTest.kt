@@ -10,12 +10,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-class TerrainSidePlanTest {
+class TerrainFillPlanTest {
 
     private class TestTile : Tile
 
     @Test
-    fun `height differences create one primitive per exposed face and level`() {
+    fun `height differences create one fill per exposed face and level`() {
         val world = world()
 
         for (height in 0..4) {
@@ -23,7 +23,7 @@ class TerrainSidePlanTest {
 
             assertEquals(
                 height * 2,
-                TerrainSidePlan.create(world, 1, 1).size
+                TerrainFillPlan.create(world, 1, 1).size
             )
         }
     }
@@ -36,11 +36,11 @@ class TerrainSidePlanTest {
 
         assertEquals(
             listOf(
-                TerrainSidePart(2, TerrainFace.RIGHT),
-                TerrainSidePart(1, TerrainFace.RIGHT),
-                TerrainSidePart(0, TerrainFace.RIGHT)
+                TerrainFillPart(0, TerrainFace.RIGHT),
+                TerrainFillPart(1, TerrainFace.RIGHT),
+                TerrainFillPart(2, TerrainFace.RIGHT)
             ),
-            TerrainSidePlan.create(world, 1, 1)
+            TerrainFillPlan.create(world, 1, 1)
         )
     }
 
@@ -53,63 +53,36 @@ class TerrainSidePlanTest {
 
         assertEquals(
             listOf(
-                TerrainSidePart(2, TerrainFace.LEFT),
-                TerrainSidePart(1, TerrainFace.LEFT),
-                TerrainSidePart(1, TerrainFace.RIGHT),
-                TerrainSidePart(0, TerrainFace.LEFT),
-                TerrainSidePart(0, TerrainFace.RIGHT)
+                TerrainFillPart(0, TerrainFace.LEFT),
+                TerrainFillPart(0, TerrainFace.RIGHT),
+                TerrainFillPart(1, TerrainFace.LEFT),
+                TerrainFillPart(1, TerrainFace.RIGHT),
+                TerrainFillPart(2, TerrainFace.LEFT)
             ),
-            TerrainSidePlan.create(world, 1, 1)
+            TerrainFillPlan.create(world, 1, 1)
         )
     }
 
     @Test
-    fun `same height plateau has no internal sides`() {
+    fun `same height plateau has no internal fills`() {
         val world = world()
         world.terrain.setHeight(1..2, 1..2, 3)
 
-        assertEquals(emptyList(), TerrainSidePlan.create(world, 1, 1))
+        assertEquals(emptyList(), TerrainFillPlan.create(world, 1, 1))
     }
 
     @Test
-    fun `height one at the map edge exposes both first faces`() {
+    fun `height one at map edge exposes both first fills`() {
         val world = world()
         world.terrain.setHeight(3, 3, 1)
 
         assertEquals(
             listOf(
-                TerrainSidePart(0, TerrainFace.LEFT),
-                TerrainSidePart(0, TerrainFace.RIGHT)
+                TerrainFillPart(0, TerrainFace.LEFT),
+                TerrainFillPart(0, TerrainFace.RIGHT)
             ),
-            TerrainSidePlan.create(world, 3, 3)
+            TerrainFillPlan.create(world, 3, 3)
         )
-    }
-
-    @Test
-    fun `compact geometry spaces fill canvases by one logical step`() {
-        val projection = projection()
-        val first = fillBounds(projection, elevation = 3, level = 0)
-        val second = fillBounds(projection, elevation = 3, level = 1)
-
-        assertEquals(8f, first.y - second.y)
-        assertEquals(8f, projection.elevationStep)
-    }
-
-    @Test
-    fun `first fill uses the surface canvas alignment`() {
-        val projection = projection()
-        val surface = IsoTerrainBounds.calculate(
-            projection = projection,
-            x = 0,
-            y = 0,
-            textureWidth = 32,
-            textureHeight = 32,
-            result = Rectangle(),
-            elevation = 1
-        )
-        val firstFill = fillBounds(projection, elevation = 1, level = 0)
-
-        assertEquals(surface, firstFill)
     }
 
     @Test
@@ -170,22 +143,5 @@ class TerrainSidePlanTest {
 
     private fun world(): World {
         return World(width = 4, height = 4) { _, _ -> TestTile() }
-    }
-
-    private fun fillBounds(
-        projection: IsoProjection,
-        elevation: Int,
-        level: Int
-    ): Rectangle {
-        return IsoTerrainFillBounds.calculate(
-            projection = projection,
-            x = 0,
-            y = 0,
-            elevation = elevation,
-            levelBelowSurface = level,
-            textureWidth = 32,
-            textureHeight = 32,
-            result = Rectangle()
-        )
     }
 }
