@@ -83,83 +83,19 @@ class TerrainRegistryTest {
     }
 
     @Test
-    fun `fill sprite is queued and prepared with its terrain`() {
-        val queued = mutableListOf<String>()
-        val grass = TextureRegion()
-        val dirtFill = TextureRegion()
-        val regions = mapOf(
-            "tiles/grass.png" to grass,
-            "tiles/dirt-fill.png" to dirtFill
-        )
-        val registry = TerrainRegistry<Terrain>(
-            directory = "tiles",
-            queueTexture = queued::add,
-            regionFor = regions::getValue
-        )
-
-        registry.register(Terrain.GRASS, "grass.png") {
-            fillSprite = "dirt-fill.png"
-        }
-
-        assertEquals(
-            listOf(
-                "tiles/grass.png",
-                "tiles/dirt-fill.png"
-            ),
-            queued
-        )
-
-        registry.freeze()
-        registry.prepare()
-
-        assertSame(dirtFill, registry.fill(Terrain.GRASS))
-    }
-
-    @Test
-    fun `terrain types retain their own optional fill materials`() {
-        val regions = mutableMapOf<String, TextureRegion>()
-        val registry = TerrainRegistry<Terrain>(
-            directory = "tiles",
-            queueTexture = { path -> regions[path] = TextureRegion() },
-            regionFor = regions::getValue
-        )
-
-        registry.register(Terrain.GRASS, "grass.png") {
-            fillSprite = "dirt-fill.png"
-        }
-        registry.register(Terrain.SAND, "sand.png") {
-            fillSprite = "sand-fill.png"
-        }
-        registry.register(Terrain.WATER, "water.png")
-        registry.freeze()
-        registry.prepare()
-
-        assertSame(
-            regions.getValue("tiles/dirt-fill.png"),
-            registry.fill(Terrain.GRASS)
-        )
-        assertSame(
-            regions.getValue("tiles/sand-fill.png"),
-            registry.fill(Terrain.SAND)
-        )
-        assertEquals(null, registry.fill(Terrain.WATER))
-    }
-
-    @Test
-    fun `maximum visual height includes elevation fill canvases`() {
-        val surface = region(width = 32, height = 24)
-        val fill = region(width = 32, height = 48)
+    fun `maximum visual height uses registered terrain sprites`() {
+        val grass = region(width = 32, height = 24)
+        val water = region(width = 32, height = 48)
         val registry = TerrainRegistry<Terrain>(
             directory = "tiles",
             queueTexture = {},
             regionFor = { path ->
-                if (path.endsWith("fill.png")) fill else surface
+                if (path.endsWith("water.png")) water else grass
             }
         )
 
-        registry.register(Terrain.GRASS, "grass.png") {
-            fillSprite = "dirt-fill.png"
-        }
+        registry.register(Terrain.GRASS, "grass.png")
+        registry.register(Terrain.WATER, "water.png")
         registry.freeze()
         registry.prepare()
 
@@ -210,15 +146,6 @@ class TerrainRegistryTest {
             registry[Terrain.UNREGISTERED]
         }
 
-        assertFailsWith<IllegalArgumentException> {
-            registry.register(Terrain.WATER) {
-                fillSprite = " "
-            }
-        }
-
-        assertFailsWith<IllegalStateException> {
-            registry.fill(Terrain.UNREGISTERED)
-        }
     }
 
     private fun registry(

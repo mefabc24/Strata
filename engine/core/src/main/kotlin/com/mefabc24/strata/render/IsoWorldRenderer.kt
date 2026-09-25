@@ -24,7 +24,6 @@ class IsoWorldRenderer(
     private val batch = SpriteBatch()
 
     private val terrainRenderer = IsoTerrainRenderer(projection)
-    private val terrainFillRenderer = IsoTerrainFillRenderer(projection)
     private val objectRenderer = IsoObjectRenderer(
         projection = projection,
         objectSettings = this.objectSettings
@@ -37,7 +36,6 @@ class IsoWorldRenderer(
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
     private var cachedHeightVersion = -1L
-    private var cachedTerrainVersion = -1L
 
     private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
 
@@ -47,7 +45,6 @@ class IsoWorldRenderer(
         world: World,
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
-        terrainFillFor: (Tile) -> TextureRegion? = { null },
         raisedTile: TilePosition? = null,
         raiseOffsetY: Float = 0f,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
@@ -61,19 +58,16 @@ class IsoWorldRenderer(
         if (
             cachedWorld !== world ||
             cachedObjectVersion != world.objectVersion ||
-            cachedHeightVersion != world.heightVersion ||
-            cachedTerrainVersion != world.terrainVersion
+            cachedHeightVersion != world.heightVersion
         ) {
             normalRenderPlan = WorldRenderPlan.create(
                 world = world,
-                projection = projection,
-                hasFillFor = { tile -> terrainFillFor(tile) != null }
+                projection = projection
             )
 
             cachedWorld = world
             cachedObjectVersion = world.objectVersion
             cachedHeightVersion = world.heightVersion
-            cachedTerrainVersion = world.terrainVersion
         }
 
         val viewWidth = camera.viewportWidth * camera.zoom
@@ -109,25 +103,6 @@ class IsoWorldRenderer(
 
         for (item in renderPlan) {
             when (item) {
-                is TerrainFill -> {
-                    if (item.x + item.y !in terrainDepths) continue
-
-                    val tile = world.getTile(item.x, item.y) ?: continue
-                    val texture = terrainFillFor(tile) ?: continue
-                    val offsetY = terrainOffsetY(
-                        x = item.x,
-                        y = item.y,
-                        raisedTile = raisedTile,
-                        raiseOffsetY = raiseOffsetY
-                    )
-
-                    renderFill(
-                        item = item,
-                        texture = texture,
-                        offsetY = offsetY
-                    )
-                }
-
                 is TerrainCell -> {
                     if (item.x + item.y !in terrainDepths) continue
 
@@ -167,37 +142,6 @@ class IsoWorldRenderer(
 
         stats.cpuRenderMs =
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
-    }
-
-    private fun renderFill(
-        item: TerrainFill,
-        texture: TextureRegion,
-        offsetY: Float
-    ) {
-        terrainFillRenderer.bounds(
-            x = item.x,
-            y = item.y,
-            elevation = item.surfaceElevation,
-            levelBelowSurface = item.levelBelowSurface,
-            face = item.face,
-            texture = texture,
-            result = tileBounds,
-            offsetY = offsetY
-        )
-
-        if (!tileBounds.overlaps(visibleArea)) return
-
-        terrainFillRenderer.render(
-            batch = batch,
-            x = item.x,
-            y = item.y,
-            elevation = item.surfaceElevation,
-            levelBelowSurface = item.levelBelowSurface,
-            face = item.face,
-            texture = texture,
-            offsetY = offsetY
-        )
-        stats.terrainDrawn++
     }
 
     private fun renderCell(

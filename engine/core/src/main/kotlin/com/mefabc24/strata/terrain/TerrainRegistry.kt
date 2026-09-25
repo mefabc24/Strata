@@ -11,11 +11,9 @@ import com.mefabc24.strata.assets.StrataAssets
  */
 class TerrainEntry<T : Enum<T>> internal constructor(
     val type: T,
-    val spritePath: String,
-    val fillSpritePath: String?
+    val spritePath: String
 ) {
     private var preparedTexture: TextureRegion? = null
-    private var preparedFillTexture: TextureRegion? = null
 
     /** The loaded texture region used to render this terrain. */
     val texture: TextureRegion
@@ -26,22 +24,8 @@ class TerrainEntry<T : Enum<T>> internal constructor(
     val isPrepared: Boolean
         get() = preparedTexture != null
 
-    /** Prepared optional visual used for additional exposed elevation levels. */
-    val fillTexture: TextureRegion?
-        get() {
-            check(isPrepared) {
-                "Terrain type $type is not prepared."
-            }
-
-            return preparedFillTexture
-        }
-
-    internal fun prepare(
-        texture: TextureRegion,
-        fillTexture: TextureRegion?
-    ) {
+    internal fun prepare(texture: TextureRegion) {
         preparedTexture = texture
-        preparedFillTexture = fillTexture
     }
 }
 
@@ -79,13 +63,12 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         get() = registrations.values.toList()
 
     /**
-     * Registers a terrain type and queues its surface and optional fill
-     * textures. Registration order is retained by [entries].
+     * Registers a terrain type and queues its sprite.
+     * Registration order is retained by [entries].
      */
     fun register(
         type: T,
-        sprite: String = "${type.name.lowercase()}.png",
-        configure: TerrainRegistrationSettings.() -> Unit = {}
+        sprite: String = "${type.name.lowercase()}.png"
     ) {
         checkRegistrationOpen()
 
@@ -97,19 +80,13 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
             "Sprite path must not be blank."
         }
 
-        val settings = TerrainRegistrationSettings().apply(configure)
-        settings.validate()
-
         val path = resolvePath(sprite)
-        val fillPath = settings.fillSprite?.let(::resolvePath)
 
         queueTexture(path)
-        fillPath?.let(queueTexture)
 
         registrations[type] = TerrainEntry(
             type = type,
-            spritePath = path,
-            fillSpritePath = fillPath
+            spritePath = path
         )
     }
 
@@ -120,10 +97,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            entry.prepare(
-                texture = regionFor(entry.spritePath),
-                fillTexture = entry.fillSpritePath?.let(regionFor)
-            )
+            entry.prepare(regionFor(entry.spritePath))
         }
     }
 
@@ -146,13 +120,11 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         }
 
         return registrations.values.maxOfOrNull { entry ->
-            listOfNotNull(entry.texture, entry.fillTexture).maxOf { region ->
-                require(region.regionWidth > 0) {
-                    "Terrain sprite width must be positive."
-                }
-
-                tileWidth * region.regionHeight / region.regionWidth
+            require(entry.texture.regionWidth > 0) {
+                "Terrain sprite width must be positive."
             }
+
+            tileWidth * entry.texture.regionHeight / entry.texture.regionWidth
         } ?: Float.POSITIVE_INFINITY
     }
 
@@ -162,14 +134,6 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     operator fun get(type: T): TextureRegion {
         return registrations[type]?.texture
             ?: error("Terrain type $type is not registered.")
-    }
-
-    /** Returns the prepared optional elevation-fill sprite for a terrain type. */
-    fun fill(type: T): TextureRegion? {
-        val entry = registrations[type]
-            ?: error("Terrain type $type is not registered.")
-
-        return entry.fillTexture
     }
 
     private fun resolvePath(sprite: String): String {

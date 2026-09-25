@@ -53,7 +53,6 @@ enum class ObjectPickingMode {
 class IsoWorldView(
     private val world: World,
     private val textureFor: (Tile) -> TextureRegion?,
-    private val terrainFillFor: (Tile) -> TextureRegion? = { null },
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
 
     cameraSettings: CameraSettings = CameraSettings(),
@@ -281,7 +280,6 @@ class IsoWorldView(
             world = world,
             camera = camera,
             textureFor = textureFor,
-            terrainFillFor = terrainFillFor,
             raisedTile = raisedTile,
             raiseOffsetY = raiseOffsetY,
             objectVisualFor = objectVisualFor,

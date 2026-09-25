@@ -17,7 +17,6 @@ import com.mefabc24.strata.world.World
 internal data class SceneWorldViewSpec(
     val world: World,
     val textureFor: (Tile) -> TextureRegion?,
-    val terrainFillFor: (Tile) -> TextureRegion?,
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,
@@ -53,7 +52,6 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
             IsoWorldView(
                 world = spec.world,
                 textureFor = spec.textureFor,
-                terrainFillFor = spec.terrainFillFor,
                 objectVisualFor = spec.objectVisualFor,
                 cameraSettings = spec.cameraSettings,
                 controls = spec.controlsSettings,

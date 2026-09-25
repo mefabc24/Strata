@@ -29,7 +29,6 @@ class WorldTest {
         world.setTile(1, 2, TestTile(42))
 
         assertEquals(TestTile(42), world.getTile(1, 2))
-        assertEquals(1L, world.terrainVersion)
     }
 
     @Test

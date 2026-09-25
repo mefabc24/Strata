@@ -13,60 +13,25 @@ class TerrainRendererTest {
     )
 
     @Test
-    fun `complete padded terrain canvas uses logical surface anchor`() {
-        val bounds = IsoTerrainBounds.calculate(
-            projection = projection,
-            x = 0,
-            y = 0,
-            textureWidth = 32,
-            textureHeight = 32,
-            result = Rectangle(),
-            elevation = 1
-        )
+    fun `complete padded terrain canvas follows logical elevation`() {
+        val bounds = (0..2).map { elevation ->
+            Rectangle(IsoTerrainBounds.calculate(
+                projection = projection,
+                x = 0,
+                y = 0,
+                textureWidth = 32,
+                textureHeight = 32,
+                result = Rectangle(),
+                elevation = elevation
+            ))
+        }
 
-        assertEquals(-16f, bounds.x)
-        assertEquals(-16f, bounds.y)
-        assertEquals(32f, bounds.width)
-        assertEquals(32f, bounds.height)
-    }
-
-    @Test
-    fun `fill level zero uses the complete surface sprite anchor`() {
-        val surface = IsoTerrainBounds.calculate(
-            projection = projection,
-            x = 2,
-            y = 3,
-            textureWidth = 32,
-            textureHeight = 32,
-            result = Rectangle(),
-            elevation = 4
-        )
-        val fill = fillBounds(elevation = 4, level = 0)
-
-        assertEquals(surface, fill)
-    }
-
-    @Test
-    fun `fill levels move by exactly one logical elevation step`() {
-        val levelZero = fillBounds(elevation = 4, level = 0)
-        val levelOne = fillBounds(elevation = 4, level = 1)
-        val levelTwo = fillBounds(elevation = 4, level = 2)
-
-        assertEquals(8f, levelZero.y - levelOne.y)
-        assertEquals(16f, levelZero.y - levelTwo.y)
-        assertEquals(projection.elevationStep, levelZero.y - levelOne.y)
-    }
-
-    private fun fillBounds(elevation: Int, level: Int): Rectangle {
-        return IsoTerrainFillBounds.calculate(
-            projection = projection,
-            x = 2,
-            y = 3,
-            elevation = elevation,
-            levelBelowSurface = level,
-            textureWidth = 32,
-            textureHeight = 32,
-            result = Rectangle()
-        )
+        assertEquals(-16f, bounds[0].x)
+        assertEquals(-24f, bounds[0].y)
+        assertEquals(32f, bounds[0].width)
+        assertEquals(32f, bounds[0].height)
+        assertEquals(8f, bounds[1].y - bounds[0].y)
+        assertEquals(16f, bounds[2].y - bounds[0].y)
+        assertEquals(projection.elevationStep, bounds[1].y - bounds[0].y)
     }
 }

@@ -242,26 +242,6 @@ class StrataSceneWorldTest {
     }
 
     @Test
-    fun `world attachment resolves prepared terrain fill visual`() {
-        val factory = RecordingViewFactory()
-        val scene = sceneWith(factory) {
-            terrain.register(Terrain.GRASS, TEST_TEXTURE) {
-                fillSprite = TEST_TEXTURE
-            }
-        }
-        val world = world()
-
-        scene.attachWorld(world) { Terrain.GRASS }
-
-        val tile = requireNotNull(world.getTile(0, 0))
-        val fill = assertNotNull(factory.spec.terrainFillFor(tile))
-
-        assertSame(scene.terrain[Terrain.GRASS].texture, fill.texture)
-
-        scene.dispose()
-    }
-
-    @Test
     fun `world view lifecycle is coordinated without a ui`() {
         val inputState = TestGdxEnvironment.install()
         val factory = RecordingViewFactory()

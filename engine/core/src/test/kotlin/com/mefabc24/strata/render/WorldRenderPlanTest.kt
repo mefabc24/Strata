@@ -47,41 +47,16 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `surface precedes same-anchor fill before foreground cell`() {
-        val world = world()
-        world.terrain.setHeight(1, 1, 1)
-
-        val plan = WorldRenderPlan.create(world, projection)
-        val cell = plan.indexOfCell(1, 1)
-        val fill = plan.indexOfFill(1, 1, 0, TerrainFace.RIGHT)
-        val foreground = plan.indexOfCell(2, 1)
-
-        assertTrue(cell < fill)
-        assertTrue(fill < foreground)
-    }
-
-    @Test
-    fun `height four fills order from surface toward deepest level`() {
+    fun `elevated terrain creates only one terrain cell`() {
         val world = world()
         world.terrain.setHeight(1, 1, 4)
 
         val plan = WorldRenderPlan.create(world, projection)
-        val indices = listOf(
-            plan.indexOfCell(1, 1),
-            plan.indexOfFill(1, 1, 0, TerrainFace.RIGHT),
-            plan.indexOfFill(1, 1, 1, TerrainFace.RIGHT),
-            plan.indexOfFill(1, 1, 2, TerrainFace.RIGHT),
-            plan.indexOfFill(1, 1, 3, TerrainFace.RIGHT)
-        )
 
-        assertEquals(indices.sorted(), indices)
+        assertEquals(world.width * world.height, plan.size)
         assertEquals(
-            listOf(3, 2, 1, 0),
-            plan.filterIsInstance<TerrainFill>()
-                .filter { it.x == 1 && it.y == 1 }
-                .filter { it.face == TerrainFace.RIGHT }
-                .sortedBy { it.levelBelowSurface }
-                .map(TerrainFill::bottomElevation)
+            TerrainCell(x = 1, y = 1, elevation = 4),
+            plan.single { it is TerrainCell && it.x == 1 && it.y == 1 }
         )
     }
 
@@ -107,50 +82,7 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `plateau has no internal fill primitives`() {
-        val world = world(size = 3)
-        world.terrain.setHeight(0..2, 0..2, 3)
-
-        val plan = WorldRenderPlan.create(world, projection)
-        val internalFills = plan.filterIsInstance<TerrainFill>().filter {
-            it.x < 2 && it.y < 2
-        }
-
-        assertEquals(emptyList(), internalFills)
-        assertTrue(plan.any { it is TerrainFill && it.x == 2 })
-        assertTrue(plan.any { it is TerrainFill && it.y == 2 })
-    }
-
-    @Test
-    fun `asymmetric exposure creates only the required fill face`() {
-        val world = world()
-        world.terrain.setHeight(1, 1, 3)
-        world.terrain.setHeight(1, 2, 3)
-
-        val fills = WorldRenderPlan.create(world, projection)
-            .filterIsInstance<TerrainFill>()
-            .filter { it.x == 1 && it.y == 1 }
-
-        assertEquals(3, fills.size)
-        assertTrue(fills.all { it.face == TerrainFace.RIGHT })
-    }
-
-    @Test
-    fun `terrain without fill visual creates no fill primitives`() {
-        val world = world()
-        world.terrain.setHeight(1, 1, 3)
-
-        val plan = WorldRenderPlan.create(
-            world = world,
-            projection = projection,
-            hasFillFor = { false }
-        )
-
-        assertTrue(plan.none { it is TerrainFill })
-    }
-
-    @Test
-    fun `house on flat ground follows every supporting terrain primitive`() {
+    fun `house on flat ground follows every supporting terrain cell`() {
         val world = world()
         val house = requireNotNull(world.place(House(), 1, 1))
 
@@ -158,7 +90,7 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `house on height three follows every supporting terrain primitive`() {
+    fun `house on height three follows every supporting terrain cell`() {
         val world = world()
         world.terrain.setHeight(1..4, 1..4, 3)
         val house = requireNotNull(world.place(House(), 1, 1))
@@ -187,7 +119,7 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `object behind high terrain renders before its fills and cell`() {
+    fun `object behind high terrain renders before its cell`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))
         world.terrain.setHeight(4, 2, 3)
@@ -202,7 +134,7 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `object in front of high terrain renders after its fills and cell`() {
+    fun `object in front of high terrain renders after its cell`() {
         val world = world()
         world.terrain.setHeight(1, 2, 3)
         val tree = requireNotNull(world.place(Tree(), 4, 2))
@@ -257,7 +189,7 @@ class WorldRenderPlanTest {
         val metrics = IsoRenderOrderMetrics()
         val first = WorldRenderPlan.create(world, projection, metrics = metrics)
 
-        assertTrue(first.size >= 2_500)
+        assertEquals(2_500 + objects.size, first.size)
         assertEquals(objects.size * (objects.size - 1) / 2, metrics.relationChecks)
         assertTrue(metrics.relationChecks < 100)
 
@@ -320,7 +252,6 @@ class WorldRenderPlanTest {
     private fun WorldRenderPrimitive.isTerrainAt(x: Int, y: Int): Boolean {
         return when (this) {
             is TerrainCell -> this.x == x && this.y == y
-            is TerrainFill -> this.x == x && this.y == y
             is WorldObjectPrimitive -> false
         }
     }
@@ -328,21 +259,6 @@ class WorldRenderPlanTest {
     private fun List<WorldRenderPrimitive>.indexOfCell(x: Int, y: Int): Int {
         return indexOfFirst {
             it is TerrainCell && it.x == x && it.y == y
-        }.also { check(it >= 0) }
-    }
-
-    private fun List<WorldRenderPrimitive>.indexOfFill(
-        x: Int,
-        y: Int,
-        level: Int,
-        face: TerrainFace
-    ): Int {
-        return indexOfFirst {
-            it is TerrainFill &&
-                    it.x == x &&
-                    it.y == y &&
-                    it.levelBelowSurface == level &&
-                    it.face == face
         }.also { check(it >= 0) }
     }
 

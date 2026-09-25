@@ -2,7 +2,6 @@ package com.mefabc24.strata.render
 
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.world.PlacedObject
-import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
@@ -31,42 +30,6 @@ internal data class TerrainCell(
 
     override val sortKind: Int = 0
     override val stableSortKey: String = ""
-}
-
-/** One exposed face from a repeated elevation-fill sprite. */
-internal data class TerrainFill(
-    val x: Int,
-    val y: Int,
-    val surfaceElevation: Int,
-    val levelBelowSurface: Int,
-    val face: TerrainFace
-) : WorldRenderPrimitive {
-    val bottomElevation: Int
-        get() = surfaceElevation - levelBelowSurface - 1
-
-    override val sortVolume: IsoSortVolume
-        get() = when (face) {
-            TerrainFace.LEFT -> IsoSortVolume(
-                minX = x,
-                maxX = x + 1,
-                minY = y + 1,
-                maxY = y + 1,
-                minZ = bottomElevation,
-                maxZ = bottomElevation + 1
-            )
-
-            TerrainFace.RIGHT -> IsoSortVolume(
-                minX = x + 1,
-                maxX = x + 1,
-                minY = y,
-                maxY = y + 1,
-                minZ = bottomElevation,
-                maxZ = bottomElevation + 1
-            )
-        }
-
-    override val sortKind: Int = 1
-    override val stableSortKey: String = face.name
 }
 
 /** A placed object represented by its complete footprint and support level. */
@@ -101,12 +64,10 @@ internal object WorldRenderPlan {
     fun create(
         world: World,
         projection: IsoProjection,
-        hasFillFor: (Tile) -> Boolean = { true },
         metrics: IsoRenderOrderMetrics? = null
     ): List<WorldRenderPrimitive> {
         val primitives = mutableListOf<WorldRenderPrimitive>()
-        val terrainIndicesByCell =
-            arrayOfNulls<MutableList<Int>>(world.width * world.height)
+        val terrainIndexByCell = IntArray(world.width * world.height) { -1 }
         val explicitDependencies = mutableListOf<IsoRenderDependency>()
 
         for (depth in 0 until world.width + world.height - 1) {
@@ -116,40 +77,11 @@ internal object WorldRenderPlan {
             for (x in minX..maxX) {
                 val y = depth - x
                 val elevation = world.getHeight(x, y) ?: continue
-                val tile = world.getTile(x, y) ?: continue
-                val terrainIndices = mutableListOf<Int>()
+                world.getTile(x, y) ?: continue
 
                 val cellIndex = primitives.size
                 primitives += TerrainCell(x, y, elevation)
-                terrainIndices += cellIndex
-
-                if (hasFillFor(tile)) {
-                    val previousFillByFace = mutableMapOf<TerrainFace, Int>()
-
-                    for (part in TerrainFillPlan.create(world, x, y)) {
-                        val fillIndex = primitives.size
-                        primitives += TerrainFill(
-                            x = x,
-                            y = y,
-                            surfaceElevation = elevation,
-                            levelBelowSurface = part.levelBelowSurface,
-                            face = part.face
-                        )
-                        terrainIndices += fillIndex
-
-                        val previous = previousFillByFace.put(
-                            part.face,
-                            fillIndex
-                        )
-
-                        explicitDependencies += IsoRenderDependency(
-                            before = previous ?: cellIndex,
-                            after = fillIndex
-                        )
-                    }
-                }
-
-                terrainIndicesByCell[y * world.width + x] = terrainIndices
+                terrainIndexByCell[y * world.width + x] = cellIndex
             }
         }
 
@@ -167,11 +99,9 @@ internal object WorldRenderPlan {
 
             for (position in primitive.occupiedTiles) {
                 val cellIndex = position.y * world.width + position.x
+                val terrainIndex = terrainIndexByCell[cellIndex]
 
-                for (
-                    terrainIndex in
-                    terrainIndicesByCell[cellIndex].orEmpty()
-                ) {
+                if (terrainIndex >= 0) {
                     explicitDependencies += IsoRenderDependency(
                         before = terrainIndex,
                         after = objectIndex
