@@ -39,23 +39,6 @@ class SandboxTerrainPainter(
 
     var terrain: TerrainType = TerrainType.WATER
 
-    /**
-     * Elevation applied while painting the ground layer.
-     *
-     * Overlay tiles use the existing world elevation at their coordinate.
-     */
-    var elevation: Int = 0
-        set(value) {
-            require(value >= 0) {
-                "Paint elevation must not be negative."
-            }
-
-            if (field != value) {
-                cancel()
-                field = value
-            }
-        }
-
     /** Overlay layer identifiers in world rendering order. */
     val overlayLayerIds: List<String>
         get() = world.overlayLayerIds
@@ -128,19 +111,11 @@ class SandboxTerrainPainter(
 
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
             if (selectedLayer == null) {
-                val heightChanged = world.terrain.setHeight(
+                world.terrain.setTile(
                     x = tileX,
                     y = tileY,
-                    level = elevation
+                    tile = tile
                 )
-
-                if (heightChanged) {
-                    world.terrain.setTile(
-                        x = tileX,
-                        y = tileY,
-                        tile = tile
-                    )
-                }
             } else {
                 world.setOverlayTile(
                     layerId = selectedLayer,

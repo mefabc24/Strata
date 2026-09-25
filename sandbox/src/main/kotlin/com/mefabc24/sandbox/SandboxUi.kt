@@ -15,7 +15,6 @@ import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.ObjectEntry
 import com.mefabc24.strata.terrain.TerrainEntry
-import com.mefabc24.strata.ui.StrataButton
 import com.mefabc24.strata.ui.StrataColumn
 import com.mefabc24.strata.ui.StrataInsets
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -129,7 +128,6 @@ class SandboxUi(
         }
     ) { selected ->
         painter.layerId = selected.layerId
-        refreshElevationControls()
         updateStatus()
     }
 
@@ -148,9 +146,6 @@ class SandboxUi(
     private lateinit var paintControls: StrataColumn
     private lateinit var modeStatus: Label
     private lateinit var selectionStatus: Label
-    private lateinit var elevationValue: Label
-    private lateinit var decreaseElevation: StrataButton
-    private lateinit var increaseElevation: StrataButton
 
     init {
         painter.terrain = checkNotNull(terrainSelection.selected)
@@ -245,40 +240,6 @@ class SandboxUi(
                         }
                     }
 
-                    label("Height")
-
-                    row {
-                        decreaseElevation = button("-") {
-                            if (
-                                painter.layerId == null &&
-                                painter.elevation > 0
-                            ) {
-                                painter.elevation--
-                                refreshElevationControls()
-                                updateStatus()
-                            }
-                        }.cell {
-                            width(48f)
-                            height(30f)
-                        }
-
-                        elevationValue = label("").cell {
-                            width(44f)
-                            center()
-                        }
-
-                        increaseElevation = button("+") {
-                            if (painter.layerId == null) {
-                                painter.elevation++
-                                refreshElevationControls()
-                                updateStatus()
-                            }
-                        }.cell {
-                            width(48f)
-                            height(30f)
-                        }
-                    }
-
                     label("Layer")
 
                     grid(
@@ -347,19 +308,7 @@ class SandboxUi(
         buildControls.isVisible = !painter.enabled
         paintControls.isVisible = painter.enabled
 
-        refreshElevationControls()
         updateStatus()
-    }
-
-    private fun refreshElevationControls() {
-        if (!::elevationValue.isInitialized) return
-
-        val groundSelected = painter.layerId == null
-
-        elevationValue.setText(painter.elevation)
-        decreaseElevation.isDisabled =
-            !groundSelected || painter.elevation == 0
-        increaseElevation.isDisabled = !groundSelected
     }
 
     private fun updateStatus() {
@@ -373,8 +322,7 @@ class SandboxUi(
             if (modeSelection.selected == SandboxMode.BUILD) {
                 "Object: ${buildSelection.selected?.displayName()}"
             } else {
-                "Terrain: ${terrainSelection.selected?.displayName()}  " +
-                    "Height: ${painter.elevation}\n" +
+                "Terrain: ${terrainSelection.selected?.displayName()}\n" +
                     "Layer: ${layerSelection.selected?.displayName}"
             }
         )

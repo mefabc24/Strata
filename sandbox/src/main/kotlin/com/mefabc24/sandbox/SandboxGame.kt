@@ -8,7 +8,6 @@ import com.mefabc24.strata.StrataSceneGame
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.iso.TilePickingMode
 import com.mefabc24.strata.render.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.world.World
@@ -145,19 +144,17 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
     private fun sandboxBindings(): List<WorldInputBinding> {
         return listOf(
-            // Paint terrain against the stable elevation-zero grid.
+            // Paint terrain on the world grid.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                mode = TilePickingMode.BASE_GRID,
                 enabled = { painter.enabled }
             ) { x, y ->
                 painter.beginPaint(x, y)
             },
 
-            // Place objects on the visible elevated terrain surface.
+            // Place objects on the world grid.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                mode = TilePickingMode.SURFACE,
                 enabled = { !painter.enabled }
             ) { x, y ->
                 val placed = scene.placement.placeAt(x, y)
@@ -173,7 +170,6 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             // Continue painting while dragging.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                mode = TilePickingMode.BASE_GRID,
                 enabled = { painter.enabled }
             ) { x, y ->
                 painter.dragPaint(x, y)
@@ -198,7 +194,6 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             // Right click: begin erasing an overlay.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                mode = TilePickingMode.BASE_GRID,
                 enabled = {
                     painter.enabled && painter.layerId != null
                 }
@@ -209,7 +204,6 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             // Continue erasing while dragging.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-                mode = TilePickingMode.BASE_GRID,
                 enabled = {
                     painter.enabled && painter.layerId != null
                 }
@@ -283,15 +277,6 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
             SandboxTile(terrain)
         }
-
-        // Create a temporary elevated plateau.
-        check(
-            world.terrain.setHeight(
-                xRange = 28..32,
-                yRange = 28..32,
-                level = 1
-            )
-        )
 
         // Create a temporary overlay to verify layered rendering.
         world.addOverlayLayer("demo")
