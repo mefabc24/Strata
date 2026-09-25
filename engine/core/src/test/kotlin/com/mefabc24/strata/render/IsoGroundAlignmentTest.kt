@@ -4,6 +4,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.render.`object`.IsoObjectBounds
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
+import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.terrain.IsoTerrainBounds
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject

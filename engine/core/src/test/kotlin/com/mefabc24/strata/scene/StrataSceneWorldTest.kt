@@ -9,8 +9,8 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.IsoWorldView
-import com.mefabc24.strata.render.PlacementPreview
-import com.mefabc24.strata.render.PlacementPreviewStyle
+import com.mefabc24.strata.render.preview.PlacementPreview
+import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.testing.TestGdxEnvironment

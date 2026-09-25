@@ -2,8 +2,8 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.mefabc24.strata.render.ObjectRenderingSettings
-import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
+import com.mefabc24.strata.render.`object`.ObjectVisual
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile

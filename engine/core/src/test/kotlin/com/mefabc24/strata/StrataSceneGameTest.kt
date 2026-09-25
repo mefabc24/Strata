@@ -3,7 +3,7 @@ package com.mefabc24.strata
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputProcessor
 import com.mefabc24.strata.iso.IsoWorldView
-import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.scene.SceneWorldView
 import com.mefabc24.strata.scene.SceneWorldViewFactory

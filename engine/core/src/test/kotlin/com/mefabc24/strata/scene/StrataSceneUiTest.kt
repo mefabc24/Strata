@@ -9,7 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.mefabc24.strata.iso.IsoWorldView
-import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.testing.defaultValue
