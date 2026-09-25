@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
-import com.mefabc24.strata.render.ObjectEntry
+import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.scene.DebugGridRenderLayer
 import com.mefabc24.strata.scene.DebugSettings
 import com.mefabc24.strata.terrain.TerrainEntry

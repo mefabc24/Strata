@@ -1,4 +1,4 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.`object`
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.math.Rectangle

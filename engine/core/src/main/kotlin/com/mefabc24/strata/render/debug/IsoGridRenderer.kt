@@ -1,4 +1,4 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.debug
 
 import com.mefabc24.strata.scene.DebugGridSettings
 import com.badlogic.gdx.Gdx

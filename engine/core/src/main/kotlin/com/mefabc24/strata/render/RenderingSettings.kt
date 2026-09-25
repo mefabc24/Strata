@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render
 
 import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 
 /**
  * Configures the rendering of an isometric world.

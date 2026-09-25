@@ -10,7 +10,7 @@ import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.placement.PlacementSettings
-import com.mefabc24.strata.render.ObjectRegistry
+import com.mefabc24.strata.render.`object`.ObjectRegistry
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile

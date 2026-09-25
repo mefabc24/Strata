@@ -8,7 +8,7 @@ import com.mefabc24.strata.StrataSceneGame
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.render.PlacementPreviewStyle
+import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.world.World
 
@@ -147,6 +147,30 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 offsetY = -3f
             }
 
+            objects.register<Road1>(
+                sprite = "road1.png",
+                factory = ::Road1
+            ) {
+                offsetY = -9f
+
+            }
+
+            objects.register<Road2>(
+                sprite = "road2.png",
+                factory = ::Road2
+            ) {
+                offsetY = -9f
+
+            }
+
+            objects.register<RoadIntersection> (
+                sprite = "road-intersection.png",
+                factory = ::RoadIntersection
+            ) {
+                offsetY = -9f
+
+            }
+
             sounds.register(
                 id = BuildingSound.PLACE,
                 path = "audio/pop.wav",
@@ -163,7 +187,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
             debug {
                 performance {
-                    enabled = true
+                    enabled = false
                     intervalSeconds = 2f
                 }
 

@@ -1,4 +1,4 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.terrain
 
 import kotlin.math.ceil
 import kotlin.math.floor

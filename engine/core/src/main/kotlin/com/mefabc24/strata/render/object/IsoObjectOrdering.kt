@@ -1,6 +1,9 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.`object`
 
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.render.order.IsoRenderCandidate
+import com.mefabc24.strata.render.order.IsoRenderOrder
+import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.world.PlacedObject
 
 /** Adapts object-only consumers to the shared isometric render ordering. */

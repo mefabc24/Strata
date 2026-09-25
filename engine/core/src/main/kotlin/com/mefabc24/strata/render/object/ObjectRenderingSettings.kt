@@ -1,4 +1,4 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.`object`
 
 /**
  * Configures scene-wide visual adjustments for rendered objects.

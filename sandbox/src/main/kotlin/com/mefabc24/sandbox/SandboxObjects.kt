@@ -54,3 +54,15 @@ class RockWater2 : Placeable {
 class RockWater3 : Placeable {
     override val footprint = Footprint.square(1)
 }
+
+class Road1 : Placeable {
+    override val footprint = Footprint.square(1)
+}
+
+class Road2 : Placeable {
+    override val footprint = Footprint.square(1)
+}
+
+class RoadIntersection : Placeable {
+    override val footprint = Footprint.square(1)
+}

@@ -9,11 +9,11 @@ import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.IsoWorldRenderer
-import com.mefabc24.strata.render.IsoGridRenderer
+import com.mefabc24.strata.render.debug.IsoGridRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
-import com.mefabc24.strata.render.ObjectVisual
-import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World

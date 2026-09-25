@@ -1,7 +1,7 @@
 package com.mefabc24.strata.placement
 
-import com.mefabc24.strata.render.PlacementPreview
-import com.mefabc24.strata.render.PlacementPreviewStyle
+import com.mefabc24.strata.render.preview.PlacementPreview
+import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition

@@ -1,6 +1,7 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.order
 
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World

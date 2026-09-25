@@ -5,8 +5,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.iso.IsoWorldView
-import com.mefabc24.strata.render.ObjectVisual
-import com.mefabc24.strata.render.PlacementPreview
+import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.world.PlacedObject

@@ -1,4 +1,4 @@
-package com.mefabc24.strata.render
+package com.mefabc24.strata.render.preview
 
 import com.mefabc24.strata.world.PlacedObject
 

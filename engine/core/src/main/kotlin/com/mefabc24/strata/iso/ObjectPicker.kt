@@ -3,10 +3,10 @@ package com.mefabc24.strata.iso
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
-import com.mefabc24.strata.render.IsoObjectBounds
-import com.mefabc24.strata.render.IsoObjectOrdering
-import com.mefabc24.strata.render.ObjectRenderingSettings
-import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.render.`object`.IsoObjectBounds
+import com.mefabc24.strata.render.`object`.IsoObjectOrdering
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
+import com.mefabc24.strata.render.`object`.ObjectVisual
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
