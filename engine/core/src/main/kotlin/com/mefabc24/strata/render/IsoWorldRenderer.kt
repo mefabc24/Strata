@@ -57,7 +57,7 @@ class IsoWorldRenderer(
         camera: OrthographicCamera,
         textureFor: (Tile) -> TextureRegion?,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
-        preview: PlacementPreview? = null,
+        previews: List<PlacementPreview> = emptyList(),
         maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
     ) {
         stats.reset()
@@ -101,9 +101,9 @@ class IsoWorldRenderer(
         val overlayIds = world.overlayLayerIds
         batch.begin()
 
-        val renderPlan = WorldRenderPlan.withPreview(
+        val renderPlan = WorldRenderPlan.withPreviews(
             normalItems = normalRenderPlan,
-            preview = preview
+            previews = previews
         )
 
         for (item in renderPlan) {
@@ -230,7 +230,7 @@ class IsoWorldRenderer(
     internal fun renderObjectsOverlay(
         camera: OrthographicCamera,
         objectVisualFor: (PlacedObject) -> ObjectVisual?,
-        preview: PlacementPreview?
+        previews: List<PlacementPreview>
     ) {
         batch.projectionMatrix = camera.combined
 
@@ -247,11 +247,11 @@ class IsoWorldRenderer(
             }
         }
 
-        preview?.let {
+        for (preview in previews) {
             renderObject(
-                placed = it.placedObject,
-                visual = objectVisualFor(it.placedObject),
-                preview = it,
+                placed = preview.placedObject,
+                visual = objectVisualFor(preview.placedObject),
+                preview = preview,
                 recordStats = false
             )
         }

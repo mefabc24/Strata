@@ -32,7 +32,7 @@ internal interface SceneWorldView {
 
     fun update(delta: Float)
 
-    fun render(preview: PlacementPreview?)
+    fun render(previews: List<PlacementPreview>)
 
     fun resize(width: Int, height: Int)
 
@@ -75,8 +75,8 @@ private class DefaultSceneWorldView(
         publicView.update(delta)
     }
 
-    override fun render(preview: PlacementPreview?) {
-        publicView.render(preview)
+    override fun render(previews: List<PlacementPreview>) {
+        publicView.render(previews)
     }
 
     override fun resize(width: Int, height: Int) {

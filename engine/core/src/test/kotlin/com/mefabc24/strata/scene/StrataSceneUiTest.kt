@@ -219,7 +219,7 @@ class StrataSceneUiTest {
             updateDeltas += delta
         }
 
-        override fun render(preview: PlacementPreview?) {
+        override fun render(previews: List<PlacementPreview>) {
             renderCalls++
         }
 

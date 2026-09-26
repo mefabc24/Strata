@@ -161,21 +161,32 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `placement preview is always the final render item`() {
+    fun `placement previews are appended last in input order`() {
         val world = world()
         requireNotNull(world.place(House(), 1, 1))
-        val preview = PlacementPreview(
-            placedObject = PlacedObject(Tree(), 5, 5),
-            valid = true
+        val previews = listOf(
+            PlacementPreview(
+                placedObject = PlacedObject(Tree(), 5, 5),
+                valid = true
+            ),
+            PlacementPreview(
+                placedObject = PlacedObject(Tree(), 6, 5),
+                valid = false
+            )
         )
 
-        val plan = WorldRenderPlan.withPreview(
-            normalItems = WorldRenderPlan.create(world, projection),
-            preview = preview
+        val normalItems = WorldRenderPlan.create(world, projection)
+        val plan = WorldRenderPlan.withPreviews(
+            normalItems = normalItems,
+            previews = previews
         )
 
-        assertIs<PreviewRenderItem>(plan.last())
-        assertEquals(preview, (plan.last() as PreviewRenderItem).preview)
+        assertTrue(plan.take(normalItems.size).all { it is WorldRenderPrimitive })
+        assertTrue(plan.takeLast(2).all { it is PreviewRenderItem })
+        assertEquals(
+            previews,
+            plan.takeLast(2).map { (it as PreviewRenderItem).preview }
+        )
     }
 
     private fun assertSupportingTerrainBeforeObject(

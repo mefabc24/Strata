@@ -123,13 +123,13 @@ internal object WorldRenderPlan {
         )
     }
 
-    /** Appends the placement preview after every normal world primitive. */
-    fun withPreview(
+    /** Appends placement previews after every normal world primitive. */
+    fun withPreviews(
         normalItems: List<WorldRenderPrimitive>,
-        preview: PlacementPreview?
+        previews: List<PlacementPreview>
     ): List<WorldRenderItem> {
-        if (preview == null) return normalItems
+        if (previews.isEmpty()) return normalItems
 
-        return normalItems + PreviewRenderItem(preview)
+        return normalItems + previews.map(::PreviewRenderItem)
     }
 }

@@ -267,7 +267,7 @@ class StrataSceneWorldTest {
 
         assertEquals(listOf(0.5f), factory.view.updateDeltas)
         assertEquals(1, factory.view.renderedPreviews.size)
-        assertNull(factory.view.renderedPreviews.single())
+        assertTrue(factory.view.renderedPreviews.single().isEmpty())
         assertEquals(listOf(900 to 700), factory.view.resizes)
 
         scene.dispose()
@@ -278,7 +278,7 @@ class StrataSceneWorldTest {
     }
 
     @Test
-    fun `scene placement follows the updated hover and supplies rendering preview`() {
+    fun `scene placement supplies the complete preview collection`() {
         val previewStyle = PlacementPreviewStyle(
             validColor = Color(0.2f, 0.3f, 0.4f, 0.5f),
             invalidColor = Color(0.8f, 0.7f, 0.6f, 0.5f)
@@ -303,7 +303,7 @@ class StrataSceneWorldTest {
         factory.view.nextHoveredTile = TilePosition(1, 3)
         scene.update(0.25f)
 
-        val invalidPreview = assertNotNull(scene.placement.preview)
+        val invalidPreview = scene.placement.previews.single()
         assertEquals(1, invalidPreview.placedObject.x)
         assertEquals(3, invalidPreview.placedObject.y)
         assertFalse(invalidPreview.valid)
@@ -313,15 +313,21 @@ class StrataSceneWorldTest {
         factory.view.nextHoveredTile = TilePosition(2, 3)
         scene.update(0.25f)
 
-        val validPreview = assertNotNull(scene.placement.preview)
+        val validPreview = scene.placement.previews.single()
         assertTrue(validPreview.valid)
 
+        scene.placement.previewAt(
+            listOf(TilePosition(2, 1), TilePosition(2, 3))
+        )
+        val explicitPreviews = scene.placement.previews
+
         scene.render()
-        assertSame(validPreview, factory.view.renderedPreviews.last())
+        assertEquals(2, explicitPreviews.size)
+        assertSame(explicitPreviews, factory.view.renderedPreviews.last())
 
         scene.placement.enabled = false
 
-        assertNull(scene.placement.preview)
+        assertTrue(scene.placement.previews.isEmpty())
         assertSame(
             selectedFactory,
             scene.placement.selectedFactory
@@ -330,11 +336,11 @@ class StrataSceneWorldTest {
         assertNull(scene.placement.placeAt(2, 3))
 
         scene.render()
-        assertNull(factory.view.renderedPreviews.last())
+        assertTrue(factory.view.renderedPreviews.last().isEmpty())
 
         scene.placement.enabled = true
         scene.update(0.25f)
-        assertNotNull(scene.placement.preview)
+        assertEquals(1, scene.placement.previews.size)
         assertNotNull(scene.placement.placeAt(2, 3))
 
         scene.dispose()
@@ -398,7 +404,7 @@ class StrataSceneWorldTest {
 
         var nextHoveredTile: TilePosition? = null
         val updateDeltas = mutableListOf<Float>()
-        val renderedPreviews = mutableListOf<PlacementPreview?>()
+        val renderedPreviews = mutableListOf<List<PlacementPreview>>()
         val resizes = mutableListOf<Pair<Int, Int>>()
         var disposed = false
             private set
@@ -408,8 +414,8 @@ class StrataSceneWorldTest {
             hoveredTile = nextHoveredTile
         }
 
-        override fun render(preview: PlacementPreview?) {
-            renderedPreviews += preview
+        override fun render(previews: List<PlacementPreview>) {
+            renderedPreviews += previews
         }
 
         override fun resize(width: Int, height: Int) {

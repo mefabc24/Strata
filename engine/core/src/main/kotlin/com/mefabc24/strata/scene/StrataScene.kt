@@ -413,7 +413,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         checkConfigurationComplete()
 
         attachedView?.let { view ->
-            view.render(attachedPlacement?.preview)
+            view.render(attachedPlacement?.previews.orEmpty())
 
             debug.performance.record(
                 stats = view.renderStats,

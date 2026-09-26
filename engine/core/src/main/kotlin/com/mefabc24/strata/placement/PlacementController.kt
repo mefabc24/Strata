@@ -8,7 +8,7 @@ import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 /**
- * Manages object placement and its preview.
+ * Manages object placement and its previews.
  *
  * Geometric placement is validated by the world.
  * Additional game-specific rules can be supplied through
@@ -25,7 +25,7 @@ class PlacementController(
     /**
      * Controls preview generation and placement operations.
      *
-     * Disabling placement clears the preview while retaining
+     * Disabling placement clears previews while retaining
      * the selected factory.
      */
     var enabled: Boolean = true
@@ -33,11 +33,12 @@ class PlacementController(
             field = value
 
             if (!value) {
-                preview = null
+                clearPreviewPositions()
             }
         }
 
     private var previewPlaceable: Placeable? = null
+    private var explicitPreviewPositionsActive = false
 
     /**
      * Creates a new placeable for each placement operation.
@@ -49,7 +50,7 @@ class PlacementController(
         set(value) {
             field = value
             previewPlaceable = value?.invoke()
-            preview = null
+            clearPreviewPositions()
         }
 
     /**
@@ -60,7 +61,7 @@ class PlacementController(
     val selectedPlaceable: Placeable?
         get() = previewPlaceable
 
-    var preview: PlacementPreview? = null
+    var previews: List<PlacementPreview> = emptyList()
         private set
 
     /**
@@ -68,31 +69,88 @@ class PlacementController(
      */
     fun update(hoveredTile: TilePosition?) {
         if (!enabled) {
-            preview = null
+            previews = emptyList()
             return
         }
 
+        if (explicitPreviewPositionsActive) return
+
         val placeable = previewPlaceable
 
-        preview = if (
+        previews = if (
             hoveredTile != null &&
             placeable != null
         ) {
-            PlacementPreview(
-                placedObject = PlacedObject(
-                    placeable = placeable,
-                    x = hoveredTile.x,
-                    y = hoveredTile.y
+            listOf(
+                PlacementPreview(
+                    placedObject = PlacedObject(
+                        placeable = placeable,
+                        x = hoveredTile.x,
+                        y = hoveredTile.y
+                    ),
+                    valid = canPlace(
+                        placeable = placeable,
+                        position = hoveredTile
+                    ),
+                    style = style
                 ),
-                valid = canPlace(
-                    placeable = placeable,
-                    position = hoveredTile
-                ),
-                style = style
             )
         } else {
-            null
+            emptyList()
         }
+    }
+
+    /**
+     * Shows ordered previews at arbitrary placement origins.
+     *
+     * Duplicate positions are ignored after their first occurrence. Valid
+     * previews reserve their occupied tiles so later previews can report
+     * conflicts without modifying the world.
+     */
+    fun previewAt(positions: Iterable<TilePosition>) {
+        if (!enabled) {
+            clearPreviewPositions()
+            return
+        }
+
+        explicitPreviewPositionsActive = true
+
+        val placeable = previewPlaceable
+        if (placeable == null) {
+            previews = emptyList()
+            return
+        }
+
+        val reservedTiles = mutableSetOf<TilePosition>()
+
+        previews = distinctPositions(positions).map { position ->
+            val placedObject = PlacedObject(
+                placeable = placeable,
+                x = position.x,
+                y = position.y
+            )
+            val occupiedTiles = placedObject.occupiedTiles()
+            val valid = canPlace(placeable, position) &&
+                occupiedTiles.none(reservedTiles::contains)
+
+            if (valid) {
+                reservedTiles += occupiedTiles
+            }
+
+            PlacementPreview(
+                placedObject = placedObject,
+                valid = valid,
+                style = style
+            )
+        }
+    }
+
+    /**
+     * Exits explicit preview mode. Hover previews resume on the next update.
+     */
+    fun clearPreviewPositions() {
+        explicitPreviewPositionsActive = false
+        previews = emptyList()
     }
 
     /**
@@ -140,6 +198,33 @@ class PlacementController(
         )
     }
 
+    /**
+     * Places fresh objects at arbitrary origins in requested order.
+     *
+     * Duplicate positions are ignored after their first occurrence. The
+     * operation is intentionally sequential and non-transactional.
+     */
+    fun placeAt(
+        positions: Iterable<TilePosition>
+    ): List<PlacedObject> {
+        if (!enabled) return emptyList()
+
+        val create = selectedFactory ?: return emptyList()
+
+        return buildList {
+            for (position in distinctPositions(positions)) {
+                val placeable = create()
+
+                if (!canPlace(placeable, position)) continue
+
+                world.place(
+                    placeable = placeable,
+                    position = position
+                )?.let(::add)
+            }
+        }
+    }
+
     private fun canPlace(
         placeable: Placeable,
         position: TilePosition
@@ -151,5 +236,11 @@ class PlacementController(
             placeable,
             position
         )
+    }
+
+    private fun distinctPositions(
+        positions: Iterable<TilePosition>
+    ): List<TilePosition> {
+        return positions.toCollection(linkedSetOf()).toList()
     }
 }

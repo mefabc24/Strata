@@ -160,7 +160,7 @@ class StrataSceneGameTest {
             events += "scene update $delta"
         }
 
-        override fun render(preview: PlacementPreview?) {
+        override fun render(previews: List<PlacementPreview>) {
             events += "scene render"
         }
 

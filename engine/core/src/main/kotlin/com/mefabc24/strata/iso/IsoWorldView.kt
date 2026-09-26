@@ -231,15 +231,15 @@ class IsoWorldView(
     }
 
     /**
-     * Renders terrain, world objects, and an optional placement preview.
+     * Renders terrain, world objects, and placement previews.
      */
-    fun render(preview: PlacementPreview? = null) {
+    fun render(previews: List<PlacementPreview> = emptyList()) {
         worldRenderer.render(
             world = world,
             camera = camera,
             textureFor = textureFor,
             objectVisualFor = objectVisualFor,
-            preview = preview,
+            previews = previews,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
 
@@ -257,7 +257,7 @@ class IsoWorldView(
                 worldRenderer.renderObjectsOverlay(
                     camera = camera,
                     objectVisualFor = objectVisualFor,
-                    preview = preview
+                    previews = previews
                 )
             }
         }
