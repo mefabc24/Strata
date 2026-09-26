@@ -84,6 +84,7 @@ class SandboxUi(
     private val ui: StrataUi,
     private val painter: SandboxTerrainPainter,
     private val placementController: PlacementController,
+    private val buildDragController: SandboxBuildDragController,
     private val debugSettings: DebugSettings,
     terrainEntries: List<TerrainEntry<TerrainType>>,
     objectEntries: List<ObjectEntry>
@@ -126,6 +127,10 @@ class SandboxUi(
             SandboxMode.BUILD
         }
     ) { selected ->
+        if (selected == SandboxMode.PAINT) {
+            buildDragController.cancel()
+        }
+
         painter.enabled = selected == SandboxMode.PAINT
         placementController.enabled = selected == SandboxMode.BUILD
         updateStatus()
@@ -157,6 +162,7 @@ class SandboxUi(
                 ?: false
         } ?: buildEntries.first()
     ) { selected ->
+        buildDragController.cancel()
         placementController.selectedFactory = selected::create
         updateStatus()
     }
@@ -575,6 +581,10 @@ class SandboxUi(
      * Reflects state changes made through retained keyboard controls.
      */
     fun sync() {
+        if (painter.enabled) {
+            buildDragController.cancel()
+        }
+
         placementController.enabled = !painter.enabled
 
         modeSelection.select(

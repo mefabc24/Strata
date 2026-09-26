@@ -10,6 +10,7 @@ import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
 class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
@@ -18,6 +19,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     }
 
     private lateinit var painter: SandboxTerrainPainter
+    private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
 
@@ -244,6 +246,8 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                     entry::create
                 }
 
+        buildDrag = SandboxBuildDragController(createdScene.placement)
+
         return createdScene
     }
 
@@ -258,6 +262,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 ui = this,
                 painter = painter,
                 placementController = scene.placement,
+                buildDragController = buildDrag,
                 debugSettings = scene.debug,
                 terrainEntries = scene.terrain.entries,
                 objectEntries = scene.objects.constructibleEntries
@@ -285,19 +290,12 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 painter.beginPaint(x, y)
             },
 
-            // Place objects on the world grid.
+            // Begin rectangular object placement without committing yet.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
                 enabled = { !painter.enabled }
             ) { x, y ->
-                val placed = scene.placement.placeAt(x, y)
-
-                if (placed != null) {
-                    println("Object placed at ($x, $y)")
-                    scene.audio.playSound(BuildingSound.PLACE)
-                }
-
-                true
+                buildDrag.begin(TilePosition(x, y))
             },
 
             // Continue painting while dragging.
@@ -306,6 +304,33 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 enabled = { painter.enabled }
             ) { x, y ->
                 painter.dragPaint(x, y)
+            },
+
+            // Update the rectangular build preview while dragging.
+            WorldInputBinding.Tile(
+                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
+                enabled = { !painter.enabled }
+            ) { x, y ->
+                buildDrag.dragTo(TilePosition(x, y))
+            },
+
+            // Commit the final build rectangle on release over the world.
+            WorldInputBinding.Tile(
+                trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
+                enabled = { !painter.enabled }
+            ) { x, y ->
+                if (!buildDrag.active) {
+                    false
+                } else {
+                    val placed = buildDrag.finish(TilePosition(x, y))
+
+                    if (placed.isNotEmpty()) {
+                        println("Placed ${placed.size} object(s)")
+                        scene.audio.playSound(BuildingSound.PLACE)
+                    }
+
+                    true
+                }
             },
 
             // Cancel the stroke if the cursor leaves the world.
@@ -317,11 +342,15 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 false
             },
 
-            // Finish painting even when released outside the world.
+            // Finish painting or cancel building when released off-world.
             WorldInputBinding.NoPicking(
                 trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT)
             ) {
-                painter.endPaint()
+                if (painter.enabled) {
+                    painter.endPaint()
+                } else {
+                    buildDrag.cancel()
+                }
             },
 
             // Right click: begin erasing an overlay.
