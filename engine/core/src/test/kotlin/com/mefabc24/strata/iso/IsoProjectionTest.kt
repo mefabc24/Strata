@@ -1,11 +1,33 @@
 package com.mefabc24.strata.iso
 
+import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.world.TilePosition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class IsoProjectionTest {
+
+    @Test
+    fun `float tile positions project centers and interpolate linearly`() {
+        val projection = IsoProjection(
+            TileGeometry(width = 64f, height = 32f)
+        )
+
+        assertEquals(Vector2(0f, -16f), projection.tileToWorld(0.5f, 0.5f))
+        assertEquals(Vector2(32f, -32f), projection.tileToWorld(1.5f, 0.5f))
+        assertEquals(Vector2(16f, -24f), projection.tileToWorld(1f, 0.5f))
+    }
+
+    @Test
+    fun `integer projection behavior remains unchanged`() {
+        val projection = IsoProjection(
+            TileGeometry(width = 64f, height = 32f)
+        )
+
+        assertEquals(Vector2(32f, -16f), projection.tileToWorld(1, 0))
+        assertEquals(Vector2(-32f, -16f), projection.tileToWorld(0, 1))
+    }
 
     private val projection = IsoProjection(
         TileGeometry(

@@ -33,14 +33,23 @@ class World(
 
     private val objects = linkedSetOf<PlacedObject>()
 
+    private val entities = linkedSetOf<WorldEntity>()
+
     /**
      * Changes whenever an object is placed or removed.
      */
     var objectVersion: Long = 0L
         private set
 
+    /** Changes whenever an entity is added or removed. */
+    var entityVersion: Long = 0L
+        private set
+
     private val objectView: Set<PlacedObject> =
         Collections.unmodifiableSet(objects)
+
+    private val entityView: Set<WorldEntity> =
+        Collections.unmodifiableSet(entities)
 
     private val occupiedTiles =
         mutableMapOf<TilePosition, PlacedObject>()
@@ -169,6 +178,34 @@ class World(
      * Returns a read-only live view of all placed objects.
      */
     fun getObjects(): Set<PlacedObject> = objectView
+
+    /**
+     * Adds an independent entity instance without occupying a world tile.
+     */
+    fun addEntity(
+        entity: Entity,
+        position: EntityPosition
+    ): WorldEntity {
+        val worldEntity = WorldEntity(
+            entity = entity,
+            position = position
+        )
+
+        entities += worldEntity
+        entityVersion++
+        return worldEntity
+    }
+
+    /** Returns a read-only live view of active world entities. */
+    fun getEntities(): Set<WorldEntity> = entityView
+
+    /** Removes an active world entity. */
+    fun removeEntity(entity: WorldEntity): Boolean {
+        if (!entities.remove(entity)) return false
+
+        entityVersion++
+        return true
+    }
 
     /**
      * Removes a placed object from the world.

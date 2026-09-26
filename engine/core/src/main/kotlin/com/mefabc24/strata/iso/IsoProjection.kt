@@ -43,6 +43,18 @@ class IsoProjection(
     }
 
     /**
+     * Projects a continuous logical tile-space position onto the ground plane.
+     * Integer coordinates are tile boundaries and half coordinates are tile
+     * centers.
+     */
+    fun tileToWorld(x: Float, y: Float): Vector2 {
+        return Vector2(
+            (x - y) * tileWidth / 2f,
+            -(x + y) * tileHeight / 2f
+        )
+    }
+
+    /**
      * Returns the front vertex of a tile's logical top face.
      *
      * This is the ground-contact anchor used by placed objects.
