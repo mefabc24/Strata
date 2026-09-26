@@ -35,9 +35,10 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             terrainDirectory = "tiles",
             objectDirectory = "objects"
         ) {
-            terrain.register(
+            terrain.registerAtlas(
                 TerrainType.GRASS,
-                sprite = "grass.png"
+                atlas = SANDBOX_ATLAS,
+                region = "grass"
             )
 
             terrain.register(
@@ -63,26 +64,23 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             terrain.register(TerrainType.STONE)
             terrain.register(TerrainType.DIRT)
 
-            terrain.registerAnimated(
+            terrain.registerAnimatedAtlas(
                 TerrainType.BUSH_ANIMATED,
-                frames = listOf(
-                    "bush_anim_0.png",
-                    "bush_anim_1.png",
-                    "bush_anim_2.png",
-                    "bush_anim_3.png",
-                    "bush_anim_4.png"
-                ),
+                atlas = SANDBOX_ATLAS,
+                region = "bush-animated",
                 frameDuration = 0.2f
             )
 
-            entities.register<DebugWalker>(
-                sprite = "flower1.png"
+            entities.registerAtlas<DebugWalker>(
+                atlas = SANDBOX_ATLAS,
+                region = "debug-walker"
             ) {
                 offsetY = 1f
             }
 
-            objects.register<House>(
-                sprite = "house.png",
+            objects.registerAtlas(
+                atlas = SANDBOX_ATLAS,
+                region = "house",
                 factory = ::House
             )
 
@@ -536,6 +534,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     private companion object {
         const val WORLD_SIZE = 50
         const val DEBUG_WALKER_SPEED = 2f
+        const val SANDBOX_ATLAS = "sandbox.atlas"
         val DEBUG_WALKER_START = TilePosition(2, 5)
         val DEBUG_WALKER_END = TilePosition(9, 5)
     }
