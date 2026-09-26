@@ -12,6 +12,8 @@ class SandboxBuildDragController(
     private val placement: PlacementController
 ) {
     private var start: TilePosition? = null
+    private var previewEnd: TilePosition? = null
+    private var previewOrigins: List<TilePosition> = emptyList()
 
     val active: Boolean
         get() = start != null
@@ -23,20 +25,41 @@ class SandboxBuildDragController(
         }
 
         start = position
-        placement.previewAt(listOf(position))
+        previewEnd = position
+        previewOrigins = listOf(position)
+
+        placement.previewAt(previewOrigins)
         return true
     }
 
     fun dragTo(position: TilePosition): Boolean {
         val dragStart = start ?: return false
 
-        placement.previewAt(placementOrigins(dragStart, position))
+        if (previewEnd == position) {
+            return true
+        }
+
+        previewEnd = position
+        previewOrigins = placementOrigins(
+            start = dragStart,
+            end = position
+        )
+
+        placement.previewAt(previewOrigins)
         return true
     }
 
     fun finish(position: TilePosition): List<PlacedObject> {
         val dragStart = start ?: return emptyList()
-        val positions = placementOrigins(dragStart, position)
+
+        val positions = if (previewEnd == position) {
+            previewOrigins
+        } else {
+            placementOrigins(
+                start = dragStart,
+                end = position
+            )
+        }
 
         return try {
             placement.placeAt(positions)
@@ -49,6 +72,9 @@ class SandboxBuildDragController(
         if (start == null) return false
 
         start = null
+        previewEnd = null
+        previewOrigins = emptyList()
+
         placement.clearPreviewPositions()
         return true
     }

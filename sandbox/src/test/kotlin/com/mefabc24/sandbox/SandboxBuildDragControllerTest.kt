@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class SandboxBuildDragControllerTest {
@@ -254,6 +255,20 @@ class SandboxBuildDragControllerTest {
         assertFalse(drag.begin(TilePosition(1, 1)))
         assertFalse(drag.active)
         assertTrue(placement.previews.isEmpty())
+    }
+
+    @Test
+    fun `dragging within the same tile reuses the existing preview`() {
+        val placement = placement(Footprint.square(1))
+        val drag = SandboxBuildDragController(placement)
+
+        drag.begin(TilePosition(1, 1))
+        drag.dragTo(TilePosition(5, 5))
+
+        val previews = placement.previews
+
+        assertTrue(drag.dragTo(TilePosition(5, 5)))
+        assertSame(previews, placement.previews)
     }
 
     private fun placement(
