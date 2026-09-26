@@ -16,7 +16,7 @@ import com.mefabc24.strata.world.World
 
 internal data class SceneWorldViewSpec(
     val world: World,
-    val textureFor: (Tile) -> TextureRegion?,
+    val textureFor: (Tile, Float) -> TextureRegion?,
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,

@@ -2,30 +2,41 @@ package com.mefabc24.strata.terrain
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
+import com.mefabc24.strata.render.sprite.SpriteFrames
+import com.mefabc24.strata.render.sprite.SpriteSource
 
 /**
  * Describes one terrain registration.
  *
- * The texture is owned by the registry's asset manager. Accessing [texture]
- * requires the registry to have been prepared.
+ * The sprite is owned by the registry's asset manager. Accessing prepared
+ * visual data requires the registry to have been prepared.
  */
 class TerrainEntry<T : Enum<T>> internal constructor(
     val type: T,
-    val spritePath: String
+    internal val source: SpriteSource
 ) {
-    private var preparedTexture: TextureRegion? = null
+    val spritePath: String = source.assetPaths.first()
 
-    /** The loaded texture region used to render this terrain. */
+    private var preparedSprite: SpriteFrames? = null
+
+    /** The static texture or first animation frame. */
     val texture: TextureRegion
-        get() = preparedTexture
+        get() = sprite.frameAtIndex(0)
+
+    /** Prepared static or animated sprite frames. */
+    val sprite: SpriteFrames
+        get() = preparedSprite
             ?: error("Terrain type $type is not prepared.")
 
-    /** Whether [texture] is ready for use. */
     val isPrepared: Boolean
-        get() = preparedTexture != null
+        get() = preparedSprite != null
 
-    internal fun prepare(texture: TextureRegion) {
-        preparedTexture = texture
+    fun frameAt(stateTime: Float): TextureRegion {
+        return sprite.frameAt(stateTime)
+    }
+
+    internal fun prepare(sprite: SpriteFrames) {
+        preparedSprite = sprite
     }
 }
 
@@ -50,54 +61,84 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     )
 
     private val baseDirectory = directory.trimEnd('/')
-
     private val registrations = linkedMapOf<T, TerrainEntry<T>>()
     private var registrationOpen = true
 
-    /**
-     * A snapshot of registered terrain entries in registration order.
-     *
-     * Mutating the returned list cannot change this registry.
-     */
+    /** A snapshot of registered terrain entries in registration order. */
     val entries: List<TerrainEntry<T>>
         get() = registrations.values.toList()
 
-    /**
-     * Registers a terrain type and queues its sprite.
-     * Registration order is retained by [entries].
-     */
+    /** Registers a static terrain sprite. */
     fun register(
         type: T,
         sprite: String = "${type.name.lowercase()}.png"
     ) {
         checkRegistrationOpen()
-
-        require(type !in registrations) {
-            "Terrain type $type is already registered."
-        }
-
         require(sprite.isNotBlank()) {
             "Sprite path must not be blank."
         }
 
-        val path = resolvePath(sprite)
-
-        queueTexture(path)
-
-        registrations[type] = TerrainEntry(
+        registerSource(
             type = type,
-            spritePath = path
+            source = SpriteSource.Static(resolvePath(sprite))
         )
     }
 
-    /**
-     * Resolves registered sprites after their textures have loaded.
-     */
+    /** Registers a looping terrain animation from ordered image files. */
+    fun registerAnimated(
+        type: T,
+        frames: List<String>,
+        frameDuration: Float
+    ) {
+        checkRegistrationOpen()
+        require(frames.isNotEmpty()) {
+            "An animation must contain at least one frame path."
+        }
+        require(frames.all { it.isNotBlank() }) {
+            "Animation frame paths must not be blank."
+        }
+
+        registerSource(
+            type = type,
+            source = SpriteSource.AnimatedFiles(
+                paths = frames.map(::resolvePath),
+                frameDuration = frameDuration
+            )
+        )
+    }
+
+    /** Registers a looping terrain animation from a tight spritesheet. */
+    fun registerAnimated(
+        type: T,
+        spriteSheet: String,
+        frameWidth: Int,
+        frameHeight: Int,
+        frameDuration: Float,
+        frameCount: Int? = null
+    ) {
+        checkRegistrationOpen()
+        require(spriteSheet.isNotBlank()) {
+            "Sprite sheet path must not be blank."
+        }
+
+        registerSource(
+            type = type,
+            source = SpriteSource.SpriteSheet(
+                path = resolvePath(spriteSheet),
+                frameWidth = frameWidth,
+                frameHeight = frameHeight,
+                frameDuration = frameDuration,
+                frameCount = frameCount
+            )
+        )
+    }
+
+    /** Resolves registered sprites after their textures have loaded. */
     internal fun prepare() {
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            entry.prepare(regionFor(entry.spritePath))
+            entry.prepare(entry.source.prepare(regionFor))
         }
     }
 
@@ -120,19 +161,40 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         }
 
         return registrations.values.maxOfOrNull { entry ->
-            require(entry.texture.regionWidth > 0) {
+            val texture = entry.texture
+
+            require(texture.regionWidth > 0) {
                 "Terrain sprite width must be positive."
             }
 
-            tileWidth * entry.texture.regionHeight / entry.texture.regionWidth
+            tileWidth * texture.regionHeight / texture.regionWidth
         } ?: Float.POSITIVE_INFINITY
     }
 
-    /**
-     * Returns the prepared sprite for a terrain type.
-     */
+    /** Returns the static texture or first animation frame. */
     operator fun get(type: T): TextureRegion {
-        return registrations[type]?.texture
+        return entry(type).texture
+    }
+
+    /** Resolves a terrain frame for the shared world-view animation time. */
+    fun frameAt(type: T, stateTime: Float): TextureRegion {
+        return entry(type).frameAt(stateTime)
+    }
+
+    private fun registerSource(
+        type: T,
+        source: SpriteSource
+    ) {
+        require(type !in registrations) {
+            "Terrain type $type is already registered."
+        }
+
+        source.assetPaths.forEach(queueTexture)
+        registrations[type] = TerrainEntry(type, source)
+    }
+
+    private fun entry(type: T): TerrainEntry<T> {
+        return registrations[type]
             ?: error("Terrain type $type is not registered.")
     }
 

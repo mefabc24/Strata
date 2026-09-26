@@ -18,6 +18,7 @@ class ObjectPicker(
     private val projection: IsoProjection,
     private val world: World,
     private val visualFor: (PlacedObject) -> ObjectVisual?,
+    private val animationTime: () -> Float = { 0f },
     objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
     private val objectSettings = objectSettings.copy().also {
@@ -61,7 +62,7 @@ class ObjectPicker(
             val u = (worldX - bounds.x) / bounds.width
             val v = (worldY - bounds.y) / bounds.height
 
-            val alphaMask = visual.alphaMask
+            val alphaMask = visual.frameAt(animationTime()).alphaMask
 
             if (alphaMask == null || alphaMask.isSolid(u, v)) {
                 return placed

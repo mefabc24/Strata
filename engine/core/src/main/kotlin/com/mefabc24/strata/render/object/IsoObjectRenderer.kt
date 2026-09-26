@@ -24,7 +24,8 @@ class IsoObjectRenderer(
     fun render(
         batch: SpriteBatch,
         placed: PlacedObject,
-        visual: ObjectVisual
+        visual: ObjectVisual,
+        animationTime: Float
     ) {
         IsoObjectBounds.calculate(
             projection = projection,
@@ -35,7 +36,7 @@ class IsoObjectRenderer(
         )
 
         batch.draw(
-            visual.texture,
+            visual.frameAt(animationTime).texture,
             bounds.x,
             bounds.y,
             bounds.width,

@@ -272,8 +272,8 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         val view = worldViewFactory.create(
             SceneWorldViewSpec(
                 world = world,
-                textureFor = { tile ->
-                    terrain[terrainFor(tile)]
+                textureFor = { tile, animationTime ->
+                    terrain.frameAt(terrainFor(tile), animationTime)
                 },
                 objectVisualFor = objects::get,
                 cameraSettings = cameraSnapshot.copy(),

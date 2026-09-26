@@ -55,7 +55,7 @@ enum class ObjectPickingMode {
  */
 class IsoWorldView(
     private val world: World,
-    private val textureFor: (Tile) -> TextureRegion?,
+    private val textureFor: (Tile, Float) -> TextureRegion?,
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
 
     cameraSettings: CameraSettings = CameraSettings(),
@@ -89,6 +89,9 @@ class IsoWorldView(
     )
 
     var hoveredTile: TilePosition? = null
+        private set
+
+    internal var animationTime: Float = 0f
         private set
 
     private val worldBounds = projection.worldBounds(
@@ -172,6 +175,7 @@ class IsoWorldView(
         projection = projection,
         world = world,
         visualFor = objectVisualFor,
+        animationTime = { animationTime },
         objectSettings = renderingConfig.objects
     )
 
@@ -222,6 +226,7 @@ class IsoWorldView(
      * Updates the state of the world view.
      */
     fun update(delta: Float) {
+        animationTime += delta
         cameraController.update(delta)
 
         hoveredTile = tilePicker.pick(
@@ -240,6 +245,7 @@ class IsoWorldView(
             textureFor = textureFor,
             objectVisualFor = objectVisualFor,
             previews = previews,
+            animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
 
@@ -257,7 +263,8 @@ class IsoWorldView(
                 worldRenderer.renderObjectsOverlay(
                     camera = camera,
                     objectVisualFor = objectVisualFor,
-                    previews = previews
+                    previews = previews,
+                    animationTime = animationTime
                 )
             }
         }

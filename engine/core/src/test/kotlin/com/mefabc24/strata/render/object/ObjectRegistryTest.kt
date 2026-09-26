@@ -1,5 +1,7 @@
 package com.mefabc24.strata.render.`object`
 
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -15,6 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -80,6 +83,128 @@ class ObjectRegistryTest {
     }
 
     @Test
+    fun `multi file animation prepares ordered frames masks settings and factory`() {
+        val queued = mutableListOf<String>()
+        val textures = mapOf(
+            "objects/fountain_0.png" to region(32, 48),
+            "objects/fountain_1.png" to region(32, 48),
+            "objects/fountain_2.png" to region(32, 48)
+        )
+        val masks = textures.keys.associateWith { alphaMask() }
+        val registry = ObjectRegistry(
+            directory = "objects",
+            queueTexture = queued::add,
+            regionFor = textures::getValue,
+            loadAlphaMask = masks::get
+        )
+
+        registry.registerAnimated(
+            frames = listOf(
+                "fountain_0.png",
+                "fountain_1.png",
+                "fountain_2.png"
+            ),
+            frameDuration = 0.2f,
+            factory = ::House
+        ) {
+            offsetX = 2f
+            offsetY = 3f
+            width = 40f
+            height = 50f
+            scale = 1.5f
+        }
+
+        assertEquals(textures.keys.toList(), queued)
+
+        registry.freeze()
+        registry.prepare()
+
+        val entry = registry.entries.single()
+        val visual = entry.visual
+        assertEquals(3, visual.sprite.frameCount)
+        textures.values.forEachIndexed { index, texture ->
+            assertSame(texture, visual.sprite.frameAtIndex(index))
+            assertSame(masks.values.elementAt(index), visual.frameAt(index * 0.2f).alphaMask)
+        }
+        assertEquals(2f, visual.offsetX)
+        assertEquals(3f, visual.offsetY)
+        assertEquals(40f, visual.width)
+        assertEquals(50f, visual.height)
+        assertEquals(1.5f, visual.scale)
+        assertNotSame(entry.create(), entry.create())
+    }
+
+    @Test
+    fun `spritesheet animation prepares row major frames with matching masks`() {
+        val pixmap = Pixmap(48, 24, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val masks = List(5) { alphaMask() }
+
+        try {
+            val queued = mutableListOf<String>()
+            val registry = ObjectRegistry(
+                directory = "objects",
+                queueTexture = queued::add,
+                regionFor = { TextureRegion(texture) },
+                loadAlphaMask = { null },
+                loadSpriteSheetAlphaMasks = { path, width, height, count ->
+                    assertEquals("objects/fountain.png", path)
+                    assertEquals(16, width)
+                    assertEquals(12, height)
+                    assertEquals(5, count)
+                    masks
+                }
+            )
+            registry.registerAnimated<House>(
+                spriteSheet = "fountain.png",
+                frameWidth = 16,
+                frameHeight = 12,
+                frameCount = 5,
+                frameDuration = 0.1f,
+                factory = ::House
+            )
+            registry.prepare()
+
+            assertEquals(listOf("objects/fountain.png"), queued)
+
+            val visual = registry.entries.single().visual
+            assertEquals(
+                listOf(0 to 0, 16 to 0, 32 to 0, 0 to 12, 16 to 12),
+                List(visual.sprite.frameCount) { index ->
+                    visual.sprite.frameAtIndex(index).let { it.regionX to it.regionY }
+                }
+            )
+            masks.forEachIndexed { index, mask ->
+                assertSame(mask, visual.frameAt(index * 0.1f).alphaMask)
+            }
+        } finally {
+            texture.dispose()
+        }
+    }
+
+    @Test
+    fun `animated object rejects mismatched frame dimensions`() {
+        val registry = ObjectRegistry(
+            directory = "objects",
+            queueTexture = {},
+            regionFor = { path ->
+                if (path.endsWith("0.png")) region(32, 48) else region(32, 64)
+            },
+            loadAlphaMask = { null }
+        )
+        registry.registerAnimated<House>(
+            frames = listOf("house_0.png", "house_1.png"),
+            frameDuration = 0.1f,
+            factory = ::House
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            registry.prepare()
+        }
+    }
+
+    @Test
     fun `frozen registry rejects registration and keeps constructible visuals readable`() {
         val texture = TextureRegion()
         val registry = registry(texture = texture)
@@ -130,6 +255,26 @@ class ObjectRegistryTest {
         assertFailsWith<IllegalStateException> {
             registry.entries.last().create()
         }
+    }
+
+    @Test
+    fun `static alpha masks remain cached by asset path`() {
+        var loads = 0
+        val registry = ObjectRegistry(
+            directory = "objects",
+            queueTexture = {},
+            regionFor = { TextureRegion() },
+            loadAlphaMask = {
+                loads++
+                null
+            }
+        )
+        registry.register<House>("shared.png")
+        registry.register<Tree>("shared.png")
+
+        registry.prepare()
+
+        assertEquals(1, loads)
     }
 
     @Test
@@ -218,6 +363,27 @@ class ObjectRegistryTest {
             registry.register<Tree>(" ")
         }
 
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerAnimated<Tree>(emptyList(), 0.1f)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerAnimated<Tree>(listOf(" "), 0.1f)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerAnimated<Tree>(listOf("tree.png"), Float.NaN)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerAnimated<Tree>(
+                spriteSheet = "tree.png",
+                frameWidth = -1,
+                frameHeight = 16,
+                frameDuration = 0.1f
+            )
+        }
+
         for (
             configure in listOf<ObjectSpriteSettings.() -> Unit>(
                 { offsetX = Float.NaN },
@@ -253,4 +419,26 @@ class ObjectRegistryTest {
         regionFor = { texture },
         loadAlphaMask = { null }
     )
+
+    private fun region(
+        width: Int,
+        height: Int
+    ): TextureRegion {
+        return object : TextureRegion() {
+            override fun getRegionWidth(): Int = width
+            override fun getRegionHeight(): Int = height
+        }
+    }
+
+    private fun alphaMask(): AlphaMask {
+        val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+        pixmap.setColor(1f, 1f, 1f, 1f)
+        pixmap.drawPixel(0, 0)
+
+        return try {
+            AlphaMask.fromPixmap(pixmap)
+        } finally {
+            pixmap.dispose()
+        }
+    }
 }

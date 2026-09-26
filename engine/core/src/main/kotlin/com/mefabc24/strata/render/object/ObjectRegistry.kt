@@ -4,6 +4,8 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
+import com.mefabc24.strata.render.sprite.SpriteSheetGrid
+import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import kotlin.reflect.KClass
@@ -23,15 +25,12 @@ class ObjectSpriteSettings {
         require(offsetX.isFinite() && offsetY.isFinite()) {
             "Sprite offsets must be finite."
         }
-
         require(width == null || (width!!.isFinite() && width!! > 0f)) {
             "Sprite width must be finite and positive."
         }
-
         require(height == null || (height!!.isFinite() && height!! > 0f)) {
             "Sprite height must be finite and positive."
         }
-
         require(scale.isFinite() && scale > 0f) {
             "Sprite scale must be finite and positive."
         }
@@ -46,32 +45,28 @@ class ObjectSpriteSettings {
  */
 class ObjectEntry internal constructor(
     val type: KClass<out Placeable>,
-    val spritePath: String,
+    internal val source: SpriteSource,
     private val factory: (() -> Placeable)?,
     internal val settings: ObjectSpriteSettings
 ) {
+    val spritePath: String = source.assetPaths.first()
+
     private var preparedVisual: ObjectVisual? = null
 
-    /** The visual used to render this object type. */
     val visual: ObjectVisual
         get() = preparedVisual
             ?: error("Object type $type is not prepared.")
 
-    /** Whether [visual] is ready for use. */
     val isPrepared: Boolean
         get() = preparedVisual != null
 
-    /** Whether this registration can create new object instances. */
     val isConstructible: Boolean
         get() = factory != null
 
-    /**
-     * Creates a new placeable through the explicitly registered factory.
-     */
+    /** Creates a new placeable through the explicitly registered factory. */
     fun create(): Placeable {
         val create = factory
             ?: error("Object type $type has no registered factory.")
-
         val placeable = create()
 
         check(type.isInstance(placeable)) {
@@ -96,7 +91,13 @@ class ObjectRegistry internal constructor(
     directory: String,
     private val queueTexture: (String) -> Unit,
     private val regionFor: (String) -> TextureRegion,
-    private val loadAlphaMask: (String) -> AlphaMask?
+    private val loadAlphaMask: (String) -> AlphaMask?,
+    private val loadSpriteSheetAlphaMasks: (
+        path: String,
+        frameWidth: Int,
+        frameHeight: Int,
+        frameCount: Int?
+    ) -> List<AlphaMask?> = ::alphaMasksFromSpriteSheetClasspath
 ) {
     constructor(
         directory: String,
@@ -105,41 +106,29 @@ class ObjectRegistry internal constructor(
         directory = directory,
         queueTexture = assets::queueTexture,
         regionFor = assets::region,
-        loadAlphaMask = ::alphaMaskFromClasspath
+        loadAlphaMask = ::alphaMaskFromClasspath,
+        loadSpriteSheetAlphaMasks = ::alphaMasksFromSpriteSheetClasspath
     )
 
     private val baseDirectory = directory.trimEnd('/')
-
     private val registrations =
         linkedMapOf<KClass<out Placeable>, ObjectEntry>()
 
     private val alphaMasks = mutableMapOf<String, AlphaMask?>()
+    private val spriteSheetAlphaMasks =
+        mutableMapOf<SpriteSheetMaskKey, List<AlphaMask?>>()
+
     private var registrationOpen = true
 
-    /**
-     * A snapshot of registered object entries in registration order.
-     *
-     * Mutating the returned list cannot change this registry.
-     */
+    /** A snapshot of registered entries in registration order. */
     val entries: List<ObjectEntry>
         get() = registrations.values.toList()
 
-    /**
-     * A registration-order snapshot containing entries with explicit factories.
-     * Every returned entry can safely be passed to [ObjectEntry.create].
-     */
+    /** A registration-order snapshot containing entries with factories. */
     val constructibleEntries: List<ObjectEntry>
-        get() = registrations.values.filter {
-            it.isConstructible
-        }
+        get() = registrations.values.filter { it.isConstructible }
 
-    /**
-     * Registers an object type and queues its texture.
-     *
-     * [factory] is optional because some registrations are needed only for
-     * rendering existing objects. Supply it when game code must construct new
-     * instances, such as from a build picker.
-     */
+    /** Registers a static object sprite. */
     fun <T : Placeable> register(
         type: KClass<T>,
         sprite: String,
@@ -147,79 +136,138 @@ class ObjectRegistry internal constructor(
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
         checkRegistrationOpen()
-
-        require(type !in registrations) {
-            "Object type $type is already registered."
-        }
-
         require(sprite.isNotBlank()) {
             "Sprite path must not be blank."
         }
 
-        val settings = ObjectSpriteSettings().apply(configure)
-        settings.validate()
-
-        val path = if (baseDirectory.isEmpty()) {
-            sprite
-        } else {
-            "$baseDirectory/$sprite"
-        }
-
-        queueTexture(path)
-
-        registrations[type] = ObjectEntry(
+        registerSource(
             type = type,
-            spritePath = path,
-            factory = factory?.let { create ->
-                { create() }
-            },
-            settings = settings
-        )
-    }
-
-    /**
-     * Registers a sprite using a reified placeable type.
-     *
-     * The optional [factory] has the same construction semantics as the
-     * non-reified overload.
-     */
-    inline fun <reified T : Placeable> register(
-        sprite: String,
-        noinline factory: (() -> T)? = null,
-        noinline configure: ObjectSpriteSettings.() -> Unit = {}
-    ) {
-        register(
-            type = T::class,
-            sprite = sprite,
+            source = SpriteSource.Static(resolvePath(sprite)),
             factory = factory,
             configure = configure
         )
     }
 
-    /**
-     * Resolves textures and builds alpha masks after loading.
-     */
+    /** Registers an object animation from ordered image files. */
+    fun <T : Placeable> registerAnimated(
+        type: KClass<T>,
+        frames: List<String>,
+        frameDuration: Float,
+        factory: (() -> T)? = null,
+        configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        checkRegistrationOpen()
+        require(frames.isNotEmpty()) {
+            "An animation must contain at least one frame path."
+        }
+        require(frames.all { it.isNotBlank() }) {
+            "Animation frame paths must not be blank."
+        }
+
+        registerSource(
+            type = type,
+            source = SpriteSource.AnimatedFiles(
+                paths = frames.map(::resolvePath),
+                frameDuration = frameDuration
+            ),
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    /** Registers an object animation from a tight spritesheet. */
+    fun <T : Placeable> registerAnimated(
+        type: KClass<T>,
+        spriteSheet: String,
+        frameWidth: Int,
+        frameHeight: Int,
+        frameDuration: Float,
+        frameCount: Int? = null,
+        factory: (() -> T)? = null,
+        configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        checkRegistrationOpen()
+        require(spriteSheet.isNotBlank()) {
+            "Sprite sheet path must not be blank."
+        }
+
+        registerSource(
+            type = type,
+            source = SpriteSource.SpriteSheet(
+                path = resolvePath(spriteSheet),
+                frameWidth = frameWidth,
+                frameHeight = frameHeight,
+                frameDuration = frameDuration,
+                frameCount = frameCount
+            ),
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Placeable> register(
+        sprite: String,
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        register(T::class, sprite, factory, configure)
+    }
+
+    inline fun <reified T : Placeable> registerAnimated(
+        frames: List<String>,
+        frameDuration: Float,
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        registerAnimated(
+            type = T::class,
+            frames = frames,
+            frameDuration = frameDuration,
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Placeable> registerAnimated(
+        spriteSheet: String,
+        frameWidth: Int,
+        frameHeight: Int,
+        frameDuration: Float,
+        frameCount: Int? = null,
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        registerAnimated(
+            type = T::class,
+            spriteSheet = spriteSheet,
+            frameWidth = frameWidth,
+            frameHeight = frameHeight,
+            frameDuration = frameDuration,
+            frameCount = frameCount,
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    /** Resolves textures and builds alpha masks after loading. */
     internal fun prepare() {
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            val path = entry.spritePath
-            val settings = entry.settings
+            val sprite = entry.source.prepare(regionFor)
+            val alphaMasks = alphaMasksFor(entry.source)
 
-            val alphaMask = if (path in alphaMasks) {
-                alphaMasks[path]
-            } else {
-                loadAlphaMask(path).also {
-                    alphaMasks[path] = it
-                }
+            require(alphaMasks.size == sprite.frameCount) {
+                "Object animation alpha-mask count must match its frame count."
             }
 
+            val settings = entry.settings
             entry.prepare(
                 ObjectVisual(
-                    texture = regionFor(path),
+                    sprite = sprite,
+                    alphaMasks = alphaMasks,
                     offsetX = settings.offsetX,
                     offsetY = settings.offsetY,
-                    alphaMask = alphaMask,
                     width = settings.width,
                     height = settings.height,
                     scale = settings.scale
@@ -232,14 +280,69 @@ class ObjectRegistry internal constructor(
         registrationOpen = false
     }
 
-    /**
-     * Returns the prepared visual for a placed object.
-     */
     fun get(placed: PlacedObject): ObjectVisual? {
-        val entry = registrations[placed.placeable::class]
-            ?: return null
+        return registrations[placed.placeable::class]?.visual
+    }
 
-        return entry.visual
+    private fun <T : Placeable> registerSource(
+        type: KClass<T>,
+        source: SpriteSource,
+        factory: (() -> T)?,
+        configure: ObjectSpriteSettings.() -> Unit
+    ) {
+        require(type !in registrations) {
+            "Object type $type is already registered."
+        }
+
+        val settings = ObjectSpriteSettings().apply(configure)
+        settings.validate()
+        source.assetPaths.forEach(queueTexture)
+
+        registrations[type] = ObjectEntry(
+            type = type,
+            source = source,
+            factory = factory?.let { create -> { create() } },
+            settings = settings
+        )
+    }
+
+    private fun alphaMasksFor(source: SpriteSource): List<AlphaMask?> {
+        return when (source) {
+            is SpriteSource.Static -> listOf(alphaMaskFor(source.path))
+            is SpriteSource.AnimatedFiles -> {
+                source.assetPaths.map(::alphaMaskFor)
+            }
+
+            is SpriteSource.SpriteSheet -> {
+                val key = SpriteSheetMaskKey(
+                    path = source.path,
+                    frameWidth = source.frameWidth,
+                    frameHeight = source.frameHeight,
+                    frameCount = source.frameCount
+                )
+
+                spriteSheetAlphaMasks.getOrPut(key) {
+                    loadSpriteSheetAlphaMasks(
+                        source.path,
+                        source.frameWidth,
+                        source.frameHeight,
+                        source.frameCount
+                    )
+                }
+            }
+        }
+    }
+
+    private fun alphaMaskFor(path: String): AlphaMask? {
+        if (path in alphaMasks) return alphaMasks[path]
+
+        return loadAlphaMask(path).also {
+            alphaMasks[path] = it
+        }
+    }
+
+    private fun resolvePath(sprite: String): String {
+        return if (baseDirectory.isEmpty()) sprite else "$baseDirectory/$sprite"
     }
 
     private fun checkRegistrationOpen() {
@@ -247,6 +350,13 @@ class ObjectRegistry internal constructor(
             "Object registry registration is already closed."
         }
     }
+
+    private data class SpriteSheetMaskKey(
+        val path: String,
+        val frameWidth: Int,
+        val frameHeight: Int,
+        val frameCount: Int?
+    )
 }
 
 private fun alphaMaskFromClasspath(path: String): AlphaMask {
@@ -254,6 +364,35 @@ private fun alphaMaskFromClasspath(path: String): AlphaMask {
 
     return try {
         AlphaMask.fromPixmap(pixmap)
+    } finally {
+        pixmap.dispose()
+    }
+}
+
+private fun alphaMasksFromSpriteSheetClasspath(
+    path: String,
+    frameWidth: Int,
+    frameHeight: Int,
+    frameCount: Int?
+): List<AlphaMask?> {
+    val pixmap = Pixmap(Gdx.files.classpath(path))
+
+    return try {
+        SpriteSheetGrid.cells(
+            sheetWidth = pixmap.width,
+            sheetHeight = pixmap.height,
+            frameWidth = frameWidth,
+            frameHeight = frameHeight,
+            frameCount = frameCount
+        ).map { cell ->
+            AlphaMask.fromPixmap(
+                pixmap = pixmap,
+                x = cell.x,
+                y = cell.y,
+                width = cell.width,
+                height = cell.height
+            )
+        }
     } finally {
         pixmap.dispose()
     }

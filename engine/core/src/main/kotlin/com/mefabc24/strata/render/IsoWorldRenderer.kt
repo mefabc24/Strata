@@ -55,9 +55,10 @@ class IsoWorldRenderer(
     fun render(
         world: World,
         camera: OrthographicCamera,
-        textureFor: (Tile) -> TextureRegion?,
+        textureFor: (Tile, Float) -> TextureRegion?,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         previews: List<PlacementPreview> = emptyList(),
+        animationTime: Float = 0f,
         maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
     ) {
         stats.reset()
@@ -115,7 +116,8 @@ class IsoWorldRenderer(
                         world = world,
                         item = item,
                         overlayIds = overlayIds,
-                        textureFor = textureFor
+                        textureFor = textureFor,
+                        animationTime = animationTime
                     )
                 }
 
@@ -123,7 +125,8 @@ class IsoWorldRenderer(
                     renderObject(
                         placed = item.placedObject,
                         visual = objectVisualFor(item.placedObject),
-                        preview = null
+                        preview = null,
+                        animationTime = animationTime
                     )
                 }
 
@@ -131,7 +134,8 @@ class IsoWorldRenderer(
                     renderObject(
                         placed = item.preview.placedObject,
                         visual = objectVisualFor(item.preview.placedObject),
-                        preview = item.preview
+                        preview = item.preview,
+                        animationTime = animationTime
                     )
                 }
             }
@@ -149,12 +153,13 @@ class IsoWorldRenderer(
         world: World,
         item: TerrainCell,
         overlayIds: List<String>,
-        textureFor: (Tile) -> TextureRegion?
+        textureFor: (Tile, Float) -> TextureRegion?,
+        animationTime: Float
     ) {
         stats.terrainChecked++
 
         world.getTile(item.x, item.y)
-            ?.let(textureFor)
+            ?.let { textureFor(it, animationTime) }
             ?.let { texture ->
                 renderTerrainSprite(
                     x = item.x,
@@ -167,7 +172,7 @@ class IsoWorldRenderer(
             stats.terrainChecked++
 
             world.getOverlayTile(layerId, item.x, item.y)
-                ?.let(textureFor)
+                ?.let { textureFor(it, animationTime) }
                 ?.let { texture ->
                     renderTerrainSprite(
                         x = item.x,
@@ -182,6 +187,7 @@ class IsoWorldRenderer(
         placed: PlacedObject,
         visual: ObjectVisual?,
         preview: PlacementPreview?,
+        animationTime: Float,
         recordStats: Boolean = true
     ) {
         if (preview == null && recordStats) {
@@ -211,7 +217,8 @@ class IsoWorldRenderer(
         objectRenderer.render(
             batch = batch,
             placed = placed,
-            visual = visual
+            visual = visual,
+            animationTime = animationTime
         )
 
         if (recordStats) {
@@ -230,7 +237,8 @@ class IsoWorldRenderer(
     internal fun renderObjectsOverlay(
         camera: OrthographicCamera,
         objectVisualFor: (PlacedObject) -> ObjectVisual?,
-        previews: List<PlacementPreview>
+        previews: List<PlacementPreview>,
+        animationTime: Float
     ) {
         batch.projectionMatrix = camera.combined
 
@@ -242,6 +250,7 @@ class IsoWorldRenderer(
                     placed = item.placedObject,
                     visual = objectVisualFor(item.placedObject),
                     preview = null,
+                    animationTime = animationTime,
                     recordStats = false
                 )
             }
@@ -252,6 +261,7 @@ class IsoWorldRenderer(
                 placed = preview.placedObject,
                 visual = objectVisualFor(preview.placedObject),
                 preview = preview,
+                animationTime = animationTime,
                 recordStats = false
             )
         }

@@ -11,6 +11,7 @@ import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.utils.GdxNativesLoader
+import java.nio.IntBuffer
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -89,8 +90,25 @@ object TestGdxEnvironment {
 
         val gl = proxy(
             GL20::class.java
-        ) { _, method, _ ->
-            defaultValue(method.returnType)
+        ) { _, method, arguments ->
+            when (method.name) {
+                "glCreateProgram", "glCreateShader", "glGenBuffer" -> 1
+                "glGetShaderiv" -> {
+                    val parameter = arguments?.get(1) as Int
+                    val values = arguments[2] as IntBuffer
+                    values.put(0, if (parameter == GL20.GL_COMPILE_STATUS) 1 else 0)
+                    null
+                }
+
+                "glGetProgramiv" -> {
+                    val parameter = arguments?.get(1) as Int
+                    val values = arguments[2] as IntBuffer
+                    values.put(0, if (parameter == GL20.GL_LINK_STATUS) 1 else 0)
+                    null
+                }
+
+                else -> defaultValue(method.returnType)
+            }
         }
 
         Gdx.gl = gl

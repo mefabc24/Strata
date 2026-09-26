@@ -33,14 +33,38 @@ class AlphaMask private constructor(
          * Copies alpha values from a Pixmap.
          */
         fun fromPixmap(pixmap: Pixmap): AlphaMask {
-            val width = pixmap.width
-            val height = pixmap.height
+            return fromPixmap(
+                pixmap = pixmap,
+                x = 0,
+                y = 0,
+                width = pixmap.width,
+                height = pixmap.height
+            )
+        }
+
+        /** Copies alpha values from a rectangular Pixmap region. */
+        fun fromPixmap(
+            pixmap: Pixmap,
+            x: Int,
+            y: Int,
+            width: Int,
+            height: Int
+        ): AlphaMask {
+            require(
+                x >= 0 && y >= 0 &&
+                    width > 0 && height > 0 &&
+                    x + width <= pixmap.width &&
+                    y + height <= pixmap.height
+            ) {
+                "Alpha-mask region must be inside the Pixmap."
+            }
+
             val alpha = ByteArray(width * height)
 
-            for (y in 0 until height) {
-                for (x in 0 until width) {
-                    alpha[y * width + x] =
-                        (pixmap.getPixel(x, y) and 0xFF).toByte()
+            for (localY in 0 until height) {
+                for (localX in 0 until width) {
+                    alpha[localY * width + localX] =
+                        (pixmap.getPixel(x + localX, y + localY) and 0xFF).toByte()
                 }
             }
 
