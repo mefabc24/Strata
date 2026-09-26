@@ -76,11 +76,9 @@ internal data class PreviewRenderItem(
  * Cached world-render data that changes only when static world objects change.
  */
 internal class StaticWorldRenderPlan(
-    val items: List<WorldRenderPrimitive>,
-    val dependencies: List<IsoRenderDependency>,
+    val orderedItems: List<WorldRenderPrimitive>,
     val terrainIndexByCell: IntArray,
-    val objectIndices: IntArray,
-    val orderedItems: List<WorldRenderPrimitive>
+    val objectIndices: IntArray
 )
 
 /** Builds a grid-aware, deterministic world rendering sequence. */
@@ -184,12 +182,36 @@ internal object WorldRenderPlan {
                 explicitDependencies = dependencies
             )
 
+        val orderedTerrainIndexByCell =
+            IntArray(world.width * world.height) { -1 }
+
+        val orderedObjectIndices =
+            mutableListOf<Int>()
+
+        for ((index, item) in orderedItems.withIndex()) {
+            when (item) {
+                is TerrainCell -> {
+                    orderedTerrainIndexByCell[
+                        item.y * world.width + item.x
+                    ] = index
+                }
+
+                is WorldObjectPrimitive -> {
+                    orderedObjectIndices += index
+                }
+
+                is WorldEntityPrimitive -> {
+                    error(
+                        "Static world render plans must not contain entities."
+                    )
+                }
+            }
+        }
+
         return StaticWorldRenderPlan(
-            items = items,
-            dependencies = dependencies,
-            terrainIndexByCell = terrainIndexByCell,
-            objectIndices = objectIndices.toIntArray(),
-            orderedItems = orderedItems
+            orderedItems = orderedItems,
+            terrainIndexByCell = orderedTerrainIndexByCell,
+            objectIndices = orderedObjectIndices.toIntArray()
         )
     }
 
@@ -212,18 +234,30 @@ internal object WorldRenderPlan {
             return staticPlan.orderedItems
         }
 
+        val staticItems = staticPlan.orderedItems
+
         val items = ArrayList<WorldRenderPrimitive>(
-            staticPlan.items.size + entities.size
+            staticItems.size + entities.size
         )
 
-        items.addAll(staticPlan.items)
+        items.addAll(staticItems)
 
-        val dependencies =
-            ArrayList<IsoRenderDependency>(
-                staticPlan.dependencies.size + entities.size
+        val dependencies = ArrayList<IsoRenderDependency>(
+            staticItems.size + entities.size
+        )
+
+        /*
+         * The static world has already been fully ordered.
+         *
+         * Preserve that order with a linear chain instead of rebuilding the
+         * original object dependency graph every frame.
+         */
+        for (index in 0 until staticItems.lastIndex) {
+            dependencies += IsoRenderDependency(
+                before = index,
+                after = index + 1
             )
-
-        dependencies.addAll(staticPlan.dependencies)
+        }
 
         val dynamicCandidates =
             mutableListOf<IsoRenderCandidate>()
@@ -236,6 +270,10 @@ internal object WorldRenderPlan {
 
             items += WorldEntityPrimitive(entity)
 
+            /*
+             * Only movable entities need fresh spatial comparisons.
+             * Static objects are already ordered relative to each other.
+             */
             for (objectIndex in staticPlan.objectIndices) {
                 dynamicCandidates += IsoRenderCandidate(
                     first = objectIndex,

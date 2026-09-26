@@ -147,6 +147,8 @@ class WorldRenderPlanTest {
             metrics = staticMetrics
         )
 
+        val staticOrder = staticPlan.orderedItems
+
         assertEquals(
             objects.size * (objects.size - 1) / 2,
             staticMetrics.relationChecks
@@ -165,11 +167,19 @@ class WorldRenderPlanTest {
 
             val dynamicMetrics = IsoRenderOrderMetrics()
 
-            WorldRenderPlan.withEntities(
+            val dynamicPlan = WorldRenderPlan.withEntities(
                 staticPlan = staticPlan,
                 world = world,
                 projection = projection,
                 metrics = dynamicMetrics
+            )
+
+            val staticItemsAfterDynamicInsert =
+                dynamicPlan.filterNot { it is WorldEntityPrimitive }
+
+            assertEquals(
+                staticOrder,
+                staticItemsAfterDynamicInsert
             )
 
             assertEquals(
