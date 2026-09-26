@@ -19,6 +19,7 @@ class ObjectPicker(
     private val world: World,
     private val visualFor: (PlacedObject) -> ObjectVisual?,
     private val animationTime: () -> Float = { 0f },
+    private val orderedObjects: (() -> List<PlacedObject>)? = null,
     objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
     private val objectSettings = objectSettings.copy().also {
@@ -39,10 +40,11 @@ class ObjectPicker(
         worldX: Float,
         worldY: Float
     ): PlacedObject? {
-        val orderedObjects = IsoObjectOrdering.backToFront(
-            objects = world.getObjects(),
-            projection = projection
-        )
+        val orderedObjects = orderedObjects?.invoke()
+            ?: IsoObjectOrdering.backToFront(
+                objects = world.getObjects(),
+                projection = projection
+            )
 
         for (placed in orderedObjects.asReversed()) {
             val visual = visualFor(placed) ?: continue

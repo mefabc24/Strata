@@ -22,6 +22,8 @@ import com.mefabc24.strata.world.WorldEntity
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
+import com.mefabc24.strata.render.order.WorldEntityPrimitive
+import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.scene.DebugGridSettings
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.scene.DebugGridRenderLayer
@@ -185,6 +187,12 @@ class IsoWorldView(
         world = world,
         visualFor = objectVisualFor,
         animationTime = { animationTime },
+        orderedObjects = {
+            worldRenderer.currentRenderPlan(world)
+                .mapNotNull { primitive ->
+                    (primitive as? WorldObjectPrimitive)?.placedObject
+                }
+        },
         objectSettings = renderingConfig.objects
     )
 
@@ -193,7 +201,13 @@ class IsoWorldView(
         projection = projection,
         world = world,
         visualFor = entityVisualFor,
-        animationTime = { animationTime }
+        animationTime = { animationTime },
+        orderedEntities = {
+            worldRenderer.currentRenderPlan(world)
+                .mapNotNull { primitive ->
+                    (primitive as? WorldEntityPrimitive)?.worldEntity
+                }
+        }
     )
 
     private val worldInputProcessor = WorldInputProcessor(

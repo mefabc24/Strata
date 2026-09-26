@@ -75,25 +75,7 @@ class IsoWorldRenderer(
 
         val renderStartNanos = System.nanoTime()
 
-        if (
-            cachedWorld !== world ||
-            cachedObjectVersion != world.objectVersion ||
-            staticRenderPlan == null
-        ) {
-            staticRenderPlan = WorldRenderPlan.prepareStatic(
-                world = world,
-                projection = projection
-            )
-
-            cachedWorld = world
-            cachedObjectVersion = world.objectVersion
-        }
-
-        normalRenderPlan = WorldRenderPlan.withEntities(
-            staticPlan = checkNotNull(staticRenderPlan),
-            world = world,
-            projection = projection
-        )
+        updateRenderPlan(world)
 
         val viewWidth = camera.viewportWidth * camera.zoom
         val viewHeight = camera.viewportHeight * camera.zoom
@@ -172,6 +154,38 @@ class IsoWorldRenderer(
 
         stats.cpuRenderMs =
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
+    }
+
+    /**
+     * Returns the current render order while reusing cached static world data.
+     */
+    internal fun currentRenderPlan(
+        world: World
+    ): List<WorldRenderPrimitive> {
+        updateRenderPlan(world)
+        return normalRenderPlan
+    }
+
+    private fun updateRenderPlan(world: World) {
+        if (
+            cachedWorld !== world ||
+            cachedObjectVersion != world.objectVersion ||
+            staticRenderPlan == null
+        ) {
+            staticRenderPlan = WorldRenderPlan.prepareStatic(
+                world = world,
+                projection = projection
+            )
+
+            cachedWorld = world
+            cachedObjectVersion = world.objectVersion
+        }
+
+        normalRenderPlan = WorldRenderPlan.withEntities(
+            staticPlan = checkNotNull(staticRenderPlan),
+            world = world,
+            projection = projection
+        )
     }
 
     private fun renderEntity(

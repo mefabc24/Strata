@@ -16,7 +16,8 @@ class EntityPicker(
     private val projection: IsoProjection,
     private val world: World,
     private val visualFor: (WorldEntity) -> EntityVisual?,
-    private val animationTime: () -> Float = { 0f }
+    private val animationTime: () -> Float = { 0f },
+    private val orderedEntities: (() -> List<WorldEntity>)? = null
 ) {
     private val cursor = Vector3()
     private val bounds = Rectangle()
@@ -28,12 +29,15 @@ class EntityPicker(
     }
 
     internal fun pickWorld(worldX: Float, worldY: Float): WorldEntity? {
-        val plan = WorldRenderPlan.create(world, projection)
+        val entities = orderedEntities?.invoke()
+            ?: WorldRenderPlan.create(
+                world = world,
+                projection = projection
+            ).mapNotNull { primitive ->
+                (primitive as? WorldEntityPrimitive)?.worldEntity
+            }
 
-        for (primitive in plan.asReversed()) {
-            if (primitive !is WorldEntityPrimitive) continue
-
-            val entity = primitive.worldEntity
+        for (entity in entities.asReversed()) {
             val visual = visualFor(entity) ?: continue
             IsoEntityBounds.calculate(
                 projection = projection,
