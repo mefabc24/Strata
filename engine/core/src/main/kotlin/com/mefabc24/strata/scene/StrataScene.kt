@@ -411,6 +411,8 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         checkActive()
         checkConfigurationComplete()
 
+        attachedWorld?.updateEntities(delta)
+
         attachedView?.let { view ->
             view.update(delta)
             attachedPlacement?.update(view.hoveredTile)

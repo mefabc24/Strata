@@ -16,6 +16,7 @@ import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Entity
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
@@ -289,6 +290,22 @@ class StrataSceneWorldTest {
 
         assertTrue(factory.view.disposed)
         assertNull(inputState.inputProcessor)
+    }
+
+    @Test
+    fun `scene update advances entity movement automatically`() {
+        val factory = RecordingViewFactory()
+        val scene = sceneWith(factory)
+        val world = world()
+        val entity = world.addEntity(TestEntity(), EntityPosition(0.5f, 0.5f))
+        entity.followPath(listOf(TilePosition(1, 0)), speed = 2f)
+        scene.attachWorld(world) { Terrain.GRASS }
+
+        scene.update(0.25f)
+
+        assertEquals(EntityPosition(1f, 0.5f), entity.position)
+        assertEquals(listOf(0.25f), factory.view.updateDeltas)
+        scene.dispose()
     }
 
     @Test

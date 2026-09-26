@@ -207,6 +207,11 @@ class World(
         return true
     }
 
+    /** Advances active entity routes using the supplied frame delta. */
+    internal fun updateEntities(delta: Float) {
+        entities.forEach { it.updateMovement(delta) }
+    }
+
     /**
      * Removes a placed object from the world.
      */
