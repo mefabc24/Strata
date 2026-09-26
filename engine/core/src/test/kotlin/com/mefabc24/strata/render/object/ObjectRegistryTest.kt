@@ -3,6 +3,8 @@ package com.mefabc24.strata.render.`object`
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.mefabc24.strata.render.sprite.SpriteSource
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -180,6 +182,65 @@ class ObjectRegistryTest {
             }
         } finally {
             texture.dispose()
+        }
+    }
+
+    @Test
+    fun `atlas registrations preserve settings factories frames and masks`() {
+        val pixmap = Pixmap(6, 2, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val atlas = TextureAtlas()
+        atlas.addRegion("house", texture, 0, 0, 2, 2)
+        atlas.addRegion("tree", texture, 2, 0, 2, 2).index = 0
+        atlas.addRegion("tree", texture, 4, 0, 2, 2).index = 1
+        val queued = mutableListOf<String>()
+        val firstMask = alphaMask()
+        val secondMask = alphaMask()
+
+        try {
+            val registry = ObjectRegistry(
+                directory = "objects",
+                queueTexture = {},
+                regionFor = { TextureRegion() },
+                loadAlphaMask = { null },
+                queueAtlas = queued::add,
+                atlasFor = { atlas },
+                loadAtlasAlphaMasks = { sources ->
+                    sources.associateWith { source ->
+                        when (source) {
+                            is SpriteSource.AtlasRegion -> listOf(firstMask)
+                            is SpriteSource.AtlasAnimation -> {
+                                listOf(firstMask, secondMask)
+                            }
+                            else -> error("Unexpected source")
+                        }
+                    }
+                }
+            )
+            registry.registerAtlas<House>(
+                atlas = "atlas/world.atlas",
+                region = "house",
+                factory = ::House
+            ) { scale = 1.5f }
+            registry.registerAnimatedAtlas<Tree>(
+                atlas = "atlas/world.atlas",
+                region = "tree",
+                frameDuration = 0.2f,
+                factory = ::Tree
+            )
+            registry.prepare()
+
+            assertEquals(listOf("atlas/world.atlas", "atlas/world.atlas"), queued)
+            assertEquals("atlas/world.atlas", registry.entries.first().spritePath)
+            assertEquals(1.5f, registry.entries.first().visual.scale)
+            assertIs<House>(registry.entries.first().create())
+            val animated = registry.entries.last().visual
+            assertEquals(2, animated.sprite.frameCount)
+            assertSame(secondMask, animated.frameAt(0.2f).alphaMask)
+            assertEquals(4, animated.frameAt(0.2f).texture.regionX)
+        } finally {
+            atlas.dispose()
         }
     }
 

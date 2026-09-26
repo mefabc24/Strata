@@ -91,6 +91,19 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         )
     }
 
+    /**
+     * Registers a static atlas region. The atlas path is used as supplied and
+     * is not resolved relative to the terrain directory.
+     */
+    fun registerAtlas(
+        type: T,
+        atlas: String,
+        region: String
+    ) {
+        checkRegistrationOpen()
+        registerSource(type, SpriteSource.AtlasRegion(atlas, region))
+    }
+
     /** Registers a looping terrain animation from ordered image files. */
     fun registerAnimated(
         type: T,
@@ -111,6 +124,20 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
                 paths = frames.map(::resolvePath),
                 frameDuration = frameDuration
             )
+        )
+    }
+
+    /** Registers indexed atlas regions as a looping animation. */
+    fun registerAnimatedAtlas(
+        type: T,
+        atlas: String,
+        region: String,
+        frameDuration: Float
+    ) {
+        checkRegistrationOpen()
+        registerSource(
+            type,
+            SpriteSource.AtlasAnimation(atlas, region, frameDuration)
         )
     }
 

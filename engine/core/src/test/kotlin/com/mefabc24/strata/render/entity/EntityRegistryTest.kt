@@ -1,8 +1,11 @@
 package com.mefabc24.strata.render.entity
 
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.`object`.AlphaMask
+import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
@@ -93,6 +96,61 @@ class EntityRegistryTest {
         assertSame(solid, visual.frameAt(0f).alphaMask)
         assertSame(textures.values.last(), visual.frameAt(0.25f).texture)
         assertSame(transparent, visual.frameAt(0.25f).alphaMask)
+    }
+
+    @Test
+    fun `atlas entity registrations preserve settings frames and masks`() {
+        val pixmap = Pixmap(6, 2, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val atlas = TextureAtlas()
+        atlas.addRegion("citizen", texture, 0, 0, 2, 2)
+        atlas.addRegion("trader", texture, 2, 0, 2, 2).index = 0
+        atlas.addRegion("trader", texture, 4, 0, 2, 2).index = 1
+        val queued = mutableListOf<String>()
+        val firstMask = mask(true)
+        val secondMask = mask(false)
+
+        try {
+            val registry = EntityRegistry(
+                directory = "entities",
+                queueTexture = {},
+                regionFor = { TextureRegion() },
+                loadAlphaMask = { null },
+                queueAtlas = queued::add,
+                atlasFor = { atlas },
+                loadAtlasAlphaMasks = { sources ->
+                    sources.associateWith { source ->
+                        when (source) {
+                            is SpriteSource.AtlasRegion -> listOf(firstMask)
+                            is SpriteSource.AtlasAnimation -> {
+                                listOf(firstMask, secondMask)
+                            }
+                            else -> error("Unexpected source")
+                        }
+                    }
+                }
+            )
+            registry.registerAtlas<Citizen>(
+                "atlas/world.atlas",
+                "citizen"
+            ) { scale = 1.25f }
+            registry.registerAnimatedAtlas<Trader>(
+                "atlas/world.atlas",
+                "trader",
+                0.2f
+            )
+            registry.prepare()
+
+            assertEquals(listOf("atlas/world.atlas", "atlas/world.atlas"), queued)
+            assertEquals(1.25f, registry.entries.first().visual.scale)
+            val animated = registry.entries.last().visual
+            assertEquals(2, animated.sprite.frameCount)
+            assertSame(secondMask, animated.frameAt(0.2f).alphaMask)
+            assertEquals(4, animated.frameAt(0.2f).texture.regionX)
+        } finally {
+            atlas.dispose()
+        }
     }
 
     @Test

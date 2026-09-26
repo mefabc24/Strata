@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import kotlin.reflect.KClass
@@ -102,7 +103,10 @@ class ObjectRegistry internal constructor(
     private val queueAtlas: (String) -> Unit = {},
     private val atlasFor: (String) -> TextureAtlas = {
         error("Atlas resolver is not configured.")
-    }
+    },
+    private val loadAtlasAlphaMasks: (
+        List<SpriteSource>
+    ) -> Map<SpriteSource, List<AlphaMask?>> = ::alphaMasksFromAtlasClasspath
 ) {
     constructor(
         directory: String,
@@ -155,6 +159,26 @@ class ObjectRegistry internal constructor(
         )
     }
 
+    /**
+     * Registers a static atlas region. The atlas path is used as supplied and
+     * is not resolved relative to the object directory.
+     */
+    fun <T : Placeable> registerAtlas(
+        type: KClass<T>,
+        atlas: String,
+        region: String,
+        factory: (() -> T)? = null,
+        configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        checkRegistrationOpen()
+        registerSource(
+            type,
+            SpriteSource.AtlasRegion(atlas, region),
+            factory,
+            configure
+        )
+    }
+
     /** Registers an object animation from ordered image files. */
     fun <T : Placeable> registerAnimated(
         type: KClass<T>,
@@ -179,6 +203,24 @@ class ObjectRegistry internal constructor(
             ),
             factory = factory,
             configure = configure
+        )
+    }
+
+    /** Registers indexed atlas regions as a looping animation. */
+    fun <T : Placeable> registerAnimatedAtlas(
+        type: KClass<T>,
+        atlas: String,
+        region: String,
+        frameDuration: Float,
+        factory: (() -> T)? = null,
+        configure: ObjectSpriteSettings.() -> Unit = {}
+    ) {
+        checkRegistrationOpen()
+        registerSource(
+            type,
+            SpriteSource.AtlasAnimation(atlas, region, frameDuration),
+            factory,
+            configure
         )
     }
 
@@ -220,6 +262,13 @@ class ObjectRegistry internal constructor(
         register(T::class, sprite, factory, configure)
     }
 
+    inline fun <reified T : Placeable> registerAtlas(
+        atlas: String,
+        region: String,
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {}
+    ) = registerAtlas(T::class, atlas, region, factory, configure)
+
     inline fun <reified T : Placeable> registerAnimated(
         frames: List<String>,
         frameDuration: Float,
@@ -234,6 +283,21 @@ class ObjectRegistry internal constructor(
             configure = configure
         )
     }
+
+    inline fun <reified T : Placeable> registerAnimatedAtlas(
+        atlas: String,
+        region: String,
+        frameDuration: Float,
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {}
+    ) = registerAnimatedAtlas(
+        T::class,
+        atlas,
+        region,
+        frameDuration,
+        factory,
+        configure
+    )
 
     inline fun <reified T : Placeable> registerAnimated(
         spriteSheet: String,
@@ -258,11 +322,19 @@ class ObjectRegistry internal constructor(
 
     /** Resolves textures and builds alpha masks after loading. */
     internal fun prepare() {
+        val preparedAtlasMasks = loadAtlasAlphaMasks(
+            registrations.values.filterNot(ObjectEntry::isPrepared)
+                .map(ObjectEntry::source)
+                .filter {
+                    it is SpriteSource.AtlasRegion ||
+                        it is SpriteSource.AtlasAnimation
+                }
+        )
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
             val sprite = entry.source.prepare(regionFor, atlasFor)
-            val alphaMasks = alphaMasksFor(entry.source)
+            val alphaMasks = alphaMasksFor(entry.source, preparedAtlasMasks)
 
             require(alphaMasks.size == sprite.frameCount) {
                 "Object animation alpha-mask count must match its frame count."
@@ -313,7 +385,10 @@ class ObjectRegistry internal constructor(
         )
     }
 
-    private fun alphaMasksFor(source: SpriteSource): List<AlphaMask?> {
+    private fun alphaMasksFor(
+        source: SpriteSource,
+        preparedAtlasMasks: Map<SpriteSource, List<AlphaMask?>>
+    ): List<AlphaMask?> {
         return when (source) {
             is SpriteSource.Static -> listOf(alphaMaskFor(source.path))
             is SpriteSource.AnimatedFiles -> {
@@ -340,7 +415,9 @@ class ObjectRegistry internal constructor(
 
             is SpriteSource.AtlasRegion,
             is SpriteSource.AtlasAnimation -> {
-                List(source.prepare(regionFor, atlasFor).frameCount) { null }
+                checkNotNull(preparedAtlasMasks[source]) {
+                    "Atlas alpha masks were not prepared for $source."
+                }
             }
         }
     }

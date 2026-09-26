@@ -6,8 +6,8 @@ import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
 import com.mefabc24.strata.render.`object`.alphaMasksFromSpriteSheetClasspath
-import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.WorldEntity
 import kotlin.reflect.KClass
@@ -73,7 +73,10 @@ class EntityRegistry internal constructor(
     private val queueAtlas: (String) -> Unit = {},
     private val atlasFor: (String) -> TextureAtlas = {
         error("Atlas resolver is not configured.")
-    }
+    },
+    private val loadAtlasAlphaMasks: (
+        List<SpriteSource>
+    ) -> Map<SpriteSource, List<AlphaMask?>> = ::alphaMasksFromAtlasClasspath
 ) {
     constructor(
         directory: String,
@@ -114,6 +117,21 @@ class EntityRegistry internal constructor(
         )
     }
 
+    /**
+     * Registers a static atlas region. The atlas path is used as supplied and
+     * is not resolved relative to the entity directory.
+     */
+    fun <T : Entity> registerAtlas(
+        type: KClass<T>,
+        atlas: String,
+        region: String,
+        configure: EntitySpriteSettings.() -> Unit = {}
+    ) = registerSource(
+        type,
+        SpriteSource.AtlasRegion(atlas, region),
+        configure
+    )
+
     fun <T : Entity> registerAnimated(
         type: KClass<T>,
         frames: List<String>,
@@ -132,6 +150,19 @@ class EntityRegistry internal constructor(
             configure = configure
         )
     }
+
+    /** Registers indexed atlas regions as a looping animation. */
+    fun <T : Entity> registerAnimatedAtlas(
+        type: KClass<T>,
+        atlas: String,
+        region: String,
+        frameDuration: Float,
+        configure: EntitySpriteSettings.() -> Unit = {}
+    ) = registerSource(
+        type,
+        SpriteSource.AtlasAnimation(atlas, region, frameDuration),
+        configure
+    )
 
     fun <T : Entity> registerAnimated(
         type: KClass<T>,
@@ -163,11 +194,30 @@ class EntityRegistry internal constructor(
         noinline configure: EntitySpriteSettings.() -> Unit = {}
     ) = register(T::class, sprite, configure)
 
+    inline fun <reified T : Entity> registerAtlas(
+        atlas: String,
+        region: String,
+        noinline configure: EntitySpriteSettings.() -> Unit = {}
+    ) = registerAtlas(T::class, atlas, region, configure)
+
     inline fun <reified T : Entity> registerAnimated(
         frames: List<String>,
         frameDuration: Float,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerAnimated(T::class, frames, frameDuration, configure)
+
+    inline fun <reified T : Entity> registerAnimatedAtlas(
+        atlas: String,
+        region: String,
+        frameDuration: Float,
+        noinline configure: EntitySpriteSettings.() -> Unit = {}
+    ) = registerAnimatedAtlas(
+        T::class,
+        atlas,
+        region,
+        frameDuration,
+        configure
+    )
 
     inline fun <reified T : Entity> registerAnimated(
         spriteSheet: String,
@@ -187,11 +237,19 @@ class EntityRegistry internal constructor(
     )
 
     internal fun prepare() {
+        val preparedAtlasMasks = loadAtlasAlphaMasks(
+            registrations.values.filterNot(EntityEntry::isPrepared)
+                .map(EntityEntry::source)
+                .filter {
+                    it is SpriteSource.AtlasRegion ||
+                        it is SpriteSource.AtlasAnimation
+                }
+        )
         registrations.values.forEach { entry ->
             if (entry.isPrepared) return@forEach
 
             val sprite = entry.source.prepare(regionFor, atlasFor)
-            val masks = alphaMasksFor(entry.source)
+            val masks = alphaMasksFor(entry.source, preparedAtlasMasks)
             require(masks.size == sprite.frameCount) {
                 "Entity animation alpha-mask count must match its frame count."
             }
@@ -237,7 +295,10 @@ class EntityRegistry internal constructor(
         registrations[type] = EntityEntry(type, source, settings)
     }
 
-    private fun alphaMasksFor(source: SpriteSource): List<AlphaMask?> {
+    private fun alphaMasksFor(
+        source: SpriteSource,
+        preparedAtlasMasks: Map<SpriteSource, List<AlphaMask?>>
+    ): List<AlphaMask?> {
         return when (source) {
             is SpriteSource.Static -> listOf(alphaMaskFor(source.path))
             is SpriteSource.AnimatedFiles -> source.assetPaths.map(::alphaMaskFor)
@@ -259,7 +320,9 @@ class EntityRegistry internal constructor(
             }
             is SpriteSource.AtlasRegion,
             is SpriteSource.AtlasAnimation -> {
-                List(source.prepare(regionFor, atlasFor).frameCount) { null }
+                checkNotNull(preparedAtlasMasks[source]) {
+                    "Atlas alpha masks were not prepared for $source."
+                }
             }
         }
     }

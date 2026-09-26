@@ -3,6 +3,7 @@ package com.mefabc24.strata.terrain
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -122,6 +123,48 @@ class TerrainRegistryTest {
             assertSame(texture, sprite.frameAtIndex(index))
         }
         assertSame(textures.values.elementAt(1), registry.frameAt(Terrain.WATER, 0.2f))
+    }
+
+    @Test
+    fun `atlas registrations use scene paths and indexed frame order`() {
+        val pixmap = Pixmap(6, 2, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val atlas = TextureAtlas()
+        atlas.addRegion("grass", texture, 0, 0, 2, 2)
+        atlas.addRegion("water", texture, 2, 0, 2, 2).index = 0
+        atlas.addRegion("water", texture, 4, 0, 2, 2).index = 1
+        val queuedTextures = mutableListOf<String>()
+        val queuedAtlases = mutableListOf<String>()
+
+        try {
+            val registry = TerrainRegistry<Terrain>(
+                directory = "tiles",
+                queueTexture = queuedTextures::add,
+                regionFor = { TextureRegion() },
+                queueAtlas = queuedAtlases::add,
+                atlasFor = { atlas }
+            )
+            registry.registerAtlas(Terrain.GRASS, "atlas/world.atlas", "grass")
+            registry.registerAnimatedAtlas(
+                Terrain.WATER,
+                "atlas/world.atlas",
+                "water",
+                0.2f
+            )
+            registry.prepare()
+
+            assertTrue(queuedTextures.isEmpty())
+            assertEquals(
+                listOf("atlas/world.atlas", "atlas/world.atlas"),
+                queuedAtlases
+            )
+            assertEquals(0, registry[Terrain.GRASS].regionX)
+            assertEquals(2, registry.entries.last().sprite.frameCount)
+            assertEquals(4, registry.frameAt(Terrain.WATER, 0.2f).regionX)
+        } finally {
+            atlas.dispose()
+        }
     }
 
     @Test
