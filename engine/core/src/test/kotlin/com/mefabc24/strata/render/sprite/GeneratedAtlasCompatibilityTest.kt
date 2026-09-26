@@ -11,6 +11,7 @@ import com.mefabc24.strata.tools.atlas.TextureAtlasPacker
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class GeneratedAtlasCompatibilityTest {
     @Test
@@ -30,6 +31,12 @@ class GeneratedAtlasCompatibilityTest {
             )
             val atlas = TextureAtlas(FileHandle(result.metadata.toFile()))
             try {
+                assertNotNull(atlas.findRegion("grass"))
+                assertEquals(
+                    listOf(0, 1),
+                    atlas.findRegions("water").map { it.index }
+                )
+
                 val static = SpriteSource.AtlasRegion("world.atlas", "grass")
                     .prepare({ TextureRegion() }, { atlas })
                 val animated = SpriteSource.AtlasAnimation(
