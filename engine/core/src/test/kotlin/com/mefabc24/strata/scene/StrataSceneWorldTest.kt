@@ -297,8 +297,8 @@ class StrataSceneWorldTest {
         previewStyle.validColor.set(Color.RED)
         scene.attachWorld(world()) { Terrain.GRASS }
 
-        val selected = TestPlaceable()
-        scene.placement.selectedPlaceable = selected
+        val selectedFactory = ::TestPlaceable
+        scene.placement.selectedFactory = selectedFactory
 
         factory.view.nextHoveredTile = TilePosition(1, 3)
         scene.update(0.25f)
@@ -322,7 +322,11 @@ class StrataSceneWorldTest {
         scene.placement.enabled = false
 
         assertNull(scene.placement.preview)
-        assertSame(selected, scene.placement.selectedPlaceable)
+        assertSame(
+            selectedFactory,
+            scene.placement.selectedFactory
+        )
+        assertNotNull(scene.placement.selectedPlaceable)
         assertNull(scene.placement.placeAt(2, 3))
 
         scene.render()
