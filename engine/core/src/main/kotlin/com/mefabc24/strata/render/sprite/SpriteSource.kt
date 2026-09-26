@@ -203,8 +203,15 @@ internal sealed interface SpriteSource {
             regionFor: (String) -> TextureRegion,
             atlasFor: (String) -> TextureAtlas
         ): SpriteFrames {
-            val resolved = atlasFor(atlas).findRegion(region)
-                ?: error("Texture atlas '$atlas' has no region named '$region'.")
+            val matches = atlasFor(atlas).findRegions(region)
+            check(matches.notEmpty()) {
+                "Texture atlas '$atlas' has no region named '$region'."
+            }
+            check(matches.size == 1) {
+                "Texture atlas '$atlas' has ${matches.size} regions named " +
+                    "'$region'; static atlas visuals require exactly one."
+            }
+            val resolved = matches.first()
             validateAtlasRegion(atlas, resolved)
             return SpriteFrames.static(resolved)
         }
@@ -232,6 +239,18 @@ internal sealed interface SpriteSource {
             val resolved = atlasFor(atlas).findRegions(region)
             check(resolved.notEmpty()) {
                 "Texture atlas '$atlas' has no indexed regions named '$region'."
+            }
+            check(resolved.all { it.index >= 0 }) {
+                "Texture atlas '$atlas' animation '$region' contains an " +
+                    "unindexed region."
+            }
+            check(
+                resolved.zipWithNext().all { (first, second) ->
+                    first.index < second.index
+                }
+            ) {
+                "Texture atlas '$atlas' animation '$region' must have unique " +
+                    "indexes in ascending order."
             }
             resolved.forEach { validateAtlasRegion(atlas, it) }
             return SpriteFrames.animated(

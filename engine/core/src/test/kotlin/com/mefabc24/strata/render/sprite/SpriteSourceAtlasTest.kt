@@ -77,6 +77,27 @@ class SpriteSourceAtlasTest {
         }
     }
 
+    @Test
+    fun `static sources reject multiple matches and animations require indexes`() {
+        withAtlas { texture, atlas ->
+            atlas.addRegion("duplicate", texture, 0, 0, 2, 2).index = 0
+            atlas.addRegion("duplicate", texture, 2, 0, 2, 2).index = 1
+            atlas.addRegion("unindexed", texture, 0, 2, 2, 2)
+
+            assertFailsWith<IllegalStateException> {
+                SpriteSource.AtlasRegion("world.atlas", "duplicate")
+                    .prepare({ TextureRegion() }, { atlas })
+            }
+            assertFailsWith<IllegalStateException> {
+                SpriteSource.AtlasAnimation(
+                    "world.atlas",
+                    "unindexed",
+                    0.1f
+                ).prepare({ TextureRegion() }, { atlas })
+            }
+        }
+    }
+
     private fun withAtlas(block: (Texture, TextureAtlas) -> Unit) {
         val pixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
         val texture = Texture(pixmap)
