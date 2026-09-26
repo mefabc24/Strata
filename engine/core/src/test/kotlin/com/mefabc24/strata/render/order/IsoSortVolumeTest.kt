@@ -50,6 +50,22 @@ class IsoSortVolumeTest {
         )
     }
 
+    @Test
+    fun `continuous point volumes sort across integer object bounds`() {
+        val entityBehind = IsoSortVolume(0.5f, 0.5f, 1.5f, 1.5f)
+        val entityInFront = IsoSortVolume(3.5f, 3.5f, 2.5f, 2.5f)
+        val objectVolume = IsoSortVolume(2, 3, 2, 3)
+
+        assertEquals(
+            IsoSpatialRelation.BEHIND,
+            entityBehind.relationTo(objectVolume)
+        )
+        assertEquals(
+            IsoSpatialRelation.IN_FRONT,
+            entityInFront.relationTo(objectVolume)
+        )
+    }
+
     private fun volume(
         minX: Int = 0,
         maxX: Int = 1,

@@ -3,8 +3,10 @@ package com.mefabc24.strata.input
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputAdapter
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.WorldEntity
 
 /**
  * Resolves input bindings and dispatches picked targets to the game.
@@ -16,7 +18,12 @@ class WorldInputProcessor(
         Float,
         Float,
         ObjectPickingMode
-    ) -> PlacedObject?
+    ) -> PlacedObject?,
+    private val pickEntity: (
+        Float,
+        Float,
+        EntityPickingMode
+    ) -> WorldEntity? = { _, _, _ -> null }
 ) : InputAdapter() {
 
     private val pressedButtons = mutableMapOf<Int, MutableSet<Int>>()
@@ -133,6 +140,20 @@ class WorldInputProcessor(
 
                     if (placed != null) {
                         binding.action(placed)
+                    } else {
+                        false
+                    }
+                }
+
+                is WorldInputBinding.Entity -> {
+                    val entity = pickEntity(
+                        screenX,
+                        screenY,
+                        binding.mode
+                    )
+
+                    if (entity != null) {
+                        binding.action(entity)
                     } else {
                         false
                     }

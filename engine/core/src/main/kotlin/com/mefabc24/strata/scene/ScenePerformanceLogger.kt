@@ -53,6 +53,7 @@ class ScenePerformanceLogger {
                     "CPU render: ${"%.2f".format(averageRenderMs)} ms | " +
                     "Tiles: ${stats.terrainDrawn}/${stats.terrainChecked} | " +
                     "Objects: ${stats.objectsDrawn}/${stats.objectsChecked} | " +
+                    "Entities: ${stats.entitiesDrawn}/${stats.entitiesChecked} | " +
                     "Preview: ${stats.previewsDrawn} | " +
                     "Draw calls: ${stats.drawCalls}"
         )

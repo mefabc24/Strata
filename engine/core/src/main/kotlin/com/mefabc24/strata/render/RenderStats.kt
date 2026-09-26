@@ -17,6 +17,12 @@ class RenderStats {
     var objectsDrawn = 0
         internal set
 
+    var entitiesChecked = 0
+        internal set
+
+    var entitiesDrawn = 0
+        internal set
+
     var previewsDrawn = 0
         internal set
 
@@ -31,6 +37,8 @@ class RenderStats {
         terrainDrawn = 0
         objectsChecked = 0
         objectsDrawn = 0
+        entitiesChecked = 0
+        entitiesDrawn = 0
         previewsDrawn = 0
         drawCalls = 0
         cpuRenderMs = 0.0

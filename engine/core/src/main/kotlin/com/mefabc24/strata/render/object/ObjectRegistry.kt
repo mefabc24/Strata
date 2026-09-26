@@ -359,7 +359,7 @@ class ObjectRegistry internal constructor(
     )
 }
 
-private fun alphaMaskFromClasspath(path: String): AlphaMask {
+internal fun alphaMaskFromClasspath(path: String): AlphaMask {
     val pixmap = Pixmap(Gdx.files.classpath(path))
 
     return try {
@@ -369,7 +369,7 @@ private fun alphaMaskFromClasspath(path: String): AlphaMask {
     }
 }
 
-private fun alphaMasksFromSpriteSheetClasspath(
+internal fun alphaMasksFromSpriteSheetClasspath(
     path: String,
     frameWidth: Int,
     frameHeight: Int,

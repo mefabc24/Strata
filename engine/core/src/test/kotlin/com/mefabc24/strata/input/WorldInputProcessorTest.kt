@@ -2,12 +2,39 @@ package com.mefabc24.strata.input
 
 import com.badlogic.gdx.Input
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.Entity
+import com.mefabc24.strata.world.EntityPosition
+import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.Tile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class WorldInputProcessorTest {
+
+    @Test
+    fun `entity binding dispatches the picked runtime entity`() {
+        val world = World(1, 1) { _, _ -> TestTile }
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        var dispatched = false
+        val processor = WorldInputProcessor(
+            bindings = listOf(
+                WorldInputBinding.Entity(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { picked ->
+                    dispatched = picked === entity
+                    true
+                }
+            ),
+            pickTile = { _, _ -> null },
+            pickObject = { _, _, _ -> null },
+            pickEntity = { _, _, _ -> entity }
+        )
+
+        assertTrue(processor.touchDown(4, 5, 0, Input.Buttons.LEFT))
+        assertTrue(dispatched)
+    }
 
     @Test
     fun `mouse down and drag use the same tile picker`() {
@@ -178,4 +205,7 @@ class WorldInputProcessorTest {
 
         assertEquals(0, releases)
     }
+
+    private data object TestEntity : Entity
+    private data object TestTile : Tile
 }

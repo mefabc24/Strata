@@ -5,6 +5,7 @@ import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
 
 /** One operation in the complete world rendering sequence. */
 internal sealed interface WorldRenderItem
@@ -48,6 +49,25 @@ internal data class WorldObjectPrimitive(
         placedObject.placeable::class.qualifiedName.orEmpty()
 }
 
+/** A point-like entity at its continuous ground position. */
+internal data class WorldEntityPrimitive(
+    val worldEntity: WorldEntity
+) : WorldRenderPrimitive {
+    override val sortVolume: IsoSortVolume
+        get() = worldEntity.position.let { position ->
+            IsoSortVolume(
+                minX = position.x,
+                maxX = position.x,
+                minY = position.y,
+                maxY = position.y
+            )
+        }
+
+    override val sortKind: Int = 1
+    override val stableSortKey: String =
+        worldEntity.entity::class.qualifiedName.orEmpty()
+}
+
 /** Placement previews intentionally remain outside normal depth ordering. */
 internal data class PreviewRenderItem(
     val preview: PlacementPreview
@@ -79,14 +99,14 @@ internal object WorldRenderPlan {
             }
         }
 
-        val objectIndices = mutableListOf<Int>()
+        val depthSortedIndices = mutableListOf<Int>()
 
         for (placed in world.getObjects()) {
             val objectIndex = primitives.size
             val primitive = WorldObjectPrimitive(placed)
 
             primitives += primitive
-            objectIndices += objectIndex
+            depthSortedIndices += objectIndex
 
             for (position in primitive.occupiedTiles) {
                 val cellIndex = position.y * world.width + position.x
@@ -101,13 +121,33 @@ internal object WorldRenderPlan {
             }
         }
 
-        val objectCandidates = buildList {
-            for (first in objectIndices.indices) {
-                for (second in first + 1 until objectIndices.size) {
+        for (entity in world.getEntities()) {
+            val entityIndex = primitives.size
+            primitives += WorldEntityPrimitive(entity)
+            depthSortedIndices += entityIndex
+
+            val tile = entity.currentTile
+            if (tile.x in 0 until world.width && tile.y in 0 until world.height) {
+                val terrainIndex = terrainIndexByCell[
+                    tile.y * world.width + tile.x
+                ]
+
+                if (terrainIndex >= 0) {
+                    explicitDependencies += IsoRenderDependency(
+                        before = terrainIndex,
+                        after = entityIndex
+                    )
+                }
+            }
+        }
+
+        val depthCandidates = buildList {
+            for (first in depthSortedIndices.indices) {
+                for (second in first + 1 until depthSortedIndices.size) {
                     add(
                         IsoRenderCandidate(
-                            first = objectIndices[first],
-                            second = objectIndices[second]
+                            first = depthSortedIndices[first],
+                            second = depthSortedIndices[second]
                         )
                     )
                 }
@@ -117,7 +157,7 @@ internal object WorldRenderPlan {
         return IsoRenderOrder.backToFront(
             items = primitives,
             projection = projection,
-            relationCandidates = objectCandidates,
+            relationCandidates = depthCandidates,
             explicitDependencies = explicitDependencies,
             metrics = metrics
         )

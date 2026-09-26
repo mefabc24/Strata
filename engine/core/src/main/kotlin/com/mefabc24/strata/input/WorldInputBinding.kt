@@ -1,7 +1,9 @@
 package com.mefabc24.strata.input
 
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.world.PlacedObject
+import com.mefabc24.strata.world.WorldEntity
 
 /**
  * Describes an input event that can trigger a binding.
@@ -53,6 +55,14 @@ sealed interface WorldInputBinding {
         val mode: ObjectPickingMode = ObjectPickingMode.SPRITE_ALPHA,
         override val enabled: () -> Boolean = { true },
         val action: (PlacedObject) -> Boolean
+    ) : WorldInputBinding
+
+    /** Picks a movable world entity through its current sprite. */
+    class Entity(
+        override val trigger: WorldInputTrigger,
+        val mode: EntityPickingMode = EntityPickingMode.SPRITE_ALPHA,
+        override val enabled: () -> Boolean = { true },
+        val action: (WorldEntity) -> Boolean
     ) : WorldInputBinding
 
     /**

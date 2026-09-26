@@ -9,9 +9,13 @@ import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.IsoObjectRenderer
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.entity.EntityVisual
+import com.mefabc24.strata.render.entity.IsoEntityBounds
+import com.mefabc24.strata.render.entity.IsoEntityRenderer
 import com.mefabc24.strata.render.order.PreviewRenderItem
 import com.mefabc24.strata.render.order.TerrainCell
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
+import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldRenderPlan
 import com.mefabc24.strata.render.order.WorldRenderPrimitive
 import com.mefabc24.strata.render.preview.PlacementPreview
@@ -21,6 +25,7 @@ import com.mefabc24.strata.render.terrain.TerrainDepthCulling
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
 
 /**
  * Renders terrain and world objects in isometric depth order.
@@ -40,13 +45,16 @@ class IsoWorldRenderer(
         projection = projection,
         objectSettings = this.objectSettings
     )
+    private val entityRenderer = IsoEntityRenderer(projection)
 
     private val visibleArea = Rectangle()
     private val tileBounds = Rectangle()
     private val objectBounds = Rectangle()
+    private val entityBounds = Rectangle()
 
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
+    private var cachedEntityVersion = -1L
 
     private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
 
@@ -57,6 +65,7 @@ class IsoWorldRenderer(
         camera: OrthographicCamera,
         textureFor: (Tile, Float) -> TextureRegion?,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
+        entityVisualFor: (WorldEntity) -> EntityVisual? = { null },
         previews: List<PlacementPreview> = emptyList(),
         animationTime: Float = 0f,
         maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
@@ -67,7 +76,9 @@ class IsoWorldRenderer(
 
         if (
             cachedWorld !== world ||
-            cachedObjectVersion != world.objectVersion
+            cachedObjectVersion != world.objectVersion ||
+            cachedEntityVersion != world.entityVersion ||
+            world.getEntities().isNotEmpty()
         ) {
             normalRenderPlan = WorldRenderPlan.create(
                 world = world,
@@ -76,6 +87,7 @@ class IsoWorldRenderer(
 
             cachedWorld = world
             cachedObjectVersion = world.objectVersion
+            cachedEntityVersion = world.entityVersion
         }
 
         val viewWidth = camera.viewportWidth * camera.zoom
@@ -130,6 +142,14 @@ class IsoWorldRenderer(
                     )
                 }
 
+                is WorldEntityPrimitive -> {
+                    renderEntity(
+                        entity = item.worldEntity,
+                        visual = entityVisualFor(item.worldEntity),
+                        animationTime = animationTime
+                    )
+                }
+
                 is PreviewRenderItem -> {
                     renderObject(
                         placed = item.preview.placedObject,
@@ -147,6 +167,32 @@ class IsoWorldRenderer(
 
         stats.cpuRenderMs =
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
+    }
+
+    private fun renderEntity(
+        entity: WorldEntity,
+        visual: EntityVisual?,
+        animationTime: Float,
+        recordStats: Boolean = true
+    ) {
+        if (recordStats) stats.entitiesChecked++
+        if (visual == null) return
+
+        IsoEntityBounds.calculate(
+            projection = projection,
+            entity = entity,
+            visual = visual,
+            result = entityBounds
+        )
+        if (!entityBounds.overlaps(visibleArea)) return
+
+        entityRenderer.render(
+            batch = batch,
+            entity = entity,
+            visual = visual,
+            animationTime = animationTime
+        )
+        if (recordStats) stats.entitiesDrawn++
     }
 
     private fun renderCell(
@@ -234,9 +280,10 @@ class IsoWorldRenderer(
         }
     }
 
-    internal fun renderObjectsOverlay(
+    internal fun renderWorldOverlay(
         camera: OrthographicCamera,
         objectVisualFor: (PlacedObject) -> ObjectVisual?,
+        entityVisualFor: (WorldEntity) -> EntityVisual?,
         previews: List<PlacementPreview>,
         animationTime: Float
     ) {
@@ -250,6 +297,13 @@ class IsoWorldRenderer(
                     placed = item.placedObject,
                     visual = objectVisualFor(item.placedObject),
                     preview = null,
+                    animationTime = animationTime,
+                    recordStats = false
+                )
+            } else if (item is WorldEntityPrimitive) {
+                renderEntity(
+                    entity = item.worldEntity,
+                    visual = entityVisualFor(item.worldEntity),
                     animationTime = animationTime,
                     recordStats = false
                 )

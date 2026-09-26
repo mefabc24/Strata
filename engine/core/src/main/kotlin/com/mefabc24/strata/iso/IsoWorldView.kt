@@ -13,10 +13,12 @@ import com.mefabc24.strata.render.debug.IsoGridRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.entity.EntityVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
@@ -50,6 +52,12 @@ enum class ObjectPickingMode {
     NONE
 }
 
+/** Determines how movable world entities are picked. */
+enum class EntityPickingMode {
+    SPRITE_ALPHA,
+    NONE
+}
+
 /**
  * Manages the camera and viewport for an isometric world.
  */
@@ -57,6 +65,7 @@ class IsoWorldView(
     private val world: World,
     private val textureFor: (Tile, Float) -> TextureRegion?,
     private val objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
+    private val entityVisualFor: (WorldEntity) -> EntityVisual? = { null },
 
     cameraSettings: CameraSettings = CameraSettings(),
     controls: ControlsSettings = ControlsSettings(),
@@ -179,6 +188,14 @@ class IsoWorldView(
         objectSettings = renderingConfig.objects
     )
 
+    private val entityPicker = EntityPicker(
+        camera = camera,
+        projection = projection,
+        world = world,
+        visualFor = entityVisualFor,
+        animationTime = { animationTime }
+    )
+
     private val worldInputProcessor = WorldInputProcessor(
         bindings = controls.gameplay.bindings,
         pickTile = { screenX, screenY ->
@@ -186,6 +203,9 @@ class IsoWorldView(
         },
         pickObject = { screenX, screenY, mode ->
             pickObject(screenX, screenY, mode)
+        },
+        pickEntity = { screenX, screenY, mode ->
+            pickEntity(screenX, screenY, mode)
         }
     )
 
@@ -244,6 +264,7 @@ class IsoWorldView(
             camera = camera,
             textureFor = textureFor,
             objectVisualFor = objectVisualFor,
+            entityVisualFor = entityVisualFor,
             previews = previews,
             animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
@@ -260,9 +281,10 @@ class IsoWorldView(
                 debugGridConfig.renderLayer ==
                 DebugGridRenderLayer.BELOW_OBJECTS
             ) {
-                worldRenderer.renderObjectsOverlay(
+                worldRenderer.renderWorldOverlay(
                     camera = camera,
                     objectVisualFor = objectVisualFor,
+                    entityVisualFor = entityVisualFor,
                     previews = previews,
                     animationTime = animationTime
                 )
@@ -311,6 +333,18 @@ class IsoWorldView(
             }
 
             ObjectPickingMode.NONE -> null
+        }
+    }
+
+    /** Returns an entity according to the selected picking mode. */
+    fun pickEntity(
+        screenX: Float,
+        screenY: Float,
+        mode: EntityPickingMode = EntityPickingMode.SPRITE_ALPHA
+    ): WorldEntity? {
+        return when (mode) {
+            EntityPickingMode.SPRITE_ALPHA -> entityPicker.pick(screenX, screenY)
+            EntityPickingMode.NONE -> null
         }
     }
 

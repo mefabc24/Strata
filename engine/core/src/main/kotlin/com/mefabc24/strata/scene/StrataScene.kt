@@ -11,6 +11,7 @@ import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.placement.PlacementSettings
 import com.mefabc24.strata.render.`object`.ObjectRegistry
+import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Tile
@@ -40,6 +41,7 @@ internal fun interface StrataUiFactory {
 class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     terrainDirectory: String,
     objectDirectory: String,
+    entityDirectory: String,
     configure: StrataScene<T, C>.() -> Unit,
     private val uiFactory: StrataUiFactory,
     private val worldViewFactory: SceneWorldViewFactory
@@ -48,10 +50,12 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     constructor(
         terrainDirectory: String,
         objectDirectory: String,
+        entityDirectory: String = objectDirectory,
         configure: StrataScene<T, C>.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
+        entityDirectory,
         configure,
         StrataUiFactory { skin, theme ->
             StrataUi(
@@ -65,12 +69,14 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
     internal constructor(
         terrainDirectory: String,
         objectDirectory: String,
+        entityDirectory: String = objectDirectory,
         uiFactory: StrataUiFactory,
         worldViewFactory: SceneWorldViewFactory = DefaultSceneWorldViewFactory,
         configure: StrataScene<T, C>.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
+        entityDirectory,
         configure,
         uiFactory,
         worldViewFactory
@@ -85,6 +91,11 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
     val objects = ObjectRegistry(
         directory = objectDirectory,
+        assets = assets
+    )
+
+    val entities = EntityRegistry(
+        directory = entityDirectory,
         assets = assets
     )
 
@@ -165,6 +176,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
             terrain.freeze()
             objects.freeze()
+            entities.freeze()
             sounds.freeze()
 
             cameraSnapshot = cameraSettings.copy()
@@ -179,6 +191,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
             terrain.prepare()
             objects.prepare()
+            entities.prepare()
         } catch (failure: Throwable) {
             try {
                 dispose()
@@ -276,6 +289,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
                     terrain.frameAt(terrainFor(tile), animationTime)
                 },
                 objectVisualFor = objects::get,
+                entityVisualFor = entities::get,
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,

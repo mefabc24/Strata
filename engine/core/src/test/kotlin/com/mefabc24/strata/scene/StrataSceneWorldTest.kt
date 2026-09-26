@@ -15,6 +15,7 @@ import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Footprint
+import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
@@ -55,6 +56,10 @@ class StrataSceneWorldTest {
     private class OtherPlaceable : Placeable {
         override val footprint = Footprint.square(1)
     }
+
+    private class TestEntity : Entity
+
+    private class OtherEntity : Entity
 
     @BeforeTest
     fun installTestEnvironment() {
@@ -107,6 +112,7 @@ class StrataSceneWorldTest {
                 sprite = TEST_TEXTURE,
                 factory = ::TestPlaceable
             )
+            entities.register<TestEntity>(TEST_TEXTURE)
             sounds.register(
                 id = TestSound.PLACE,
                 path = "test.wav",
@@ -120,6 +126,7 @@ class StrataSceneWorldTest {
         )
         assertTrue(scene.terrain.entries.single().isPrepared)
         assertTrue(scene.objects.entries.single().isPrepared)
+        assertTrue(scene.entities.entries.single().isPrepared)
         assertIs<TestPlaceable>(
             scene.objects.constructibleEntries.single().create()
         )
@@ -138,6 +145,9 @@ class StrataSceneWorldTest {
                 category = SoundCategory.EFFECT
             )
         }
+        val entityFailure = assertFailsWith<IllegalStateException> {
+            scene.entities.register<OtherEntity>(TEST_TEXTURE)
+        }
 
         assertEquals(
             "Terrain registry registration is already closed.",
@@ -150,6 +160,10 @@ class StrataSceneWorldTest {
         assertEquals(
             "Sound registry registration is already closed.",
             soundFailure.message
+        )
+        assertEquals(
+            "Entity registry registration is already closed.",
+            entityFailure.message
         )
 
         scene.dispose()

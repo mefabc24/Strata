@@ -17,11 +17,23 @@ internal enum class IsoSpatialRelation {
  * the same zero-thickness plane on that axis.
  */
 internal data class IsoSortVolume(
-    val minX: Int,
-    val maxX: Int,
-    val minY: Int,
-    val maxY: Int
+    val minX: Float,
+    val maxX: Float,
+    val minY: Float,
+    val maxY: Float
 ) {
+    constructor(
+        minX: Int,
+        maxX: Int,
+        minY: Int,
+        maxY: Int
+    ) : this(
+        minX = minX.toFloat(),
+        maxX = maxX.toFloat(),
+        minY = minY.toFloat(),
+        maxY = maxY.toFloat()
+    )
+
     init {
         require(minX <= maxX && minY <= maxY) {
             "Isometric sort volume bounds must be ordered."
@@ -49,10 +61,10 @@ internal data class IsoSortVolume(
     }
 
     private fun axisEndsBefore(
-        min: Int,
-        max: Int,
-        otherMin: Int,
-        otherMax: Int
+        min: Float,
+        max: Float,
+        otherMin: Float,
+        otherMax: Float
     ): Boolean {
         if (max < otherMin) return true
         if (max != otherMin) return false

@@ -4,6 +4,8 @@ import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.world.Footprint
+import com.mefabc24.strata.world.Entity
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
@@ -24,6 +26,8 @@ class WorldRenderPlanTest {
     private class House : Placeable {
         override val footprint = Footprint.square(4)
     }
+
+    private data class Walker(val id: Int) : Entity
 
     private val projection = IsoProjection(
         TileGeometry(width = 32f, height = 24f)
@@ -85,6 +89,40 @@ class WorldRenderPlanTest {
         val plan = WorldRenderPlan.create(world, projection)
 
         assertTrue(plan.indexOfObject(tree) < plan.indexOfObject(house))
+    }
+
+    @Test
+    fun `entity changes from behind to in front of the same object`() {
+        val world = world(size = 10)
+        val house = requireNotNull(world.place(House(), 2, 2))
+        val entity = world.addEntity(Walker(1), EntityPosition(0.5f, 0.5f))
+
+        val behindPlan = WorldRenderPlan.create(world, projection)
+        assertTrue(
+            behindPlan.indexOfEntity(entity) < behindPlan.indexOfObject(house)
+        )
+
+        entity.position = EntityPosition(7.5f, 7.5f)
+        val frontPlan = WorldRenderPlan.create(world, projection)
+        assertTrue(
+            frontPlan.indexOfObject(house) < frontPlan.indexOfEntity(entity)
+        )
+    }
+
+    @Test
+    fun `entities follow their supporting terrain and order deterministically`() {
+        val world = world(size = 8)
+        val first = world.addEntity(Walker(1), EntityPosition(2.5f, 3.5f))
+        val second = world.addEntity(Walker(2), EntityPosition(2.5f, 3.5f))
+
+        val plan = WorldRenderPlan.create(world, projection)
+        val terrainIndex = plan.indexOfCell(2, 3)
+
+        assertTrue(terrainIndex < plan.indexOfEntity(first))
+        assertTrue(terrainIndex < plan.indexOfEntity(second))
+        repeat(5) {
+            assertEquals(plan, WorldRenderPlan.create(world, projection))
+        }
     }
 
     @Test
@@ -213,6 +251,7 @@ class WorldRenderPlanTest {
         return when (this) {
             is TerrainCell -> this.x == x && this.y == y
             is WorldObjectPrimitive -> false
+            is WorldEntityPrimitive -> false
         }
     }
 
@@ -227,6 +266,14 @@ class WorldRenderPlanTest {
     ): Int {
         return indexOfFirst {
             it is WorldObjectPrimitive && it.placedObject === placed
+        }.also { check(it >= 0) }
+    }
+
+    private fun List<WorldRenderPrimitive>.indexOfEntity(
+        entity: com.mefabc24.strata.world.WorldEntity
+    ): Int {
+        return indexOfFirst {
+            it is WorldEntityPrimitive && it.worldEntity === entity
         }.also { check(it >= 0) }
     }
 
