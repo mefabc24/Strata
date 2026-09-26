@@ -38,8 +38,8 @@ class DesktopSettings {
 
     var foregroundFps: Int = 60
         set(value) {
-            require(value > 0) {
-                "Desktop foreground FPS must be positive."
+            require(value >= 0) {
+                "Desktop foreground FPS must be non-negative."
             }
 
             field = value
