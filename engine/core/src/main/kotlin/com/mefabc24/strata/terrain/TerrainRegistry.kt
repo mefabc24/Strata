@@ -1,6 +1,7 @@
 package com.mefabc24.strata.terrain
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteFrames
 import com.mefabc24.strata.render.sprite.SpriteSource
@@ -49,7 +50,11 @@ class TerrainEntry<T : Enum<T>> internal constructor(
 class TerrainRegistry<T : Enum<T>> internal constructor(
     directory: String,
     private val queueTexture: (String) -> Unit,
-    private val regionFor: (String) -> TextureRegion
+    private val regionFor: (String) -> TextureRegion,
+    private val queueAtlas: (String) -> Unit = {},
+    private val atlasFor: (String) -> TextureAtlas = {
+        error("Atlas resolver is not configured.")
+    }
 ) {
     constructor(
         directory: String,
@@ -57,7 +62,9 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     ) : this(
         directory = directory,
         queueTexture = assets::queueTexture,
-        regionFor = assets::region
+        regionFor = assets::region,
+        queueAtlas = assets::queueAtlas,
+        atlasFor = assets::atlas
     )
 
     private val baseDirectory = directory.trimEnd('/')
@@ -138,7 +145,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            entry.prepare(entry.source.prepare(regionFor))
+            entry.prepare(entry.source.prepare(regionFor, atlasFor))
         }
     }
 
@@ -189,7 +196,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
             "Terrain type $type is already registered."
         }
 
-        source.assetPaths.forEach(queueTexture)
+        source.queue(queueTexture, queueAtlas)
         registrations[type] = TerrainEntry(type, source)
     }
 

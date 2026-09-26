@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render.entity
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
@@ -68,7 +69,11 @@ class EntityRegistry internal constructor(
         frameWidth: Int,
         frameHeight: Int,
         frameCount: Int?
-    ) -> List<AlphaMask?> = ::alphaMasksFromSpriteSheetClasspath
+    ) -> List<AlphaMask?> = ::alphaMasksFromSpriteSheetClasspath,
+    private val queueAtlas: (String) -> Unit = {},
+    private val atlasFor: (String) -> TextureAtlas = {
+        error("Atlas resolver is not configured.")
+    }
 ) {
     constructor(
         directory: String,
@@ -78,7 +83,9 @@ class EntityRegistry internal constructor(
         queueTexture = assets::queueTexture,
         regionFor = assets::region,
         loadAlphaMask = ::alphaMaskFromClasspath,
-        loadSpriteSheetAlphaMasks = ::alphaMasksFromSpriteSheetClasspath
+        loadSpriteSheetAlphaMasks = ::alphaMasksFromSpriteSheetClasspath,
+        queueAtlas = assets::queueAtlas,
+        atlasFor = assets::atlas
     )
 
     private val baseDirectory = directory.trimEnd('/')
@@ -183,7 +190,7 @@ class EntityRegistry internal constructor(
         registrations.values.forEach { entry ->
             if (entry.isPrepared) return@forEach
 
-            val sprite = entry.source.prepare(regionFor)
+            val sprite = entry.source.prepare(regionFor, atlasFor)
             val masks = alphaMasksFor(entry.source)
             require(masks.size == sprite.frameCount) {
                 "Entity animation alpha-mask count must match its frame count."
@@ -226,7 +233,7 @@ class EntityRegistry internal constructor(
 
         val settings = EntitySpriteSettings().apply(configure)
         settings.validate()
-        source.assetPaths.forEach(queueTexture)
+        source.queue(queueTexture, queueAtlas)
         registrations[type] = EntityEntry(type, source, settings)
     }
 
@@ -249,6 +256,10 @@ class EntityRegistry internal constructor(
                         source.frameCount
                     )
                 }
+            }
+            is SpriteSource.AtlasRegion,
+            is SpriteSource.AtlasAnimation -> {
+                List(source.prepare(regionFor, atlasFor).frameCount) { null }
             }
         }
     }

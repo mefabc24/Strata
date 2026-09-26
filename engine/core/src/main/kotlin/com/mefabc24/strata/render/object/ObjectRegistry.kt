@@ -3,6 +3,7 @@ package com.mefabc24.strata.render.`object`
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
@@ -97,7 +98,11 @@ class ObjectRegistry internal constructor(
         frameWidth: Int,
         frameHeight: Int,
         frameCount: Int?
-    ) -> List<AlphaMask?> = ::alphaMasksFromSpriteSheetClasspath
+    ) -> List<AlphaMask?> = ::alphaMasksFromSpriteSheetClasspath,
+    private val queueAtlas: (String) -> Unit = {},
+    private val atlasFor: (String) -> TextureAtlas = {
+        error("Atlas resolver is not configured.")
+    }
 ) {
     constructor(
         directory: String,
@@ -107,7 +112,9 @@ class ObjectRegistry internal constructor(
         queueTexture = assets::queueTexture,
         regionFor = assets::region,
         loadAlphaMask = ::alphaMaskFromClasspath,
-        loadSpriteSheetAlphaMasks = ::alphaMasksFromSpriteSheetClasspath
+        loadSpriteSheetAlphaMasks = ::alphaMasksFromSpriteSheetClasspath,
+        queueAtlas = assets::queueAtlas,
+        atlasFor = assets::atlas
     )
 
     private val baseDirectory = directory.trimEnd('/')
@@ -254,7 +261,7 @@ class ObjectRegistry internal constructor(
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            val sprite = entry.source.prepare(regionFor)
+            val sprite = entry.source.prepare(regionFor, atlasFor)
             val alphaMasks = alphaMasksFor(entry.source)
 
             require(alphaMasks.size == sprite.frameCount) {
@@ -296,7 +303,7 @@ class ObjectRegistry internal constructor(
 
         val settings = ObjectSpriteSettings().apply(configure)
         settings.validate()
-        source.assetPaths.forEach(queueTexture)
+        source.queue(queueTexture, queueAtlas)
 
         registrations[type] = ObjectEntry(
             type = type,
@@ -329,6 +336,11 @@ class ObjectRegistry internal constructor(
                         source.frameCount
                     )
                 }
+            }
+
+            is SpriteSource.AtlasRegion,
+            is SpriteSource.AtlasAnimation -> {
+                List(source.prepare(regionFor, atlasFor).frameCount) { null }
             }
         }
     }
