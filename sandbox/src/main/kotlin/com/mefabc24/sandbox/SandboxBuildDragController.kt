@@ -30,15 +30,13 @@ class SandboxBuildDragController(
     fun dragTo(position: TilePosition): Boolean {
         val dragStart = start ?: return false
 
-        placement.previewAt(
-            TileArea.between(dragStart, position).positions
-        )
+        placement.previewAt(placementOrigins(dragStart, position))
         return true
     }
 
     fun finish(position: TilePosition): List<PlacedObject> {
         val dragStart = start ?: return emptyList()
-        val positions = TileArea.between(dragStart, position).positions
+        val positions = placementOrigins(dragStart, position)
 
         return try {
             placement.placeAt(positions)
@@ -53,5 +51,41 @@ class SandboxBuildDragController(
         start = null
         placement.clearPreviewPositions()
         return true
+    }
+
+    private fun placementOrigins(
+        start: TilePosition,
+        end: TilePosition
+    ): List<TilePosition> {
+        if (start == end) return listOf(start)
+
+        val placeable = placement.selectedPlaceable ?: return emptyList()
+        val footprint = placeable.footprint
+        val minOffsetX = footprint.offsets.minOf { it.x }
+        val maxOffsetX = footprint.offsets.maxOf { it.x }
+        val minOffsetY = footprint.offsets.minOf { it.y }
+        val maxOffsetY = footprint.offsets.maxOf { it.y }
+        val stepX = maxOffsetX - minOffsetX + 1
+        val stepY = maxOffsetY - minOffsetY + 1
+        val area = TileArea.between(start, end)
+        val firstOriginX = area.minX + footprint.origin.x - minOffsetX
+        val firstOriginY = area.minY + footprint.origin.y - minOffsetY
+
+        return buildList {
+            for (y in firstOriginY..area.maxY step stepY) {
+                for (x in firstOriginX..area.maxX step stepX) {
+                    val position = TilePosition(x, y)
+                    val occupiedTiles = PlacedObject(placeable, x, y).occupiedTiles()
+
+                    if (occupiedTiles.all { tile ->
+                            tile.x in area.minX..area.maxX &&
+                                tile.y in area.minY..area.maxY
+                        }
+                    ) {
+                        add(position)
+                    }
+                }
+            }
+        }
     }
 }
