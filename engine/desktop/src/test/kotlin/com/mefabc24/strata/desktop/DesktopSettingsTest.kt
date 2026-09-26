@@ -34,7 +34,7 @@ class DesktopSettingsTest {
         }
 
         assertFailsWith<IllegalArgumentException> {
-            DesktopSettings().foregroundFps = 0
+            DesktopSettings().foregroundFps = -1
         }
     }
 
