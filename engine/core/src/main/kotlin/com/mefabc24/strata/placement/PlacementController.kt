@@ -25,8 +25,8 @@ class PlacementController(
     /**
      * Controls preview generation and placement operations.
      *
-     * Disabling placement clears the preview while retaining the selected
-     * placeable for later use.
+     * Disabling placement clears the preview while retaining
+     * the selected factory.
      */
     var enabled: Boolean = true
         set(value) {
@@ -37,7 +37,28 @@ class PlacementController(
             }
         }
 
-    var selectedPlaceable: Placeable? = null
+    private var previewPlaceable: Placeable? = null
+
+    /**
+     * Creates a new placeable for each placement operation.
+     *
+     * Assigning a factory also creates a separate instance used
+     * exclusively for placement previews.
+     */
+    var selectedFactory: (() -> Placeable)? = null
+        set(value) {
+            field = value
+            previewPlaceable = value?.invoke()
+            preview = null
+        }
+
+    /**
+     * The placeable currently used for preview and selection inspection.
+     *
+     * This instance is never placed into the world.
+     */
+    val selectedPlaceable: Placeable?
+        get() = previewPlaceable
 
     var preview: PlacementPreview? = null
         private set
@@ -51,7 +72,7 @@ class PlacementController(
             return
         }
 
-        val placeable = selectedPlaceable
+        val placeable = previewPlaceable
 
         preview = if (
             hoveredTile != null &&
@@ -75,7 +96,7 @@ class PlacementController(
     }
 
     /**
-     * Places the selected object at the given position.
+     * Creates and places a new object at the given position.
      *
      * Returns the placed object on success, or null otherwise.
      */
@@ -84,8 +105,10 @@ class PlacementController(
     ): PlacedObject? {
         if (!enabled) return null
 
-        val placeable =
-            selectedPlaceable ?: return null
+        val create =
+            selectedFactory ?: return null
+
+        val placeable = create()
 
         if (
             !canPlace(
@@ -103,7 +126,7 @@ class PlacementController(
     }
 
     /**
-     * Places the selected object at the given coordinates.
+     * Creates and places a new object at the given coordinates.
      */
     fun placeAt(
         x: Int,

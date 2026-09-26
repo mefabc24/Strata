@@ -157,7 +157,7 @@ class SandboxUi(
                 ?: false
         } ?: buildEntries.first()
     ) { selected ->
-        placementController.selectedPlaceable = selected.create()
+        placementController.selectedFactory = selected::create
         updateStatus()
     }
 
@@ -194,7 +194,7 @@ class SandboxUi(
                 selectedBuildEntry.type::isInstance
             ) != true
         ) {
-            placementController.selectedPlaceable = selectedBuildEntry.create()
+            placementController.selectedFactory = selectedBuildEntry::create
         }
 
         buildUi()

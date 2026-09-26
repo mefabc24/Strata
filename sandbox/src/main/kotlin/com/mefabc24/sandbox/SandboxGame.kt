@@ -218,7 +218,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
             placement {
                 previewStyle = PlacementPreviewStyle(
-                    validColor = Color(0.3f, 0.8f, 1f, 0.7f),
+                    validColor = Color(0.35f, 0.75f, 0.3f, 0.7f),
                     invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
                 )
             }
@@ -237,8 +237,12 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             }
         )
 
-        createdScene.placement.selectedPlaceable =
-            createdScene.objects.constructibleEntries.firstOrNull()?.create()
+        createdScene.placement.selectedFactory =
+            createdScene.objects.constructibleEntries
+                .firstOrNull()
+                ?.let { entry ->
+                    entry::create
+                }
 
         return createdScene
     }

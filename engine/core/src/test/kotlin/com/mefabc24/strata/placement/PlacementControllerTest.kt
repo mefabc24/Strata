@@ -27,26 +27,37 @@ class PlacementControllerTest {
     }
 
     @Test
-    fun `places selected object when placement is valid`() {
+    fun `each placement creates a unique placeable instance`() {
         val world = createWorld()
 
         val controller = PlacementController(
             world = world
         )
 
-        controller.selectedPlaceable =
-            TestPlaceable()
+        controller.selectedFactory =
+            ::TestPlaceable
 
-        val placed = controller.placeAt(
+        val first = controller.placeAt(
+            TilePosition(1, 1)
+        )
+
+        val second = controller.placeAt(
             TilePosition(2, 2)
         )
 
-        assertNotNull(placed)
+        assertNotNull(first)
+        assertNotNull(second)
 
-        assertNotNull(
-            world.getObjectAt(
-                TilePosition(2, 2)
-            )
+        assertTrue(
+            first.placeable !== second.placeable
+        )
+
+        assertTrue(
+            first.placeable !== controller.selectedPlaceable
+        )
+
+        assertTrue(
+            second.placeable !== controller.selectedPlaceable
         )
     }
 
@@ -76,8 +87,8 @@ class PlacementControllerTest {
             }
         )
 
-        controller.selectedPlaceable =
-            TestPlaceable()
+        controller.selectedFactory =
+            ::TestPlaceable
 
         assertNull(
             controller.placeAt(
@@ -103,8 +114,8 @@ class PlacementControllerTest {
             }
         )
 
-        controller.selectedPlaceable =
-            TestPlaceable()
+        controller.selectedFactory =
+            ::TestPlaceable
 
         controller.update(
             TilePosition(1, 2)
@@ -141,8 +152,8 @@ class PlacementControllerTest {
             }
         )
 
-        controller.selectedPlaceable =
-            TestPlaceable()
+        controller.selectedFactory =
+            ::TestPlaceable
 
         assertNull(
             controller.placeAt(
@@ -167,8 +178,8 @@ class PlacementControllerTest {
             world = world
         )
 
-        controller.selectedPlaceable =
-            TestPlaceable()
+        controller.selectedFactory =
+            ::TestPlaceable
 
         controller.update(
             TilePosition(2, 2)
@@ -187,16 +198,18 @@ class PlacementControllerTest {
             world = createWorld()
         )
 
-        val selected = TestPlaceable()
-        controller.selectedPlaceable = selected
+        val factory = ::TestPlaceable
+        controller.selectedFactory = factory
         controller.update(TilePosition(2, 2))
 
         assertNotNull(controller.preview)
+        assertNotNull(controller.selectedPlaceable)
 
         controller.enabled = false
 
         assertNull(controller.preview)
-        assertTrue(controller.selectedPlaceable === selected)
+        assertTrue(controller.selectedFactory === factory)
+        assertNotNull(controller.selectedPlaceable)
 
         controller.update(TilePosition(3, 3))
         assertNull(controller.preview)
@@ -207,7 +220,7 @@ class PlacementControllerTest {
         val world = createWorld()
         val controller = PlacementController(world)
 
-        controller.selectedPlaceable = TestPlaceable()
+        controller.selectedFactory = ::TestPlaceable
         controller.enabled = false
 
         assertNull(controller.placeAt(2, 2))
