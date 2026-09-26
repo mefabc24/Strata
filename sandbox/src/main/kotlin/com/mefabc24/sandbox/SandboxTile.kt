@@ -10,7 +10,8 @@ enum class TerrainType {
     STONE,
     DIRT,
     LOW_GRASS,
-    ROCK
+    ROCK,
+    BUSH_ANIMATED
 }
 
 data class SandboxTile(

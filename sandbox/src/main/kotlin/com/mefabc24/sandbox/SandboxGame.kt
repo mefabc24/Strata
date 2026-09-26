@@ -59,6 +59,18 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             terrain.register(TerrainType.STONE)
             terrain.register(TerrainType.DIRT)
 
+            terrain.registerAnimated(
+                TerrainType.BUSH_ANIMATED,
+                frames = listOf(
+                    "bush_anim_0.png",
+                    "bush_anim_1.png",
+                    "bush_anim_2.png",
+                    "bush_anim_3.png",
+                    "bush_anim_4.png"
+                ),
+                frameDuration = 0.2f
+            )
+
             objects.register<House>(
                 sprite = "house.png",
                 factory = ::House

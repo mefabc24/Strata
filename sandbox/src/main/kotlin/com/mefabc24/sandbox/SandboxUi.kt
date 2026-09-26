@@ -25,6 +25,10 @@ import com.mefabc24.strata.ui.StrataSeparatorStyle
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.ui.cell
+import com.mefabc24.strata.ui.fillAvailableX
+import com.mefabc24.strata.ui.fixedSize
+import com.mefabc24.strata.ui.fixedWidth
+import com.mefabc24.strata.ui.hugX
 import java.util.Locale
 
 private enum class SandboxPanelTab(
@@ -211,18 +215,17 @@ class SandboxUi(
         ui.root.pad(ROOT_MARGIN)
 
         ui.panel(spacing = 0f) {
-            defaults().growX().fillX()
+            defaults().fillAvailableX()
 
             expander(
                 title = "Strata tools",
                 spacing = SECTION_GAP
             ) {
-                defaults().growX().fillX()
+                defaults().fillAvailableX()
 
                 row(spacing = CONTROL_GAP) {
                     defaults()
-                        .growX()
-                        .fillX()
+                        .fillAvailableX()
                         .uniformX()
                         .height(MODE_BUTTON_HEIGHT)
 
@@ -239,24 +242,23 @@ class SandboxUi(
 
                 stack {
                     toolsControls = column(spacing = SECTION_GAP) {
-                        defaults().growX().fillX()
+                        defaults().fillAvailableX()
                         buildToolsTab()
                     }
 
                     debugControls = column(spacing = SECTION_GAP) {
-                        defaults().growX().fillX()
+                        defaults().fillAvailableX()
                         buildDebugTab()
                     }
                 }.cell {
-                    growX()
-                    fillX()
+                    fillAvailableX()
                 }
             }.cell {
-                growX()
-                fillX()
+                fillAvailableX()
             }
         }.cell {
-            width(PANEL_WIDTH)
+            minWidth(TOOLBAR_MIN_WIDTH)
+            hugX()
             top()
             left()
         }
@@ -267,8 +269,7 @@ class SandboxUi(
 
         row(spacing = CONTROL_GAP) {
             defaults()
-                .growX()
-                .fillX()
+                .fillAvailableX()
                 .uniformX()
                 .height(MODE_BUTTON_HEIGHT)
 
@@ -283,7 +284,7 @@ class SandboxUi(
 
         stack {
             buildControls = column(spacing = SECTION_GAP) {
-                defaults().growX().fillX()
+                defaults().fillAvailableX()
                 label("Build object")
 
                 grid(
@@ -291,14 +292,14 @@ class SandboxUi(
                     spacing = CONTROL_GAP,
                     alignment = Align.center
                 ) {
-                    defaults().growX().fillX().uniformX()
+                    defaults().fillAvailableX().uniformX()
 
                     for (entry in buildEntries) {
                         column(
                             spacing = CONTROL_GAP,
                             alignment = Align.center
                         ) {
-                            defaults().growX().fillX()
+                            defaults().fillAvailableX()
 
                             selectableImageButton(
                                 drawable = TextureRegionDrawable(
@@ -310,25 +311,23 @@ class SandboxUi(
                                 image.setScaling(Scaling.fit)
                                 imageCell.pad(IMAGE_PADDING)
                             }.cell {
-                                growX()
-                                fillX()
+                                minWidth(BUILD_BUTTON_MIN_WIDTH)
+                                fillAvailableX()
                                 height(BUILD_BUTTON_HEIGHT)
-                                maxWidth(BUILD_CELL_WIDTH)
                             }
 
                             label(entry.displayName()).cell {
                                 center()
                             }
                         }.cell {
-                            width(BUILD_CELL_WIDTH)
-                            maxWidth(BUILD_CELL_WIDTH)
+                            fillAvailableX()
                         }
                     }
                 }
             }
 
             paintControls = column(spacing = SECTION_GAP) {
-                defaults().growX().fillX()
+                defaults().fillAvailableX()
                 label("Terrain")
 
                 grid(
@@ -337,8 +336,7 @@ class SandboxUi(
                     alignment = Align.center
                 ) {
                     defaults()
-                        .growX()
-                        .fillX()
+                        .fillAvailableX()
                         .uniformX()
                         .height(COMPACT_CONTROL_HEIGHT)
 
@@ -359,8 +357,7 @@ class SandboxUi(
                     alignment = Align.center
                 ) {
                     defaults()
-                        .growX()
-                        .fillX()
+                        .fillAvailableX()
                         .uniformX()
                         .height(COMPACT_CONTROL_HEIGHT)
 
@@ -374,8 +371,7 @@ class SandboxUi(
                 }
             }
         }.cell {
-            growX()
-            fillX()
+            fillAvailableX()
         }
 
         separator()
@@ -389,8 +385,7 @@ class SandboxUi(
 
         row(spacing = CONTROL_GAP) {
             defaults()
-                .growX()
-                .fillX()
+                .fillAvailableX()
                 .uniformX()
                 .height(MODE_BUTTON_HEIGHT)
 
@@ -413,8 +408,7 @@ class SandboxUi(
 
         row(spacing = CONTROL_GAP) {
             defaults()
-                .growX()
-                .fillX()
+                .fillAvailableX()
                 .uniformX()
                 .height(COMPACT_CONTROL_HEIGHT)
 
@@ -465,8 +459,7 @@ class SandboxUi(
 
         row(spacing = CONTROL_GAP) {
             defaults()
-                .growX()
-                .fillX()
+                .fillAvailableX()
                 .uniformX()
                 .height(COMPACT_CONTROL_HEIGHT)
 
@@ -556,11 +549,11 @@ class SandboxUi(
                 onChanged(value)
                 valueLabel.setText(formatValue(value))
             }.cell {
-                size(NUMERIC_BUTTON_SIZE)
+                fixedSize(NUMERIC_BUTTON_SIZE, NUMERIC_BUTTON_SIZE)
             }
 
             valueLabel = label(formatValue(value)).cell {
-                width(NUMERIC_VALUE_WIDTH)
+                fixedWidth(NUMERIC_VALUE_WIDTH)
                 center()
             }
 
@@ -572,7 +565,7 @@ class SandboxUi(
                 onChanged(value)
                 valueLabel.setText(formatValue(value))
             }.cell {
-                size(NUMERIC_BUTTON_SIZE)
+                fixedSize(NUMERIC_BUTTON_SIZE, NUMERIC_BUTTON_SIZE)
             }
         }
     }
@@ -653,23 +646,18 @@ class SandboxUi(
 
     companion object {
 
-        private const val PANEL_WIDTH = 280f
-        private const val PANEL_PADDING = 12f
-        private const val CONTENT_WIDTH =
-            PANEL_WIDTH - PANEL_PADDING * 2f
+        private const val TOOLBAR_MIN_WIDTH = 280f
         private const val ROOT_MARGIN = 16f
         private const val SECTION_GAP = 6f
         private const val CONTROL_GAP = 4f
         private const val MODE_BUTTON_HEIGHT = 36f
         private const val COMPACT_CONTROL_HEIGHT = 30f
         private const val BUILD_BUTTON_HEIGHT = 72f
+        private const val BUILD_BUTTON_MIN_WIDTH = 72f
         private const val IMAGE_PADDING = 6f
         private const val BUILD_COLUMNS = 3
         private const val TERRAIN_COLUMNS = 3
         private const val LAYER_COLUMNS = 2
-        private const val BUILD_CELL_WIDTH =
-            (CONTENT_WIDTH - CONTROL_GAP * (BUILD_COLUMNS - 1)) /
-                BUILD_COLUMNS
         private const val NUMERIC_BUTTON_SIZE = 28f
         private const val NUMERIC_VALUE_WIDTH = 44f
         private const val ALPHA_STEP = 0.05f
