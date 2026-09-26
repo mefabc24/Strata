@@ -66,3 +66,7 @@ class Road2 : Placeable {
 class RoadIntersection : Placeable {
     override val footprint = Footprint.square(1)
 }
+
+class Well : Placeable {
+    override val footprint = Footprint.square(1)
+}

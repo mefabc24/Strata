@@ -126,6 +126,60 @@ class WorldRenderPlanTest {
     }
 
     @Test
+    fun `moving entity reuses static object relationships`() {
+        val world = world(size = 12)
+
+        val objects = (0 until 6).map { index ->
+            requireNotNull(
+                world.place(
+                    Tree(),
+                    index + 1,
+                    index + 1
+                )
+            )
+        }
+
+        val staticMetrics = IsoRenderOrderMetrics()
+
+        val staticPlan = WorldRenderPlan.prepareStatic(
+            world = world,
+            projection = projection,
+            metrics = staticMetrics
+        )
+
+        assertEquals(
+            objects.size * (objects.size - 1) / 2,
+            staticMetrics.relationChecks
+        )
+
+        val entity = world.addEntity(
+            Walker(1),
+            EntityPosition(0.5f, 0.5f)
+        )
+
+        repeat(5) { step ->
+            entity.position = EntityPosition(
+                x = step + 0.5f,
+                y = step + 0.5f
+            )
+
+            val dynamicMetrics = IsoRenderOrderMetrics()
+
+            WorldRenderPlan.withEntities(
+                staticPlan = staticPlan,
+                world = world,
+                projection = projection,
+                metrics = dynamicMetrics
+            )
+
+            assertEquals(
+                objects.size,
+                dynamicMetrics.relationChecks
+            )
+        }
+    }
+
+    @Test
     fun `object behind foreground terrain renders before its cell`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))

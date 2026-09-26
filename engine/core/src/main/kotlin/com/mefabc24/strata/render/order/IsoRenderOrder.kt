@@ -23,6 +23,56 @@ internal class IsoRenderOrderMetrics {
 /** Orders primitives by depth plus explicitly selected spatial candidates. */
 internal object IsoRenderOrder {
 
+    /**
+     * Resolves spatial candidates into explicit ordering dependencies.
+     */
+    fun <T : IsoSortable> dependenciesFor(
+        items: List<T>,
+        relationCandidates: List<IsoRenderCandidate>,
+        metrics: IsoRenderOrderMetrics? = null
+    ): List<IsoRenderDependency> {
+        metrics?.relationChecks = 0
+
+        return buildList {
+            for ((firstIndex, secondIndex) in relationCandidates) {
+                require(
+                    firstIndex in items.indices &&
+                            secondIndex in items.indices
+                ) {
+                    "Render candidates must refer to existing items."
+                }
+
+                metrics?.let { it.relationChecks++ }
+
+                when (
+                    items[firstIndex].sortVolume.relationTo(
+                        items[secondIndex].sortVolume
+                    )
+                ) {
+                    IsoSpatialRelation.BEHIND -> {
+                        add(
+                            IsoRenderDependency(
+                                before = firstIndex,
+                                after = secondIndex
+                            )
+                        )
+                    }
+
+                    IsoSpatialRelation.IN_FRONT -> {
+                        add(
+                            IsoRenderDependency(
+                                before = secondIndex,
+                                after = firstIndex
+                            )
+                        )
+                    }
+
+                    IsoSpatialRelation.AMBIGUOUS -> Unit
+                }
+            }
+        }
+    }
+
     fun <T : IsoSortable> backToFront(
         items: List<T>,
         projection: IsoProjection,
@@ -30,37 +80,22 @@ internal object IsoRenderOrder {
         explicitDependencies: List<IsoRenderDependency> = emptyList(),
         metrics: IsoRenderOrderMetrics? = null
     ): List<T> {
-        metrics?.relationChecks = 0
-
         val dependencies = StableDependencyOrder(
             items = items,
             comparator = comparator(projection)
         )
 
-        for ((firstIndex, secondIndex) in relationCandidates) {
-            require(
-                firstIndex in items.indices && secondIndex in items.indices
-            ) {
-                "Render candidates must refer to existing items."
-            }
-
-            metrics?.let { it.relationChecks++ }
-
-            when (
-                items[firstIndex].sortVolume.relationTo(
-                    items[secondIndex].sortVolume
-                )
-            ) {
-                IsoSpatialRelation.BEHIND -> {
-                    dependencies.add(firstIndex, secondIndex)
-                }
-
-                IsoSpatialRelation.IN_FRONT -> {
-                    dependencies.add(secondIndex, firstIndex)
-                }
-
-                IsoSpatialRelation.AMBIGUOUS -> Unit
-            }
+        for (
+        dependency in dependenciesFor(
+            items = items,
+            relationCandidates = relationCandidates,
+            metrics = metrics
+        )
+        ) {
+            dependencies.add(
+                before = dependency.before,
+                after = dependency.after
+            )
         }
 
         for ((before, after) in explicitDependencies) {

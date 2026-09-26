@@ -17,6 +17,7 @@ import com.mefabc24.strata.render.order.TerrainCell
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldRenderPlan
+import com.mefabc24.strata.render.order.StaticWorldRenderPlan
 import com.mefabc24.strata.render.order.WorldRenderPrimitive
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.terrain.IsoTerrainBounds
@@ -54,8 +55,8 @@ class IsoWorldRenderer(
 
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
-    private var cachedEntityVersion = -1L
 
+    private var staticRenderPlan: StaticWorldRenderPlan? = null
     private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
 
     val stats = RenderStats()
@@ -77,18 +78,22 @@ class IsoWorldRenderer(
         if (
             cachedWorld !== world ||
             cachedObjectVersion != world.objectVersion ||
-            cachedEntityVersion != world.entityVersion ||
-            world.getEntities().isNotEmpty()
+            staticRenderPlan == null
         ) {
-            normalRenderPlan = WorldRenderPlan.create(
+            staticRenderPlan = WorldRenderPlan.prepareStatic(
                 world = world,
                 projection = projection
             )
 
             cachedWorld = world
             cachedObjectVersion = world.objectVersion
-            cachedEntityVersion = world.entityVersion
         }
+
+        normalRenderPlan = WorldRenderPlan.withEntities(
+            staticPlan = checkNotNull(staticRenderPlan),
+            world = world,
+            projection = projection
+        )
 
         val viewWidth = camera.viewportWidth * camera.zoom
         val viewHeight = camera.viewportHeight * camera.zoom
