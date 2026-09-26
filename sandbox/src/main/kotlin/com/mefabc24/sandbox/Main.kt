@@ -7,7 +7,7 @@ fun main() {
         title = "Sandbox"
         width = 1280
         height = 720
-        vsync = true
-        foregroundFps = 60
+        vsync = false
+        foregroundFps = 0
     }
 }
