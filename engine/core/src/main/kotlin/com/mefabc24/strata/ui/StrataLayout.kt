@@ -44,6 +44,8 @@ internal class StrataUiContext(
  *
  * Layouts are regular [Table] actors. Add custom Scene2D actors with [actor]
  * and use [cell] to configure their underlying Scene2D cells directly.
+ * Layout spacing is placed between sibling cells, while padding surrounds the
+ * layout's content inside its bounds.
  */
 abstract class StrataLayout internal constructor(
     internal val context: StrataUiContext,
