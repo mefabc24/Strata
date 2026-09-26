@@ -10,8 +10,11 @@ import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.scene.StrataScene
+import com.mefabc24.strata.pathfinding.findPath
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
 
 class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     override val engineSettings = EngineSettings().apply {
@@ -22,6 +25,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
+    private lateinit var debugWalker: WorldEntity
 
     override fun createScene(): StrataScene<TerrainType, SoundCategory> {
         val world = createSandboxWorld()
@@ -70,6 +74,12 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 ),
                 frameDuration = 0.2f
             )
+
+            entities.register<DebugWalker>(
+                sprite = "flower1.png"
+            ) {
+                offsetY = 1f
+            }
 
             objects.register<House>(
                 sprite = "house.png",
@@ -284,6 +294,24 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
     override fun updateGame(delta: Float) {
         sandboxUi.sync()
+
+        if (!debugWalker.isMoving) {
+            val destination = if (
+                debugWalker.currentTile == DEBUG_WALKER_END
+            ) {
+                DEBUG_WALKER_START
+            } else {
+                DEBUG_WALKER_END
+            }
+
+            val path = requireNotNull(
+                scene.world.findPath(
+                    start = debugWalker.currentTile,
+                    goal = destination
+                )
+            )
+            debugWalker.followPath(path, DEBUG_WALKER_SPEED)
+        }
     }
 
     override fun disposeGame() {
@@ -294,6 +322,18 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
     private fun sandboxBindings(): List<WorldInputBinding> {
         return listOf(
+            WorldInputBinding.Entity(
+                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+                enabled = { !painter.enabled }
+            ) { entity ->
+                if (entity.entity is DebugWalker) {
+                    println("Picked debug walker at ${entity.position}")
+                    true
+                } else {
+                    false
+                }
+            },
+
             // Paint terrain on the world grid.
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
@@ -476,10 +516,27 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             "Failed to place test house."
         }
 
+        debugWalker = world.addEntity(
+            entity = DebugWalker(),
+            position = EntityPosition.centerOf(DEBUG_WALKER_START)
+        )
+        debugWalker.followPath(
+            path = requireNotNull(
+                world.findPath(
+                    start = DEBUG_WALKER_START,
+                    goal = DEBUG_WALKER_END
+                )
+            ),
+            speed = DEBUG_WALKER_SPEED
+        )
+
         return world
     }
 
     private companion object {
         const val WORLD_SIZE = 50
+        const val DEBUG_WALKER_SPEED = 2f
+        val DEBUG_WALKER_START = TilePosition(2, 5)
+        val DEBUG_WALKER_END = TilePosition(9, 5)
     }
 }
