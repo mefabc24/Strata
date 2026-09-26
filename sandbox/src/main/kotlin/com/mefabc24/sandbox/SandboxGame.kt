@@ -37,49 +37,66 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
         ) {
             terrain.registerAtlas(
                 TerrainType.GRASS,
-                atlas = SANDBOX_ATLAS,
+                atlas = TERRAIN_ATLAS,
                 region = "grass"
             )
 
-            terrain.register(
+            terrain.registerAtlas(
                 TerrainType.BUSH,
-                sprite = "bush.png"
+                atlas = TERRAIN_ATLAS,
+                region = "bush"
             )
 
-            terrain.register(
+            terrain.registerAtlas(
                 TerrainType.LOW_GRASS,
-                sprite = "lowgrass.png"
+                atlas = TERRAIN_ATLAS,
+                region = "lowgrass"
             )
 
-            terrain.register(
+            terrain.registerAtlas(
                 TerrainType.WATER,
-                sprite = "water4.png"
+                atlas = TERRAIN_ATLAS,
+                region = "water4"
             )
 
-            terrain.register(
-                TerrainType.ROCK
+            terrain.registerAtlas(
+                TerrainType.ROCK,
+                atlas = TERRAIN_ATLAS,
+                region = "rock"
             )
 
-            terrain.register(TerrainType.SAND)
-            terrain.register(TerrainType.STONE)
-            terrain.register(TerrainType.DIRT)
+            terrain.registerAtlas(
+                TerrainType.SAND,
+                atlas = TERRAIN_ATLAS,
+                region = "sand"
+            )
+            terrain.registerAtlas(
+                TerrainType.STONE,
+                atlas = TERRAIN_ATLAS,
+                region = "stone"
+            )
+            terrain.registerAtlas(
+                TerrainType.DIRT,
+                atlas = TERRAIN_ATLAS,
+                region = "dirt"
+            )
 
             terrain.registerAnimatedAtlas(
                 TerrainType.BUSH_ANIMATED,
-                atlas = SANDBOX_ATLAS,
+                atlas = TERRAIN_ATLAS,
                 region = "bush-animated",
                 frameDuration = 0.2f
             )
 
             entities.registerAtlas<DebugWalker>(
-                atlas = SANDBOX_ATLAS,
+                atlas = DEMO_ATLAS,
                 region = "debug-walker"
             ) {
                 offsetY = 1f
             }
 
             objects.registerAtlas(
-                atlas = SANDBOX_ATLAS,
+                atlas = DEMO_ATLAS,
                 region = "house",
                 factory = ::House
             )
@@ -534,7 +551,8 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     private companion object {
         const val WORLD_SIZE = 50
         const val DEBUG_WALKER_SPEED = 2f
-        const val SANDBOX_ATLAS = "sandbox.atlas"
+        const val TERRAIN_ATLAS = "atlas/tiles.atlas"
+        const val DEMO_ATLAS = "sandbox.atlas"
         val DEBUG_WALKER_START = TilePosition(2, 5)
         val DEBUG_WALKER_END = TilePosition(9, 5)
     }

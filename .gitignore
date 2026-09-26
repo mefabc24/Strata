@@ -43,3 +43,9 @@ bin/
 
 ### Assets ###
 sandbox/src/main/resources
+!sandbox/src/main/resources/
+sandbox/src/main/resources/*
+!sandbox/src/main/resources/atlas/
+sandbox/src/main/resources/atlas/*
+!sandbox/src/main/resources/atlas/tiles.atlas
+!sandbox/src/main/resources/atlas/tiles*.png
