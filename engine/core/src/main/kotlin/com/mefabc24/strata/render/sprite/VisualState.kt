@@ -27,9 +27,10 @@ internal data class VisualStateDefinition<S : Any>(
 
 /**
  * Builds game-defined states whose assets are all registered during setup.
- * Runtime state resolution never loads assets.
+ * Runtime state resolution never loads assets and fails when a resolver
+ * returns an identifier that was not registered.
  */
-open class StatefulSpriteBuilder internal constructor(
+class StatefulSpriteBuilder internal constructor(
     private val resolvePath: (String) -> String,
     private val defaultPlayback: VisualPlayback
 ) {
@@ -48,7 +49,7 @@ open class StatefulSpriteBuilder internal constructor(
         )
     }
 
-    internal open fun build(): Map<VisualStateId, VisualStateDefinition<SpriteSource>> {
+    internal fun build(): Map<VisualStateId, VisualStateDefinition<SpriteSource>> {
         require(states.isNotEmpty()) {
             "A stateful visual must register at least one visual state."
         }

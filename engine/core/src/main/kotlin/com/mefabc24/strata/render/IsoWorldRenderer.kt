@@ -75,15 +75,15 @@ class IsoWorldRenderer(
         textureFor: (Tile, Float) -> TextureRegion?,
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         entityVisualFor: (WorldEntity) -> EntityVisual? = { null },
+        previews: List<PlacementPreview> = emptyList(),
+        animationTime: Float = 0f,
+        maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
         resolvedObjectVisualFor: (
             (PlacedObject, Float) -> ResolvedObjectVisual?
         )? = null,
         resolvedEntityVisualFor: (
             (WorldEntity, Float) -> ResolvedEntityVisual?
-        )? = null,
-        previews: List<PlacementPreview> = emptyList(),
-        animationTime: Float = 0f,
-        maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY
+        )? = null
     ) {
         stats.reset()
 
