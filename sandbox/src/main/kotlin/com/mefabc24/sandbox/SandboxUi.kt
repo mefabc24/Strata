@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
@@ -196,11 +197,29 @@ class SandboxUi(
             a = DEFAULT_BACKGROUND_ALPHA
         }
 
+    private var objectTileFillColor =
+        debugSettings.objects.occupiedTileFillColor
+            ?: debugSettings.objects.occupiedTileColor.apply {
+                a = DEFAULT_BACKGROUND_ALPHA
+            }
+
+    private var entityTileFillColor =
+        debugSettings.entities.currentTileFillColor
+            ?: debugSettings.entities.currentTileColor.apply {
+                a = DEFAULT_BACKGROUND_ALPHA
+            }
+
     private lateinit var toolsControls: StrataColumn
     private lateinit var debugControls: StrataColumn
     private lateinit var buildControls: StrataColumn
     private lateinit var paintControls: StrataColumn
     private lateinit var spawnControls: StrataColumn
+    private lateinit var gridDebugControls: StrataColumn
+    private lateinit var objectDebugControls: StrataColumn
+    private lateinit var entityDebugControls: StrataColumn
+    private lateinit var gridDebugCell: Cell<StrataColumn>
+    private lateinit var objectDebugCell: Cell<StrataColumn>
+    private lateinit var entityDebugCell: Cell<StrataColumn>
     private lateinit var modeStatus: Label
     private lateinit var selectionStatus: Label
 
@@ -434,80 +453,7 @@ class SandboxUi(
                 checked = debugSettings.grid.enabled
             ) { enabled ->
                 debugSettings.grid.enabled = enabled
-            }
-        }
-
-        label("Grid render layer")
-
-        row(spacing = CONTROL_GAP) {
-            defaults()
-                .fillAvailableX()
-                .uniformX()
-                .height(COMPACT_CONTROL_HEIGHT)
-
-            selectableButton(
-                text = "Below objects",
-                value = DebugGridRenderLayer.BELOW_OBJECTS,
-                group = renderLayerSelection
-            )
-
-            selectableButton(
-                text = "Above objects",
-                value = DebugGridRenderLayer.ABOVE_OBJECTS,
-                group = renderLayerSelection
-            )
-        }
-
-        label("Grid extent")
-
-        row(spacing = CONTROL_GAP) {
-            defaults()
-                .fillAvailableX()
-                .uniformX()
-                .height(COMPACT_CONTROL_HEIGHT)
-
-            selectableButton(
-                text = "World",
-                value = DebugGridExtent.WORLD,
-                group = gridExtentSelection
-            )
-
-            selectableButton(
-                text = "Visible",
-                value = DebugGridExtent.VISIBLE,
-                group = gridExtentSelection
-            )
-        }
-
-        numericControl(
-            label = "Line width",
-            initialValue = debugSettings.grid.lineWidth,
-            step = 0.25f,
-            range = 0.25f..8f
-        ) { value ->
-            debugSettings.grid.lineWidth = value
-        }
-
-        numericControl(
-            label = "Grid alpha",
-            initialValue = debugSettings.grid.color.a,
-            step = ALPHA_STEP,
-            range = ALPHA_RANGE
-        ) { value ->
-            debugSettings.grid.color = debugSettings.grid.color.apply {
-                a = value
-            }
-        }
-
-        numericControl(
-            label = "Hover alpha",
-            initialValue = debugSettings.grid.hoverColor.a,
-            step = ALPHA_STEP,
-            range = ALPHA_RANGE
-        ) { value ->
-            debugSettings.grid.hoverColor =
-                debugSettings.grid.hoverColor.apply {
-                a = value
+                updateDebugVisibility()
             }
         }
 
@@ -515,68 +461,315 @@ class SandboxUi(
             defaults()
                 .fillAvailableX()
                 .uniformX()
-                .height(COMPACT_CONTROL_HEIGHT)
+                .height(MODE_BUTTON_HEIGHT)
 
             toggleButton(
-                text = "Background",
-                checked = debugSettings.grid.backgroundColor != null
+                text = "Objects",
+                checked = debugSettings.objects.enabled
             ) { enabled ->
-                if (enabled) {
-                    debugSettings.grid.backgroundColor = gridBackgroundColor
-                } else {
-                    debugSettings.grid.backgroundColor?.let {
-                        gridBackgroundColor = it
-                    }
-                    debugSettings.grid.backgroundColor = null
+                debugSettings.objects.enabled = enabled
+                updateDebugVisibility()
+            }
+
+            toggleButton(
+                text = "Entities",
+                checked = debugSettings.entities.enabled
+            ) { enabled ->
+                debugSettings.entities.enabled = enabled
+                updateDebugVisibility()
+            }
+        }
+
+        gridDebugControls = column(spacing = SECTION_GAP) {
+            defaults().fillAvailableX()
+            label("Grid", styleName = "title")
+            label("Render layer")
+
+            row(spacing = CONTROL_GAP) {
+                defaults()
+                    .fillAvailableX()
+                    .uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+
+                selectableButton(
+                    text = "Below objects",
+                    value = DebugGridRenderLayer.BELOW_OBJECTS,
+                    group = renderLayerSelection
+                )
+
+                selectableButton(
+                    text = "Above objects",
+                    value = DebugGridRenderLayer.ABOVE_OBJECTS,
+                    group = renderLayerSelection
+                )
+            }
+
+            label("Extent")
+
+            row(spacing = CONTROL_GAP) {
+                defaults()
+                    .fillAvailableX()
+                    .uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+
+                selectableButton(
+                    text = "World",
+                    value = DebugGridExtent.WORLD,
+                    group = gridExtentSelection
+                )
+
+                selectableButton(
+                    text = "Visible",
+                    value = DebugGridExtent.VISIBLE,
+                    group = gridExtentSelection
+                )
+            }
+
+            numericControl(
+                label = "Line width",
+                initialValue = debugSettings.grid.lineWidth,
+                step = 0.25f,
+                range = 0.25f..8f
+            ) { value ->
+                debugSettings.grid.lineWidth = value
+            }
+
+            numericControl(
+                label = "Grid alpha",
+                initialValue = debugSettings.grid.color.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                debugSettings.grid.color = debugSettings.grid.color.apply {
+                    a = value
                 }
             }
 
-            toggleButton(
-                text = "Hover background",
-                checked = debugSettings.grid.hoverBackgroundColor != null
-            ) { enabled ->
-                if (enabled) {
+            numericControl(
+                label = "Hover alpha",
+                initialValue = debugSettings.grid.hoverColor.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                debugSettings.grid.hoverColor =
+                    debugSettings.grid.hoverColor.apply {
+                        a = value
+                    }
+            }
+
+            row(spacing = CONTROL_GAP) {
+                defaults()
+                    .fillAvailableX()
+                    .uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+
+                toggleButton(
+                    text = "Background",
+                    checked = debugSettings.grid.backgroundColor != null
+                ) { enabled ->
+                    if (enabled) {
+                        debugSettings.grid.backgroundColor = gridBackgroundColor
+                    } else {
+                        debugSettings.grid.backgroundColor?.let {
+                            gridBackgroundColor = it
+                        }
+                        debugSettings.grid.backgroundColor = null
+                    }
+                }
+
+                toggleButton(
+                    text = "Hover background",
+                    checked = debugSettings.grid.hoverBackgroundColor != null
+                ) { enabled ->
+                    if (enabled) {
+                        debugSettings.grid.hoverBackgroundColor =
+                            hoverBackgroundColor
+                    } else {
+                        debugSettings.grid.hoverBackgroundColor?.let {
+                            hoverBackgroundColor = it
+                        }
+                        debugSettings.grid.hoverBackgroundColor = null
+                    }
+                }
+            }
+
+            numericControl(
+                label = "Background alpha",
+                initialValue = gridBackgroundColor.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                gridBackgroundColor = gridBackgroundColor.apply {
+                    a = value
+                }
+
+                if (debugSettings.grid.backgroundColor != null) {
+                    debugSettings.grid.backgroundColor = gridBackgroundColor
+                }
+            }
+
+            numericControl(
+                label = "Hover-bg alpha",
+                initialValue = hoverBackgroundColor.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                hoverBackgroundColor = hoverBackgroundColor.apply {
+                    a = value
+                }
+
+                if (debugSettings.grid.hoverBackgroundColor != null) {
                     debugSettings.grid.hoverBackgroundColor =
                         hoverBackgroundColor
-                } else {
-                    debugSettings.grid.hoverBackgroundColor?.let {
-                        hoverBackgroundColor = it
-                    }
-                    debugSettings.grid.hoverBackgroundColor = null
                 }
             }
+        }.cell {
+            fillAvailableX()
         }
+        gridDebugCell = checkNotNull(getCell(gridDebugControls))
 
-        numericControl(
-            label = "Background alpha",
-            initialValue = gridBackgroundColor.a,
-            step = ALPHA_STEP,
-            range = ALPHA_RANGE
-        ) { value ->
-            gridBackgroundColor = gridBackgroundColor.apply {
-                a = value
+        objectDebugControls = column(spacing = SECTION_GAP) {
+            defaults().fillAvailableX()
+            label("Objects", styleName = "title")
+
+            row(spacing = CONTROL_GAP) {
+                defaults().fillAvailableX().uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+                toggleButton(
+                    text = "Occupied tiles",
+                    checked = debugSettings.objects.showOccupiedTiles
+                ) { debugSettings.objects.showOccupiedTiles = it }
+                toggleButton(
+                    text = "Origin tile",
+                    checked = debugSettings.objects.showOriginTile
+                ) { debugSettings.objects.showOriginTile = it }
             }
 
-            if (debugSettings.grid.backgroundColor != null) {
-                debugSettings.grid.backgroundColor = gridBackgroundColor
+            row(spacing = CONTROL_GAP) {
+                defaults().fillAvailableX().uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+                toggleButton(
+                    text = "Sprite bounds",
+                    checked = debugSettings.objects.showSpriteBounds
+                ) { debugSettings.objects.showSpriteBounds = it }
+                toggleButton(
+                    text = "Tile fill",
+                    checked = debugSettings.objects.occupiedTileFillColor != null
+                ) { enabled ->
+                    if (enabled) {
+                        debugSettings.objects.occupiedTileFillColor =
+                            objectTileFillColor
+                    } else {
+                        debugSettings.objects.occupiedTileFillColor?.let {
+                            objectTileFillColor = it
+                        }
+                        debugSettings.objects.occupiedTileFillColor = null
+                    }
+                }
             }
+
+            numericControl(
+                label = "Line width",
+                initialValue = debugSettings.objects.lineWidth,
+                step = 0.25f,
+                range = 0.25f..8f
+            ) { debugSettings.objects.lineWidth = it }
+
+            numericControl(
+                label = "Fill alpha",
+                initialValue = objectTileFillColor.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                objectTileFillColor = objectTileFillColor.apply { a = value }
+                if (debugSettings.objects.occupiedTileFillColor != null) {
+                    debugSettings.objects.occupiedTileFillColor =
+                        objectTileFillColor
+                }
+            }
+        }.cell {
+            fillAvailableX()
         }
+        objectDebugCell = checkNotNull(getCell(objectDebugControls))
 
-        numericControl(
-            label = "Hover-bg alpha",
-            initialValue = hoverBackgroundColor.a,
-            step = ALPHA_STEP,
-            range = ALPHA_RANGE
-        ) { value ->
-            hoverBackgroundColor = hoverBackgroundColor.apply {
-                a = value
+        entityDebugControls = column(spacing = SECTION_GAP) {
+            defaults().fillAvailableX()
+            label("Entities", styleName = "title")
+
+            row(spacing = CONTROL_GAP) {
+                defaults().fillAvailableX().uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+                toggleButton(
+                    text = "Current tile",
+                    checked = debugSettings.entities.showCurrentTile
+                ) { debugSettings.entities.showCurrentTile = it }
+                toggleButton(
+                    text = "Position",
+                    checked = debugSettings.entities.showPosition
+                ) { debugSettings.entities.showPosition = it }
             }
 
-            if (debugSettings.grid.hoverBackgroundColor != null) {
-                debugSettings.grid.hoverBackgroundColor =
-                    hoverBackgroundColor
+            row(spacing = CONTROL_GAP) {
+                defaults().fillAvailableX().uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+                toggleButton(
+                    text = "Path",
+                    checked = debugSettings.entities.showPath
+                ) { debugSettings.entities.showPath = it }
+                toggleButton(
+                    text = "Direction",
+                    checked = debugSettings.entities.showDirection
+                ) { debugSettings.entities.showDirection = it }
             }
+
+            row(spacing = CONTROL_GAP) {
+                defaults().fillAvailableX().uniformX()
+                    .height(COMPACT_CONTROL_HEIGHT)
+                toggleButton(
+                    text = "Sprite bounds",
+                    checked = debugSettings.entities.showSpriteBounds
+                ) { debugSettings.entities.showSpriteBounds = it }
+                toggleButton(
+                    text = "Tile fill",
+                    checked = debugSettings.entities.currentTileFillColor != null
+                ) { enabled ->
+                    if (enabled) {
+                        debugSettings.entities.currentTileFillColor =
+                            entityTileFillColor
+                    } else {
+                        debugSettings.entities.currentTileFillColor?.let {
+                            entityTileFillColor = it
+                        }
+                        debugSettings.entities.currentTileFillColor = null
+                    }
+                }
+            }
+
+            numericControl(
+                label = "Line width",
+                initialValue = debugSettings.entities.lineWidth,
+                step = 0.25f,
+                range = 0.25f..8f
+            ) { debugSettings.entities.lineWidth = it }
+
+            numericControl(
+                label = "Fill alpha",
+                initialValue = entityTileFillColor.a,
+                step = ALPHA_STEP,
+                range = ALPHA_RANGE
+            ) { value ->
+                entityTileFillColor = entityTileFillColor.apply { a = value }
+                if (debugSettings.entities.currentTileFillColor != null) {
+                    debugSettings.entities.currentTileFillColor =
+                        entityTileFillColor
+                }
+            }
+        }.cell {
+            fillAvailableX()
         }
+        entityDebugCell = checkNotNull(getCell(entityDebugControls))
+
+        updateDebugVisibility()
     }
 
     private fun StrataLayout.numericControl(
@@ -654,9 +847,47 @@ class SandboxUi(
         buildControls.isVisible = toolController.mode == SandboxMode.BUILD
         paintControls.isVisible = toolController.mode == SandboxMode.PAINT
         spawnControls.isVisible = toolController.mode == SandboxMode.SPAWN
+        updateDebugVisibility()
         updatePanelTab()
 
         updateStatus()
+    }
+
+    private fun updateDebugVisibility() {
+        if (
+            !::gridDebugControls.isInitialized ||
+            !::objectDebugControls.isInitialized ||
+            !::entityDebugControls.isInitialized
+        ) {
+            return
+        }
+
+        setDebugControlsVisible(
+            gridDebugCell,
+            gridDebugControls,
+            debugSettings.grid.enabled
+        )
+        setDebugControlsVisible(
+            objectDebugCell,
+            objectDebugControls,
+            debugSettings.objects.enabled
+        )
+        setDebugControlsVisible(
+            entityDebugCell,
+            entityDebugControls,
+            debugSettings.entities.enabled
+        )
+    }
+
+    private fun setDebugControlsVisible(
+        cell: Cell<StrataColumn>,
+        controls: StrataColumn,
+        visible: Boolean
+    ) {
+        val actor = controls.takeIf { visible }
+        if (cell.actor !== actor) {
+            cell.setActor(actor)
+        }
     }
 
     private fun updatePanelTab() {
