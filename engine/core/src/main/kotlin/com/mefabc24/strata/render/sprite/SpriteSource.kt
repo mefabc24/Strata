@@ -63,6 +63,38 @@ internal object SpriteSheetGrid {
             }
         }
     }
+
+    fun rowCells(
+        sheetWidth: Int,
+        sheetHeight: Int,
+        frameWidth: Int,
+        frameHeight: Int,
+        row: Int,
+        framesPerRow: Int? = null
+    ): List<SpriteSheetCell> {
+        require(row >= 0) { "Sprite sheet row index must not be negative." }
+        val allCells = cells(
+            sheetWidth,
+            sheetHeight,
+            frameWidth,
+            frameHeight
+        )
+        val columns = sheetWidth / frameWidth
+        val rows = sheetHeight / frameHeight
+        require(row < rows) {
+            "Sprite sheet row $row exceeds ${rows - 1}, the last available row."
+        }
+        require(framesPerRow == null || framesPerRow > 0) {
+            "Frames per direction must be positive."
+        }
+        require(framesPerRow == null || framesPerRow == columns) {
+            "Frames per direction ${framesPerRow ?: columns} must match " +
+                "$columns available cells in each row."
+        }
+        val count = framesPerRow ?: columns
+        val start = row * columns
+        return allCells.subList(start, start + count)
+    }
 }
 
 internal sealed interface SpriteSource {
@@ -183,6 +215,49 @@ internal sealed interface SpriteSource {
             }
 
             return SpriteFrames.animated(frames, frameDuration)
+        }
+    }
+
+    data class SpriteSheetRow(
+        val path: String,
+        val frameWidth: Int,
+        val frameHeight: Int,
+        val frameDuration: Float,
+        val row: Int,
+        val framesPerRow: Int?
+    ) : SpriteSource {
+        init {
+            require(path.isNotBlank()) { "Sprite sheet path must not be blank." }
+            require(frameWidth > 0) { "Sprite sheet frame width must be positive." }
+            require(frameHeight > 0) { "Sprite sheet frame height must be positive." }
+            require(row >= 0) { "Sprite sheet row index must not be negative." }
+            require(framesPerRow == null || framesPerRow > 0) {
+                "Frames per direction must be positive."
+            }
+            SpriteFrames.validateFrameDuration(frameDuration)
+        }
+
+        override val assetPaths = listOf(path)
+
+        override fun prepare(
+            regionFor: (String) -> TextureRegion,
+            atlasFor: (String) -> TextureAtlas
+        ): SpriteFrames {
+            val sheet = regionFor(path)
+            val cells = SpriteSheetGrid.rowCells(
+                sheet.regionWidth,
+                sheet.regionHeight,
+                frameWidth,
+                frameHeight,
+                row,
+                framesPerRow
+            )
+            return SpriteFrames.animated(
+                cells.map { cell ->
+                    TextureRegion(sheet, cell.x, cell.y, cell.width, cell.height)
+                },
+                frameDuration
+            )
         }
     }
 

@@ -11,6 +11,9 @@ open class SpriteDefinitionBuilder internal constructor(
 ) {
     private var definedSource: SpriteSource? = null
 
+    internal val hasDefinition: Boolean
+        get() = definedSource != null
+
     /** Uses one image file as a static, one-frame sprite. */
     fun sprite(path: String) {
         require(path.isNotBlank()) { "Sprite path must not be blank." }

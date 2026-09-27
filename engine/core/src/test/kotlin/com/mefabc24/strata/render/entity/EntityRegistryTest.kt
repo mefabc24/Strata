@@ -4,12 +4,16 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.math.Rectangle
+import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
+import com.mefabc24.strata.world.EntityDirection
 import com.mefabc24.strata.world.WorldEntity
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -228,6 +232,181 @@ class EntityRegistryTest {
             registry.resolve(runtime, 7f)
         }
         assertTrue(failure.message.orEmpty().contains("UNKNOWN"))
+    }
+
+    @Test
+    fun `directional sheet uses arbitrary game-defined row order`() {
+        val pixmap = Pixmap(32, 40, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val masks = List(8) { mask(it % 2 == 0) }
+        val queued = mutableListOf<String>()
+
+        try {
+            val registry = EntityRegistry(
+                directory = "entities",
+                queueTexture = queued::add,
+                regionFor = { TextureRegion(texture) },
+                loadAlphaMask = { null },
+                loadSpriteSheetAlphaMasks = { _, _, _, _ -> masks }
+            )
+            registry.registerDirectional<Wolf> {
+                directionalSpriteSheet(
+                    path = "wolf.png",
+                    frameWidth = 16,
+                    frameHeight = 10,
+                    frameDuration = 0.1f,
+                    framesPerDirection = 2,
+                    directionRows = mapOf(
+                        EntityDirection.SOUTH_WEST to 2,
+                        EntityDirection.SOUTH_EAST to 0,
+                        EntityDirection.NORTH_WEST to 3,
+                        EntityDirection.NORTH_EAST to 1
+                    )
+                )
+            }
+            registry.prepare()
+
+            assertEquals(listOf("entities/wolf.png"), queued)
+            val runtime = WorldEntity(
+                Wolf(WolfState.RESTING),
+                EntityPosition(0.5f, 0.5f)
+            )
+            val expectedRows = mapOf(
+                EntityDirection.SOUTH_WEST to 20,
+                EntityDirection.SOUTH_EAST to 0,
+                EntityDirection.NORTH_WEST to 30,
+                EntityDirection.NORTH_EAST to 10
+            )
+            expectedRows.forEach { (direction, rowY) ->
+                runtime.face(direction)
+                val first = requireNotNull(registry.resolve(runtime, 0f))
+                assertEquals(0, first.frame.texture.regionX)
+                assertEquals(rowY, first.frame.texture.regionY)
+
+                val second = requireNotNull(registry.resolve(runtime, 0.11f))
+                assertEquals(16, second.frame.texture.regionX)
+                assertEquals(rowY, second.frame.texture.regionY)
+                val row = rowY / 10
+                assertSame(masks[row * 2 + 1], second.frame.alphaMask)
+            }
+        } finally {
+            texture.dispose()
+        }
+    }
+
+    @Test
+    fun `entity state and direction select separate visual dimensions`() {
+        val textures = EntityDirection.entries.flatMap { direction ->
+            listOf(
+                "entities/rest-$direction.png" to region(10, 20),
+                "entities/move-$direction.png" to region(30, 40)
+            )
+        }.toMap()
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = textures::getValue,
+            loadAlphaMask = { null }
+        )
+        registry.registerStateful<Wolf>(
+            stateFor = { _, wolf -> wolf.state }
+        ) {
+            state(WolfState.RESTING) {
+                EntityDirection.entries.forEach { direction ->
+                    direction(direction) { sprite("rest-$direction.png") }
+                }
+            }
+            state(WolfState.MOVING) {
+                EntityDirection.entries.forEach { direction ->
+                    direction(direction) { sprite("move-$direction.png") }
+                }
+            }
+        }
+        registry.prepare()
+
+        val wolf = Wolf(WolfState.RESTING)
+        val runtime = WorldEntity(wolf, EntityPosition(0.5f, 0.5f))
+        runtime.face(EntityDirection.NORTH_WEST)
+        assertSame(
+            textures.getValue("entities/rest-NORTH_WEST.png"),
+            registry.resolve(runtime, 2f)?.frame?.texture
+        )
+
+        wolf.state = WolfState.MOVING
+        runtime.face(EntityDirection.SOUTH_WEST)
+        val resolved = requireNotNull(registry.resolve(runtime, 3f))
+        assertSame(
+            textures.getValue("entities/move-SOUTH_WEST.png"),
+            resolved.frame.texture
+        )
+        assertEquals(30, resolved.frame.texture.regionWidth)
+        assertEquals(40, resolved.frame.texture.regionHeight)
+        val bounds = IsoEntityBounds.calculate(
+            IsoProjection(TileGeometry(32f, 24f)),
+            runtime,
+            resolved,
+            Rectangle()
+        )
+        assertEquals(30f, bounds.width)
+        assertEquals(40f, bounds.height)
+    }
+
+    @Test
+    fun `directional registrations validate directions rows and sheet cells`() {
+        fun registry() = EntityRegistry(
+            directory = "",
+            queueTexture = {},
+            regionFor = { region(32, 40) },
+            loadAlphaMask = { null },
+            loadSpriteSheetAlphaMasks = { _, _, _, _ -> List(8) { null } }
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            registry().registerDirectional<Wolf> {
+                direction(EntityDirection.NORTH_EAST) { sprite("ne.png") }
+            }
+        }
+        assertFailsWith<IllegalArgumentException> {
+            registry().registerDirectional<Wolf> {
+                directionalSpriteSheet(
+                    "wolf.png",
+                    16,
+                    10,
+                    0.1f,
+                    EntityDirection.entries.associateWith { 0 }
+                )
+            }
+        }
+        val invalidCount = registry()
+        invalidCount.registerDirectional<Wolf> {
+            directionalSpriteSheet(
+                "wolf.png",
+                16,
+                10,
+                0.1f,
+                EntityDirection.entries.withIndex().associate { it.value to it.index },
+                framesPerDirection = 3
+            )
+        }
+        assertFailsWith<IllegalArgumentException> { invalidCount.prepare() }
+
+        val invalidRow = registry()
+        invalidRow.registerDirectional<Wolf> {
+            directionalSpriteSheet(
+                "wolf.png",
+                16,
+                10,
+                0.1f,
+                mapOf(
+                    EntityDirection.NORTH_EAST to 4,
+                    EntityDirection.SOUTH_EAST to 1,
+                    EntityDirection.SOUTH_WEST to 2,
+                    EntityDirection.NORTH_WEST to 3
+                )
+            )
+        }
+        assertFailsWith<IllegalArgumentException> { invalidRow.prepare() }
     }
 
     @Test

@@ -57,4 +57,42 @@ class SpriteSheetGridTest {
             SpriteSheetGrid.cells(32, 32, 16, 16, frameCount = 5)
         }
     }
+
+    @Test
+    fun `row cells preserve an explicitly selected sheet row`() {
+        assertEquals(
+            listOf(
+                SpriteSheetCell(0, 20, 16, 10),
+                SpriteSheetCell(16, 20, 16, 10)
+            ),
+            SpriteSheetGrid.rowCells(
+                sheetWidth = 32,
+                sheetHeight = 40,
+                frameWidth = 16,
+                frameHeight = 10,
+                row = 2,
+                framesPerRow = 2
+            )
+        )
+    }
+
+    @Test
+    fun `row cells reject invalid rows and frame counts`() {
+        assertFailsWith<IllegalArgumentException> {
+            SpriteSheetGrid.rowCells(32, 40, 16, 10, row = -1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            SpriteSheetGrid.rowCells(32, 40, 16, 10, row = 4)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            SpriteSheetGrid.rowCells(
+                32,
+                40,
+                16,
+                10,
+                row = 0,
+                framesPerRow = 1
+            )
+        }
+    }
 }

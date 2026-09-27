@@ -365,6 +365,20 @@ class ObjectRegistry internal constructor(
     fun <T : Placeable> registerStateful(
         type: KClass<T>,
         factory: (() -> T)? = null,
+        stateFor: (PlacedObject) -> VisualStateId,
+        configure: ObjectSpriteSettings.() -> Unit = {},
+        states: StatefulSpriteBuilder.() -> Unit
+    ) = registerStateful(
+        type,
+        factory,
+        { placed, _ -> stateFor(placed) },
+        configure,
+        states
+    )
+
+    fun <T : Placeable> registerStateful(
+        type: KClass<T>,
+        factory: (() -> T)? = null,
         stateFor: (PlacedObject, T) -> VisualStateId,
         configure: ObjectSpriteSettings.() -> Unit = {},
         states: StatefulSpriteBuilder.() -> Unit
@@ -386,6 +400,13 @@ class ObjectRegistry internal constructor(
             configure = configure
         )
     }
+
+    inline fun <reified T : Placeable> registerStateful(
+        noinline factory: (() -> T)? = null,
+        noinline stateFor: (PlacedObject) -> VisualStateId,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {},
+        noinline states: StatefulSpriteBuilder.() -> Unit
+    ) = registerStateful(T::class, factory, stateFor, configure, states)
 
     inline fun <reified T : Placeable> registerStateful(
         noinline factory: (() -> T)? = null,
@@ -503,6 +524,10 @@ class ObjectRegistry internal constructor(
                         source.frameCount
                     )
                 }
+            }
+
+            is SpriteSource.SpriteSheetRow -> {
+                error("Directional sprite-sheet rows are only valid for entities.")
             }
 
             is SpriteSource.AtlasRegion,
