@@ -84,6 +84,7 @@ class SandboxUi(
     private val placementController: PlacementController,
     private val buildDragController: SandboxBuildDragController,
     private val toolController: SandboxToolController,
+    private val entitySpawner: SandboxEntitySpawner,
     private val debugSettings: DebugSettings,
     terrainEntries: List<TerrainEntry>,
     objectEntries: List<ObjectEntry>
@@ -163,6 +164,14 @@ class SandboxUi(
         updateStatus()
     }
 
+    private val spawnSelection = ui.selectionGroup(
+        options = entitySpawner.entries,
+        initialSelection = entitySpawner.selectedEntry
+    ) { selected ->
+        entitySpawner.selectedEntry = selected
+        updateStatus()
+    }
+
     private val renderLayerSelection = ui.selectionGroup(
         options = DebugGridRenderLayer.entries,
         initialSelection = debugSettings.grid.renderLayer
@@ -191,6 +200,7 @@ class SandboxUi(
     private lateinit var debugControls: StrataColumn
     private lateinit var buildControls: StrataColumn
     private lateinit var paintControls: StrataColumn
+    private lateinit var spawnControls: StrataColumn
     private lateinit var modeStatus: Label
     private lateinit var selectionStatus: Label
 
@@ -365,6 +375,30 @@ class SandboxUi(
                             text = layer.displayName,
                             value = layer,
                             group = layerSelection
+                        )
+                    }
+                }
+            }
+
+            spawnControls = column(spacing = SECTION_GAP) {
+                defaults().fillAvailableX()
+                label("Spawn entity")
+
+                grid(
+                    columns = SPAWN_COLUMNS,
+                    spacing = CONTROL_GAP,
+                    alignment = Align.center
+                ) {
+                    defaults()
+                        .fillAvailableX()
+                        .uniformX()
+                        .height(COMPACT_CONTROL_HEIGHT)
+
+                    for (entry in entitySpawner.entries) {
+                        selectableButton(
+                            text = entry.name,
+                            value = entry,
+                            group = spawnSelection
                         )
                     }
                 }
@@ -613,8 +647,13 @@ class SandboxUi(
             buildSelection.select(entry)
         }
 
+        entitySpawner.selectedEntry?.let { entry ->
+            spawnSelection.select(entry)
+        }
+
         buildControls.isVisible = toolController.mode == SandboxMode.BUILD
         paintControls.isVisible = toolController.mode == SandboxMode.PAINT
+        spawnControls.isVisible = toolController.mode == SandboxMode.SPAWN
         updatePanelTab()
 
         updateStatus()
@@ -652,7 +691,9 @@ class SandboxUi(
                     "Terrain: ${terrainSelection.selected?.displayName()}\n" +
                         "Layer: ${layerSelection.selected?.displayName}"
                 }
-                SandboxMode.SPAWN -> "No entity selected"
+                SandboxMode.SPAWN -> {
+                    "Entity: ${spawnSelection.selected?.name}"
+                }
                 null -> ""
             }
         )
@@ -672,6 +713,7 @@ class SandboxUi(
         private const val BUILD_COLUMNS = 3
         private const val TERRAIN_COLUMNS = 3
         private const val LAYER_COLUMNS = 2
+        private const val SPAWN_COLUMNS = 2
         private const val NUMERIC_BUTTON_SIZE = 28f
         private const val NUMERIC_VALUE_WIDTH = 44f
         private const val ALPHA_STEP = 0.05f

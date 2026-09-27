@@ -114,6 +114,7 @@ class SandboxGame : StrataGame() {
     private lateinit var painter: SandboxTerrainPainter
     private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var tools: SandboxToolController
+    private lateinit var entitySpawner: SandboxEntitySpawner
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
     private lateinit var wolf: WorldEntity
@@ -148,6 +149,11 @@ class SandboxGame : StrataGame() {
             placement = strata.placement,
             buildDrag = buildDrag
         )
+        entitySpawner = SandboxEntitySpawner(
+            world = world,
+            tools = tools,
+            entries = sandboxSpawnEntries()
+        )
 
         uiSkin = SandboxUi.createSkin()
 
@@ -161,6 +167,7 @@ class SandboxGame : StrataGame() {
                 placementController = strata.placement,
                 buildDragController = buildDrag,
                 toolController = tools,
+                entitySpawner = entitySpawner,
                 debugSettings = strata.debug,
                 terrainEntries = strata.terrain.entries,
                 objectEntries =
@@ -231,6 +238,20 @@ class SandboxGame : StrataGame() {
                 } else {
                     false
                 }
+            },
+
+            // Spawn the selected Sandbox entity at the clicked tile center.
+            WorldInputBinding.Tile(
+                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+                enabled = { tools.mode == SandboxMode.SPAWN }
+            ) { x, y ->
+                val entity = entitySpawner.spawn(TilePosition(x, y))
+                    ?: return@Tile false
+                println(
+                    "Spawned ${entity.entity::class.simpleName} " +
+                        "at ${entity.position}"
+                )
+                true
             },
 
             // Paint terrain on the world grid.
