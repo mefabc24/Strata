@@ -21,7 +21,7 @@ import com.mefabc24.strata.StrataGame
 
 class SandboxGame : StrataGame() {
 
-    protected override val strata =
+    override val strata =
         Strata().configure {
             engine {
                 backgroundColor =
