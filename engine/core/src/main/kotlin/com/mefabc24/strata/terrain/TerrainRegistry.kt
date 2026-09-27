@@ -79,7 +79,7 @@ class TerrainRegistry internal constructor(
     /** Registers a static terrain sprite. */
     fun register(
         type: TerrainId,
-        sprite: String = "${type.name.lowercase()}.png"
+        sprite: String
     ) {
         checkRegistrationOpen()
         require(sprite.isNotBlank()) {
