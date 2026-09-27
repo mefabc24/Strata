@@ -20,7 +20,6 @@ class TerrainEntry internal constructor(
     internal val definition: VisualDefinition<Tile, SpriteSource>
 ) {
     internal val sources: List<SpriteSource> = definition.sources()
-    val spritePath: String = sources.first().assetPaths.first()
 
     private var preparedDefinition:
         PreparedVisualDefinition<Tile, SpriteFrames>? = null

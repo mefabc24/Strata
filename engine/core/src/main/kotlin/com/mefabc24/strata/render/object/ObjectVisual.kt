@@ -23,8 +23,11 @@ class ObjectVisual internal constructor(
     val height: Float? = null,
     val scale: Float = 1f
 ) {
-    private val preparedSprite = PreparedSprite(sprite, alphaMasks)
-    private val frames: List<ObjectVisualFrame>
+    private val preparedSprite = PreparedSprite.prepare(
+        sprite,
+        alphaMasks,
+        ::ObjectVisualFrame
+    )
 
     /** Creates a static object visual with the existing API. */
     constructor(
@@ -59,23 +62,18 @@ class ObjectVisual internal constructor(
             "Sprite height must be positive and finite."
         }
 
-        frames = List(preparedSprite.frameCount) { index ->
-            val frame = preparedSprite.frameAtIndex(index)
-            ObjectVisualFrame(frame.texture, frame.metadata)
-        }
-
     }
 
     /** The static texture or first animation frame. */
     val texture: TextureRegion
-        get() = frames.first().texture
+        get() = preparedSprite.frameAtIndex(0).texture
 
     /** The static mask or first animation frame's mask. */
     val alphaMask: AlphaMask?
-        get() = frames.first().alphaMask
+        get() = preparedSprite.frameAtIndex(0).alphaMask
 
     /** Resolves a prepared texture/mask pair without allocating. */
     fun frameAt(stateTime: Float): ObjectVisualFrame {
-        return frames[sprite.frameIndexAt(stateTime)]
+        return preparedSprite.frameAt(stateTime)
     }
 }

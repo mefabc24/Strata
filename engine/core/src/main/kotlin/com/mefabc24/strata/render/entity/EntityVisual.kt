@@ -21,8 +21,11 @@ class EntityVisual internal constructor(
     val height: Float? = null,
     val scale: Float = 1f
 ) {
-    private val preparedSprite = PreparedSprite(sprite, alphaMasks)
-    private val frames: List<EntityVisualFrame>
+    private val preparedSprite = PreparedSprite.prepare(
+        sprite,
+        alphaMasks,
+        ::EntityVisualFrame
+    )
 
     constructor(
         texture: TextureRegion,
@@ -59,17 +62,12 @@ class EntityVisual internal constructor(
             "Entity sprite scale must be positive and finite."
         }
 
-        frames = List(preparedSprite.frameCount) { index ->
-            val frame = preparedSprite.frameAtIndex(index)
-            EntityVisualFrame(frame.texture, frame.metadata)
-        }
-
     }
 
     val texture: TextureRegion
-        get() = frames.first().texture
+        get() = preparedSprite.frameAtIndex(0).texture
 
     fun frameAt(stateTime: Float): EntityVisualFrame {
-        return frames[sprite.frameIndexAt(stateTime)]
+        return preparedSprite.frameAt(stateTime)
     }
 }

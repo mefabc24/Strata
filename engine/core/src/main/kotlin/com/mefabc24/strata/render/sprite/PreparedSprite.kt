@@ -2,42 +2,43 @@ package com.mefabc24.strata.render.sprite
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 
-/** One prepared animation frame and matching optional frame metadata. */
-data class PreparedSpriteFrame<out M>(
-    val texture: TextureRegion,
-    val metadata: M
-)
-
 /**
- * Pairs common [SpriteFrames] playback with frame-specific prepared metadata.
+ * Pairs common [SpriteFrames] playback with domain-specific prepared frames.
  * Terrain can use [SpriteFrames] directly when it does not need metadata.
  */
-class PreparedSprite<M> internal constructor(
+internal class PreparedSprite<F : Any> private constructor(
     val sprite: SpriteFrames,
-    metadata: List<M>
+    private val frames: List<F>
 ) {
-    private val frames: List<PreparedSpriteFrame<M>>
-
     init {
-        require(metadata.size == sprite.frameCount) {
-            "Prepared sprite metadata count must match its frame count."
-        }
-        frames = List(sprite.frameCount) { index ->
-            PreparedSpriteFrame(
-                texture = sprite.frameAtIndex(index),
-                metadata = metadata[index]
-            )
+        require(frames.size == sprite.frameCount) {
+            "Prepared sprite frame count must match its sprite frame count."
         }
     }
 
-    val frameCount: Int
-        get() = frames.size
-
-    fun frameAt(stateTime: Float): PreparedSpriteFrame<M> {
+    fun frameAt(stateTime: Float): F {
         return frames[sprite.frameIndexAt(stateTime)]
     }
 
-    fun frameAtIndex(index: Int): PreparedSpriteFrame<M> {
+    fun frameAtIndex(index: Int): F {
         return frames[index]
+    }
+
+    companion object {
+        fun <M, F : Any> prepare(
+            sprite: SpriteFrames,
+            metadata: List<M>,
+            frameFor: (TextureRegion, M) -> F
+        ): PreparedSprite<F> {
+            require(metadata.size == sprite.frameCount) {
+                "Prepared sprite metadata count must match its frame count."
+            }
+            return PreparedSprite(
+                sprite = sprite,
+                frames = List(sprite.frameCount) { index ->
+                    frameFor(sprite.frameAtIndex(index), metadata[index])
+                }
+            )
+        }
     }
 }
