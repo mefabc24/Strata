@@ -110,6 +110,10 @@ class SandboxTerrainPainter(
         val selectedLayer = layerId
 
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
+            if (world.getTile(tileX, tileY) == null) {
+                return@forEachTileOnLine
+            }
+
             if (selectedLayer == null) {
                 world.terrain.setTile(
                     x = tileX,
@@ -135,6 +139,10 @@ class SandboxTerrainPainter(
         val target = x to y
 
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
+            if (world.getTile(tileX, tileY) == null) {
+                return@forEachTileOnLine
+            }
+
             world.setOverlayTile(
                 layerId = selectedLayer,
                 x = tileX,

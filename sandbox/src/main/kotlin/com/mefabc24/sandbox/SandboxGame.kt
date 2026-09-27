@@ -222,7 +222,7 @@ class SandboxGame : StrataGame() {
             },
 
             // Continue painting while dragging.
-            WorldInputBinding.Tile(
+            WorldInputBinding.Grid(
                 trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
                 enabled = { painter.enabled }
             ) { x, y ->
@@ -256,15 +256,6 @@ class SandboxGame : StrataGame() {
                 }
             },
 
-            // Cancel the stroke if the cursor leaves the world.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                enabled = { painter.enabled }
-            ) {
-                painter.cancel()
-                false
-            },
-
             // Finish painting even when released outside the world.
             WorldInputBinding.NoPicking(
                 trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT)
@@ -287,22 +278,13 @@ class SandboxGame : StrataGame() {
             },
 
             // Continue erasing while dragging.
-            WorldInputBinding.Tile(
+            WorldInputBinding.Grid(
                 trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
                 enabled = {
                     painter.enabled && painter.layerId != null
                 }
             ) { x, y ->
                 painter.dragErase(x, y)
-            },
-
-            // Cancel erasing if the cursor leaves the world.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-                enabled = { painter.enabled }
-            ) {
-                painter.cancel()
-                false
             },
 
             // Finish erasing even when released outside the world.
