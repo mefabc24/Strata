@@ -17,6 +17,7 @@ import com.mefabc24.strata.world.World
 class PlacementController(
     private val world: World,
     private val style: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT,
+    private val showOutsideWorldPreviews: Boolean = false,
     private val placementValidator: (
         placeable: Placeable,
         position: TilePosition
@@ -77,27 +78,35 @@ class PlacementController(
 
         val placeable = previewPlaceable
 
-        previews = if (
-            hoveredTile != null &&
-            placeable != null
-        ) {
-            listOf(
-                PlacementPreview(
-                    placedObject = PlacedObject(
-                        placeable = placeable,
-                        x = hoveredTile.x,
-                        y = hoveredTile.y
-                    ),
-                    valid = canPlace(
-                        placeable = placeable,
-                        position = hoveredTile
-                    ),
-                    style = style
-                ),
-            )
-        } else {
-            emptyList()
+        if (hoveredTile == null || placeable == null) {
+            previews = emptyList()
+            return
         }
+
+        val placedObject = PlacedObject(
+            placeable = placeable,
+            x = hoveredTile.x,
+            y = hoveredTile.y
+        )
+
+        if (
+            !showOutsideWorldPreviews &&
+            !isInsideWorld(placedObject)
+        ) {
+            previews = emptyList()
+            return
+        }
+
+        previews = listOf(
+            PlacementPreview(
+                placedObject = placedObject,
+                valid = canPlace(
+                    placeable = placeable,
+                    position = hoveredTile
+                ),
+                style = style
+            )
+        )
     }
 
     /**
@@ -123,25 +132,38 @@ class PlacementController(
 
         val reservedTiles = mutableSetOf<TilePosition>()
 
-        previews = distinctPositions(positions).map { position ->
-            val placedObject = PlacedObject(
-                placeable = placeable,
-                x = position.x,
-                y = position.y
-            )
-            val occupiedTiles = placedObject.occupiedTiles()
-            val valid = canPlace(placeable, position) &&
-                occupiedTiles.none(reservedTiles::contains)
+        previews = buildList {
+            for (position in distinctPositions(positions)) {
+                val placedObject = PlacedObject(
+                    placeable = placeable,
+                    x = position.x,
+                    y = position.y
+                )
 
-            if (valid) {
-                reservedTiles += occupiedTiles
+                val occupiedTiles = placedObject.occupiedTiles()
+
+                if (
+                    !showOutsideWorldPreviews &&
+                    !isInsideWorld(placedObject)
+                ) {
+                    continue
+                }
+
+                val valid = canPlace(placeable, position) &&
+                        occupiedTiles.none(reservedTiles::contains)
+
+                if (valid) {
+                    reservedTiles += occupiedTiles
+                }
+
+                add(
+                    PlacementPreview(
+                        placedObject = placedObject,
+                        valid = valid,
+                        style = style
+                    )
+                )
             }
-
-            PlacementPreview(
-                placedObject = placedObject,
-                valid = valid,
-                style = style
-            )
         }
     }
 
@@ -242,5 +264,13 @@ class PlacementController(
         positions: Iterable<TilePosition>
     ): List<TilePosition> {
         return positions.toCollection(linkedSetOf()).toList()
+    }
+
+    private fun isInsideWorld(
+        placedObject: PlacedObject
+    ): Boolean {
+        return placedObject.occupiedTiles().all { position ->
+            world.getTile(position) != null
+        }
     }
 }

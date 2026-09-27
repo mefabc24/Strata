@@ -93,6 +93,7 @@ class SandboxGame : StrataGame() {
                 }
 
                 placement {
+                    showOutsideWorldPreviews = true
                     previewStyle = PlacementPreviewStyle(
                         validColor =
                             Color(0.35f, 0.75f, 0.3f, 0.7f),

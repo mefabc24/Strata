@@ -22,6 +22,11 @@ class PlacementSettings {
             field = value.snapshot()
         }
 
+    /**
+     * Whether placement previews may be shown outside the world bounds.
+     */
+    var showOutsideWorldPreviews: Boolean = false
+
     private var placementValidator: PlacementValidator = { _, _ -> true }
 
     fun validator(validate: PlacementValidator) {
@@ -32,6 +37,7 @@ class PlacementSettings {
         return PlacementController(
             world = world,
             style = previewStyle.snapshot(),
+            showOutsideWorldPreviews = showOutsideWorldPreviews,
             placementValidator = placementValidator
         )
     }
@@ -39,6 +45,7 @@ class PlacementSettings {
     internal fun copy(): PlacementSettings {
         return PlacementSettings().also { copy ->
             copy.previewStyle = previewStyle
+            copy.showOutsideWorldPreviews = showOutsideWorldPreviews
             copy.placementValidator = placementValidator
         }
     }
