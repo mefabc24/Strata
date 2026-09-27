@@ -38,6 +38,7 @@ class ScenePerformanceLogger {
 
     private var staticPlanMsMax = 0.0
     private var staticPlanUpdates = 0
+    private var staticPlanRelationChecks = 0
 
     private var dynamicPlanMsSum = 0.0
     private var dynamicPlanMsMax = 0.0
@@ -68,6 +69,9 @@ class ScenePerformanceLogger {
 
         staticPlanUpdates += stats.staticPlanUpdates
 
+        staticPlanRelationChecks +=
+            stats.staticPlanRelationChecks
+
         dynamicPlanMsSum += stats.dynamicPlanMs
         dynamicPlanMsMax =
             maxOf(dynamicPlanMsMax, stats.dynamicPlanMs)
@@ -91,7 +95,7 @@ class ScenePerformanceLogger {
                     "${format(renderMsMax)} max ms | " +
                     "Static plan: ${format(staticPlanMsMax)} max ms " +
                     "($staticPlanUpdates updates, " +
-                    "${stats.staticPlanRelationChecks} checks) | " +
+                    "${staticPlanRelationChecks} checks) | " +
                     "Dynamic plan: ${format(averageDynamicPlanMs)} avg / " +
                     "${format(dynamicPlanMsMax)} max ms | " +
                     "Tiles: ${stats.terrainDrawn}/${stats.terrainChecked} | " +
