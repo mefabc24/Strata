@@ -90,7 +90,8 @@ class ScenePerformanceLogger {
                     "World: ${format(averageRenderMs)} avg / " +
                     "${format(renderMsMax)} max ms | " +
                     "Static plan: ${format(staticPlanMsMax)} max ms " +
-                    "($staticPlanUpdates updates) | " +
+                    "($staticPlanUpdates updates, " +
+                    "${stats.staticPlanRelationChecks} checks) | " +
                     "Dynamic plan: ${format(averageDynamicPlanMs)} avg / " +
                     "${format(dynamicPlanMsMax)} max ms | " +
                     "Tiles: ${stats.terrainDrawn}/${stats.terrainChecked} | " +
