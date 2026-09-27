@@ -137,6 +137,25 @@ class TilePickerTest {
         assertNull(picker.pickWorld(outside.x, outside.y))
     }
 
+    @Test
+    fun `grid picking returns logical positions outside the world`() {
+        val picker = picker(createWorld())
+        val outside = topFaceCenter(-2, 14)
+
+        assertEquals(
+            TilePosition(-2, 14),
+            picker.pickGridWorld(outside.x, outside.y)
+        )
+    }
+
+    @Test
+    fun `world picking rejects a logical position outside the world`() {
+        val picker = picker(createWorld())
+        val outside = topFaceCenter(52, 7)
+
+        assertNull(picker.pickWorld(outside.x, outside.y))
+    }
+
     private fun picker(
         world: World,
         projection: IsoProjection = this.projection

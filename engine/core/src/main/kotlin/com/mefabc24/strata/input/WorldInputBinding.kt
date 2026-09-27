@@ -40,8 +40,19 @@ sealed interface WorldInputBinding {
 
     val enabled: () -> Boolean
 
-    /** Picks a tile before invoking the action. */
+    /** Picks an existing world tile before invoking the action. */
     class Tile(
+        override val trigger: WorldInputTrigger,
+        override val enabled: () -> Boolean = { true },
+        val action: (x: Int, y: Int) -> Boolean
+    ) : WorldInputBinding
+
+    /**
+     * Picks a logical grid position before invoking the action.
+     *
+     * The position may lie outside the attached world.
+     */
+    class Grid(
         override val trigger: WorldInputTrigger,
         override val enabled: () -> Boolean = { true },
         val action: (x: Int, y: Int) -> Boolean

@@ -12,6 +12,7 @@ class DebugSettingsTest {
     @Test
     fun `debug grid is disabled by default`() {
         assertFalse(DebugSettings().grid.enabled)
+        assertEquals(DebugGridExtent.WORLD, DebugSettings().grid.extent)
     }
 
     @Test
@@ -19,10 +20,13 @@ class DebugSettingsTest {
         val settings = DebugSettings().apply {
             grid {
                 enabled = true
+                extent = DebugGridExtent.VISIBLE
             }
         }
 
         assertTrue(settings.grid.enabled)
+        assertEquals(DebugGridExtent.VISIBLE, settings.grid.extent)
+        assertEquals(DebugGridExtent.VISIBLE, settings.grid.copy().extent)
     }
 
     @Test

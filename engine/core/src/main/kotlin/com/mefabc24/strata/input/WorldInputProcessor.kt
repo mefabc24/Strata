@@ -23,7 +23,12 @@ class WorldInputProcessor(
         Float,
         Float,
         EntityPickingMode
-    ) -> WorldEntity? = { _, _, _ -> null }
+    ) -> WorldEntity? = { _, _, _ -> null },
+    private val pickGrid: (Float, Float) -> TilePosition = { x, y ->
+        checkNotNull(pickTile(x, y)) {
+            "Grid picking requires a logical grid picker."
+        }
+    }
 ) : InputAdapter() {
 
     private val pressedButtons = mutableMapOf<Int, MutableSet<Int>>()
@@ -114,15 +119,26 @@ class WorldInputProcessor(
         screenX: Float,
         screenY: Float
     ): Boolean {
+        val pickedTile by lazy(LazyThreadSafetyMode.NONE) {
+            pickTile(screenX, screenY)
+        }
+        val pickedGrid by lazy(LazyThreadSafetyMode.NONE) {
+            pickGrid(screenX, screenY)
+        }
+
         for (binding in bindings) {
             if (binding.trigger != trigger) continue
             if (!binding.enabled()) continue
 
             val handled = when (binding) {
                 is WorldInputBinding.Tile -> {
-                    val tile = pickTile(screenX, screenY)
+                    pickedTile?.let { tile ->
+                        binding.action(tile.x, tile.y)
+                    } ?: false
+                }
 
-                    tile != null && binding.action(tile.x, tile.y)
+                is WorldInputBinding.Grid -> {
+                    binding.action(pickedGrid.x, pickedGrid.y)
                 }
 
                 is WorldInputBinding.Object -> {

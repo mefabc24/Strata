@@ -7,6 +7,11 @@ enum class DebugGridRenderLayer {
     ABOVE_OBJECTS
 }
 
+enum class DebugGridExtent {
+    WORLD,
+    VISIBLE
+}
+
 /**
  * Groups the scene's debugging facilities.
  */
@@ -38,6 +43,8 @@ class DebugGridSettings {
 
     var renderLayer: DebugGridRenderLayer =
         DebugGridRenderLayer.BELOW_OBJECTS
+
+    var extent: DebugGridExtent = DebugGridExtent.WORLD
 
     private var storedColor = Color(
         0.4f,
@@ -94,6 +101,7 @@ class DebugGridSettings {
         return DebugGridSettings().also {
             it.enabled = enabled
             it.renderLayer = renderLayer
+            it.extent = extent
             it.color = color
             it.hoverColor = hoverColor
             it.lineWidth = lineWidth

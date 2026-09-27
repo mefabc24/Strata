@@ -6,8 +6,48 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+
+internal data class DebugGridTileRange(
+    val x: IntRange,
+    val y: IntRange
+) {
+    operator fun contains(position: TilePosition): Boolean {
+        return position.x in x && position.y in y
+    }
+}
+
+internal fun visibleDebugGridTileRange(
+    projection: IsoProjection,
+    minWorldX: Float,
+    minWorldY: Float,
+    maxWorldX: Float,
+    maxWorldY: Float,
+    margin: Int = 1
+): DebugGridTileRange {
+    require(
+        minWorldX.isFinite() && minWorldY.isFinite() &&
+            maxWorldX.isFinite() && maxWorldY.isFinite()
+    )
+    require(minWorldX <= maxWorldX && minWorldY <= maxWorldY)
+    require(margin >= 0)
+
+    val corners = listOf(
+        projection.worldToTile(minWorldX, minWorldY),
+        projection.worldToTile(minWorldX, maxWorldY),
+        projection.worldToTile(maxWorldX, minWorldY),
+        projection.worldToTile(maxWorldX, maxWorldY)
+    )
+
+    return DebugGridTileRange(
+        x = (corners.minOf { it.x } - margin)..
+            (corners.maxOf { it.x } + margin),
+        y = (corners.minOf { it.y } - margin)..
+            (corners.maxOf { it.y } + margin)
+    )
+}
 
 class IsoGridRenderer(
     private val projection: IsoProjection,
@@ -24,6 +64,7 @@ class IsoGridRenderer(
         if (!settings.enabled) return
 
         shapes.projectionMatrix = camera.combined
+        val tileRange = tileRange(world, camera)
 
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(
@@ -35,15 +76,13 @@ class IsoGridRenderer(
             shapes.begin(ShapeRenderer.ShapeType.Filled)
             shapes.color = color
 
-            for (y in 0 until world.height) {
-                for (x in 0 until world.width) {
-                    val position = projection.tileToWorld(x, y)
+            forEachTile(tileRange) { x, y ->
+                val position = projection.tileToWorld(x, y)
 
-                    drawFilledTile(
-                        x = position.x,
-                        y = position.y
-                    )
-                }
+                drawFilledTile(
+                    x = position.x,
+                    y = position.y
+                )
             }
 
             shapes.end()
@@ -51,6 +90,7 @@ class IsoGridRenderer(
 
         if (
             hoveredTile != null &&
+            hoveredTile in tileRange &&
             settings.hoverBackgroundColor != null
         ) {
             val position = projection.tileToWorld(
@@ -80,19 +120,17 @@ class IsoGridRenderer(
         // Draw the regular grid first.
         shapes.color = settings.color
 
-        for (y in 0 until world.height) {
-            for (x in 0 until world.width) {
-                val position = projection.tileToWorld(x, y)
+        forEachTile(tileRange) { x, y ->
+            val position = projection.tileToWorld(x, y)
 
-                drawTile(
-                    x = position.x,
-                    y = position.y
-                )
-            }
+            drawTile(
+                x = position.x,
+                y = position.y
+            )
         }
 
         // Draw selected tile again so neighboring cells cannot cover its edges.
-        selectedTile?.let { tile ->
+        selectedTile?.takeIf { it in tileRange }?.let { tile ->
             shapes.setColor(0.3f, 0.6f, 1f, 1f)
 
             val position = projection.tileToWorld(
@@ -107,7 +145,7 @@ class IsoGridRenderer(
         }
 
         // Hover is drawn last and therefore always remains fully visible.
-        hoveredTile?.let { tile ->
+        hoveredTile?.takeIf { it in tileRange }?.let { tile ->
             shapes.color = settings.hoverColor
 
             val position = projection.tileToWorld(
@@ -125,6 +163,42 @@ class IsoGridRenderer(
 
         Gdx.gl.glLineWidth(1f)
         Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    private fun tileRange(
+        world: World,
+        camera: OrthographicCamera
+    ): DebugGridTileRange {
+        return when (settings.extent) {
+            DebugGridExtent.WORLD -> DebugGridTileRange(
+                x = 0 until world.width,
+                y = 0 until world.height
+            )
+
+            DebugGridExtent.VISIBLE -> {
+                val halfWidth = camera.viewportWidth * camera.zoom / 2f
+                val halfHeight = camera.viewportHeight * camera.zoom / 2f
+
+                visibleDebugGridTileRange(
+                    projection = projection,
+                    minWorldX = camera.position.x - halfWidth,
+                    minWorldY = camera.position.y - halfHeight,
+                    maxWorldX = camera.position.x + halfWidth,
+                    maxWorldY = camera.position.y + halfHeight
+                )
+            }
+        }
+    }
+
+    private inline fun forEachTile(
+        range: DebugGridTileRange,
+        action: (x: Int, y: Int) -> Unit
+    ) {
+        for (y in range.y) {
+            for (x in range.x) {
+                action(x, y)
+            }
+        }
     }
 
     private fun drawFilledTile(

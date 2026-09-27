@@ -11,22 +11,48 @@ class TilePicker(
     private val world: World
 ) {
     private val position = Vector3()
-    fun pick(screenX: Float, screenY: Float): TilePosition? {
+
+    /** Returns the logical grid position at the given screen position. */
+    fun pickGrid(screenX: Float, screenY: Float): TilePosition {
         position.set(screenX, screenY, 0f)
         camera.unproject(position)
 
-        return pickWorld(position.x, position.y)
+        return pickGridWorld(position.x, position.y)
+    }
+
+    /** Returns the world tile at the given screen position, or null. */
+    fun pick(screenX: Float, screenY: Float): TilePosition? {
+        return pickGrid(screenX, screenY).takeIf { (x, y) ->
+            world.getTile(x, y) != null
+        }
+    }
+
+    internal fun pickGridWorld(
+        worldX: Float,
+        worldY: Float
+    ): TilePosition {
+        val tile = projection.worldToTile(worldX, worldY)
+
+        check(
+            projection.containsTopFace(
+                worldX,
+                worldY,
+                tile.x,
+                tile.y
+            )
+        ) {
+            "Inverse isometric projection did not resolve a top face."
+        }
+
+        return tile
     }
 
     internal fun pickWorld(
         worldX: Float,
         worldY: Float
     ): TilePosition? {
-        val tile = projection.worldToTile(worldX, worldY)
-
-        return tile.takeIf { (x, y) ->
-            world.getTile(x, y) != null &&
-                projection.containsTopFace(worldX, worldY, x, y)
+        return pickGridWorld(worldX, worldY).takeIf { (x, y) ->
+            world.getTile(x, y) != null
         }
     }
 }

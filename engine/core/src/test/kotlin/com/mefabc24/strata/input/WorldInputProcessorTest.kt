@@ -14,6 +14,72 @@ import kotlin.test.assertTrue
 class WorldInputProcessorTest {
 
     @Test
+    fun `grid binding dispatches logical coordinates outside the world`() {
+        var dispatched: TilePosition? = null
+        val processor = WorldInputProcessor(
+            bindings = listOf(
+                WorldInputBinding.Grid(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { x, y ->
+                    dispatched = TilePosition(x, y)
+                    true
+                }
+            ),
+            pickTile = { _, _ -> null },
+            pickObject = { _, _, _ -> null },
+            pickGrid = { _, _ -> TilePosition(-2, 14) }
+        )
+
+        assertTrue(processor.touchDown(4, 5, 0, Input.Buttons.LEFT))
+        assertEquals(TilePosition(-2, 14), dispatched)
+    }
+
+    @Test
+    fun `tile binding does not dispatch a logical coordinate outside world`() {
+        var dispatched = false
+        val processor = WorldInputProcessor(
+            bindings = listOf(
+                WorldInputBinding.Tile(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { _, _ ->
+                    dispatched = true
+                    true
+                }
+            ),
+            pickTile = { _, _ -> null },
+            pickObject = { _, _, _ -> null },
+            pickGrid = { _, _ -> TilePosition(52, 7) }
+        )
+
+        assertFalse(processor.touchDown(4, 5, 0, Input.Buttons.LEFT))
+        assertFalse(dispatched)
+    }
+
+    @Test
+    fun `matching grid bindings share one pick`() {
+        var picks = 0
+        val processor = WorldInputProcessor(
+            bindings = listOf(
+                WorldInputBinding.Grid(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { _, _ -> false },
+                WorldInputBinding.Grid(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { _, _ -> true }
+            ),
+            pickTile = { _, _ -> null },
+            pickObject = { _, _, _ -> null },
+            pickGrid = { _, _ ->
+                picks++
+                TilePosition(2, 3)
+            }
+        )
+
+        assertTrue(processor.touchDown(4, 5, 0, Input.Buttons.LEFT))
+        assertEquals(1, picks)
+    }
+
+    @Test
     fun `entity binding dispatches the picked runtime entity`() {
         val world = World(1, 1) { _, _ -> TestTile }
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))

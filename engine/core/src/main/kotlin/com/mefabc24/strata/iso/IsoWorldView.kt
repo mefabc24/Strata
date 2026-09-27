@@ -26,6 +26,7 @@ import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.scene.DebugGridSettings
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.scene.DebugGridRenderLayer
 
 /**
@@ -102,6 +103,8 @@ class IsoWorldView(
 
     var hoveredTile: TilePosition? = null
         private set
+
+    private var hoveredGridPosition: TilePosition? = null
 
     internal var animationTime: Float = 0f
         private set
@@ -221,6 +224,9 @@ class IsoWorldView(
         },
         pickEntity = { screenX, screenY, mode ->
             pickEntity(screenX, screenY, mode)
+        },
+        pickGrid = { screenX, screenY ->
+            tilePicker.pickGrid(screenX, screenY)
         }
     )
 
@@ -264,10 +270,13 @@ class IsoWorldView(
         animationTime += delta
         cameraController.update(delta)
 
-        hoveredTile = tilePicker.pick(
+        hoveredGridPosition = tilePicker.pickGrid(
             Gdx.input.x.toFloat(),
             Gdx.input.y.toFloat()
         )
+        hoveredTile = hoveredGridPosition?.takeIf { position ->
+            world.getTile(position) != null
+        }
     }
 
     /**
@@ -289,7 +298,10 @@ class IsoWorldView(
             gridRenderer.render(
                 world = world,
                 camera = camera,
-                hoveredTile = hoveredTile
+                hoveredTile = when (debugGridConfig.extent) {
+                    DebugGridExtent.WORLD -> hoveredTile
+                    DebugGridExtent.VISIBLE -> hoveredGridPosition
+                }
             )
 
             if (
@@ -314,9 +326,14 @@ class IsoWorldView(
         cameraController.refreshZoomBounds()
     }
 
-    /** Returns the tile at the given screen position, or null. */
+    /** Returns the world tile at the given screen position, or null. */
     fun pickTile(screenX: Float, screenY: Float): TilePosition? {
         return tilePicker.pick(screenX, screenY)
+    }
+
+    /** Returns the logical grid position at the given screen position. */
+    fun pickGrid(screenX: Float, screenY: Float): TilePosition {
+        return tilePicker.pickGrid(screenX, screenY)
     }
 
     /**
