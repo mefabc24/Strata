@@ -13,10 +13,34 @@ object IsoEntityBounds {
         visual: EntityVisual,
         result: Rectangle
     ): Rectangle {
-        val baseWidth = visual.width ?: visual.texture.regionWidth.toFloat()
+        return calculate(projection, entity, visual, visual.texture, result)
+    }
+
+    fun calculate(
+        projection: IsoProjection,
+        entity: WorldEntity,
+        visual: ResolvedEntityVisual,
+        result: Rectangle
+    ): Rectangle {
+        return calculate(
+            projection,
+            entity,
+            visual.visual,
+            visual.frame.texture,
+            result
+        )
+    }
+
+    private fun calculate(
+        projection: IsoProjection,
+        entity: WorldEntity,
+        visual: EntityVisual,
+        texture: com.badlogic.gdx.graphics.g2d.TextureRegion,
+        result: Rectangle
+    ): Rectangle {
+        val baseWidth = visual.width ?: texture.regionWidth.toFloat()
         val baseHeight = visual.height ?: (
-            baseWidth * visual.texture.regionHeight /
-                visual.texture.regionWidth
+            baseWidth * texture.regionHeight / texture.regionWidth
             )
         val width = baseWidth * visual.scale
         val height = baseHeight * visual.scale

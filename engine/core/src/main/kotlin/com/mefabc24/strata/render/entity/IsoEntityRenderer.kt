@@ -17,6 +17,18 @@ class IsoEntityRenderer(
         visual: EntityVisual,
         animationTime: Float
     ) {
+        render(
+            batch,
+            entity,
+            ResolvedEntityVisual(visual, animationTime, null)
+        )
+    }
+
+    fun render(
+        batch: SpriteBatch,
+        entity: WorldEntity,
+        visual: ResolvedEntityVisual
+    ) {
         IsoEntityBounds.calculate(
             projection = projection,
             entity = entity,
@@ -25,7 +37,7 @@ class IsoEntityRenderer(
         )
 
         batch.draw(
-            visual.frameAt(animationTime).texture,
+            visual.frame.texture,
             bounds.x,
             bounds.y,
             bounds.width,

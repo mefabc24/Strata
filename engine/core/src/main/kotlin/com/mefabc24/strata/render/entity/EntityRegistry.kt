@@ -7,6 +7,13 @@ import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
 import com.mefabc24.strata.render.`object`.alphaMasksFromSpriteSheetClasspath
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
+import com.mefabc24.strata.render.sprite.ResolvedVisual
+import com.mefabc24.strata.render.sprite.SpriteDefinitionBuilder
+import com.mefabc24.strata.render.sprite.StatefulSpriteBuilder
+import com.mefabc24.strata.render.sprite.VisualDefinition
+import com.mefabc24.strata.render.sprite.VisualPlayback
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.render.sprite.spriteSource
 import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Entity
@@ -41,21 +48,51 @@ class EntitySpriteSettings {
 @Suppress("unused")
 class EntityEntry internal constructor(
     val type: KClass<out Entity>,
-    internal val source: SpriteSource,
+    internal val definition: VisualDefinition<WorldEntity, SpriteSource>,
     internal val settings: EntitySpriteSettings
 ) {
-    private var preparedVisual: EntityVisual? = null
+    internal val sources = definition.sources()
+    private var preparedDefinition:
+        PreparedVisualDefinition<WorldEntity, EntityVisual>? = null
+    private var preparedVisuals: List<EntityVisual> = emptyList()
 
     val visual: EntityVisual
-        get() = preparedVisual
-            ?: error("Entity type $type is not prepared.")
+        get() {
+            check(definition is VisualDefinition.Single) {
+                "Entity type $type is stateful and requires a runtime entity."
+            }
+            return preparedVisuals.singleOrNull()
+                ?: error("Entity type $type is not prepared.")
+        }
 
     val isPrepared: Boolean
-        get() = preparedVisual != null
+        get() = preparedDefinition != null
 
-    internal fun prepare(visual: EntityVisual) {
-        preparedVisual = visual
+    internal fun prepare(
+        definition: PreparedVisualDefinition<WorldEntity, EntityVisual>,
+        visuals: List<EntityVisual>
+    ) {
+        preparedDefinition = definition
+        preparedVisuals = visuals
     }
+
+    internal fun resolve(
+        entity: WorldEntity,
+        animationTime: Float
+    ): ResolvedVisual<EntityVisual> {
+        return preparedDefinition?.resolve(entity, animationTime)
+            ?: error("Entity type $type is not prepared.")
+    }
+}
+
+/** The active entity visual and the clock used for its current frame. */
+class ResolvedEntityVisual internal constructor(
+    val visual: EntityVisual,
+    val stateTime: Float,
+    val state: VisualStateId?
+) {
+    val frame: EntityVisualFrame
+        get() = visual.frameAt(stateTime)
 }
 
 /** Scene-owned visual registration for game entity types. */
@@ -108,11 +145,10 @@ class EntityRegistry internal constructor(
         sprite: String,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) { sprite(sprite) },
             configure = configure
-        )
+        ) { sprite(sprite) }
     }
 
     /**
@@ -124,11 +160,10 @@ class EntityRegistry internal constructor(
         atlas: String,
         region: String,
         configure: EntitySpriteSettings.() -> Unit = {}
-    ) = registerSource(
+    ) = registerVisual(
         type,
-        spriteSource(::resolvePath) { atlas(atlas, region) },
         configure
-    )
+    ) { atlas(atlas, region) }
 
     fun <T : Entity> registerAnimated(
         type: KClass<T>,
@@ -136,13 +171,10 @@ class EntityRegistry internal constructor(
         frameDuration: Float,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) {
-                animated(frames, frameDuration)
-            },
             configure = configure
-        )
+        ) { animated(frames, frameDuration) }
     }
 
     /** Registers indexed atlas regions as a looping animation. */
@@ -152,13 +184,10 @@ class EntityRegistry internal constructor(
         region: String,
         frameDuration: Float,
         configure: EntitySpriteSettings.() -> Unit = {}
-    ) = registerSource(
+    ) = registerVisual(
         type,
-        spriteSource(::resolvePath) {
-            animatedAtlas(atlas, region, frameDuration)
-        },
         configure
-    )
+    ) { animatedAtlas(atlas, region, frameDuration) }
 
     fun <T : Entity> registerAnimated(
         type: KClass<T>,
@@ -169,19 +198,18 @@ class EntityRegistry internal constructor(
         frameCount: Int? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) {
-                spriteSheet(
-                    spriteSheet,
-                    frameWidth,
-                    frameHeight,
-                    frameDuration,
-                    frameCount
-                )
-            },
             configure = configure
-        )
+        ) {
+            spriteSheet(
+                spriteSheet,
+                frameWidth,
+                frameHeight,
+                frameDuration,
+                frameCount
+            )
+        }
     }
 
     inline fun <reified T : Entity> register(
@@ -231,10 +259,68 @@ class EntityRegistry internal constructor(
         configure
     )
 
+    /** Registers one sprite source through the shared sprite-definition DSL. */
+    fun <T : Entity> registerVisual(
+        type: KClass<T>,
+        configure: EntitySpriteSettings.() -> Unit = {},
+        visual: SpriteDefinitionBuilder.() -> Unit
+    ) {
+        registerDefinition(
+            type = type,
+            definition = VisualDefinition.Single(
+                spriteSource(::resolvePath, visual)
+            ),
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Entity> registerVisual(
+        noinline configure: EntitySpriteSettings.() -> Unit = {},
+        noinline visual: SpriteDefinitionBuilder.() -> Unit
+    ) = registerVisual(T::class, configure, visual)
+
+    /**
+     * Registers game-defined states for an entity type.
+     *
+     * All state assets are queued during setup. The resolver runs at runtime
+     * and receives both the engine-owned entity and the typed game entity.
+     * States use local playback by default, restarting when the state changes.
+     */
+    fun <T : Entity> registerStateful(
+        type: KClass<T>,
+        stateFor: (WorldEntity, T) -> VisualStateId,
+        configure: EntitySpriteSettings.() -> Unit = {},
+        states: StatefulSpriteBuilder.() -> Unit
+    ) {
+        check(registrationOpen) {
+            "Entity registry registration is already closed."
+        }
+        val definitions = StatefulSpriteBuilder(
+            ::resolvePath,
+            VisualPlayback.LOCAL
+        ).apply(states).build()
+        registerDefinition(
+            type = type,
+            definition = VisualDefinition.Stateful(
+                states = definitions,
+                stateFor = { runtime ->
+                    stateFor(runtime, type.java.cast(runtime.entity))
+                }
+            ),
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Entity> registerStateful(
+        noinline stateFor: (WorldEntity, T) -> VisualStateId,
+        noinline configure: EntitySpriteSettings.() -> Unit = {},
+        noinline states: StatefulSpriteBuilder.() -> Unit
+    ) = registerStateful(T::class, stateFor, configure, states)
+
     internal fun prepare() {
         val preparedAtlasMasks = loadAtlasAlphaMasks(
             registrations.values.filterNot(EntityEntry::isPrepared)
-                .map(EntityEntry::source)
+                .flatMap(EntityEntry::sources)
                 .filter {
                     it is SpriteSource.AtlasRegion ||
                         it is SpriteSource.AtlasAnimation
@@ -243,14 +329,13 @@ class EntityRegistry internal constructor(
         registrations.values.forEach { entry ->
             if (entry.isPrepared) return@forEach
 
-            val sprite = entry.source.prepare(regionFor, atlasFor)
-            val masks = alphaMasksFor(entry.source, preparedAtlasMasks)
-            require(masks.size == sprite.frameCount) {
-                "Entity animation alpha-mask count must match its frame count."
-            }
-
             val settings = entry.settings
-            entry.prepare(
+            val visualsBySource = entry.sources.associateWith { source ->
+                val sprite = source.prepare(regionFor, atlasFor)
+                val masks = alphaMasksFor(source, preparedAtlasMasks)
+                require(masks.size == sprite.frameCount) {
+                    "Entity animation alpha-mask count must match its frame count."
+                }
                 EntityVisual(
                     sprite = sprite,
                     alphaMasks = masks,
@@ -260,6 +345,10 @@ class EntityRegistry internal constructor(
                     height = settings.height,
                     scale = settings.scale
                 )
+            }
+            entry.prepare(
+                definition = entry.definition.prepare(visualsBySource::getValue),
+                visuals = entry.sources.map(visualsBySource::getValue)
             )
         }
     }
@@ -272,9 +361,24 @@ class EntityRegistry internal constructor(
         return registrations[entity.entity::class]?.visual
     }
 
-    private fun <T : Entity> registerSource(
+    /** Resolves the active state and animation clock for [entity]. */
+    fun resolve(
+        entity: WorldEntity,
+        animationTime: Float
+    ): ResolvedEntityVisual? {
+        val resolved = registrations[entity.entity::class]
+            ?.resolve(entity, animationTime)
+            ?: return null
+        return ResolvedEntityVisual(
+            visual = resolved.visual,
+            stateTime = resolved.stateTime,
+            state = resolved.state
+        )
+    }
+
+    private fun <T : Entity> registerDefinition(
         type: KClass<T>,
-        source: SpriteSource,
+        definition: VisualDefinition<WorldEntity, SpriteSource>,
         configure: EntitySpriteSettings.() -> Unit
     ) {
         check(registrationOpen) {
@@ -286,8 +390,8 @@ class EntityRegistry internal constructor(
 
         val settings = EntitySpriteSettings().apply(configure)
         settings.validate()
-        source.queue(queueTexture, queueAtlas)
-        registrations[type] = EntityEntry(type, source, settings)
+        definition.sources().forEach { it.queue(queueTexture, queueAtlas) }
+        registrations[type] = EntityEntry(type, definition, settings)
     }
 
     private fun alphaMasksFor(

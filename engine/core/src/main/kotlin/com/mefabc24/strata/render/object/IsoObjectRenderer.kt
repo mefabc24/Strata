@@ -27,6 +27,18 @@ class IsoObjectRenderer(
         visual: ObjectVisual,
         animationTime: Float
     ) {
+        render(
+            batch,
+            placed,
+            ResolvedObjectVisual(visual, animationTime, null)
+        )
+    }
+
+    fun render(
+        batch: SpriteBatch,
+        placed: PlacedObject,
+        visual: ResolvedObjectVisual
+    ) {
         IsoObjectBounds.calculate(
             projection = projection,
             placed = placed,
@@ -36,7 +48,7 @@ class IsoObjectRenderer(
         )
 
         batch.draw(
-            visual.frameAt(animationTime).texture,
+            visual.frame.texture,
             bounds.x,
             bounds.y,
             bounds.width,

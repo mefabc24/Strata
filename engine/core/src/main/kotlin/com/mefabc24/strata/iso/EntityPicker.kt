@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.render.entity.EntityVisual
 import com.mefabc24.strata.render.entity.alphaMask
+import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldRenderPlan
@@ -18,7 +19,10 @@ class EntityPicker(
     private val world: World,
     private val visualFor: (WorldEntity) -> EntityVisual?,
     private val animationTime: () -> Float = { 0f },
-    private val orderedEntities: (() -> List<WorldEntity>)? = null
+    private val orderedEntities: (() -> List<WorldEntity>)? = null,
+    private val resolvedVisualFor: (
+        (WorldEntity, Float) -> ResolvedEntityVisual?
+    )? = null
 ) {
     private val cursor = Vector3()
     private val bounds = Rectangle()
@@ -33,6 +37,7 @@ class EntityPicker(
         worldX: Float,
         worldY: Float
     ): WorldEntity? {
+        val currentAnimationTime = animationTime()
         val entities = orderedEntities?.invoke()
             ?: WorldRenderPlan.create(
                 world = world,
@@ -46,7 +51,12 @@ class EntityPicker(
             worldX = worldX,
             worldY = worldY,
             bounds = bounds,
-            visualFor = visualFor,
+            visualFor = { entity ->
+                resolvedVisualFor?.invoke(entity, currentAnimationTime)
+                    ?: visualFor(entity)?.let {
+                        ResolvedEntityVisual(it, currentAnimationTime, null)
+                    }
+            },
             calculateBounds = { entity, visual, result ->
                 IsoEntityBounds.calculate(
                     projection = projection,
@@ -56,7 +66,7 @@ class EntityPicker(
                 )
             },
             alphaMaskFor = { visual ->
-                visual.frameAt(animationTime()).alphaMask
+                visual.frame.alphaMask
             }
         )
     }

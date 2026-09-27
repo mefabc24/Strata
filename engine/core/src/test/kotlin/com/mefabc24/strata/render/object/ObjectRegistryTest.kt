@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -13,6 +14,7 @@ import com.mefabc24.strata.ui.StrataSelectableImageButton
 import com.mefabc24.strata.ui.StrataSelectionGroup
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
+import com.mefabc24.strata.world.PlacedObject
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,6 +32,16 @@ class ObjectRegistryTest {
     }
 
     private class Tree : Placeable {
+        override val footprint = Footprint.square(1)
+    }
+
+    private enum class WorkshopState : VisualStateId {
+        OFF,
+        WORKING,
+        UNKNOWN
+    }
+
+    private class Workshop(var state: WorkshopState) : Placeable {
         override val footprint = Footprint.square(1)
     }
 
@@ -336,6 +348,84 @@ class ObjectRegistryTest {
         registry.prepare()
 
         assertEquals(1, loads)
+    }
+
+    @Test
+    fun `stateful object selects static and animated states with local timing`() {
+        val textures = mapOf(
+            "objects/off.png" to region(16, 16),
+            "objects/work_0.png" to region(32, 24),
+            "objects/work_1.png" to region(32, 24)
+        )
+        val firstMask = alphaMask()
+        val secondMask = alphaMask()
+        val masks = mapOf(
+            "objects/off.png" to firstMask,
+            "objects/work_0.png" to firstMask,
+            "objects/work_1.png" to secondMask
+        )
+        val queued = mutableListOf<String>()
+        val registry = ObjectRegistry(
+            directory = "objects",
+            queueTexture = queued::add,
+            regionFor = textures::getValue,
+            loadAlphaMask = masks::get
+        )
+        registry.registerStateful<Workshop>(
+            factory = { Workshop(WorkshopState.OFF) },
+            stateFor = { _, workshop -> workshop.state }
+        ) {
+            state(WorkshopState.OFF) { sprite("off.png") }
+            state(WorkshopState.WORKING) {
+                animated(
+                    listOf("work_0.png", "work_1.png"),
+                    frameDuration = 0.2f
+                )
+            }
+        }
+        registry.prepare()
+
+        assertEquals(textures.keys.toList(), queued)
+        assertIs<Workshop>(registry.entries.single().create())
+
+        val workshop = Workshop(WorkshopState.WORKING)
+        val placed = PlacedObject(workshop, 0, 0)
+        assertSame(
+            textures.getValue("objects/work_0.png"),
+            registry.resolve(placed, 5f)?.frame?.texture
+        )
+        assertSame(
+            textures.getValue("objects/work_1.png"),
+            registry.resolve(placed, 5.21f)?.frame?.texture
+        )
+        assertSame(secondMask, registry.resolve(placed, 5.21f)?.frame?.alphaMask)
+
+        workshop.state = WorkshopState.OFF
+        assertSame(
+            textures.getValue("objects/off.png"),
+            registry.resolve(placed, 6f)?.frame?.texture
+        )
+        workshop.state = WorkshopState.WORKING
+        assertSame(
+            textures.getValue("objects/work_0.png"),
+            registry.resolve(placed, 7f)?.frame?.texture
+        )
+
+        val other = PlacedObject(Workshop(WorkshopState.WORKING), 1, 0)
+        assertSame(
+            textures.getValue("objects/work_0.png"),
+            registry.resolve(other, 7.21f)?.frame?.texture
+        )
+        assertSame(
+            textures.getValue("objects/work_1.png"),
+            registry.resolve(placed, 7.21f)?.frame?.texture
+        )
+
+        workshop.state = WorkshopState.UNKNOWN
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.resolve(placed, 8f)
+        }
+        assertTrue(failure.message.orEmpty().contains("UNKNOWN"))
     }
 
     @Test

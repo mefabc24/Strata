@@ -319,10 +319,12 @@ class StrataScene private constructor(
             SceneWorldViewSpec(
                 world = world,
                 textureFor = { tile, animationTime ->
-                    terrain.frameAt(terrainFor(tile), animationTime)
+                    terrain.frameAt(terrainFor(tile), tile, animationTime)
                 },
                 objectVisualFor = objects::get,
                 entityVisualFor = entities::get,
+                resolvedObjectVisualFor = objects::resolve,
+                resolvedEntityVisualFor = entities::resolve,
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,

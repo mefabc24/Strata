@@ -6,7 +6,9 @@ import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.EntityVisual
+import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
@@ -21,6 +23,8 @@ internal data class SceneWorldViewSpec(
     val textureFor: (Tile, Float) -> TextureRegion?,
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val entityVisualFor: (WorldEntity) -> EntityVisual?,
+    val resolvedObjectVisualFor: (PlacedObject, Float) -> ResolvedObjectVisual?,
+    val resolvedEntityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,
     val renderingSettings: RenderingSettings,
@@ -54,6 +58,8 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
                 textureFor = spec.textureFor,
                 objectVisualFor = spec.objectVisualFor,
                 entityVisualFor = spec.entityVisualFor,
+                resolvedObjectVisualFor = spec.resolvedObjectVisualFor,
+                resolvedEntityVisualFor = spec.resolvedEntityVisualFor,
                 cameraSettings = spec.cameraSettings,
                 controls = spec.controlsSettings,
                 renderingSettings = spec.renderingSettings,

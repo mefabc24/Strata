@@ -7,6 +7,13 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
+import com.mefabc24.strata.render.sprite.ResolvedVisual
+import com.mefabc24.strata.render.sprite.SpriteDefinitionBuilder
+import com.mefabc24.strata.render.sprite.StatefulSpriteBuilder
+import com.mefabc24.strata.render.sprite.VisualDefinition
+import com.mefabc24.strata.render.sprite.VisualPlayback
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.render.sprite.spriteSource
 import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Placeable
@@ -48,20 +55,28 @@ class ObjectSpriteSettings {
  */
 class ObjectEntry internal constructor(
     val type: KClass<out Placeable>,
-    internal val source: SpriteSource,
+    internal val definition: VisualDefinition<PlacedObject, SpriteSource>,
     private val factory: (() -> Placeable)?,
     internal val settings: ObjectSpriteSettings
 ) {
-    val spritePath: String = source.assetPaths.first()
+    internal val sources = definition.sources()
+    val spritePath: String = sources.first().assetPaths.first()
 
-    private var preparedVisual: ObjectVisual? = null
+    private var preparedDefinition:
+        PreparedVisualDefinition<PlacedObject, ObjectVisual>? = null
+    private var preparedVisuals: List<ObjectVisual> = emptyList()
 
     val visual: ObjectVisual
-        get() = preparedVisual
-            ?: error("Object type $type is not prepared.")
+        get() {
+            check(definition is VisualDefinition.Single) {
+                "Object type $type is stateful and requires a runtime object."
+            }
+            return preparedVisuals.singleOrNull()
+                ?: error("Object type $type is not prepared.")
+        }
 
     val isPrepared: Boolean
-        get() = preparedVisual != null
+        get() = preparedDefinition != null
 
     val isConstructible: Boolean
         get() = factory != null
@@ -79,9 +94,31 @@ class ObjectEntry internal constructor(
         return placeable
     }
 
-    internal fun prepare(visual: ObjectVisual) {
-        preparedVisual = visual
+    internal fun prepare(
+        definition: PreparedVisualDefinition<PlacedObject, ObjectVisual>,
+        visuals: List<ObjectVisual>
+    ) {
+        preparedDefinition = definition
+        preparedVisuals = visuals
     }
+
+    internal fun resolve(
+        placed: PlacedObject,
+        animationTime: Float
+    ): ResolvedVisual<ObjectVisual> {
+        return preparedDefinition?.resolve(placed, animationTime)
+            ?: error("Object type $type is not prepared.")
+    }
+}
+
+/** The active object visual and the clock used for its current frame. */
+class ResolvedObjectVisual internal constructor(
+    val visual: ObjectVisual,
+    val stateTime: Float,
+    val state: VisualStateId?
+) {
+    val frame: ObjectVisualFrame
+        get() = visual.frameAt(stateTime)
 }
 
 /**
@@ -147,13 +184,11 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        checkRegistrationOpen()
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) { sprite(sprite) },
             factory = factory,
             configure = configure
-        )
+        ) { sprite(sprite) }
     }
 
     /**
@@ -167,13 +202,11 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        checkRegistrationOpen()
-        registerSource(
+        registerVisual(
             type,
-            spriteSource(::resolvePath) { atlas(atlas, region) },
             factory,
             configure
-        )
+        ) { atlas(atlas, region) }
     }
 
     /** Registers an object animation from ordered image files. */
@@ -184,15 +217,11 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        checkRegistrationOpen()
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) {
-                animated(frames, frameDuration)
-            },
             factory = factory,
             configure = configure
-        )
+        ) { animated(frames, frameDuration) }
     }
 
     /** Registers indexed atlas regions as a looping animation. */
@@ -204,15 +233,11 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        checkRegistrationOpen()
-        registerSource(
+        registerVisual(
             type,
-            spriteSource(::resolvePath) {
-                animatedAtlas(atlas, region, frameDuration)
-            },
             factory,
             configure
-        )
+        ) { animatedAtlas(atlas, region, frameDuration) }
     }
 
     /** Registers an object animation from a tight spritesheet. */
@@ -226,21 +251,19 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
-        checkRegistrationOpen()
-        registerSource(
+        registerVisual(
             type = type,
-            source = spriteSource(::resolvePath) {
-                spriteSheet(
-                    spriteSheet,
-                    frameWidth,
-                    frameHeight,
-                    frameDuration,
-                    frameCount
-                )
-            },
             factory = factory,
             configure = configure
-        )
+        ) {
+            spriteSheet(
+                spriteSheet,
+                frameWidth,
+                frameHeight,
+                frameDuration,
+                frameCount
+            )
+        }
     }
 
     inline fun <reified T : Placeable> register(
@@ -309,11 +332,73 @@ class ObjectRegistry internal constructor(
         )
     }
 
+    /** Registers one sprite source through the shared sprite-definition DSL. */
+    fun <T : Placeable> registerVisual(
+        type: KClass<T>,
+        factory: (() -> T)? = null,
+        configure: ObjectSpriteSettings.() -> Unit = {},
+        visual: SpriteDefinitionBuilder.() -> Unit
+    ) {
+        registerDefinition(
+            type = type,
+            definition = VisualDefinition.Single(
+                spriteSource(::resolvePath, visual)
+            ),
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Placeable> registerVisual(
+        noinline factory: (() -> T)? = null,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {},
+        noinline visual: SpriteDefinitionBuilder.() -> Unit
+    ) = registerVisual(T::class, factory, configure, visual)
+
+    /**
+     * Registers game-defined states for a placed object type.
+     *
+     * Every state's assets are queued during scene setup. The resolver runs at
+     * runtime and receives both engine placement data and the typed game object.
+     * States use local playback by default, restarting when the state changes.
+     */
+    fun <T : Placeable> registerStateful(
+        type: KClass<T>,
+        factory: (() -> T)? = null,
+        stateFor: (PlacedObject, T) -> VisualStateId,
+        configure: ObjectSpriteSettings.() -> Unit = {},
+        states: StatefulSpriteBuilder.() -> Unit
+    ) {
+        checkRegistrationOpen()
+        val definitions = StatefulSpriteBuilder(
+            ::resolvePath,
+            VisualPlayback.LOCAL
+        ).apply(states).build()
+        registerDefinition(
+            type = type,
+            definition = VisualDefinition.Stateful(
+                states = definitions,
+                stateFor = { placed ->
+                    stateFor(placed, type.java.cast(placed.placeable))
+                }
+            ),
+            factory = factory,
+            configure = configure
+        )
+    }
+
+    inline fun <reified T : Placeable> registerStateful(
+        noinline factory: (() -> T)? = null,
+        noinline stateFor: (PlacedObject, T) -> VisualStateId,
+        noinline configure: ObjectSpriteSettings.() -> Unit = {},
+        noinline states: StatefulSpriteBuilder.() -> Unit
+    ) = registerStateful(T::class, factory, stateFor, configure, states)
+
     /** Resolves textures and builds alpha masks after loading. */
     internal fun prepare() {
         val preparedAtlasMasks = loadAtlasAlphaMasks(
             registrations.values.filterNot(ObjectEntry::isPrepared)
-                .map(ObjectEntry::source)
+                .flatMap(ObjectEntry::sources)
                 .filter {
                     it is SpriteSource.AtlasRegion ||
                         it is SpriteSource.AtlasAnimation
@@ -322,15 +407,13 @@ class ObjectRegistry internal constructor(
         for (entry in registrations.values) {
             if (entry.isPrepared) continue
 
-            val sprite = entry.source.prepare(regionFor, atlasFor)
-            val alphaMasks = alphaMasksFor(entry.source, preparedAtlasMasks)
-
-            require(alphaMasks.size == sprite.frameCount) {
-                "Object animation alpha-mask count must match its frame count."
-            }
-
             val settings = entry.settings
-            entry.prepare(
+            val visualsBySource = entry.sources.associateWith { source ->
+                val sprite = source.prepare(regionFor, atlasFor)
+                val alphaMasks = alphaMasksFor(source, preparedAtlasMasks)
+                require(alphaMasks.size == sprite.frameCount) {
+                    "Object animation alpha-mask count must match its frame count."
+                }
                 ObjectVisual(
                     sprite = sprite,
                     alphaMasks = alphaMasks,
@@ -340,6 +423,10 @@ class ObjectRegistry internal constructor(
                     height = settings.height,
                     scale = settings.scale
                 )
+            }
+            entry.prepare(
+                definition = entry.definition.prepare(visualsBySource::getValue),
+                visuals = entry.sources.map(visualsBySource::getValue)
             )
         }
     }
@@ -352,23 +439,39 @@ class ObjectRegistry internal constructor(
         return registrations[placed.placeable::class]?.visual
     }
 
-    private fun <T : Placeable> registerSource(
+    /** Resolves the active state and animation clock for [placed]. */
+    fun resolve(
+        placed: PlacedObject,
+        animationTime: Float
+    ): ResolvedObjectVisual? {
+        val resolved = registrations[placed.placeable::class]
+            ?.resolve(placed, animationTime)
+            ?: return null
+        return ResolvedObjectVisual(
+            visual = resolved.visual,
+            stateTime = resolved.stateTime,
+            state = resolved.state
+        )
+    }
+
+    private fun <T : Placeable> registerDefinition(
         type: KClass<T>,
-        source: SpriteSource,
+        definition: VisualDefinition<PlacedObject, SpriteSource>,
         factory: (() -> T)?,
         configure: ObjectSpriteSettings.() -> Unit
     ) {
+        checkRegistrationOpen()
         require(type !in registrations) {
             "Object type $type is already registered."
         }
 
         val settings = ObjectSpriteSettings().apply(configure)
         settings.validate()
-        source.queue(queueTexture, queueAtlas)
+        definition.sources().forEach { it.queue(queueTexture, queueAtlas) }
 
         registrations[type] = ObjectEntry(
             type = type,
-            source = source,
+            definition = definition,
             factory = factory?.let { create -> { create() } },
             settings = settings
         )

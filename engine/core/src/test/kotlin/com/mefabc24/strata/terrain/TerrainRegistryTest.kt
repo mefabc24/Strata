@@ -13,6 +13,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import com.mefabc24.strata.terrain.TerrainId
+import com.mefabc24.strata.render.sprite.VisualStateId
+import com.mefabc24.strata.world.Tile
 
 class TerrainRegistryTest {
 
@@ -22,6 +24,14 @@ class TerrainRegistryTest {
         SAND,
         UNREGISTERED
     }
+
+    private enum class WaterState : VisualStateId {
+        CALM,
+        ROUGH,
+        UNKNOWN
+    }
+
+    private class WaterTile(var state: WaterState) : Tile
 
     @BeforeTest
     fun installTestEnvironment() {
@@ -328,6 +338,65 @@ class TerrainRegistryTest {
         registry.prepare()
 
         assertEquals(48f, registry.maxSpriteHeight(tileWidth = 32f))
+    }
+
+    @Test
+    fun `stateful terrain resolves game state with synchronized playback`() {
+        val calm = region(16, 16)
+        val rough0 = region(16, 24)
+        val rough1 = region(16, 24)
+        val registry = TerrainRegistry(
+            directory = "tiles",
+            queueTexture = {},
+            regionFor = { path ->
+                when {
+                    path.endsWith("rough_0.png") -> rough0
+                    path.endsWith("rough_1.png") -> rough1
+                    else -> calm
+                }
+            }
+        )
+        registry.registerStateful(
+            type = Terrain.WATER,
+            stateFor = { (it as WaterTile).state }
+        ) {
+            state(WaterState.CALM) { sprite("calm.png") }
+            state(WaterState.ROUGH) {
+                animated(
+                    listOf("rough_0.png", "rough_1.png"),
+                    frameDuration = 0.2f
+                )
+            }
+        }
+        registry.prepare()
+
+        val tile = WaterTile(WaterState.CALM)
+        assertSame(calm, registry.frameAt(Terrain.WATER, tile, 3f))
+
+        tile.state = WaterState.ROUGH
+        assertSame(rough1, registry.frameAt(Terrain.WATER, tile, 3f))
+        assertEquals(48f, registry.maxSpriteHeight(32f))
+
+        tile.state = WaterState.UNKNOWN
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.frameAt(Terrain.WATER, tile, 3f)
+        }
+        assertTrue(failure.message.orEmpty().contains("UNKNOWN"))
+    }
+
+    @Test
+    fun `stateful terrain rejects duplicate and empty state sets`() {
+        val registry = registry()
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerStateful(Terrain.WATER, { WaterState.CALM }) {}
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            registry.registerStateful(Terrain.WATER, { WaterState.CALM }) {
+                state(WaterState.CALM) { sprite("calm.png") }
+                state(WaterState.CALM) { sprite("other.png") }
+            }
+        }
     }
 
     @Test

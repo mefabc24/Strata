@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
@@ -21,6 +22,14 @@ class EntityRegistryTest {
 
     private class Citizen : Entity
     private class Trader : Entity
+
+    private enum class WolfState : VisualStateId {
+        RESTING,
+        MOVING,
+        UNKNOWN
+    }
+
+    private class Wolf(var state: WolfState) : Entity
 
     @BeforeTest
     fun installTestEnvironment() {
@@ -151,6 +160,74 @@ class EntityRegistryTest {
         } finally {
             atlas.dispose()
         }
+    }
+
+    @Test
+    fun `game-defined entity state resolves with independent local playback`() {
+        val textures = mapOf(
+            "entities/rest.png" to region(16, 24),
+            "entities/move_0.png" to region(20, 30),
+            "entities/move_1.png" to region(20, 30)
+        )
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = textures::getValue,
+            loadAlphaMask = { null }
+        )
+        registry.registerStateful<Wolf>(
+            stateFor = { _, wolf -> wolf.state }
+        ) {
+            state(WolfState.RESTING) { sprite("rest.png") }
+            state(WolfState.MOVING) {
+                animated(
+                    listOf("move_0.png", "move_1.png"),
+                    frameDuration = 0.1f
+                )
+            }
+        }
+        registry.prepare()
+
+        val wolf = Wolf(WolfState.MOVING)
+        val runtime = WorldEntity(wolf, EntityPosition(0.5f, 0.5f))
+        assertSame(
+            textures.getValue("entities/move_0.png"),
+            registry.resolve(runtime, 4f)?.frame?.texture
+        )
+        assertSame(
+            textures.getValue("entities/move_1.png"),
+            registry.resolve(runtime, 4.11f)?.frame?.texture
+        )
+
+        wolf.state = WolfState.RESTING
+        assertSame(
+            textures.getValue("entities/rest.png"),
+            registry.resolve(runtime, 5f)?.frame?.texture
+        )
+        wolf.state = WolfState.MOVING
+        assertSame(
+            textures.getValue("entities/move_0.png"),
+            registry.resolve(runtime, 6f)?.frame?.texture
+        )
+
+        val other = WorldEntity(
+            Wolf(WolfState.MOVING),
+            EntityPosition(1.5f, 1.5f)
+        )
+        assertSame(
+            textures.getValue("entities/move_0.png"),
+            registry.resolve(other, 6.11f)?.frame?.texture
+        )
+        assertSame(
+            textures.getValue("entities/move_1.png"),
+            registry.resolve(runtime, 6.11f)?.frame?.texture
+        )
+
+        wolf.state = WolfState.UNKNOWN
+        val failure = assertFailsWith<IllegalStateException> {
+            registry.resolve(runtime, 7f)
+        }
+        assertTrue(failure.message.orEmpty().contains("UNKNOWN"))
     }
 
     @Test

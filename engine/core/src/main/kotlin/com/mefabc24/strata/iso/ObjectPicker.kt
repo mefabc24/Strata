@@ -8,6 +8,7 @@ import com.mefabc24.strata.render.`object`.IsoObjectOrdering
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.render.`object`.ObjectVisual
 import com.mefabc24.strata.render.`object`.alphaMask
+import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -21,7 +22,10 @@ class ObjectPicker(
     private val visualFor: (PlacedObject) -> ObjectVisual?,
     private val animationTime: () -> Float = { 0f },
     private val orderedObjects: (() -> List<PlacedObject>)? = null,
-    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings(),
+    private val resolvedVisualFor: (
+        (PlacedObject, Float) -> ResolvedObjectVisual?
+    )? = null
 ) {
     private val objectSettings = objectSettings.copy().also {
         it.validate()
@@ -41,6 +45,7 @@ class ObjectPicker(
         worldX: Float,
         worldY: Float
     ): PlacedObject? {
+        val currentAnimationTime = animationTime()
         val objects = orderedObjects?.invoke()
             ?: IsoObjectOrdering.backToFront(
                 objects = world.getObjects(),
@@ -52,7 +57,12 @@ class ObjectPicker(
             worldX = worldX,
             worldY = worldY,
             bounds = bounds,
-            visualFor = visualFor,
+            visualFor = { placed ->
+                resolvedVisualFor?.invoke(placed, currentAnimationTime)
+                    ?: visualFor(placed)?.let {
+                        ResolvedObjectVisual(it, currentAnimationTime, null)
+                    }
+            },
             calculateBounds = { placed, visual, result ->
                 IsoObjectBounds.calculate(
                     projection = projection,
@@ -63,7 +73,7 @@ class ObjectPicker(
                 )
             },
             alphaMaskFor = { visual ->
-                visual.frameAt(animationTime()).alphaMask
+                visual.frame.alphaMask
             }
         )
     }

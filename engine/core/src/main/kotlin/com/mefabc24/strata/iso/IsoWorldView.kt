@@ -13,7 +13,9 @@ import com.mefabc24.strata.render.debug.IsoGridRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.EntityVisual
+import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
@@ -74,7 +76,13 @@ class IsoWorldView(
     cameraSettings: CameraSettings = CameraSettings(),
     controls: ControlsSettings = ControlsSettings(),
     renderingSettings: RenderingSettings = RenderingSettings(),
-    debugGridSettings: DebugGridSettings = DebugGridSettings()
+    debugGridSettings: DebugGridSettings = DebugGridSettings(),
+    private val resolvedObjectVisualFor: (
+        (PlacedObject, Float) -> ResolvedObjectVisual?
+    )? = null,
+    private val resolvedEntityVisualFor: (
+        (WorldEntity, Float) -> ResolvedEntityVisual?
+    )? = null
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -197,7 +205,8 @@ class IsoWorldView(
                     (primitive as? WorldObjectPrimitive)?.placedObject
                 }
         },
-        objectSettings = renderingConfig.objects
+        objectSettings = renderingConfig.objects,
+        resolvedVisualFor = resolvedObjectVisualFor
     )
 
     private val entityPicker = EntityPicker(
@@ -211,7 +220,8 @@ class IsoWorldView(
                 .mapNotNull { primitive ->
                     (primitive as? WorldEntityPrimitive)?.worldEntity
                 }
-        }
+        },
+        resolvedVisualFor = resolvedEntityVisualFor
     )
 
     private val worldInputProcessor = WorldInputProcessor(
@@ -289,6 +299,8 @@ class IsoWorldView(
             textureFor = textureFor,
             objectVisualFor = objectVisualFor,
             entityVisualFor = entityVisualFor,
+            resolvedObjectVisualFor = resolvedObjectVisualFor,
+            resolvedEntityVisualFor = resolvedEntityVisualFor,
             previews = previews,
             animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
@@ -313,7 +325,9 @@ class IsoWorldView(
                     objectVisualFor = objectVisualFor,
                     entityVisualFor = entityVisualFor,
                     previews = previews,
-                    animationTime = animationTime
+                    animationTime = animationTime,
+                    resolvedObjectVisualFor = resolvedObjectVisualFor,
+                    resolvedEntityVisualFor = resolvedEntityVisualFor
                 )
             }
         }

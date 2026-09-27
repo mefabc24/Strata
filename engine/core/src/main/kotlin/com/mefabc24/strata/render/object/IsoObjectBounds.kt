@@ -16,6 +16,41 @@ object IsoObjectBounds {
         result: Rectangle,
         objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
     ): Rectangle {
+        return calculate(
+            projection,
+            placed,
+            visual,
+            visual.texture,
+            result,
+            objectSettings
+        )
+    }
+
+    fun calculate(
+        projection: IsoProjection,
+        placed: PlacedObject,
+        visual: ResolvedObjectVisual,
+        result: Rectangle,
+        objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
+    ): Rectangle {
+        return calculate(
+            projection,
+            placed,
+            visual.visual,
+            visual.frame.texture,
+            result,
+            objectSettings
+        )
+    }
+
+    private fun calculate(
+        projection: IsoProjection,
+        placed: PlacedObject,
+        visual: ObjectVisual,
+        texture: com.badlogic.gdx.graphics.g2d.TextureRegion,
+        result: Rectangle,
+        objectSettings: ObjectRenderingSettings
+    ): Rectangle {
         val occupied = placed.occupiedTiles()
 
         val minX = occupied.minOf { it.x }
@@ -32,8 +67,7 @@ object IsoObjectBounds {
         val baseWidth = visual.width ?: footprintWidth
 
         val baseHeight = visual.height
-            ?: (baseWidth * visual.texture.regionHeight /
-                    visual.texture.regionWidth)
+            ?: (baseWidth * texture.regionHeight / texture.regionWidth)
 
         val spriteWidth = baseWidth * visual.scale
         val spriteHeight = baseHeight * visual.scale

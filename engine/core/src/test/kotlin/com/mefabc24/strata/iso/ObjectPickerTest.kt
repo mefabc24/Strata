@@ -8,6 +8,7 @@ import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.sprite.SpriteFrames
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Footprint
@@ -101,6 +102,57 @@ class ObjectPickerTest {
         animationTime = 0.5f
 
         assertNull(picker.pickWorld(x, y))
+    }
+
+    @Test
+    fun `sprite picking uses the resolved state frame and its bounds`() {
+        val world = World(3, 3) { _, _ -> TestTile() }
+        val placed = requireNotNull(world.place(TestObject(), 1, 1))
+        val projection = IsoProjection(TileGeometry(32f, 24f))
+        val visible = ObjectVisual(
+            texture = sizedRegion(16, 32),
+            alphaMask = alphaMask(true)
+        )
+        val hidden = ObjectVisual(
+            texture = sizedRegion(32, 16),
+            alphaMask = alphaMask(false)
+        )
+        var resolved = ResolvedObjectVisual(visible, 0f, null)
+        val picker = ObjectPicker(
+            camera = OrthographicCamera(),
+            projection = projection,
+            world = world,
+            visualFor = { null },
+            resolvedVisualFor = { _, _ -> resolved }
+        )
+        val visibleBounds = IsoObjectBounds.calculate(
+            projection,
+            placed,
+            resolved,
+            Rectangle()
+        )
+        val x = visibleBounds.x + visibleBounds.width / 2f
+        val y = visibleBounds.y + visibleBounds.height / 2f
+
+        assertEquals(64f, visibleBounds.height)
+        assertEquals(placed, picker.pickWorld(x, y))
+
+        resolved = ResolvedObjectVisual(hidden, 0f, null)
+        val hiddenBounds = IsoObjectBounds.calculate(
+            projection,
+            placed,
+            resolved,
+            Rectangle()
+        )
+        assertEquals(16f, hiddenBounds.height)
+        assertNull(picker.pickWorld(x, hiddenBounds.y + hiddenBounds.height / 2f))
+    }
+
+    private fun sizedRegion(width: Int, height: Int): TextureRegion {
+        return object : TextureRegion() {
+            override fun getRegionWidth(): Int = width
+            override fun getRegionHeight(): Int = height
+        }
     }
 
     private fun alphaMask(solid: Boolean): AlphaMask {

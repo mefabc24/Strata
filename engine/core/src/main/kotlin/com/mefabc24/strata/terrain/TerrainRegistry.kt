@@ -1,53 +1,84 @@
 package com.mefabc24.strata.terrain
 
-import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.assets.StrataAssets
+import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
+import com.mefabc24.strata.render.sprite.SpriteDefinitionBuilder
 import com.mefabc24.strata.render.sprite.SpriteFrames
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.StatefulSpriteBuilder
+import com.mefabc24.strata.render.sprite.VisualDefinition
+import com.mefabc24.strata.render.sprite.VisualPlayback
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.render.sprite.spriteSource
+import com.mefabc24.strata.world.Tile
 
-/**
- * Describes one terrain registration.
- *
- * The sprite is owned by the registry's asset manager. Accessing prepared
- * visual data requires the registry to have been prepared.
- */
+/** Describes one terrain registration and its prepared visual data. */
 class TerrainEntry internal constructor(
     val type: TerrainId,
-    internal val source: SpriteSource
+    internal val definition: VisualDefinition<Tile, SpriteSource>
 ) {
-    val spritePath: String = source.assetPaths.first()
+    internal val sources: List<SpriteSource> = definition.sources()
+    val spritePath: String = sources.first().assetPaths.first()
 
-    private var preparedSprite: SpriteFrames? = null
+    private var preparedDefinition:
+        PreparedVisualDefinition<Tile, SpriteFrames>? = null
+    private var preparedSprites: List<SpriteFrames> = emptyList()
 
-    /** The static texture or first animation frame. */
+    /** The static texture or first animation frame of a single visual. */
     val texture: TextureRegion
         get() = sprite.frameAtIndex(0)
 
-    /** Prepared static or animated sprite frames. */
+    /** Prepared frames for a single-visual terrain registration. */
     val sprite: SpriteFrames
-        get() = preparedSprite
-            ?: error("Terrain type $type is not prepared.")
+        get() {
+            check(definition is VisualDefinition.Single) {
+                "Terrain type $type is stateful; resolve it with a runtime tile."
+            }
+            return preparedSprites.singleOrNull()
+                ?: error("Terrain type $type is not prepared.")
+        }
 
     val isPrepared: Boolean
-        get() = preparedSprite != null
+        get() = preparedDefinition != null
 
-    fun frameAt(stateTime: Float): TextureRegion {
-        return sprite.frameAt(stateTime)
+    internal fun resolve(tile: Tile, animationTime: Float): TextureRegion {
+        val resolved = preparedDefinition?.resolve(tile, animationTime)
+            ?: error("Terrain type $type is not prepared.")
+        return resolved.visual.frameAt(resolved.stateTime)
     }
 
-    internal fun prepare(sprite: SpriteFrames) {
-        preparedSprite = sprite
+    internal fun resolveSingle(animationTime: Float): TextureRegion {
+        check(definition is VisualDefinition.Single) {
+            "Terrain type $type is stateful; a runtime tile is required."
+        }
+        return sprite.frameAt(animationTime)
+    }
+
+    internal fun prepare(
+        prepared: PreparedVisualDefinition<Tile, SpriteFrames>,
+        sprites: List<SpriteFrames>
+    ) {
+        preparedDefinition = prepared
+        preparedSprites = sprites
+    }
+
+    internal fun maxSpriteHeight(tileWidth: Float): Float {
+        check(isPrepared) { "Terrain type $type is not prepared." }
+        return preparedSprites.maxOf { sprite ->
+            (0 until sprite.frameCount).maxOf { index ->
+                val texture = sprite.frameAtIndex(index)
+                require(texture.regionWidth > 0) {
+                    "Terrain sprite width must be positive."
+                }
+                tileWidth * texture.regionHeight / texture.regionWidth
+            }
+        }
     }
 }
 
-/**
- * Maps terrain types to their sprites in registration order.
- *
- * Registration is available only during scene setup. Runtime reads remain
- * available after the owning scene closes registration and prepares entries.
- */
+/** Scene-owned terrain visual registration in declaration order. */
 class TerrainRegistry internal constructor(
     directory: String,
     private val queueTexture: (String) -> Unit,
@@ -57,80 +88,46 @@ class TerrainRegistry internal constructor(
         error("Atlas resolver is not configured.")
     }
 ) {
-    constructor(
-        directory: String,
-        assets: StrataAssets
-    ) : this(
-        directory = directory,
-        queueTexture = assets::queueTexture,
-        regionFor = assets::region,
-        queueAtlas = assets::queueAtlas,
-        atlasFor = assets::atlas
+    constructor(directory: String, assets: StrataAssets) : this(
+        directory,
+        assets::queueTexture,
+        assets::region,
+        assets::queueAtlas,
+        assets::atlas
     )
 
     private val baseDirectory = directory.trimEnd('/')
-    private val registrations =
-        linkedMapOf<TerrainId, TerrainEntry>()
+    private val registrations = linkedMapOf<TerrainId, TerrainEntry>()
     private var registrationOpen = true
 
-    /** A snapshot of registered terrain entries in registration order. */
     val entries: List<TerrainEntry>
         get() = registrations.values.toList()
 
-    /** Registers a static terrain sprite. */
-    fun register(
-        type: TerrainId,
-        sprite: String
-    ) {
-        checkRegistrationOpen()
-        registerSource(
-            type = type,
-            source = spriteSource(::resolvePath) { sprite(sprite) }
-        )
+    fun register(type: TerrainId, sprite: String) {
+        registerVisual(type) { sprite(sprite) }
     }
 
-    /**
-     * Registers a static atlas region. The atlas path is used as supplied and
-     * is not resolved relative to the terrain directory.
-     */
-    fun registerAtlas(
-        type: TerrainId,
-        atlas: String,
-        region: String
-    ) {
-        checkRegistrationOpen()
-        registerSource(type, spriteSource(::resolvePath) { atlas(atlas, region) })
+    fun registerAtlas(type: TerrainId, atlas: String, region: String) {
+        registerVisual(type) { atlas(atlas, region) }
     }
 
-    /** Registers a looping terrain animation from ordered image files. */
     fun registerAnimated(
         type: TerrainId,
         frames: List<String>,
         frameDuration: Float
     ) {
-        checkRegistrationOpen()
-        registerSource(
-            type = type,
-            source = spriteSource(::resolvePath) {
-                animated(frames, frameDuration)
-            }
-        )
+        registerVisual(type) { animated(frames, frameDuration) }
     }
 
-    /** Registers indexed atlas regions as a looping animation. */
     fun registerAnimatedAtlas(
         type: TerrainId,
         atlas: String,
         region: String,
         frameDuration: Float
     ) {
-        checkRegistrationOpen()
-        registerSource(type, spriteSource(::resolvePath) {
-            animatedAtlas(atlas, region, frameDuration)
-        })
+        registerVisual(type) { animatedAtlas(atlas, region, frameDuration) }
     }
 
-    /** Registers a looping terrain animation from a tight spritesheet. */
     fun registerAnimated(
         type: TerrainId,
         spriteSheet: String,
@@ -139,27 +136,55 @@ class TerrainRegistry internal constructor(
         frameDuration: Float,
         frameCount: Int? = null
     ) {
-        checkRegistrationOpen()
-        registerSource(
-            type = type,
-            source = spriteSource(::resolvePath) {
-                spriteSheet(
-                    spriteSheet,
-                    frameWidth,
-                    frameHeight,
-                    frameDuration,
-                    frameCount
-                )
-            }
+        registerVisual(type) {
+            spriteSheet(
+                spriteSheet,
+                frameWidth,
+                frameHeight,
+                frameDuration,
+                frameCount
+            )
+        }
+    }
+
+    /** Registers one static or animated sprite through the common source DSL. */
+    fun registerVisual(
+        type: TerrainId,
+        visual: SpriteDefinitionBuilder.() -> Unit
+    ) {
+        registerDefinition(
+            type,
+            VisualDefinition.Single(spriteSource(::resolvePath, visual))
         )
     }
 
-    /** Resolves registered sprites after their textures have loaded. */
-    internal fun prepare() {
-        for (entry in registrations.values) {
-            if (entry.isPrepared) continue
+    /**
+     * Registers game-defined terrain states resolved from each runtime tile.
+     * Terrain states use synchronized playback unless a state overrides it.
+     */
+    fun registerStateful(
+        type: TerrainId,
+        stateFor: (Tile) -> VisualStateId,
+        configure: StatefulSpriteBuilder.() -> Unit
+    ) {
+        checkRegistrationOpen()
+        val states = StatefulSpriteBuilder(
+            ::resolvePath,
+            VisualPlayback.SYNCHRONIZED
+        ).apply(configure).build()
+        registerDefinition(type, VisualDefinition.Stateful(states, stateFor))
+    }
 
-            entry.prepare(entry.source.prepare(regionFor, atlasFor))
+    internal fun prepare() {
+        registrations.values.forEach { entry ->
+            if (entry.isPrepared) return@forEach
+            val preparedBySource = entry.sources.associateWith { source ->
+                source.prepare(regionFor, atlasFor)
+            }
+            entry.prepare(
+                prepared = entry.definition.prepare(preparedBySource::getValue),
+                sprites = entry.sources.map(preparedBySource::getValue)
+            )
         }
     }
 
@@ -167,54 +192,44 @@ class TerrainRegistry internal constructor(
         registrationOpen = false
     }
 
-    /**
-     * Returns the maximum terrain sprite height in world units.
-     *
-     * An empty registry returns infinity to disable height-based culling.
-     */
     fun maxSpriteHeight(tileWidth: Float): Float {
         require(tileWidth > 0f && tileWidth.isFinite()) {
             "Tile width must be finite and positive."
         }
-
-        check(registrations.values.all { it.isPrepared }) {
+        check(registrations.values.all(TerrainEntry::isPrepared)) {
             "Terrain sprites must be prepared before calculating their height."
         }
-
-        return registrations.values.maxOfOrNull { entry ->
-            val texture = entry.texture
-
-            require(texture.regionWidth > 0) {
-                "Terrain sprite width must be positive."
-            }
-
-            tileWidth * texture.regionHeight / texture.regionWidth
+        return registrations.values.maxOfOrNull {
+            it.maxSpriteHeight(tileWidth)
         } ?: Float.POSITIVE_INFINITY
     }
 
-    /** Returns the static texture or first animation frame. */
-    operator fun get(type: TerrainId): TextureRegion {
-        return entry(type).texture
+    operator fun get(type: TerrainId): TextureRegion = entry(type).texture
+
+    /** Resolves a frame for a single-visual terrain registration. */
+    fun frameAt(type: TerrainId, stateTime: Float): TextureRegion {
+        return entry(type).resolveSingle(stateTime)
     }
 
-    /** Resolves a terrain frame for the shared world-view animation time. */
+    /** Resolves the active terrain state and its current frame. */
     fun frameAt(
         type: TerrainId,
-        stateTime: Float
+        tile: Tile,
+        animationTime: Float
     ): TextureRegion {
-        return entry(type).frameAt(stateTime)
+        return entry(type).resolve(tile, animationTime)
     }
 
-    private fun registerSource(
+    private fun registerDefinition(
         type: TerrainId,
-        source: SpriteSource
+        definition: VisualDefinition<Tile, SpriteSource>
     ) {
+        checkRegistrationOpen()
         require(type !in registrations) {
             "Terrain type $type is already registered."
         }
-
-        source.queue(queueTexture, queueAtlas)
-        registrations[type] = TerrainEntry(type, source)
+        definition.sources().forEach { it.queue(queueTexture, queueAtlas) }
+        registrations[type] = TerrainEntry(type, definition)
     }
 
     private fun entry(type: TerrainId): TerrainEntry {
@@ -222,12 +237,8 @@ class TerrainRegistry internal constructor(
             ?: error("Terrain type $type is not registered.")
     }
 
-    private fun resolvePath(sprite: String): String {
-        return if (baseDirectory.isEmpty()) {
-            sprite
-        } else {
-            "$baseDirectory/$sprite"
-        }
+    private fun resolvePath(path: String): String {
+        return if (baseDirectory.isEmpty()) path else "$baseDirectory/$path"
     }
 
     private fun checkRegistrationOpen() {
