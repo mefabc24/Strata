@@ -30,7 +30,8 @@ class SandboxGame : StrataGame() {
 
             scene(
                 terrainDirectory = "tiles",
-                objectDirectory = "objects"
+                objectDirectory = "objects",
+                entityDirectory = "entities"
             ) {
                 terrain {
                     registerSandboxTerrain()
@@ -114,7 +115,10 @@ class SandboxGame : StrataGame() {
     private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
-    private lateinit var debugWalker: WorldEntity
+    private lateinit var wolf: WorldEntity
+
+    private var wolfPatrolIndex = 0
+    private var wolfIdleRemaining = WOLF_IDLE_SECONDS
 
     override fun onReady() {
         val world = createSandboxWorld()
@@ -160,30 +164,39 @@ class SandboxGame : StrataGame() {
 
     override fun updateGame(delta: Float) {
         sandboxUi.sync()
+        updateWolfPatrol(delta)
+    }
 
-        if (!debugWalker.isMoving) {
-            val destination =
-                if (
-                    debugWalker.currentTile ==
-                    DEBUG_WALKER_END
-                ) {
-                    DEBUG_WALKER_START
-                } else {
-                    DEBUG_WALKER_END
-                }
-
-            val path = requireNotNull(
-                strata.world.findPath(
-                    start = debugWalker.currentTile,
-                    goal = destination
-                )
-            )
-
-            debugWalker.followPath(
-                path,
-                DEBUG_WALKER_SPEED
-            )
+    private fun updateWolfPatrol(delta: Float) {
+        if (wolf.isMoving) {
+            return
         }
+
+        if (wolfIdleRemaining > 0f) {
+            wolfIdleRemaining =
+                (wolfIdleRemaining - delta).coerceAtLeast(0f)
+            return
+        }
+
+        val nextIndex =
+            (wolfPatrolIndex + 1) % WOLF_PATROL.size
+
+        val destination = WOLF_PATROL[nextIndex]
+
+        val path = requireNotNull(
+            strata.world.findPath(
+                start = wolf.currentTile,
+                goal = destination
+            )
+        )
+
+        wolf.followPath(
+            path = path,
+            speed = WOLF_SPEED
+        )
+
+        wolfPatrolIndex = nextIndex
+        wolfIdleRemaining = WOLF_IDLE_SECONDS
     }
 
     override fun disposeGame() {
@@ -198,8 +211,12 @@ class SandboxGame : StrataGame() {
                 trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
                 enabled = { !painter.enabled }
             ) { entity ->
-                if (entity.entity is DebugWalker) {
-                    println("Picked debug walker at ${entity.position}")
+                if (entity.entity is Wolf) {
+                    println(
+                        "Picked wolf at ${entity.position}, " +
+                                "direction=${entity.direction}, " +
+                                "moving=${entity.isMoving}"
+                    )
                     true
                 } else {
                     false
@@ -370,18 +387,9 @@ class SandboxGame : StrataGame() {
             "Failed to place test house."
         }
 
-        debugWalker = world.addEntity(
-            entity = DebugWalker(),
-            position = EntityPosition.centerOf(DEBUG_WALKER_START)
-        )
-        debugWalker.followPath(
-            path = requireNotNull(
-                world.findPath(
-                    start = DEBUG_WALKER_START,
-                    goal = DEBUG_WALKER_END
-                )
-            ),
-            speed = DEBUG_WALKER_SPEED
+        wolf = world.addEntity(
+            entity = Wolf(),
+            position = EntityPosition.centerOf(WOLF_PATROL.first())
         )
 
         return world
@@ -389,8 +397,15 @@ class SandboxGame : StrataGame() {
 
     private companion object {
         const val WORLD_SIZE = 50
-        const val DEBUG_WALKER_SPEED = 2f
-        val DEBUG_WALKER_START = TilePosition(2, 5)
-        val DEBUG_WALKER_END = TilePosition(9, 5)
+
+        const val WOLF_SPEED = 2f
+        const val WOLF_IDLE_SECONDS = 2f
+
+        val WOLF_PATROL = listOf(
+            TilePosition(2, 2),
+            TilePosition(8, 2),
+            TilePosition(8, 8),
+            TilePosition(2, 8)
+        )
     }
 }

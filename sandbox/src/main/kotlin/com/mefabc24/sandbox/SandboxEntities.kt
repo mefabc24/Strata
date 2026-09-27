@@ -1,6 +1,11 @@
 package com.mefabc24.sandbox
 
+import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.world.Entity
 
-/** Uses a decorative sprite to demonstrate generic moving entities. */
-class DebugWalker : Entity
+class Wolf : Entity
+
+enum class WolfState : VisualStateId {
+    IDLE,
+    WALK
+}
