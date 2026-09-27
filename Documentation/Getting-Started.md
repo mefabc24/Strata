@@ -49,6 +49,10 @@ dependencies {
 kotlin {
     jvmToolchain(21)
 }
+
+application {
+    mainClass.set("example.MainKt")
+}
 ```
 
 Alternatively, run `./gradlew :engine:core:publishToMavenLocal :engine:desktop:publishToMavenLocal` in Strata, add `mavenLocal()` before `mavenCentral()` in the game, and use the same dependencies. Re-publish after changing the engine. The Sandbox instead uses direct `project(":engine:core")` and `project(":engine:desktop")` dependencies because it lives in this repository.
@@ -155,4 +159,3 @@ Construction configures the game, `DesktopLauncher` creates `StrataEngine`, and 
 Strata updates entity movement, the view, placement previews, and UI before calling `updateGame(delta)`. It renders the world before the UI. Resize and disposal are forwarded automatically. Game resources that Strata does not own, such as a supplied UI `Skin`, belong in `disposeGame()`.
 
 Continue with [Architecture](Architecture.md) for ownership and lifecycle, then [Configuration](Configuration.md) for all setup blocks.
-

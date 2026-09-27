@@ -78,5 +78,16 @@ Audio volumes/category volumes and `DebugSettings` are runtime mutable. Once att
 
 Accessors such as `strata.scene`, `strata.world`, `strata.view`, `strata.placement`, and `strata.ui` require their corresponding runtime object to exist. Calling them from the scene configuration lambda fails because runtime operations are unavailable during setup. Use the setup receiver there, and use the facade from `onReady()` onward.
 
-See [Configuration](Configuration.md), [World and Coordinates](World-and-Coordinates.md), and [UI](UI.md) for the concrete workflows.
+## Current boundaries
 
+The current implementation has several concrete boundaries to design around:
+
+- one `Strata` runtime defines one scene; that scene accepts at most one world and one UI;
+- content registration closes during scene creation, and the built-in scene path loads queued assets synchronously before `onReady()`;
+- pathfinding uses uniform-cost, edge-connected tiles and only the caller's `canEnter` rule;
+- entities have continuous positions but no footprint, collision, occupancy, or generic AI system;
+- terrain overlay layers can be added and edited, but not removed or reordered through public API;
+- semantic states, gameplay tools, drag-building policy, and controller logic shown in Sandbox remain game-owned;
+- the project publishes Maven-compatible modules locally but currently configures no remote artifact repository.
+
+See [Configuration](Configuration.md), [World and Coordinates](World-and-Coordinates.md), and [UI](UI.md) for the concrete workflows.
