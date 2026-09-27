@@ -7,6 +7,7 @@ import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
 import com.mefabc24.strata.render.`object`.alphaMasksFromSpriteSheetClasspath
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.SpriteAlphaMaskCache
 import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
 import com.mefabc24.strata.render.sprite.ResolvedVisual
 import com.mefabc24.strata.render.sprite.SpriteDefinitionBuilder
@@ -135,9 +136,11 @@ class EntityRegistry internal constructor(
     private val baseDirectory = directory.trimEnd('/')
     private val registrations =
         linkedMapOf<KClass<out Entity>, EntityEntry>()
-    private val alphaMasks = mutableMapOf<String, AlphaMask?>()
-    private val spriteSheetAlphaMasks =
-        mutableMapOf<SpriteSheetMaskKey, List<AlphaMask?>>()
+    private val alphaMaskCache = SpriteAlphaMaskCache(
+        loadFile = loadAlphaMask,
+        loadSheet = loadSpriteSheetAlphaMasks,
+        sheetWidthFor = { path -> regionFor(path).regionWidth }
+    )
     private var registrationOpen = true
 
     val entries: List<EntityEntry>
@@ -375,7 +378,7 @@ class EntityRegistry internal constructor(
             val settings = entry.settings
             val visualsBySource = entry.sources.associateWith { source ->
                 val sprite = source.prepare(regionFor, atlasFor)
-                val masks = alphaMasksFor(source, preparedAtlasMasks)
+                val masks = alphaMaskCache.masksFor(source, preparedAtlasMasks)
                 require(masks.size == sprite.frameCount) {
                     "Entity animation alpha-mask count must match its frame count."
                 }
@@ -443,71 +446,8 @@ class EntityRegistry internal constructor(
         registrations[type] = EntityEntry(type, definition, settings)
     }
 
-    private fun alphaMasksFor(
-        source: SpriteSource,
-        preparedAtlasMasks: Map<SpriteSource, List<AlphaMask?>>
-    ): List<AlphaMask?> {
-        return when (source) {
-            is SpriteSource.Static -> listOf(alphaMaskFor(source.path))
-            is SpriteSource.AnimatedFiles -> source.assetPaths.map(::alphaMaskFor)
-            is SpriteSource.SpriteSheet -> {
-                val key = SpriteSheetMaskKey(
-                    source.path,
-                    source.frameWidth,
-                    source.frameHeight,
-                    source.frameCount
-                )
-                spriteSheetAlphaMasks.getOrPut(key) {
-                    loadSpriteSheetAlphaMasks(
-                        source.path,
-                        source.frameWidth,
-                        source.frameHeight,
-                        source.frameCount
-                    )
-                }
-            }
-            is SpriteSource.SpriteSheetRow -> {
-                val key = SpriteSheetMaskKey(
-                    source.path,
-                    source.frameWidth,
-                    source.frameHeight,
-                    null
-                )
-                val allMasks = spriteSheetAlphaMasks.getOrPut(key) {
-                    loadSpriteSheetAlphaMasks(
-                        source.path,
-                        source.frameWidth,
-                        source.frameHeight,
-                        null
-                    )
-                }
-                val columns = regionFor(source.path).regionWidth / source.frameWidth
-                val count = source.framesPerRow ?: columns
-                val start = source.row * columns
-                allMasks.subList(start, start + count)
-            }
-            is SpriteSource.AtlasRegion,
-            is SpriteSource.AtlasAnimation -> {
-                checkNotNull(preparedAtlasMasks[source]) {
-                    "Atlas alpha masks were not prepared for $source."
-                }
-            }
-        }
-    }
-
-    private fun alphaMaskFor(path: String): AlphaMask? {
-        if (path in alphaMasks) return alphaMasks[path]
-        return loadAlphaMask(path).also { alphaMasks[path] = it }
-    }
-
     private fun resolvePath(path: String): String {
         return if (baseDirectory.isEmpty()) path else "$baseDirectory/$path"
     }
 
-    private data class SpriteSheetMaskKey(
-        val path: String,
-        val frameWidth: Int,
-        val frameHeight: Int,
-        val frameCount: Int?
-    )
 }

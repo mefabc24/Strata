@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render.sprite
 
-import java.util.IdentityHashMap
+import java.lang.ref.ReferenceQueue
+import java.lang.ref.WeakReference
 
 /**
  * Marker for a game-defined visual state identifier.
@@ -108,7 +109,7 @@ internal sealed interface PreparedVisualDefinition<C : Any, V : Any> {
         private val states: Map<VisualStateId, VisualStateDefinition<V>>,
         private val stateFor: (C) -> VisualStateId
     ) : PreparedVisualDefinition<C, V> {
-        private val activeStates = IdentityHashMap<C, ActiveState>()
+        private val activeStates = WeakIdentityMap<C, ActiveState>()
 
         override fun resolve(context: C, animationTime: Float): ResolvedVisual<V> {
             validateAnimationTime(animationTime)
@@ -138,6 +139,49 @@ private data class ActiveState(
     val state: VisualStateId,
     val startedAt: Float
 )
+
+private class WeakIdentityMap<K : Any, V : Any> {
+    private val queue = ReferenceQueue<K>()
+    private val values = mutableMapOf<IdentityReference<K>, V>()
+
+    operator fun get(key: K): V? {
+        removeCollectedKeys()
+        return values[IdentityReference(key)]
+    }
+
+    operator fun set(key: K, value: V) {
+        removeCollectedKeys()
+        values[IdentityReference(key, queue)] = value
+    }
+
+    private fun removeCollectedKeys() {
+        while (true) {
+            val reference = queue.poll() ?: return
+            values.remove(reference)
+        }
+    }
+
+    private class IdentityReference<K : Any> : WeakReference<K> {
+        private val identityHash: Int
+
+        constructor(value: K) : super(value) {
+            identityHash = System.identityHashCode(value)
+        }
+
+        constructor(value: K, queue: ReferenceQueue<K>) : super(value, queue) {
+            identityHash = System.identityHashCode(value)
+        }
+
+        override fun hashCode(): Int = identityHash
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is IdentityReference<*>) return false
+            val value = get() ?: return false
+            return value === other.get()
+        }
+    }
+}
 
 private fun validateAnimationTime(animationTime: Float) {
     require(animationTime.isFinite() && animationTime >= 0f) {
