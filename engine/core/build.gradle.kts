@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     `java-library`
+    `maven-publish`
 }
 
 group = "com.mefabc24.strata"
@@ -16,6 +17,18 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+java {
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }
 
 tasks.test {
