@@ -89,6 +89,55 @@ class VisualStateTest {
     }
 
     @Test
+    fun `synchronized state between local states resets local playback`() {
+        val runtimeObject = Any()
+        val prepared = VisualDefinition.Stateful<RuntimeContext, String>(
+            states = mapOf(
+                TestState.FIRST to VisualStateDefinition(
+                    source = "local",
+                    playback = VisualPlayback.LOCAL
+                ),
+                TestState.SECOND to VisualStateDefinition(
+                    source = "synchronized",
+                    playback = VisualPlayback.SYNCHRONIZED
+                )
+            ),
+            stateFor = RuntimeContext::state,
+            playbackIdentityFor = RuntimeContext::identity
+        ).prepare { it }
+
+        prepared.resolve(RuntimeContext(runtimeObject, TestState.FIRST), 2f)
+        assertEquals(
+            1f,
+            prepared.resolve(
+                RuntimeContext(runtimeObject, TestState.FIRST),
+                3f
+            ).stateTime
+        )
+        assertEquals(
+            4f,
+            prepared.resolve(
+                RuntimeContext(runtimeObject, TestState.SECOND),
+                4f
+            ).stateTime
+        )
+        assertEquals(
+            5f,
+            prepared.resolve(
+                RuntimeContext(runtimeObject, TestState.SECOND),
+                5f
+            ).stateTime
+        )
+        assertEquals(
+            0f,
+            prepared.resolve(
+                RuntimeContext(runtimeObject, TestState.FIRST),
+                6f
+            ).stateTime
+        )
+    }
+
+    @Test
     fun `weak identity map releases collected keys`() {
         val map = WeakIdentityMap<String>()
         var key: Any? = Any()

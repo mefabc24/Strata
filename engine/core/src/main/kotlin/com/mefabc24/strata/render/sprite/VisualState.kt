@@ -135,7 +135,12 @@ internal sealed interface PreparedVisualDefinition<C : Any, V : Any> {
                 if (previous?.state == state) {
                     previous
                 } else {
-                    ActiveState(state, animationTime).also {
+                    ActiveState(
+                        state = state,
+                        localStartedAt = animationTime.takeIf {
+                            definition.playback == VisualPlayback.LOCAL
+                        }
+                    ).also {
                         trackedStates[identity] = it
                     }
                 }
@@ -145,7 +150,10 @@ internal sealed interface PreparedVisualDefinition<C : Any, V : Any> {
                     checkNotNull(active) {
                         "Local visual playback requires runtime state tracking."
                     }
-                    (animationTime - active.startedAt).coerceAtLeast(0f)
+                    val startedAt = checkNotNull(active.localStartedAt) {
+                        "Local visual playback has no start time."
+                    }
+                    (animationTime - startedAt).coerceAtLeast(0f)
                 }
                 VisualPlayback.SYNCHRONIZED -> animationTime
             }
@@ -158,7 +166,7 @@ internal sealed interface PreparedVisualDefinition<C : Any, V : Any> {
 
 private data class ActiveState(
     val state: VisualStateId,
-    val startedAt: Float
+    val localStartedAt: Float?
 )
 
 internal class WeakIdentityMap<V : Any> {
