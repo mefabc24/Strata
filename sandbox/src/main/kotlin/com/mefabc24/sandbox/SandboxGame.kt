@@ -11,11 +11,8 @@ import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
-import com.mefabc24.strata.pathfinding.findPath
-import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
-import com.mefabc24.strata.world.WorldEntity
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
 
@@ -115,12 +112,9 @@ class SandboxGame : StrataGame() {
     private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var tools: SandboxToolController
     private lateinit var entitySpawner: SandboxEntitySpawner
+    private lateinit var wolves: SandboxWolfController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
-    private lateinit var wolf: WorldEntity
-
-    private var wolfPatrolIndex = 0
-    private var wolfIdleRemaining = WOLF_IDLE_SECONDS
 
     override fun onReady() {
         val world = createSandboxWorld()
@@ -154,6 +148,7 @@ class SandboxGame : StrataGame() {
             tools = tools,
             entries = sandboxSpawnEntries()
         )
+        wolves = SandboxWolfController(world)
 
         uiSkin = SandboxUi.createSkin()
 
@@ -178,39 +173,7 @@ class SandboxGame : StrataGame() {
 
     override fun updateGame(delta: Float) {
         sandboxUi.sync()
-        updateWolfPatrol(delta)
-    }
-
-    private fun updateWolfPatrol(delta: Float) {
-        if (wolf.isMoving) {
-            return
-        }
-
-        if (wolfIdleRemaining > 0f) {
-            wolfIdleRemaining =
-                (wolfIdleRemaining - delta).coerceAtLeast(0f)
-            return
-        }
-
-        val nextIndex =
-            (wolfPatrolIndex + 1) % WOLF_PATROL.size
-
-        val destination = WOLF_PATROL[nextIndex]
-
-        val path = requireNotNull(
-            strata.world.findPath(
-                start = wolf.currentTile,
-                goal = destination
-            )
-        )
-
-        wolf.followPath(
-            path = path,
-            speed = WOLF_SPEED
-        )
-
-        wolfPatrolIndex = nextIndex
-        wolfIdleRemaining = WOLF_IDLE_SECONDS
+        wolves.update(delta)
     }
 
     override fun disposeGame() {
@@ -247,6 +210,9 @@ class SandboxGame : StrataGame() {
             ) { x, y ->
                 val entity = entitySpawner.spawn(TilePosition(x, y))
                     ?: return@Tile false
+                if (entity.entity is Wolf) {
+                    wolves.control(entity)
+                }
                 println(
                     "Spawned ${entity.entity::class.simpleName} " +
                         "at ${entity.position}"
@@ -427,25 +393,10 @@ class SandboxGame : StrataGame() {
             "Failed to place test house."
         }
 
-        wolf = world.addEntity(
-            entity = Wolf(),
-            position = EntityPosition.centerOf(WOLF_PATROL.first())
-        )
-
         return world
     }
 
     private companion object {
         const val WORLD_SIZE = 50
-
-        const val WOLF_SPEED = 2f
-        const val WOLF_IDLE_SECONDS = 2f
-
-        val WOLF_PATROL = listOf(
-            TilePosition(2, 2),
-            TilePosition(8, 2),
-            TilePosition(8, 8),
-            TilePosition(2, 8)
-        )
     }
 }
