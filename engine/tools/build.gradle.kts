@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.mefabc24.strata"
-version = "0.1.0"
+version = "0.1.0-SNAPSHOT"
 
 dependencies {
     implementation("com.badlogicgames.gdx:gdx-tools:1.14.2")
