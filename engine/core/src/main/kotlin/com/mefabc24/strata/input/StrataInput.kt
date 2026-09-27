@@ -13,14 +13,14 @@ class StrataInput(
     private val uiProcessors = mutableListOf<InputProcessor>()
     private var worldProcessor: InputProcessor? = null
 
+    internal val processor: InputProcessor
+        field = InputMultiplexer()
+
     init {
         if (worldProcessor != null) {
             setWorldProcessor(worldProcessor)
         }
     }
-
-    internal val processor: InputProcessor
-        field = InputMultiplexer()
 
     /**
      * Adds a UI processor with priority over world input.

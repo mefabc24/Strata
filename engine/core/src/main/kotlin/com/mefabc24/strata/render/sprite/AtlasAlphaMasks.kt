@@ -9,7 +9,7 @@ import java.io.Closeable
 
 /**
  * Reads atlas page images during visual preparation and copies each region's
- * alpha channel. Page Pixmap's are cached for the batch and always disposed.
+ * alpha channel. Page Pixmaps are cached for the batch and always disposed.
  */
 internal class AtlasAlphaMaskLoader(
     private val atlasFileFor: (String) -> FileHandle = {

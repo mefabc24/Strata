@@ -43,8 +43,6 @@ class EntityEntry internal constructor(
     internal val source: SpriteSource,
     internal val settings: EntitySpriteSettings
 ) {
-    val spritePath: String = source.assetPaths.first()
-
     private var preparedVisual: EntityVisual? = null
 
     val visual: EntityVisual
