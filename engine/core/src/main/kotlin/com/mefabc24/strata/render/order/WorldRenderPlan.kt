@@ -37,6 +37,9 @@ internal data class WorldObjectPrimitive(
 ) : WorldRenderPrimitive {
     val occupiedTiles: Set<TilePosition> = placedObject.occupiedTiles()
 
+    val isSingleTile: Boolean =
+        occupiedTiles.size == 1
+
     override val sortVolume = IsoSortVolume(
         minX = occupiedTiles.minOf(TilePosition::x),
         maxX = occupiedTiles.maxOf(TilePosition::x) + 1,
@@ -151,20 +154,11 @@ internal object WorldRenderPlan {
             }
         }
 
-        val objectCandidates = buildList {
-            for (first in objectIndices.indices) {
-                for (
-                second in first + 1 until objectIndices.size
-                ) {
-                    add(
-                        IsoRenderCandidate(
-                            first = objectIndices[first],
-                            second = objectIndices[second]
-                        )
-                    )
-                }
-            }
-        }
+        val objectCandidates =
+            buildObjectRelationCandidates(
+                items = items,
+                objectIndices = objectIndices
+            )
 
         val objectDependencies =
             IsoRenderOrder.dependenciesFor(
@@ -188,6 +182,53 @@ internal object WorldRenderPlan {
             orderedItems = orderedItems,
             objects = world.getObjects().toSet()
         )
+    }
+
+    private fun buildObjectRelationCandidates(
+        items: List<WorldRenderPrimitive>,
+        objectIndices: List<Int>
+    ): List<IsoRenderCandidate> {
+        val complexPositions = objectIndices.indices.filterNot { position ->
+            (items[objectIndices[position]] as WorldObjectPrimitive).isSingleTile
+        }
+
+        if (complexPositions.isEmpty()) {
+            return emptyList()
+        }
+
+        return buildList {
+            for (firstPosition in complexPositions) {
+                val firstIndex = objectIndices[firstPosition]
+
+                for (secondPosition in objectIndices.indices) {
+                    if (secondPosition == firstPosition) {
+                        continue
+                    }
+
+                    val secondIndex = objectIndices[secondPosition]
+                    val second =
+                        items[secondIndex] as WorldObjectPrimitive
+
+                    /*
+                     * Complex-to-complex pairs are emitted only once.
+                     * Single-to-single pairs need no explicit relation.
+                     */
+                    if (
+                        !second.isSingleTile &&
+                        secondPosition < firstPosition
+                    ) {
+                        continue
+                    }
+
+                    add(
+                        IsoRenderCandidate(
+                            first = firstIndex,
+                            second = secondIndex
+                        )
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -246,6 +287,9 @@ internal object WorldRenderPlan {
         val baseObjectIndices =
             mutableListOf<Int>()
 
+        val baseComplexObjectIndices =
+            mutableListOf<Int>()
+
         for ((index, item) in baseItems.withIndex()) {
             when (item) {
                 is TerrainCell -> {
@@ -256,6 +300,10 @@ internal object WorldRenderPlan {
 
                 is WorldObjectPrimitive -> {
                     baseObjectIndices += index
+
+                    if (!item.isSingleTile) {
+                        baseComplexObjectIndices += index
+                    }
                 }
 
                 is WorldEntityPrimitive -> {
@@ -326,7 +374,14 @@ internal object WorldRenderPlan {
                 }
             }
 
-            for (objectIndex in baseObjectIndices) {
+            val relationIndices =
+                if (primitive.isSingleTile) {
+                    baseComplexObjectIndices
+                } else {
+                    baseObjectIndices
+                }
+
+            for (objectIndex in relationIndices) {
                 metrics?.let {
                     it.relationChecks++
                 }
@@ -389,28 +444,47 @@ internal object WorldRenderPlan {
             }
         }
 
-        /*
-         * New objects did not exist in the cached plan, so their relationships
-         * with each other still need to be calculated.
-         */
-        for (first in addedPrimitives.indices) {
-            val firstIndex =
-                baseItems.size + first
+        val complexAddedPositions =
+            addedPrimitives.indices.filter { position ->
+                !addedPrimitives[position].isSingleTile
+            }
 
-            for (
-            second in
-            first + 1 until addedPrimitives.size
-            ) {
+        for (firstPosition in complexAddedPositions) {
+            val firstPrimitive =
+                addedPrimitives[firstPosition]
+
+            val firstIndex =
+                baseItems.size + firstPosition
+
+            for (secondPosition in addedPrimitives.indices) {
+                if (secondPosition == firstPosition) {
+                    continue
+                }
+
+                val secondPrimitive =
+                    addedPrimitives[secondPosition]
+
+                /*
+                 * Complex-to-complex pairs are evaluated only once.
+                 * Single-to-single pairs rely on the normal deterministic comparator.
+                 */
+                if (
+                    !secondPrimitive.isSingleTile &&
+                    secondPosition < firstPosition
+                ) {
+                    continue
+                }
+
                 val secondIndex =
-                    baseItems.size + second
+                    baseItems.size + secondPosition
 
                 metrics?.let {
                     it.relationChecks++
                 }
 
                 when (
-                    addedPrimitives[first].sortVolume.relationTo(
-                        addedPrimitives[second].sortVolume
+                    firstPrimitive.sortVolume.relationTo(
+                        secondPrimitive.sortVolume
                     )
                 ) {
                     IsoSpatialRelation.BEHIND -> {

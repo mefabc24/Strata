@@ -150,7 +150,7 @@ class WorldRenderPlanTest {
         val staticOrder = staticPlan.orderedItems
 
         assertEquals(
-            objects.size * (objects.size - 1) / 2,
+            0,
             staticMetrics.relationChecks
         )
 
@@ -190,7 +190,7 @@ class WorldRenderPlanTest {
     }
 
     @Test
-    fun `adding one object updates static plan linearly`() {
+    fun `adding one single tile object needs no spatial relation checks`() {
         val world = world(size = 50)
 
         repeat(500) { index ->
@@ -236,7 +236,7 @@ class WorldRenderPlanTest {
         )
 
         assertEquals(
-            500,
+            0,
             metrics.relationChecks
         )
     }
@@ -341,7 +341,10 @@ class WorldRenderPlanTest {
         val first = WorldRenderPlan.create(world, projection, metrics = metrics)
 
         assertEquals(2_500 + objects.size, first.size)
-        assertEquals(objects.size * (objects.size - 1) / 2, metrics.relationChecks)
+        assertEquals(
+            0,
+            metrics.relationChecks
+        )
         assertTrue(metrics.relationChecks < 100)
 
         repeat(10) {
@@ -355,7 +358,7 @@ class WorldRenderPlanTest {
 
             assertEquals(firstPlan, secondPlan)
             assertEquals(firstPlan.size, firstPlan.toSet().size)
-            assertEquals(15, nextMetrics.relationChecks)
+            assertEquals(0, nextMetrics.relationChecks)
         }
     }
 
@@ -439,8 +442,7 @@ class WorldRenderPlanTest {
         )
 
         assertEquals(
-            existingCount * addedCount +
-                    addedCount * (addedCount - 1) / 2,
+            0,
             metrics.relationChecks
         )
 
@@ -457,6 +459,51 @@ class WorldRenderPlanTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `single tile object still checks multi tile object relation`() {
+        val world = world(size = 12)
+
+        val house = requireNotNull(
+            world.place(
+                House(),
+                2,
+                2
+            )
+        )
+
+        val previous = WorldRenderPlan.prepareStatic(
+            world = world,
+            projection = projection
+        )
+
+        val tree = requireNotNull(
+            world.place(
+                Tree(),
+                7,
+                4
+            )
+        )
+
+        val metrics = IsoRenderOrderMetrics()
+
+        val updated = WorldRenderPlan.updateStatic(
+            previous = previous,
+            world = world,
+            projection = projection,
+            metrics = metrics
+        )
+
+        assertEquals(
+            1,
+            metrics.relationChecks
+        )
+
+        assertTrue(
+            updated.orderedItems.indexOfObject(house) <
+                    updated.orderedItems.indexOfObject(tree)
+        )
     }
 
     private fun assertSupportingTerrainBeforeObject(
