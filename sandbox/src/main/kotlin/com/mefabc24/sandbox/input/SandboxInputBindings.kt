@@ -235,7 +235,7 @@ internal fun sandboxInputBindings(
 
             println(
                 "Selected layer: " +
-                        "${painter().layerId ?: "ground"}"
+                        (painter().layerId ?: "ground")
             )
 
             true
