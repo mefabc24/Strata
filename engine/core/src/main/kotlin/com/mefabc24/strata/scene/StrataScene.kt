@@ -328,7 +328,9 @@ class StrataScene private constructor(
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,
-                debugGridSettings = debug.grid
+                debugGridSettings = debug.grid,
+                debugObjectSettings = debug.objects,
+                debugEntitySettings = debug.entities
             )
         )
 

@@ -10,6 +10,7 @@ import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.IsoWorldRenderer
 import com.mefabc24.strata.render.debug.IsoGridRenderer
+import com.mefabc24.strata.render.debug.IsoWorldDebugRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.`object`.ObjectVisual
@@ -27,6 +28,8 @@ import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.scene.DebugGridSettings
+import com.mefabc24.strata.scene.DebugObjectSettings
+import com.mefabc24.strata.scene.DebugEntitySettings
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.scene.DebugGridRenderLayer
@@ -82,7 +85,9 @@ class IsoWorldView(
     )? = null,
     private val resolvedEntityVisualFor: (
         (WorldEntity, Float) -> ResolvedEntityVisual?
-    )? = null
+    )? = null,
+    debugObjectSettings: DebugObjectSettings = DebugObjectSettings(),
+    debugEntitySettings: DebugEntitySettings = DebugEntitySettings()
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -135,6 +140,29 @@ class IsoWorldView(
         projection = projection,
         settings = debugGridConfig
     )
+
+    private val worldDebugRenderer = IsoWorldDebugRenderer(
+        projection = projection,
+        objectSettings = debugObjectSettings,
+        entitySettings = debugEntitySettings,
+        objectRenderingSettings = renderingConfig.objects
+    )
+
+    private val debugObjectVisualFor =
+        { placed: PlacedObject, time: Float ->
+            resolvedObjectVisualFor?.invoke(placed, time)
+                ?: objectVisualFor(placed)?.let { visual ->
+                    ResolvedObjectVisual(visual, time, null)
+                }
+        }
+
+    private val debugEntityVisualFor =
+        { entity: WorldEntity, time: Float ->
+            resolvedEntityVisualFor?.invoke(entity, time)
+                ?: entityVisualFor(entity)?.let { visual ->
+                    ResolvedEntityVisual(visual, time, null)
+                }
+        }
 
     /**
      * Rendering statistics from the most recent frame.
@@ -331,6 +359,14 @@ class IsoWorldView(
                 )
             }
         }
+
+        worldDebugRenderer.render(
+            world = world,
+            camera = camera,
+            animationTime = animationTime,
+            objectVisualFor = debugObjectVisualFor,
+            entityVisualFor = debugEntityVisualFor
+        )
     }
 
     fun resize(width: Int, height: Int) {
@@ -399,9 +435,13 @@ class IsoWorldView(
      */
     fun dispose() {
         try {
-            gridRenderer.dispose()
+            worldDebugRenderer.dispose()
         } finally {
-            worldRenderer.dispose()
+            try {
+                gridRenderer.dispose()
+            } finally {
+                worldRenderer.dispose()
+            }
         }
     }
 }

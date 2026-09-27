@@ -205,61 +205,14 @@ class IsoGridRenderer(
         x: Float,
         y: Float
     ) {
-        val halfWidth = projection.tileWidth / 2f
-        val halfHeight = projection.tileHeight / 2f
-
-        val rightX = x + halfWidth
-        val middleY = y - halfHeight
-        val bottomY = y - projection.tileHeight
-        val leftX = x - halfWidth
-
-        shapes.triangle(
-            x, y,
-            rightX, middleY,
-            x, bottomY
-        )
-
-        shapes.triangle(
-            x, y,
-            x, bottomY,
-            leftX, middleY
-        )
+        shapes.drawIsoTileFill(projection, x, y)
     }
 
     private fun drawTile(
         x: Float,
         y: Float
     ) {
-        val halfWidth = projection.tileWidth / 2f
-        val halfHeight = projection.tileHeight / 2f
-
-        shapes.line(
-            x,
-            y,
-            x + halfWidth,
-            y - halfHeight
-        )
-
-        shapes.line(
-            x + halfWidth,
-            y - halfHeight,
-            x,
-            y - projection.tileHeight
-        )
-
-        shapes.line(
-            x,
-            y - projection.tileHeight,
-            x - halfWidth,
-            y - halfHeight
-        )
-
-        shapes.line(
-            x - halfWidth,
-            y - halfHeight,
-            x,
-            y
-        )
+        shapes.drawIsoTileOutline(projection, x, y)
     }
 
     fun dispose() {
