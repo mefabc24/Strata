@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.`object`.ObjectEntry
+import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.scene.DebugGridRenderLayer
 import com.mefabc24.strata.scene.DebugSettings
 import com.mefabc24.strata.terrain.TerrainEntry
@@ -182,6 +183,13 @@ class SandboxUi(
         initialSelection = debugSettings.grid.renderLayer
     ) { selected ->
         debugSettings.grid.renderLayer = selected
+    }
+
+    private val gridExtentSelection = ui.selectionGroup(
+        options = DebugGridExtent.entries,
+        initialSelection = debugSettings.grid.extent
+    ) { selected ->
+        debugSettings.grid.extent = selected
     }
 
     private var gridBackgroundColor =
@@ -428,6 +436,27 @@ class SandboxUi(
                 text = "Above objects",
                 value = DebugGridRenderLayer.ABOVE_OBJECTS,
                 group = renderLayerSelection
+            )
+        }
+
+        label("Grid extent")
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .fillAvailableX()
+                .uniformX()
+                .height(COMPACT_CONTROL_HEIGHT)
+
+            selectableButton(
+                text = "World",
+                value = DebugGridExtent.WORLD,
+                group = gridExtentSelection
+            )
+
+            selectableButton(
+                text = "Visible",
+                value = DebugGridExtent.VISIBLE,
+                group = gridExtentSelection
             )
         }
 

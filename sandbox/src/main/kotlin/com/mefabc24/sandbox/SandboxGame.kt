@@ -230,15 +230,15 @@ class SandboxGame : StrataGame() {
             },
 
             // Update the rectangular build preview while dragging.
-            WorldInputBinding.Tile(
+            WorldInputBinding.Grid(
                 trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
                 enabled = { !painter.enabled }
             ) { x, y ->
                 buildDrag.dragTo(TilePosition(x, y))
             },
 
-            // Commit the final build rectangle on release over the world.
-            WorldInputBinding.Tile(
+            // Commit valid origins even when release is outside the world.
+            WorldInputBinding.Grid(
                 trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
                 enabled = { !painter.enabled }
             ) { x, y ->
@@ -265,7 +265,7 @@ class SandboxGame : StrataGame() {
                 false
             },
 
-            // Finish painting or cancel building when released off-world.
+            // Finish painting even when released outside the world.
             WorldInputBinding.NoPicking(
                 trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT)
             ) {

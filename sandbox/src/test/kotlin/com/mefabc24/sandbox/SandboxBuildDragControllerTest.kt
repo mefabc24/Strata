@@ -230,6 +230,32 @@ class SandboxBuildDragControllerTest {
     }
 
     @Test
+    fun `drag beyond world previews invalid origins and places valid ones`() {
+        val placement = placement(Footprint.square(1))
+        val drag = SandboxBuildDragController(placement)
+
+        drag.begin(TilePosition(7, 1))
+        drag.dragTo(TilePosition(12, 1))
+
+        assertEquals(
+            listOf(true, true, true, false, false, false),
+            placement.previews.map { it.valid }
+        )
+
+        val placed = drag.finish(TilePosition(12, 1))
+
+        assertEquals(
+            listOf(
+                TilePosition(7, 1),
+                TilePosition(8, 1),
+                TilePosition(9, 1)
+            ),
+            placed.map { TilePosition(it.x, it.y) }
+        )
+        assertFalse(drag.active)
+    }
+
+    @Test
     fun `cancel clears previews and places nothing`() {
         val world = world()
         val placement = placement(Footprint.square(1), world)
