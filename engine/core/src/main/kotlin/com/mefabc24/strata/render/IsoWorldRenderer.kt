@@ -12,6 +12,7 @@ import com.mefabc24.strata.render.`object`.ObjectVisual
 import com.mefabc24.strata.render.entity.EntityVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.IsoEntityRenderer
+import com.mefabc24.strata.render.order.IsoRenderOrderMetrics
 import com.mefabc24.strata.render.order.PreviewRenderItem
 import com.mefabc24.strata.render.order.TerrainCell
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
@@ -56,12 +57,13 @@ class IsoWorldRenderer(
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
 
+    private var staticRenderPlan: StaticWorldRenderPlan? = null
+    private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
+
     private var pendingStaticPlanMs = 0.0
     private var pendingStaticPlanUpdates = 0
     private var pendingDynamicPlanMs = 0.0
-
-    private var staticRenderPlan: StaticWorldRenderPlan? = null
-    private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
+    private var pendingStaticPlanRelationChecks = 0
 
     val stats = RenderStats()
 
@@ -84,10 +86,13 @@ class IsoWorldRenderer(
         stats.staticPlanMs = pendingStaticPlanMs
         stats.staticPlanUpdates = pendingStaticPlanUpdates
         stats.dynamicPlanMs = pendingDynamicPlanMs
+        stats.staticPlanRelationChecks =
+            pendingStaticPlanRelationChecks
 
         pendingStaticPlanMs = 0.0
         pendingStaticPlanUpdates = 0
         pendingDynamicPlanMs = 0.0
+        pendingStaticPlanRelationChecks = 0
 
         val viewWidth = camera.viewportWidth * camera.zoom
         val viewHeight = camera.viewportHeight * camera.zoom
@@ -183,28 +188,36 @@ class IsoWorldRenderer(
 
         when {
             cachedWorld !== world || cachedPlan == null -> {
+                val metrics = IsoRenderOrderMetrics()
                 val start = System.nanoTime()
 
                 staticRenderPlan = WorldRenderPlan.prepareStatic(
                     world = world,
-                    projection = projection
+                    projection = projection,
+                    metrics = metrics
                 )
 
                 pendingStaticPlanMs += elapsedMs(start)
                 pendingStaticPlanUpdates++
+                pendingStaticPlanRelationChecks +=
+                    metrics.relationChecks
             }
 
             cachedObjectVersion != world.objectVersion -> {
+                val metrics = IsoRenderOrderMetrics()
                 val start = System.nanoTime()
 
                 staticRenderPlan = WorldRenderPlan.updateStatic(
                     previous = cachedPlan,
                     world = world,
-                    projection = projection
+                    projection = projection,
+                    metrics = metrics
                 )
 
                 pendingStaticPlanMs += elapsedMs(start)
                 pendingStaticPlanUpdates++
+                pendingStaticPlanRelationChecks +=
+                    metrics.relationChecks
             }
         }
 

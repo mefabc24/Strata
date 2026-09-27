@@ -41,6 +41,9 @@ class RenderStats {
     var dynamicPlanMs = 0.0
         internal set
 
+    var staticPlanRelationChecks = 0
+        internal set
+
     internal fun reset() {
         terrainChecked = 0
         terrainDrawn = 0
@@ -54,5 +57,6 @@ class RenderStats {
         staticPlanMs = 0.0
         staticPlanUpdates = 0
         dynamicPlanMs = 0.0
+        staticPlanRelationChecks = 0
     }
 }
