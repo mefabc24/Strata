@@ -206,107 +206,56 @@ internal object WorldRenderPlan {
         metrics?.relationChecks = 0
 
         val currentObjects = world.getObjects()
-        val removedObjects = previous.objects.filterNot(currentObjects::contains)
-        val addedObjects = currentObjects.filterNot(previous.objects::contains)
 
-        if (removedObjects.isEmpty() && addedObjects.isEmpty()) {
+        val removedObjects =
+            previous.objects.filterNot(currentObjects::contains)
+
+        val addedObjects =
+            currentObjects.filterNot(previous.objects::contains)
+
+        if (
+            removedObjects.isEmpty() &&
+            addedObjects.isEmpty()
+        ) {
             return previous
         }
 
         val removedSet = removedObjects.toSet()
 
-        val orderedItems = previous.orderedItems
+        val baseItems = previous.orderedItems
             .filterNot { item ->
                 item is WorldObjectPrimitive &&
                         item.placedObject in removedSet
             }
-            .toMutableList()
 
-        for (placedObject in addedObjects) {
-            val primitive = WorldObjectPrimitive(placedObject)
-
-            val insertionIndex = findInsertionIndex(
-                items = orderedItems,
-                primitive = primitive,
-                worldWidth = world.width,
-                projection = projection,
-                metrics = metrics
-            )
-
-            /*
-             * A new object can occasionally require previously ambiguous objects
-             * to change their relative order. In that case the incremental path
-             * cannot preserve the existing total order safely.
-             */
-            if (insertionIndex == null) {
-                return prepareStatic(
-                    world = world,
-                    projection = projection,
-                    metrics = metrics
-                )
-            }
-
-            orderedItems.add(
-                index = insertionIndex,
-                element = primitive
+        /*
+         * Removal only needs the previous order with the removed objects filtered
+         * out. No spatial relationships need to be recalculated.
+         */
+        if (addedObjects.isEmpty()) {
+            return buildStaticPlan(
+                world = world,
+                orderedItems = baseItems,
+                objects = currentObjects.toSet()
             )
         }
 
-        return buildStaticPlan(
-            world = world,
-            orderedItems = orderedItems,
-            objects = currentObjects.toSet()
-        )
-    }
+        val baseTerrainIndexByCell =
+            IntArray(world.width * world.height) { -1 }
 
-    private fun findInsertionIndex(
-        items: List<WorldRenderPrimitive>,
-        primitive: WorldObjectPrimitive,
-        worldWidth: Int,
-        projection: IsoProjection,
-        metrics: IsoRenderOrderMetrics?
-    ): Int? {
-        var lastRequiredBefore = -1
-        var firstRequiredAfter = items.size
+        val baseObjectIndices =
+            mutableListOf<Int>()
 
-        val supportCells = primitive.occupiedTiles
-            .mapTo(mutableSetOf()) { position ->
-                position.y * worldWidth + position.x
-            }
-
-        for ((index, item) in items.withIndex()) {
+        for ((index, item) in baseItems.withIndex()) {
             when (item) {
                 is TerrainCell -> {
-                    val cell = item.y * worldWidth + item.x
-
-                    if (cell in supportCells) {
-                        lastRequiredBefore =
-                            maxOf(lastRequiredBefore, index)
-                    }
+                    baseTerrainIndexByCell[
+                        item.y * world.width + item.x
+                    ] = index
                 }
 
                 is WorldObjectPrimitive -> {
-                    metrics?.let {
-                        it.relationChecks++
-                    }
-
-                    when (
-                        item.sortVolume.relationTo(
-                            primitive.sortVolume
-                        )
-                    ) {
-                        IsoSpatialRelation.BEHIND -> {
-                            lastRequiredBefore =
-                                maxOf(lastRequiredBefore, index)
-                        }
-
-                        IsoSpatialRelation.IN_FRONT -> {
-                            firstRequiredAfter =
-                                minOf(firstRequiredAfter, index)
-                        }
-
-                        IsoSpatialRelation.AMBIGUOUS -> Unit
-                    }
+                    baseObjectIndices += index
                 }
 
                 is WorldEntityPrimitive -> {
@@ -317,39 +266,179 @@ internal object WorldRenderPlan {
             }
         }
 
+        val addedPrimitives =
+            addedObjects.map(::WorldObjectPrimitive)
+
+        val items = ArrayList<WorldRenderPrimitive>(
+            baseItems.size + addedPrimitives.size
+        )
+
+        items.addAll(baseItems)
+        items.addAll(addedPrimitives)
+
+        val order = StableDependencyOrder(
+            items = items,
+            comparator =
+                IsoRenderOrder.comparator<WorldRenderPrimitive>(
+                    projection
+                )
+        )
+
         /*
-         * Existing static items would have to change their relative order.
-         * Let the full sorter handle that uncommon case.
+         * The previous static plan is already valid.
+         *
+         * Preserve its complete order with a linear dependency chain instead of
+         * reconstructing relationships between existing objects.
          */
-        if (lastRequiredBefore >= firstRequiredAfter) {
-            return null
+        for (index in 0 until baseItems.lastIndex) {
+            order.add(
+                before = index,
+                after = index + 1
+            )
         }
 
-        val comparator =
-            IsoRenderOrder.comparator<WorldRenderPrimitive>(
-                projection
-            )
-
         /*
-         * Hard spatial dependencies define the valid insertion interval.
-         * Inside that interval the normal deterministic fallback comparator
-         * chooses the preferred position.
+         * Relate every new object to the already ordered static world.
+         *
+         * Because the base items form a total chain, only the nearest required
+         * predecessor and successor need to become explicit dependencies.
          */
-        for (
-        index in
-        lastRequiredBefore + 1 until firstRequiredAfter
-        ) {
+        for ((offset, primitive) in addedPrimitives.withIndex()) {
+            val primitiveIndex =
+                baseItems.size + offset
+
+            var lastRequiredBefore = -1
+            var firstRequiredAfter = baseItems.size
+
+            for (position in primitive.occupiedTiles) {
+                val cellIndex =
+                    position.y * world.width + position.x
+
+                val terrainIndex =
+                    baseTerrainIndexByCell[cellIndex]
+
+                if (terrainIndex >= 0) {
+                    lastRequiredBefore =
+                        maxOf(
+                            lastRequiredBefore,
+                            terrainIndex
+                        )
+                }
+            }
+
+            for (objectIndex in baseObjectIndices) {
+                metrics?.let {
+                    it.relationChecks++
+                }
+
+                val existing =
+                    items[objectIndex] as WorldObjectPrimitive
+
+                when (
+                    existing.sortVolume.relationTo(
+                        primitive.sortVolume
+                    )
+                ) {
+                    IsoSpatialRelation.BEHIND -> {
+                        lastRequiredBefore =
+                            maxOf(
+                                lastRequiredBefore,
+                                objectIndex
+                            )
+                    }
+
+                    IsoSpatialRelation.IN_FRONT -> {
+                        firstRequiredAfter =
+                            minOf(
+                                firstRequiredAfter,
+                                objectIndex
+                            )
+                    }
+
+                    IsoSpatialRelation.AMBIGUOUS -> Unit
+                }
+            }
+
+            /*
+             * The new object would require the already valid base order to change.
+             * Preserve correctness by falling back to a complete rebuild.
+             */
             if (
-                comparator.compare(
-                    primitive,
-                    items[index]
-                ) < 0
+                lastRequiredBefore >=
+                firstRequiredAfter
             ) {
-                return index
+                return prepareStatic(
+                    world = world,
+                    projection = projection,
+                    metrics = metrics
+                )
+            }
+
+            if (lastRequiredBefore >= 0) {
+                order.add(
+                    before = lastRequiredBefore,
+                    after = primitiveIndex
+                )
+            }
+
+            if (firstRequiredAfter < baseItems.size) {
+                order.add(
+                    before = primitiveIndex,
+                    after = firstRequiredAfter
+                )
             }
         }
 
-        return firstRequiredAfter
+        /*
+         * New objects did not exist in the cached plan, so their relationships
+         * with each other still need to be calculated.
+         */
+        for (first in addedPrimitives.indices) {
+            val firstIndex =
+                baseItems.size + first
+
+            for (
+            second in
+            first + 1 until addedPrimitives.size
+            ) {
+                val secondIndex =
+                    baseItems.size + second
+
+                metrics?.let {
+                    it.relationChecks++
+                }
+
+                when (
+                    addedPrimitives[first].sortVolume.relationTo(
+                        addedPrimitives[second].sortVolume
+                    )
+                ) {
+                    IsoSpatialRelation.BEHIND -> {
+                        order.add(
+                            before = firstIndex,
+                            after = secondIndex
+                        )
+                    }
+
+                    IsoSpatialRelation.IN_FRONT -> {
+                        order.add(
+                            before = secondIndex,
+                            after = firstIndex
+                        )
+                    }
+
+                    IsoSpatialRelation.AMBIGUOUS -> Unit
+                }
+            }
+        }
+
+        val orderedItems = order.resolve()
+
+        return buildStaticPlan(
+            world = world,
+            orderedItems = orderedItems,
+            objects = currentObjects.toSet()
+        )
     }
 
     /**

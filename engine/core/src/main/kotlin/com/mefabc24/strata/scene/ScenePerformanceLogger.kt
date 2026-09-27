@@ -89,15 +89,15 @@ class ScenePerformanceLogger {
             "StrataPerf",
             "FPS: ${Gdx.graphics.framesPerSecond} | " +
                     "Frame: ${format(averageFrameMs)} avg / " +
-                    "${format(p95FrameMs)} p95 / " +
-                    "${format(frameMsMax)} max ms | " +
+                        "${format(p95FrameMs)} p95 / " +
+                        "${format(frameMsMax)} max ms | " +
                     "World: ${format(averageRenderMs)} avg / " +
-                    "${format(renderMsMax)} max ms | " +
+                        "${format(renderMsMax)} max ms | " +
                     "Static plan: ${format(staticPlanMsMax)} max ms " +
-                    "($staticPlanUpdates updates, " +
-                    "${staticPlanRelationChecks} checks) | " +
+                        "($staticPlanUpdates updates, " +
+                        "$staticPlanRelationChecks checks) | " +
                     "Dynamic plan: ${format(averageDynamicPlanMs)} avg / " +
-                    "${format(dynamicPlanMsMax)} max ms | " +
+                        "${format(dynamicPlanMsMax)} max ms | " +
                     "Tiles: ${stats.terrainDrawn}/${stats.terrainChecked} | " +
                     "Objects: ${stats.objectsDrawn}/${stats.objectsChecked} | " +
                     "Entities: ${stats.entitiesDrawn}/${stats.entitiesChecked} | " +
@@ -138,6 +138,7 @@ class ScenePerformanceLogger {
 
         staticPlanMsMax = 0.0
         staticPlanUpdates = 0
+        staticPlanRelationChecks = 0
 
         dynamicPlanMsSum = 0.0
         dynamicPlanMsMax = 0.0

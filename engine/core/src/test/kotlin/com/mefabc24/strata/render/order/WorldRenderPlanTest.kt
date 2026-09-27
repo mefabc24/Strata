@@ -388,6 +388,77 @@ class WorldRenderPlanTest {
         )
     }
 
+    @Test
+    fun `bulk object additions update the static plan`() {
+        val world = world(size = 50)
+
+        val existingCount = 500
+        val addedCount = 500
+
+        repeat(existingCount) { index ->
+            requireNotNull(
+                world.place(
+                    Tree(),
+                    index % 50,
+                    index / 50
+                )
+            )
+        }
+
+        val previous = WorldRenderPlan.prepareStatic(
+            world = world,
+            projection = projection
+        )
+
+        repeat(addedCount) { index ->
+            val position = existingCount + index
+
+            requireNotNull(
+                world.place(
+                    Tree(),
+                    position % 50,
+                    position / 50
+                )
+            )
+        }
+
+        val metrics = IsoRenderOrderMetrics()
+
+        val updated = WorldRenderPlan.updateStatic(
+            previous = previous,
+            world = world,
+            projection = projection,
+            metrics = metrics
+        )
+
+        assertEquals(
+            world.width * world.height +
+                    existingCount +
+                    addedCount,
+            updated.orderedItems.size
+        )
+
+        assertEquals(
+            existingCount * addedCount +
+                    addedCount * (addedCount - 1) / 2,
+            metrics.relationChecks
+        )
+
+        for (placed in world.getObjects()) {
+            val objectIndex =
+                updated.orderedItems.indexOfObject(placed)
+
+            for (position in placed.occupiedTiles()) {
+                assertTrue(
+                    updated.orderedItems.indexOfCell(
+                        position.x,
+                        position.y
+                    ) < objectIndex
+                )
+            }
+        }
+    }
+
     private fun assertSupportingTerrainBeforeObject(
         world: World,
         placed: PlacedObject
