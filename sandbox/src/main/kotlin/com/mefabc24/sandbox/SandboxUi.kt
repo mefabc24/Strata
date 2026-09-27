@@ -317,7 +317,7 @@ class SandboxUi(
 
                             selectableImageButton(
                                 drawable = TextureRegionDrawable(
-                                    entry.visual.texture
+                                    entry.selectionVisual.texture
                                 ),
                                 value = entry,
                                 group = buildSelection
