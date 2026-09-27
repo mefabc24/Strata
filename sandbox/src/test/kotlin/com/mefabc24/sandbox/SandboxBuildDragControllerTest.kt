@@ -230,7 +230,7 @@ class SandboxBuildDragControllerTest {
     }
 
     @Test
-    fun `drag beyond world previews invalid origins and places valid ones`() {
+    fun `drag beyond world hides outside previews and places valid ones`() {
         val placement = placement(Footprint.square(1))
         val drag = SandboxBuildDragController(placement)
 
@@ -238,8 +238,17 @@ class SandboxBuildDragControllerTest {
         drag.dragTo(TilePosition(12, 1))
 
         assertEquals(
-            listOf(true, true, true, false, false, false),
+            listOf(true, true, true),
             placement.previews.map { it.valid }
+        )
+
+        assertEquals(
+            listOf(
+                TilePosition(7, 1),
+                TilePosition(8, 1),
+                TilePosition(9, 1)
+            ),
+            placement.previewPositions()
         )
 
         val placed = drag.finish(TilePosition(12, 1))
@@ -252,6 +261,7 @@ class SandboxBuildDragControllerTest {
             ),
             placed.map { TilePosition(it.x, it.y) }
         )
+
         assertFalse(drag.active)
     }
 
@@ -297,11 +307,44 @@ class SandboxBuildDragControllerTest {
         assertSame(previews, placement.previews)
     }
 
+    @Test
+    fun `drag beyond world can show invalid outside previews`() {
+        val placement = placement(
+            footprint = Footprint.square(1),
+            showOutsideWorldPreviews = true
+        )
+        val drag = SandboxBuildDragController(placement)
+
+        drag.begin(TilePosition(7, 1))
+        drag.dragTo(TilePosition(12, 1))
+
+        assertEquals(
+            listOf(true, true, true, false, false, false),
+            placement.previews.map { it.valid }
+        )
+
+        assertEquals(
+            listOf(
+                TilePosition(7, 1),
+                TilePosition(8, 1),
+                TilePosition(9, 1),
+                TilePosition(10, 1),
+                TilePosition(11, 1),
+                TilePosition(12, 1)
+            ),
+            placement.previewPositions()
+        )
+    }
+
     private fun placement(
         footprint: Footprint,
-        world: World = world()
+        world: World = world(),
+        showOutsideWorldPreviews: Boolean = false
     ): PlacementController {
-        return PlacementController(world).apply {
+        return PlacementController(
+            world = world,
+            showOutsideWorldPreviews = showOutsideWorldPreviews
+        ).apply {
             selectedFactory = { TestPlaceable(footprint) }
         }
     }
