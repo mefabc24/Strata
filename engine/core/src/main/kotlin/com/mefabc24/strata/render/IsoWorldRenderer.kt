@@ -56,6 +56,10 @@ class IsoWorldRenderer(
     private var cachedWorld: World? = null
     private var cachedObjectVersion = -1L
 
+    private var pendingStaticPlanMs = 0.0
+    private var pendingStaticPlanUpdates = 0
+    private var pendingDynamicPlanMs = 0.0
+
     private var staticRenderPlan: StaticWorldRenderPlan? = null
     private var normalRenderPlan: List<WorldRenderPrimitive> = emptyList()
 
@@ -76,6 +80,14 @@ class IsoWorldRenderer(
         val renderStartNanos = System.nanoTime()
 
         updateRenderPlan(world)
+
+        stats.staticPlanMs = pendingStaticPlanMs
+        stats.staticPlanUpdates = pendingStaticPlanUpdates
+        stats.dynamicPlanMs = pendingDynamicPlanMs
+
+        pendingStaticPlanMs = 0.0
+        pendingStaticPlanUpdates = 0
+        pendingDynamicPlanMs = 0.0
 
         val viewWidth = camera.viewportWidth * camera.zoom
         val viewHeight = camera.viewportHeight * camera.zoom
@@ -171,29 +183,43 @@ class IsoWorldRenderer(
 
         when {
             cachedWorld !== world || cachedPlan == null -> {
+                val start = System.nanoTime()
+
                 staticRenderPlan = WorldRenderPlan.prepareStatic(
                     world = world,
                     projection = projection
                 )
+
+                pendingStaticPlanMs += elapsedMs(start)
+                pendingStaticPlanUpdates++
             }
 
             cachedObjectVersion != world.objectVersion -> {
+                val start = System.nanoTime()
+
                 staticRenderPlan = WorldRenderPlan.updateStatic(
                     previous = cachedPlan,
                     world = world,
                     projection = projection
                 )
+
+                pendingStaticPlanMs += elapsedMs(start)
+                pendingStaticPlanUpdates++
             }
         }
 
         cachedWorld = world
         cachedObjectVersion = world.objectVersion
 
+        val dynamicStart = System.nanoTime()
+
         normalRenderPlan = WorldRenderPlan.withEntities(
             staticPlan = checkNotNull(staticRenderPlan),
             world = world,
             projection = projection
         )
+
+        pendingDynamicPlanMs += elapsedMs(dynamicStart)
     }
 
     private fun renderEntity(
@@ -372,6 +398,10 @@ class IsoWorldRenderer(
             texture = texture
         )
         stats.terrainDrawn++
+    }
+
+    private fun elapsedMs(startNanos: Long): Double {
+        return (System.nanoTime() - startNanos) / 1_000_000.0
     }
 
     fun dispose() {

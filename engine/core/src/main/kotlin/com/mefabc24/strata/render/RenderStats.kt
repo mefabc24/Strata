@@ -32,6 +32,15 @@ class RenderStats {
     var cpuRenderMs = 0.0
         internal set
 
+    var staticPlanMs = 0.0
+        internal set
+
+    var staticPlanUpdates = 0
+        internal set
+
+    var dynamicPlanMs = 0.0
+        internal set
+
     internal fun reset() {
         terrainChecked = 0
         terrainDrawn = 0
@@ -42,5 +51,8 @@ class RenderStats {
         previewsDrawn = 0
         drawCalls = 0
         cpuRenderMs = 0.0
+        staticPlanMs = 0.0
+        staticPlanUpdates = 0
+        dynamicPlanMs = 0.0
     }
 }
