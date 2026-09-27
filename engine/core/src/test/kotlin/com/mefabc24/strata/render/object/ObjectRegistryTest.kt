@@ -482,7 +482,14 @@ class ObjectRegistryTest {
     fun `registered entries bind directly to image selection controls`() {
         val registry = registry()
         registry.register<House>("house.png", ::House)
-        registry.register<Tree>("tree.png", ::Tree)
+        registry.registerStateful<Workshop>(
+            factory = { Workshop(WorkshopState.OFF) },
+            stateFor = { _, workshop -> workshop.state },
+            selection = { sprite("workshop-icon.png") }
+        ) {
+            state(WorkshopState.OFF) { sprite("workshop-off.png") }
+            state(WorkshopState.WORKING) { sprite("workshop-working.png") }
+        }
         registry.freeze()
         registry.prepare()
 
@@ -520,7 +527,7 @@ class ObjectRegistryTest {
 
             assertFalse(first.isChecked)
             assertTrue(second.isChecked)
-            assertIs<Tree>(group.selected?.create())
+            assertIs<Workshop>(group.selected?.create())
         } finally {
             first.detach()
             second.detach()
