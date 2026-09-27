@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.render.entity.EntityVisual
-import com.mefabc24.strata.render.entity.alphaMask
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
@@ -65,7 +64,7 @@ class EntityPicker(
                     result = result
                 )
             },
-            alphaMaskFor = { visual ->
+            alphaMaskFor = { visual: ResolvedEntityVisual ->
                 visual.frame.alphaMask
             }
         )

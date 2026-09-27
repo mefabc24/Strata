@@ -3,14 +3,13 @@ package com.mefabc24.strata.render.entity
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.sprite.PreparedSprite
-import com.mefabc24.strata.render.sprite.PreparedSpriteFrame
 import com.mefabc24.strata.render.sprite.SpriteFrames
 
 /** A prepared entity frame and its matching pixel-alpha mask. */
-typealias EntityVisualFrame = PreparedSpriteFrame<AlphaMask?>
-
-val EntityVisualFrame.alphaMask: AlphaMask?
-    get() = metadata
+data class EntityVisualFrame(
+    val texture: TextureRegion,
+    val alphaMask: AlphaMask?
+)
 
 /** Defines a bottom-center anchored entity sprite. */
 class EntityVisual internal constructor(
@@ -23,6 +22,7 @@ class EntityVisual internal constructor(
     val scale: Float = 1f
 ) {
     private val preparedSprite = PreparedSprite(sprite, alphaMasks)
+    private val frames: List<EntityVisualFrame>
 
     constructor(
         texture: TextureRegion,
@@ -59,12 +59,17 @@ class EntityVisual internal constructor(
             "Entity sprite scale must be positive and finite."
         }
 
+        frames = List(preparedSprite.frameCount) { index ->
+            val frame = preparedSprite.frameAtIndex(index)
+            EntityVisualFrame(frame.texture, frame.metadata)
+        }
+
     }
 
     val texture: TextureRegion
-        get() = preparedSprite.frameAtIndex(0).texture
+        get() = frames.first().texture
 
     fun frameAt(stateTime: Float): EntityVisualFrame {
-        return preparedSprite.frameAt(stateTime)
+        return frames[sprite.frameIndexAt(stateTime)]
     }
 }
