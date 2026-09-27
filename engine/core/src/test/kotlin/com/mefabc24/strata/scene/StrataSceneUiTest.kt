@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.mefabc24.strata.audio.SoundCategoryId
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
@@ -18,6 +19,7 @@ import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.terrain.TerrainId
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,11 +31,11 @@ import kotlin.test.assertTrue
 
 class StrataSceneUiTest {
 
-    private enum class Terrain {
+    private enum class Terrain : TerrainId {
         GRASS
     }
 
-    private enum class SoundCategory {
+    private enum class SoundCategory : SoundCategoryId {
         EFFECT
     }
 
@@ -186,7 +188,7 @@ class StrataSceneUiTest {
         stage: Stage,
         worldViewFactory: SceneWorldViewFactory =
             DefaultSceneWorldViewFactory
-    ): StrataScene<Terrain, SoundCategory> {
+    ): StrataScene {
         return StrataScene(
             terrainDirectory = "",
             objectDirectory = "",

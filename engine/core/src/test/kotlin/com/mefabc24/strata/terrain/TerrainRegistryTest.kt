@@ -12,10 +12,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import com.mefabc24.strata.terrain.TerrainId
 
 class TerrainRegistryTest {
 
-    private enum class Terrain {
+    private enum class Terrain : TerrainId {
         GRASS,
         WATER,
         SAND,
@@ -37,7 +38,7 @@ class TerrainRegistryTest {
 
         assertEquals(
             listOf(Terrain.WATER, Terrain.GRASS),
-            registry.entries.map(TerrainEntry<Terrain>::type)
+            registry.entries.map { it.type }
         )
 
         assertEquals(
@@ -58,19 +59,19 @@ class TerrainRegistryTest {
         registry.register(Terrain.GRASS)
         registry.register(Terrain.WATER)
 
-        val snapshot = registry.entries as MutableList<TerrainEntry<Terrain>>
+        val snapshot = registry.entries as MutableList<TerrainEntry>
         snapshot.clear()
 
         assertEquals(
             listOf(Terrain.GRASS, Terrain.WATER),
-            registry.entries.map(TerrainEntry<Terrain>::type)
+            registry.entries.map { it.type }
         )
     }
 
     @Test
     fun `prepare exposes the registry-owned texture region`() {
         val texture = TextureRegion()
-        val registry = TerrainRegistry<Terrain>(
+        val registry = TerrainRegistry(
             directory = "tiles",
             queueTexture = {},
             regionFor = { texture }
@@ -100,7 +101,7 @@ class TerrainRegistryTest {
             "tiles/water_1.png" to region(32, 24),
             "tiles/water_2.png" to region(32, 24)
         )
-        val registry = TerrainRegistry<Terrain>(
+        val registry = TerrainRegistry(
             directory = "tiles",
             queueTexture = queued::add,
             regionFor = textures::getValue
@@ -138,7 +139,7 @@ class TerrainRegistryTest {
         val queuedAtlases = mutableListOf<String>()
 
         try {
-            val registry = TerrainRegistry<Terrain>(
+            val registry = TerrainRegistry(
                 directory = "tiles",
                 queueTexture = queuedTextures::add,
                 regionFor = { TextureRegion() },
@@ -169,7 +170,7 @@ class TerrainRegistryTest {
 
     @Test
     fun `multi file animation rejects mismatched dimensions when prepared`() {
-        val registry = TerrainRegistry<Terrain>(
+        val registry = TerrainRegistry(
             directory = "tiles",
             queueTexture = {},
             regionFor = { path ->
@@ -194,7 +195,7 @@ class TerrainRegistryTest {
         pixmap.dispose()
 
         try {
-            val registry = TerrainRegistry<Terrain>(
+            val registry = TerrainRegistry(
                 directory = "tiles",
                 queueTexture = {},
                 regionFor = { TextureRegion(texture) }
@@ -264,7 +265,7 @@ class TerrainRegistryTest {
             )
         }
 
-        val invalidSheet = TerrainRegistry<Terrain>(
+        val invalidSheet = TerrainRegistry(
             directory = "",
             queueTexture = {},
             regionFor = { region(30, 32) }
@@ -281,7 +282,7 @@ class TerrainRegistryTest {
             invalidSheet.prepare()
         }
 
-        val excessiveCount = TerrainRegistry<Terrain>(
+        val excessiveCount = TerrainRegistry(
             directory = "",
             queueTexture = {},
             regionFor = { region(32, 32) }
@@ -305,7 +306,7 @@ class TerrainRegistryTest {
         val grass = region(width = 32, height = 24)
         val water0 = region(width = 16, height = 24)
         val water1 = region(width = 16, height = 24)
-        val registry = TerrainRegistry<Terrain>(
+        val registry = TerrainRegistry(
             directory = "tiles",
             queueTexture = {},
             regionFor = { path ->
@@ -332,7 +333,7 @@ class TerrainRegistryTest {
     @Test
     fun `frozen registry rejects registration and keeps prepared entries readable`() {
         val texture = TextureRegion()
-        val registry = TerrainRegistry<Terrain>(
+        val registry = TerrainRegistry(
             directory = "tiles",
             queueTexture = {},
             regionFor = { texture }
@@ -377,7 +378,7 @@ class TerrainRegistryTest {
 
     private fun registry(
         queued: MutableList<String> = mutableListOf()
-    ) = TerrainRegistry<Terrain>(
+    ) = TerrainRegistry(
         directory = "tiles",
         queueTexture = queued::add,
         regionFor = { TextureRegion() }

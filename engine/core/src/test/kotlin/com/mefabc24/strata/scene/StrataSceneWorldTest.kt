@@ -4,6 +4,7 @@ import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.audio.SoundId
+import com.mefabc24.strata.audio.SoundCategoryId
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.WorldInputBinding
@@ -13,6 +14,7 @@ import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
+import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Entity
@@ -34,12 +36,12 @@ import kotlin.test.assertTrue
 
 class StrataSceneWorldTest {
 
-    private enum class Terrain {
+    private enum class Terrain : TerrainId {
         GRASS,
         WATER
     }
 
-    private enum class SoundCategory {
+    private enum class SoundCategory : SoundCategoryId {
         EFFECT
     }
 
@@ -391,8 +393,8 @@ class StrataSceneWorldTest {
 
     private fun sceneWith(
         viewFactory: RecordingViewFactory,
-        configure: StrataScene<Terrain, SoundCategory>.() -> Unit = {}
-    ): StrataScene<Terrain, SoundCategory> {
+        configure: StrataScene.() -> Unit = {}
+    ): StrataScene {
         return StrataScene(
             terrainDirectory = "",
             objectDirectory = "",

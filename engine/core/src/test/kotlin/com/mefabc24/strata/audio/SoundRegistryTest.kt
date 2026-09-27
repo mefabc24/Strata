@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 
 class SoundRegistryTest {
 
-    private enum class TestCategory {
+    private enum class TestCategory : SoundCategoryId {
         BUILDING,
         NPC
     }
@@ -23,7 +23,7 @@ class SoundRegistryTest {
 
     @Test
     fun `registering a sound stores its definition`() {
-        val registry = SoundRegistry<TestCategory> { }
+        val registry = SoundRegistry { }
 
         registry.register(
             id = BuildingSound.PLACE,
@@ -42,7 +42,7 @@ class SoundRegistryTest {
 
     @Test
     fun `frozen registry rejects registration and keeps definitions readable`() {
-        val registry = SoundRegistry<TestCategory> { }
+        val registry = SoundRegistry { }
 
         registry.register(
             id = BuildingSound.PLACE,
@@ -77,7 +77,7 @@ class SoundRegistryTest {
     fun `registering a sound queues its asset`() {
         val queuedPaths = mutableListOf<String>()
 
-        val registry = SoundRegistry<TestCategory> { path ->
+        val registry = SoundRegistry { path ->
             queuedPaths.add(path)
         }
 
@@ -95,7 +95,7 @@ class SoundRegistryTest {
 
     @Test
     fun `different sound enums can be registered together`() {
-        val registry = SoundRegistry<TestCategory> { }
+        val registry = SoundRegistry { }
 
         registry.register(
             id = BuildingSound.PLACE,
@@ -124,7 +124,7 @@ class SoundRegistryTest {
     fun `registering the same sound twice is rejected`() {
         val queuedPaths = mutableListOf<String>()
 
-        val registry = SoundRegistry<TestCategory> { path ->
+        val registry = SoundRegistry { path ->
             queuedPaths.add(path)
         }
 
@@ -160,7 +160,7 @@ class SoundRegistryTest {
     fun `blank sound paths are rejected`() {
         val queuedPaths = mutableListOf<String>()
 
-        val registry = SoundRegistry<TestCategory> { path ->
+        val registry = SoundRegistry { path ->
             queuedPaths.add(path)
         }
 
@@ -181,7 +181,7 @@ class SoundRegistryTest {
 
     @Test
     fun `accessing an unregistered sound fails`() {
-        val registry = SoundRegistry<TestCategory> { }
+        val registry = SoundRegistry { }
 
         assertFailsWith<IllegalStateException> {
             registry[BuildingSound.DEMOLISH]
@@ -190,7 +190,7 @@ class SoundRegistryTest {
 
     @Test
     fun `failed asset queuing does not register the sound`() {
-        val registry = SoundRegistry<TestCategory> {
+        val registry = SoundRegistry {
             error("Asset loading failed.")
         }
 
