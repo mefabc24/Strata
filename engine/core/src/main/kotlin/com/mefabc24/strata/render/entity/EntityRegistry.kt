@@ -3,9 +3,9 @@ package com.mefabc24.strata.render.entity
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
-import com.mefabc24.strata.render.`object`.AlphaMask
-import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
-import com.mefabc24.strata.render.`object`.alphaMasksFromSpriteSheetClasspath
+import com.mefabc24.strata.render.sprite.AlphaMask
+import com.mefabc24.strata.render.sprite.alphaMaskFromClasspath
+import com.mefabc24.strata.render.sprite.alphaMasksFromSpriteSheetClasspath
 import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.render.sprite.SpriteAlphaMaskCache
 import com.mefabc24.strata.render.sprite.PreparedVisualDefinition

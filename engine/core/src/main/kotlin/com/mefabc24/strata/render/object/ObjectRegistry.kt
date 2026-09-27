@@ -1,11 +1,8 @@
 package com.mefabc24.strata.render.`object`
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
-import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.render.sprite.SpriteAlphaMaskCache
 import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
@@ -16,7 +13,9 @@ import com.mefabc24.strata.render.sprite.VisualDefinition
 import com.mefabc24.strata.render.sprite.VisualPlayback
 import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.render.sprite.spriteSource
+import com.mefabc24.strata.render.sprite.alphaMaskFromClasspath
 import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
+import com.mefabc24.strata.render.sprite.alphaMasksFromSpriteSheetClasspath
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import kotlin.reflect.KClass
@@ -513,45 +512,5 @@ class ObjectRegistry internal constructor(
         check(registrationOpen) {
             "Object registry registration is already closed."
         }
-    }
-
-}
-
-internal fun alphaMaskFromClasspath(path: String): AlphaMask {
-    val pixmap = Pixmap(Gdx.files.classpath(path))
-
-    return try {
-        AlphaMask.fromPixmap(pixmap)
-    } finally {
-        pixmap.dispose()
-    }
-}
-
-internal fun alphaMasksFromSpriteSheetClasspath(
-    path: String,
-    frameWidth: Int,
-    frameHeight: Int,
-    frameCount: Int?
-): List<AlphaMask?> {
-    val pixmap = Pixmap(Gdx.files.classpath(path))
-
-    return try {
-        SpriteSheetGrid.cells(
-            sheetWidth = pixmap.width,
-            sheetHeight = pixmap.height,
-            frameWidth = frameWidth,
-            frameHeight = frameHeight,
-            frameCount = frameCount
-        ).map { cell ->
-            AlphaMask.fromPixmap(
-                pixmap = pixmap,
-                x = cell.x,
-                y = cell.y,
-                width = cell.width,
-                height = cell.height
-            )
-        }
-    } finally {
-        pixmap.dispose()
     }
 }

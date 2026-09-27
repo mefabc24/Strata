@@ -1,7 +1,7 @@
 package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.math.Rectangle
-import com.mefabc24.strata.render.`object`.AlphaMask
+import com.mefabc24.strata.render.sprite.AlphaMask
 
 /**
  * Finds the frontmost item whose sprite bounds and alpha mask contain the

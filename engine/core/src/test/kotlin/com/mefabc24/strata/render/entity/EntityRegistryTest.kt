@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
-import com.mefabc24.strata.render.`object`.AlphaMask
+import com.mefabc24.strata.render.sprite.AlphaMask
 import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.render.sprite.VisualStateId
 import com.mefabc24.strata.testing.TestGdxEnvironment
