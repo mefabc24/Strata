@@ -64,7 +64,8 @@ internal sealed interface VisualDefinition<C : Any, S : Any> {
 
     data class Stateful<C : Any, S : Any>(
         val states: Map<VisualStateId, VisualStateDefinition<S>>,
-        val stateFor: (C) -> VisualStateId
+        val stateFor: (C) -> VisualStateId,
+        val playbackIdentityFor: (C) -> Any = { context -> context }
     ) : VisualDefinition<C, S>
 
     fun sources(): List<S> = when (this) {
@@ -84,7 +85,8 @@ internal sealed interface VisualDefinition<C : Any, S : Any> {
                         playback = definition.playback
                     )
                 },
-                stateFor = stateFor
+                stateFor = stateFor,
+                playbackIdentityFor = playbackIdentityFor
             )
         }
     }
@@ -108,25 +110,43 @@ internal sealed interface PreparedVisualDefinition<C : Any, V : Any> {
 
     class Stateful<C : Any, V : Any>(
         private val states: Map<VisualStateId, VisualStateDefinition<V>>,
-        private val stateFor: (C) -> VisualStateId
+        private val stateFor: (C) -> VisualStateId,
+        private val playbackIdentityFor: (C) -> Any
     ) : PreparedVisualDefinition<C, V> {
-        private val activeStates = WeakIdentityMap<C, ActiveState>()
+        private val activeStates = if (
+            states.values.any { it.playback == VisualPlayback.LOCAL }
+        ) {
+            WeakIdentityMap<ActiveState>()
+        } else {
+            null
+        }
+
+        internal val trackedIdentityCount: Int
+            get() = activeStates?.size ?: 0
 
         override fun resolve(context: C, animationTime: Float): ResolvedVisual<V> {
             validateAnimationTime(animationTime)
             val state = stateFor(context)
             val definition = states[state]
                 ?: error("Resolved visual state $state is not registered.")
-            val previous = activeStates[context]
-            val active = if (previous?.state == state) {
-                previous
-            } else {
-                ActiveState(state, animationTime).also {
-                    activeStates[context] = it
+            val active = activeStates?.let { trackedStates ->
+                val identity = playbackIdentityFor(context)
+                val previous = trackedStates[identity]
+                if (previous?.state == state) {
+                    previous
+                } else {
+                    ActiveState(state, animationTime).also {
+                        trackedStates[identity] = it
+                    }
                 }
             }
             val stateTime = when (definition.playback) {
-                VisualPlayback.LOCAL -> (animationTime - active.startedAt).coerceAtLeast(0f)
+                VisualPlayback.LOCAL -> {
+                    checkNotNull(active) {
+                        "Local visual playback requires runtime state tracking."
+                    }
+                    (animationTime - active.startedAt).coerceAtLeast(0f)
+                }
                 VisualPlayback.SYNCHRONIZED -> animationTime
             }
             return ResolvedVisual(definition.source, stateTime, state)
@@ -141,47 +161,54 @@ private data class ActiveState(
     val startedAt: Float
 )
 
-private class WeakIdentityMap<K : Any, V : Any> {
-    private val queue = ReferenceQueue<K>()
-    private val values = mutableMapOf<IdentityReference<K>, V>()
+internal class WeakIdentityMap<V : Any> {
+    private val queue = ReferenceQueue<Any>()
+    private val buckets = mutableMapOf<Int, MutableList<Entry<V>>>()
 
-    operator fun get(key: K): V? {
+    internal val size: Int
+        get() {
+            removeCollectedKeys()
+            return buckets.values.sumOf { bucket -> bucket.size }
+        }
+
+    operator fun get(key: Any): V? {
         removeCollectedKeys()
-        return values[IdentityReference(key)]
+        val identityHash = System.identityHashCode(key)
+        return buckets[identityHash]
+            ?.firstOrNull { entry -> entry.get() === key }
+            ?.value
     }
 
-    operator fun set(key: K, value: V) {
+    operator fun set(key: Any, value: V) {
         removeCollectedKeys()
-        values[IdentityReference(key, queue)] = value
+        val identityHash = System.identityHashCode(key)
+        val bucket = buckets.getOrPut(identityHash, ::mutableListOf)
+        val existing = bucket.firstOrNull { entry -> entry.get() === key }
+        if (existing != null) {
+            existing.value = value
+        } else {
+            bucket += Entry(key, queue, identityHash, value)
+        }
     }
 
     private fun removeCollectedKeys() {
         while (true) {
-            val reference = queue.poll() ?: return
-            values.remove(reference)
+            @Suppress("UNCHECKED_CAST")
+            val entry = queue.poll() as Entry<V>? ?: return
+            val bucket = buckets[entry.identityHash] ?: continue
+            bucket.remove(entry)
+            if (bucket.isEmpty()) {
+                buckets.remove(entry.identityHash)
+            }
         }
     }
 
-    private class IdentityReference<K : Any> : WeakReference<K> {
-        private val identityHash: Int
-
-        constructor(value: K) : super(value) {
-            identityHash = System.identityHashCode(value)
-        }
-
-        constructor(value: K, queue: ReferenceQueue<K>) : super(value, queue) {
-            identityHash = System.identityHashCode(value)
-        }
-
-        override fun hashCode(): Int = identityHash
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is IdentityReference<*>) return false
-            val value = get() ?: return false
-            return value === other.get()
-        }
-    }
+    private class Entry<V : Any>(
+        key: Any,
+        queue: ReferenceQueue<Any>,
+        val identityHash: Int,
+        var value: V
+    ) : WeakReference<Any>(key, queue)
 }
 
 private fun validateAnimationTime(animationTime: Float) {

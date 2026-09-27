@@ -397,7 +397,8 @@ class ObjectRegistry internal constructor(
                 states = definitions,
                 stateFor = { placed ->
                     stateFor(placed, type.java.cast(placed.placeable))
-                }
+                },
+                playbackIdentityFor = PlacedObject::placeable
             ),
             factory = factory,
             configure = configure

@@ -396,7 +396,10 @@ class ObjectRegistryTest {
         )
         assertSame(
             textures.getValue("objects/work_1.png"),
-            registry.resolve(placed, 5.21f)?.frame?.texture
+            registry.resolve(
+                PlacedObject(workshop, 1, 1),
+                5.21f
+            )?.frame?.texture
         )
         assertSame(secondMask, registry.resolve(placed, 5.21f)?.frame?.alphaMask)
 
