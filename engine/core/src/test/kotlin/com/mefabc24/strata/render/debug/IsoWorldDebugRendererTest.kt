@@ -1,7 +1,12 @@
 package com.mefabc24.strata.render.debug
 
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
+import com.mefabc24.strata.scene.DebugEntitySettings
+import com.mefabc24.strata.scene.DebugObjectSettings
+import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityDirection
 import com.mefabc24.strata.world.EntityPosition
@@ -10,12 +15,86 @@ import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TileOffset
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class IsoWorldDebugRendererTest {
+
+    @BeforeTest
+    fun installTestEnvironment() {
+        TestGdxEnvironment.install()
+    }
+
+    @Test
+    fun `disabled diagnostics skip visual resolution and dispose safely`() {
+        val renderer = IsoWorldDebugRenderer(
+            projection = IsoProjection(TileGeometry()),
+            objectSettings = DebugObjectSettings(),
+            entitySettings = DebugEntitySettings(),
+            objectRenderingSettings = ObjectRenderingSettings()
+        )
+        val world = World(1, 1) { _, _ -> TestTile }
+
+        renderer.render(
+            world = world,
+            camera = OrthographicCamera(),
+            animationTime = 1f,
+            objectVisualFor = { _, _ -> error("Object visual resolved") },
+            entityVisualFor = { _, _ -> error("Entity visual resolved") }
+        )
+
+        renderer.dispose()
+        renderer.dispose()
+    }
+
+    @Test
+    fun `enabled diagnostics do not resolve visuals unless bounds are shown`() {
+        val objectSettings = DebugObjectSettings().apply { enabled = true }
+        val entitySettings = DebugEntitySettings().apply { enabled = true }
+        val renderer = IsoWorldDebugRenderer(
+            projection = IsoProjection(TileGeometry()),
+            objectSettings = objectSettings,
+            entitySettings = entitySettings,
+            objectRenderingSettings = ObjectRenderingSettings()
+        )
+        val world = World(2, 2) { _, _ -> TestTile }
+        world.place(
+            object : Placeable {
+                override val footprint = Footprint.square(1)
+            },
+            x = 0,
+            y = 0
+        )
+        world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        var objectResolutions = 0
+        var entityResolutions = 0
+
+        try {
+            renderer.render(
+                world = world,
+                camera = OrthographicCamera().apply { update() },
+                animationTime = 1f,
+                objectVisualFor = { _, _ ->
+                    objectResolutions++
+                    null
+                },
+                entityVisualFor = { _, _ ->
+                    entityResolutions++
+                    null
+                }
+            )
+        } finally {
+            renderer.dispose()
+        }
+
+        assertEquals(0, objectResolutions)
+        assertEquals(0, entityResolutions)
+    }
 
     @Test
     fun `object debug data uses occupied cells and placement origin`() {
@@ -109,4 +188,5 @@ class IsoWorldDebugRendererTest {
     }
 
     private data object TestEntity : Entity
+    private data object TestTile : Tile
 }
