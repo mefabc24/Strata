@@ -203,6 +203,38 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         }
     }
 
+    /** Configures terrain registrations during scene setup. */
+    fun terrain(
+        configure: TerrainRegistry<T>.() -> Unit
+    ) {
+        checkConfigurationOpen()
+        this.terrain.apply(configure)
+    }
+
+    /** Configures object registrations during scene setup. */
+    fun objects(
+        configure: ObjectRegistry.() -> Unit
+    ) {
+        checkConfigurationOpen()
+        this.objects.apply(configure)
+    }
+
+    /** Configures entity registrations during scene setup. */
+    fun entities(
+        configure: EntityRegistry.() -> Unit
+    ) {
+        checkConfigurationOpen()
+        this.entities.apply(configure)
+    }
+
+    /** Configures sound registrations during scene setup. */
+    fun sounds(
+        configure: SoundRegistry<C>.() -> Unit
+    ) {
+        checkConfigurationOpen()
+        this.sounds.apply(configure)
+    }
+
     /** Configures runtime audio during scene setup. */
     fun audio(configure: StrataAudio<C>.() -> Unit) {
         checkConfigurationOpen()
