@@ -39,13 +39,6 @@ private enum class SandboxPanelTab(
     DEBUG("Debug")
 }
 
-private enum class SandboxMode(
-    val displayName: String
-) {
-    BUILD("Build"),
-    PAINT("Paint")
-}
-
 private sealed interface SandboxPaintLayer {
     val layerId: String?
 
@@ -90,6 +83,7 @@ class SandboxUi(
     private val painter: SandboxTerrainPainter,
     private val placementController: PlacementController,
     private val buildDragController: SandboxBuildDragController,
+    private val toolController: SandboxToolController,
     private val debugSettings: DebugSettings,
     terrainEntries: List<TerrainEntry>,
     objectEntries: List<ObjectEntry>
@@ -132,18 +126,9 @@ class SandboxUi(
 
     private val modeSelection = ui.selectionGroup(
         options = SandboxMode.entries,
-        initialSelection = if (painter.enabled) {
-            SandboxMode.PAINT
-        } else {
-            SandboxMode.BUILD
-        }
+        initialSelection = toolController.mode
     ) { selected ->
-        if (selected == SandboxMode.PAINT) {
-            buildDragController.cancel()
-        }
-
-        painter.enabled = selected == SandboxMode.PAINT
-        placementController.enabled = selected == SandboxMode.BUILD
+        toolController.select(selected)
         updateStatus()
     }
 
@@ -609,19 +594,7 @@ class SandboxUi(
      * Reflects state changes made through retained keyboard controls.
      */
     fun sync() {
-        if (painter.enabled) {
-            buildDragController.cancel()
-        }
-
-        placementController.enabled = !painter.enabled
-
-        modeSelection.select(
-            if (painter.enabled) {
-                SandboxMode.PAINT
-            } else {
-                SandboxMode.BUILD
-            }
-        )
+        modeSelection.select(toolController.mode)
 
         if (painter.terrain in terrains) {
             terrainSelection.select(painter.terrain)
@@ -640,8 +613,8 @@ class SandboxUi(
             buildSelection.select(entry)
         }
 
-        buildControls.isVisible = !painter.enabled
-        paintControls.isVisible = painter.enabled
+        buildControls.isVisible = toolController.mode == SandboxMode.BUILD
+        paintControls.isVisible = toolController.mode == SandboxMode.PAINT
         updatePanelTab()
 
         updateStatus()
@@ -670,11 +643,17 @@ class SandboxUi(
         )
 
         selectionStatus.setText(
-            if (modeSelection.selected == SandboxMode.BUILD) {
-                "Object: ${buildSelection.selected?.displayName()}"
-            } else {
-                "Terrain: ${terrainSelection.selected?.displayName()}\n" +
-                    "Layer: ${layerSelection.selected?.displayName}"
+            when (modeSelection.selected) {
+                SandboxMode.NONE -> "No editing tool active"
+                SandboxMode.BUILD -> {
+                    "Object: ${buildSelection.selected?.displayName()}"
+                }
+                SandboxMode.PAINT -> {
+                    "Terrain: ${terrainSelection.selected?.displayName()}\n" +
+                        "Layer: ${layerSelection.selected?.displayName}"
+                }
+                SandboxMode.SPAWN -> "No entity selected"
+                null -> ""
             }
         )
     }
