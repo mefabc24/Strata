@@ -90,15 +90,21 @@ class SandboxUi(
     private val placementController: PlacementController,
     private val buildDragController: SandboxBuildDragController,
     private val debugSettings: DebugSettings,
-    terrainEntries: List<TerrainEntry<TerrainType>>,
+    terrainEntries: List<TerrainEntry>,
     objectEntries: List<ObjectEntry>
 ) {
 
-    private val terrains = terrainEntries.map(TerrainEntry<TerrainType>::type).also {
-        require(it.isNotEmpty()) {
-            "The Sandbox UI requires at least one registered terrain."
+    private val terrains: List<TerrainType> =
+        terrainEntries.map { entry ->
+            entry.type as? TerrainType
+                ?: error(
+                    "Sandbox terrain registry contains an unsupported terrain ID: ${entry.type}"
+                )
+        }.also {
+            require(it.isNotEmpty()) {
+                "The Sandbox UI requires at least one registered terrain."
+            }
         }
-    }
 
     private val buildEntries = objectEntries.toList().also {
         require(it.isNotEmpty()) {

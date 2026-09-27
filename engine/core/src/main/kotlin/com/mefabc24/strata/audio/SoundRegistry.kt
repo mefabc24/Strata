@@ -5,9 +5,9 @@ import com.mefabc24.strata.assets.StrataAssets
 /**
  * Describes a registered sound.
  */
-data class SoundDefinition<C : Enum<C>>(
+data class SoundDefinition(
     val path: String,
-    val category: C
+    val category: SoundCategoryId
 )
 
 /**
@@ -16,13 +16,15 @@ data class SoundDefinition<C : Enum<C>>(
  * Sound assets are queued automatically during scene setup registration.
  * Definitions remain readable after the owning scene closes registration.
  */
-class SoundRegistry<C : Enum<C>> internal constructor(
+class SoundRegistry internal constructor(
     private val queueSound: (String) -> Unit
 ) {
 
     constructor(assets: StrataAssets) : this(assets::queueSound)
 
-    private val definitions = mutableMapOf<SoundId, SoundDefinition<C>>()
+    private val definitions =
+        mutableMapOf<SoundId, SoundDefinition>()
+
     private var registrationOpen = true
 
     /**
@@ -31,7 +33,7 @@ class SoundRegistry<C : Enum<C>> internal constructor(
     fun register(
         id: SoundId,
         path: String,
-        category: C
+        category: SoundCategoryId
     ) {
         checkRegistrationOpen()
 
@@ -58,7 +60,7 @@ class SoundRegistry<C : Enum<C>> internal constructor(
     /**
      * Returns the definition of a registered sound.
      */
-    operator fun get(id: SoundId): SoundDefinition<C> {
+    operator fun get(id: SoundId): SoundDefinition {
         return definitions[id]
             ?: error("Sound is not registered: $id")
     }

@@ -20,6 +20,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
+import com.mefabc24.strata.terrain.TerrainId
 
 internal fun interface StrataUiFactory {
     fun create(
@@ -38,11 +39,11 @@ internal fun interface StrataUiFactory {
  * constructor configuration block completes and are applied when their
  * runtime component is created.
  */
-class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
+class StrataScene private constructor(
     terrainDirectory: String,
     objectDirectory: String,
     entityDirectory: String,
-    configure: StrataScene<T, C>.() -> Unit,
+    configure: StrataScene.() -> Unit,
     private val uiFactory: StrataUiFactory,
     private val worldViewFactory: SceneWorldViewFactory
 ) : Disposable {
@@ -51,7 +52,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         terrainDirectory: String,
         objectDirectory: String,
         entityDirectory: String = objectDirectory,
-        configure: StrataScene<T, C>.() -> Unit
+        configure: StrataScene.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
@@ -72,7 +73,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         entityDirectory: String = objectDirectory,
         uiFactory: StrataUiFactory,
         worldViewFactory: SceneWorldViewFactory = DefaultSceneWorldViewFactory,
-        configure: StrataScene<T, C>.() -> Unit
+        configure: StrataScene.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
@@ -84,7 +85,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
     val assets = StrataAssets()
 
-    val terrain = TerrainRegistry<T>(
+    val terrain = TerrainRegistry(
         directory = terrainDirectory,
         assets = assets
     )
@@ -99,7 +100,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
         assets = assets
     )
 
-    val sounds = SoundRegistry<C>(assets)
+    val sounds = SoundRegistry(assets)
 
     val audio = StrataAudio(
         assets = assets,
@@ -205,7 +206,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
     /** Configures terrain registrations during scene setup. */
     fun terrain(
-        configure: TerrainRegistry<T>.() -> Unit
+        configure: TerrainRegistry.() -> Unit
     ) {
         checkConfigurationOpen()
         this.terrain.apply(configure)
@@ -229,14 +230,14 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
 
     /** Configures sound registrations during scene setup. */
     fun sounds(
-        configure: SoundRegistry<C>.() -> Unit
+        configure: SoundRegistry.() -> Unit
     ) {
         checkConfigurationOpen()
         this.sounds.apply(configure)
     }
 
     /** Configures runtime audio during scene setup. */
-    fun audio(configure: StrataAudio<C>.() -> Unit) {
+    fun audio(configure: StrataAudio.() -> Unit) {
         checkConfigurationOpen()
         audio.apply(configure)
     }
@@ -297,7 +298,7 @@ class StrataScene<T : Enum<T>, C : Enum<C>> private constructor(
      */
     fun attachWorld(
         world: World,
-        terrainFor: (Tile) -> T
+        terrainFor: (Tile) -> TerrainId
     ) {
         checkActive()
         checkConfigurationComplete()

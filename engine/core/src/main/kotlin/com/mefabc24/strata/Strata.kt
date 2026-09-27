@@ -11,6 +11,7 @@ import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
 import com.mefabc24.strata.scene.DebugSettings
 import com.mefabc24.strata.scene.StrataScene
+import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
@@ -23,23 +24,23 @@ import com.mefabc24.strata.world.World
  * Strata owns one scene runtime while keeping game-owned world state outside
  * the engine configuration.
  */
-class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
+class Strata : Disposable {
 
     /** Process-wide engine settings. */
     val engineSettings = EngineSettings()
 
-    private var sceneSpec: SceneSpec<T, C>? = null
-    private var activeScene: StrataScene<T, C>? = null
+    private var sceneSpec: SceneSpec? = null
+    private var activeScene: StrataScene? = null
 
     private var configured = false
     private var disposed = false
 
     /** Active scene runtime. */
-    val scene: StrataScene<T, C>
+    val scene: StrataScene
         get() = activeScene
             ?: error("Strata has not been created yet.")
 
-    val terrain: TerrainRegistry<T>
+    val terrain: TerrainRegistry
         get() = scene.terrain
 
     val objects: ObjectRegistry
@@ -48,10 +49,10 @@ class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
     val entities: EntityRegistry
         get() = scene.entities
 
-    val sounds: SoundRegistry<C>
+    val sounds: SoundRegistry
         get() = scene.sounds
 
-    val audio: StrataAudio<C>
+    val audio: StrataAudio
         get() = scene.audio
 
     val debug: DebugSettings
@@ -79,8 +80,8 @@ class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
      * [create] is called.
      */
     fun configure(
-        configure: StrataConfiguration<T, C>.() -> Unit
-    ): Strata<T, C> {
+        configure: StrataConfiguration.() -> Unit
+    ): Strata {
         check(!configured) {
             "Strata has already been configured."
         }
@@ -94,7 +95,7 @@ class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
         }
 
         val configuration =
-            StrataConfiguration<T, C>(
+            StrataConfiguration(
                 engineSettings = engineSettings
             ).apply(configure)
 
@@ -136,7 +137,7 @@ class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
      */
     fun attachWorld(
         world: World,
-        terrainFor: (Tile) -> T
+        terrainFor: (Tile) -> TerrainId
     ) {
         scene.attachWorld(
             world = world,
@@ -190,11 +191,11 @@ class Strata<T : Enum<T>, C : Enum<C>> : Disposable {
 /**
  * One-shot configuration DSL for [Strata].
  */
-class StrataConfiguration<T : Enum<T>, C : Enum<C>> internal constructor(
+class StrataConfiguration internal constructor(
     private val engineSettings: EngineSettings
 ) {
 
-    internal var sceneSpec: SceneSpec<T, C>? = null
+    internal var sceneSpec: SceneSpec? = null
         private set
 
     /** Configures process-wide engine settings. */
@@ -211,7 +212,7 @@ class StrataConfiguration<T : Enum<T>, C : Enum<C>> internal constructor(
         terrainDirectory: String,
         objectDirectory: String,
         entityDirectory: String = objectDirectory,
-        configure: StrataScene<T, C>.() -> Unit
+        configure: StrataScene.() -> Unit
     ) {
         check(sceneSpec == null) {
             "A Strata scene has already been configured."
@@ -226,9 +227,9 @@ class StrataConfiguration<T : Enum<T>, C : Enum<C>> internal constructor(
     }
 }
 
-internal data class SceneSpec<T : Enum<T>, C : Enum<C>>(
+internal data class SceneSpec(
     val terrainDirectory: String,
     val objectDirectory: String,
     val entityDirectory: String,
-    val configure: StrataScene<T, C>.() -> Unit
+    val configure: StrataScene.() -> Unit
 )

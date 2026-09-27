@@ -15,23 +15,24 @@ class SoundHandle internal constructor()
  *
  * StrataAudio controls playback but does not own the assets.
  */
-class StrataAudio<C : Enum<C>>(
+class StrataAudio(
     private val assets: StrataAssets,
-    private val sounds: SoundRegistry<C>,
+    private val sounds: SoundRegistry,
     private val maxTrackedSounds: Int = 128
 ) : Disposable {
 
-    private data class PlayingSound<C>(
+    private data class PlayingSound(
         val sound: Sound,
         val id: Long,
-        val category: C,
+        val category: SoundCategoryId,
         val volume: Float
     )
 
-    private val categoryVolumes = mutableMapOf<C, Float>()
+    private val categoryVolumes =
+        mutableMapOf<SoundCategoryId, Float>()
 
     private val playingSounds =
-        linkedMapOf<SoundHandle, PlayingSound<C>>()
+        linkedMapOf<SoundHandle, PlayingSound>()
 
     private var currentMusic: Music? = null
     private var currentMusicVolume = 1f
@@ -72,7 +73,7 @@ class StrataAudio<C : Enum<C>>(
     /**
      * Sets the volume of a game-defined sound category.
      */
-    fun setCategoryVolume(category: C, volume: Float) {
+    fun setCategoryVolume(category: SoundCategoryId, volume: Float) {
         checkActive()
         validateVolume(volume)
 
@@ -83,7 +84,7 @@ class StrataAudio<C : Enum<C>>(
     /**
      * Returns the configured category volume or 1 by default.
      */
-    fun getCategoryVolume(category: C): Float {
+    fun getCategoryVolume(category: SoundCategoryId): Float {
         checkActive()
         return categoryVolumes[category] ?: 1f
     }
@@ -113,7 +114,7 @@ class StrataAudio<C : Enum<C>>(
      */
     private fun playSound(
         path: String,
-        category: C,
+        category: SoundCategoryId,
         volume: Float = 1f
     ): SoundHandle? {
         checkActive()
@@ -237,7 +238,7 @@ class StrataAudio<C : Enum<C>>(
     }
 
     private fun effectiveSoundVolume(
-        category: C,
+        category: SoundCategoryId,
         volume: Float
     ): Float {
         return masterVolume *

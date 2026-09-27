@@ -12,8 +12,8 @@ import com.mefabc24.strata.render.sprite.SpriteSource
  * The sprite is owned by the registry's asset manager. Accessing prepared
  * visual data requires the registry to have been prepared.
  */
-class TerrainEntry<T : Enum<T>> internal constructor(
-    val type: T,
+class TerrainEntry internal constructor(
+    val type: TerrainId,
     internal val source: SpriteSource
 ) {
     val spritePath: String = source.assetPaths.first()
@@ -47,7 +47,7 @@ class TerrainEntry<T : Enum<T>> internal constructor(
  * Registration is available only during scene setup. Runtime reads remain
  * available after the owning scene closes registration and prepares entries.
  */
-class TerrainRegistry<T : Enum<T>> internal constructor(
+class TerrainRegistry internal constructor(
     directory: String,
     private val queueTexture: (String) -> Unit,
     private val regionFor: (String) -> TextureRegion,
@@ -68,16 +68,17 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     )
 
     private val baseDirectory = directory.trimEnd('/')
-    private val registrations = linkedMapOf<T, TerrainEntry<T>>()
+    private val registrations =
+        linkedMapOf<TerrainId, TerrainEntry>()
     private var registrationOpen = true
 
     /** A snapshot of registered terrain entries in registration order. */
-    val entries: List<TerrainEntry<T>>
+    val entries: List<TerrainEntry>
         get() = registrations.values.toList()
 
     /** Registers a static terrain sprite. */
     fun register(
-        type: T,
+        type: TerrainId,
         sprite: String = "${type.name.lowercase()}.png"
     ) {
         checkRegistrationOpen()
@@ -96,7 +97,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
      * is not resolved relative to the terrain directory.
      */
     fun registerAtlas(
-        type: T,
+        type: TerrainId,
         atlas: String,
         region: String
     ) {
@@ -106,7 +107,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
 
     /** Registers a looping terrain animation from ordered image files. */
     fun registerAnimated(
-        type: T,
+        type: TerrainId,
         frames: List<String>,
         frameDuration: Float
     ) {
@@ -129,7 +130,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
 
     /** Registers indexed atlas regions as a looping animation. */
     fun registerAnimatedAtlas(
-        type: T,
+        type: TerrainId,
         atlas: String,
         region: String,
         frameDuration: Float
@@ -143,7 +144,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
 
     /** Registers a looping terrain animation from a tight spritesheet. */
     fun registerAnimated(
-        type: T,
+        type: TerrainId,
         spriteSheet: String,
         frameWidth: Int,
         frameHeight: Int,
@@ -206,17 +207,20 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
     }
 
     /** Returns the static texture or first animation frame. */
-    operator fun get(type: T): TextureRegion {
+    operator fun get(type: TerrainId): TextureRegion {
         return entry(type).texture
     }
 
     /** Resolves a terrain frame for the shared world-view animation time. */
-    fun frameAt(type: T, stateTime: Float): TextureRegion {
+    fun frameAt(
+        type: TerrainId,
+        stateTime: Float
+    ): TextureRegion {
         return entry(type).frameAt(stateTime)
     }
 
     private fun registerSource(
-        type: T,
+        type: TerrainId,
         source: SpriteSource
     ) {
         require(type !in registrations) {
@@ -227,7 +231,7 @@ class TerrainRegistry<T : Enum<T>> internal constructor(
         registrations[type] = TerrainEntry(type, source)
     }
 
-    private fun entry(type: T): TerrainEntry<T> {
+    private fun entry(type: TerrainId): TerrainEntry {
         return registrations[type]
             ?: error("Terrain type $type is not registered.")
     }

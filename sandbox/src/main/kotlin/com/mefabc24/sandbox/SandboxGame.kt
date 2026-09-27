@@ -3,23 +3,282 @@ package com.mefabc24.sandbox
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.mefabc24.strata.EngineSettings
-import com.mefabc24.strata.StrataSceneGame
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
-import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.pathfinding.findPath
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
+import com.mefabc24.strata.Strata
+import com.mefabc24.strata.StrataGame
 
-class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
-    override val engineSettings = EngineSettings().apply {
-        backgroundColor = Color(0.53f, 0.81f, 0.92f, 1f)
-    }
+class SandboxGame : StrataGame() {
+
+    protected override val strata =
+        Strata().configure {
+            engine {
+                backgroundColor =
+                    Color(0.53f, 0.81f, 0.92f, 1f)
+            }
+
+            scene(
+                terrainDirectory = "tiles",
+                objectDirectory = "objects"
+            ) {
+                terrain {
+                    registerAtlas(
+                        TerrainType.GRASS,
+                        atlas = TERRAIN_ATLAS,
+                        region = "grass"
+                    )
+
+                    registerAtlas(
+                        TerrainType.BUSH,
+                        atlas = TERRAIN_ATLAS,
+                        region = "bush"
+                    )
+
+                    registerAtlas(
+                        TerrainType.LOW_GRASS,
+                        atlas = TERRAIN_ATLAS,
+                        region = "lowgrass"
+                    )
+
+                    registerAtlas(
+                        TerrainType.WATER,
+                        atlas = TERRAIN_ATLAS,
+                        region = "water4"
+                    )
+
+                    registerAtlas(
+                        TerrainType.ROCK,
+                        atlas = TERRAIN_ATLAS,
+                        region = "rock"
+                    )
+
+                    registerAtlas(
+                        TerrainType.SAND,
+                        atlas = TERRAIN_ATLAS,
+                        region = "sand"
+                    )
+
+                    registerAtlas(
+                        TerrainType.STONE,
+                        atlas = TERRAIN_ATLAS,
+                        region = "stone"
+                    )
+
+                    registerAtlas(
+                        TerrainType.DIRT,
+                        atlas = TERRAIN_ATLAS,
+                        region = "dirt"
+                    )
+
+                    registerAnimatedAtlas(
+                        TerrainType.BUSH_ANIMATED,
+                        atlas = TERRAIN_ATLAS,
+                        region = "bush-animated",
+                        frameDuration = 0.2f
+                    )
+                }
+
+                entities {
+                    registerAtlas<DebugWalker>(
+                        atlas = DEMO_ATLAS,
+                        region = "debug-walker"
+                    )
+                }
+
+                objects {
+                    registerAtlas(
+                        atlas = DEMO_ATLAS,
+                        region = "house",
+                        factory = ::House
+                    )
+
+                    register(
+                        sprite = "oak.png",
+                        factory = ::OakTree
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "villa.png",
+                        factory = ::Villa
+                    ) {
+                        offsetY = -16f
+                        offsetX = -6f
+                    }
+
+                    register(
+                        sprite = "pine.png",
+                        factory = ::Pine
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "trunk1.png",
+                        factory = ::Trunk1
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "trunk2.png",
+                        factory = ::Trunk2
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "trunk3.png",
+                        factory = ::Trunk3
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "trunk4.png",
+                        factory = ::Trunk4
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "flower1.png",
+                        factory = ::Flower1
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "flower2.png",
+                        factory = ::Flower2
+                    ) {
+                        offsetY = 3f
+                    }
+
+                    register(
+                        sprite = "rock_water1.png",
+                        factory = ::RockWater1
+                    ) {
+                        offsetY = -3f
+                    }
+
+                    register(
+                        sprite = "rock_water2.png",
+                        factory = ::RockWater2
+                    ) {
+                        offsetY = -3f
+                    }
+
+                    register(
+                        sprite = "rock_water3.png",
+                        factory = ::RockWater3
+                    ) {
+                        offsetY = -3f
+                    }
+
+                    register(
+                        sprite = "road1.png",
+                        factory = ::Road1
+                    ) {
+                        offsetY = -9f
+                    }
+
+                    register(
+                        sprite = "road2.png",
+                        factory = ::Road2
+                    ) {
+                        offsetY = -9f
+                    }
+
+                    register(
+                        sprite = "road-intersection.png",
+                        factory = ::RoadIntersection
+                    ) {
+                        offsetY = -9f
+                    }
+
+                    register(
+                        sprite = "well.png",
+                        factory = ::Well
+                    )
+                }
+
+                sounds {
+                    register(
+                        id = BuildingSound.PLACE,
+                        path = "audio/pop.wav",
+                        category = SoundCategory.BUILDING
+                    )
+                }
+
+                audio {
+                    masterVolume = 1f
+                    soundVolume = 1f
+                    musicVolume = 1f
+
+                    setCategoryVolume(
+                        SoundCategory.BUILDING,
+                        1f
+                    )
+                }
+
+                debug {
+                    performance {
+                        enabled = false
+                        intervalSeconds = 2f
+                    }
+
+                    grid {
+                        enabled = false
+                        color = Color(1f, 1f, 1f, 0.4f)
+                        hoverColor = Color(1f, 0f, 0f, 1f)
+                        lineWidth = 1f
+                        backgroundColor =
+                            Color(1f, 1f, 1f, 0.2f)
+                        hoverBackgroundColor =
+                            Color(1f, 0f, 0f, 0.5f)
+                    }
+                }
+
+                camera {
+                    zoomEdgeAllowance = 0.3f
+                }
+
+                rendering {
+                    tileGeometry {
+                        width = 32f
+                        height = 24f
+                    }
+
+                    objects {
+                        offsetY = 1f
+                    }
+                }
+
+                placement {
+                    previewStyle = PlacementPreviewStyle(
+                        validColor =
+                            Color(0.35f, 0.75f, 0.3f, 0.7f),
+                        invalidColor =
+                            Color(1f, 0.25f, 0.25f, 0.7f)
+                    )
+                }
+
+                controls {
+                    gameplay {
+                        bindings = sandboxBindings()
+                    }
+                }
+            }
+        }
 
     private lateinit var painter: SandboxTerrainPainter
     private lateinit var buildDrag: SandboxBuildDragController
@@ -27,282 +286,44 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
     private lateinit var sandboxUi: SandboxUi
     private lateinit var debugWalker: WorldEntity
 
-    override fun createScene(): StrataScene<TerrainType, SoundCategory> {
+    override fun onReady() {
         val world = createSandboxWorld()
         painter = SandboxTerrainPainter(world)
 
-        val createdScene = StrataScene<TerrainType, SoundCategory>(
-            terrainDirectory = "tiles",
-            objectDirectory = "objects"
-        ) {
-            terrain.registerAtlas(
-                TerrainType.GRASS,
-                atlas = TERRAIN_ATLAS,
-                region = "grass"
-            )
-
-            terrain.registerAtlas(
-                TerrainType.BUSH,
-                atlas = TERRAIN_ATLAS,
-                region = "bush"
-            )
-
-            terrain.registerAtlas(
-                TerrainType.LOW_GRASS,
-                atlas = TERRAIN_ATLAS,
-                region = "lowgrass"
-            )
-
-            terrain.registerAtlas(
-                TerrainType.WATER,
-                atlas = TERRAIN_ATLAS,
-                region = "water4"
-            )
-
-            terrain.registerAtlas(
-                TerrainType.ROCK,
-                atlas = TERRAIN_ATLAS,
-                region = "rock"
-            )
-
-            terrain.registerAtlas(
-                TerrainType.SAND,
-                atlas = TERRAIN_ATLAS,
-                region = "sand"
-            )
-            terrain.registerAtlas(
-                TerrainType.STONE,
-                atlas = TERRAIN_ATLAS,
-                region = "stone"
-            )
-            terrain.registerAtlas(
-                TerrainType.DIRT,
-                atlas = TERRAIN_ATLAS,
-                region = "dirt"
-            )
-
-            terrain.registerAnimatedAtlas(
-                TerrainType.BUSH_ANIMATED,
-                atlas = TERRAIN_ATLAS,
-                region = "bush-animated",
-                frameDuration = 0.2f
-            )
-
-            entities.registerAtlas<DebugWalker>(
-                atlas = DEMO_ATLAS,
-                region = "debug-walker"
-            )
-
-            objects.registerAtlas(
-                atlas = DEMO_ATLAS,
-                region = "house",
-                factory = ::House
-            )
-
-            objects.register(
-                sprite = "oak.png",
-                factory = ::OakTree
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "villa.png",
-                factory = ::Villa
-            ) {
-                offsetY = -16f
-                offsetX = -6f
-            }
-
-            objects.register(
-                sprite = "pine.png",
-                factory = ::Pine
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "trunk1.png",
-                factory = ::Trunk1
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "trunk2.png",
-                factory = ::Trunk2
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "trunk3.png",
-                factory = ::Trunk3
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "trunk4.png",
-                factory = ::Trunk4
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "flower1.png",
-                factory = ::Flower1
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "flower2.png",
-                factory = ::Flower2
-            ) {
-                offsetY = 3f
-            }
-
-            objects.register(
-                sprite = "rock_water1.png",
-                factory = ::RockWater1
-            ) {
-                offsetY = -3f
-            }
-
-            objects.register(
-                sprite = "rock_water2.png",
-                factory = ::RockWater2
-            ) {
-                offsetY = -3f
-            }
-
-            objects.register(
-                sprite = "rock_water3.png",
-                factory = ::RockWater3
-            ) {
-                offsetY = -3f
-            }
-
-            objects.register(
-                sprite = "road1.png",
-                factory = ::Road1
-            ) {
-                offsetY = -9f
-            }
-
-            objects.register(
-                sprite = "road2.png",
-                factory = ::Road2
-            ) {
-                offsetY = -9f
-            }
-
-            objects.register(
-                sprite = "road-intersection.png",
-                factory = ::RoadIntersection
-            ) {
-                offsetY = -9f
-            }
-
-            objects.register(
-                sprite = "well.png",
-                factory = ::Well
-            )
-
-            sounds.register(
-                id = BuildingSound.PLACE,
-                path = "audio/pop.wav",
-                category = SoundCategory.BUILDING
-            )
-
-            audio {
-                masterVolume = 1f
-                soundVolume = 1f
-                musicVolume = 1f
-
-                setCategoryVolume(SoundCategory.BUILDING, 1f)
-            }
-
-            debug {
-                performance {
-                    enabled = false
-                    intervalSeconds = 2f
-                }
-
-                grid {
-                    enabled = false
-                    color = Color(1f, 1f, 1f, 0.4f)
-                    hoverColor = Color(1f, 0f, 0f, 1f)
-                    lineWidth = 1f
-                    backgroundColor = Color(1f, 1f, 1f, 0.2f)
-                    hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
-                }
-            }
-
-            camera {
-                zoomEdgeAllowance = 0.3f
-            }
-
-            rendering {
-                tileGeometry {
-                    width = 32f
-                    height = 24f
-                }
-
-                objects {
-                    offsetY = 1f
-                }
-            }
-
-            placement {
-                previewStyle = PlacementPreviewStyle(
-                    validColor = Color(0.35f, 0.75f, 0.3f, 0.7f),
-                    invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
-                )
-            }
-
-            controls {
-                gameplay {
-                    bindings = sandboxBindings()
-                }
-            }
-        }
-
-        createdScene.attachWorld(
+        strata.attachWorld(
             world = world,
             terrainFor = { tile ->
                 (tile as SandboxTile).terrain
             }
         )
 
-        createdScene.placement.selectedFactory =
-            createdScene.objects.constructibleEntries
+        strata.placement.selectedFactory =
+            strata.objects.constructibleEntries
                 .firstOrNull()
                 ?.let { entry ->
                     entry::create
                 }
 
-        buildDrag = SandboxBuildDragController(createdScene.placement)
+        buildDrag =
+            SandboxBuildDragController(
+                strata.placement
+            )
 
-        return createdScene
-    }
-
-    override fun onReady() {
         uiSkin = SandboxUi.createSkin()
 
-        scene.createUi(
+        strata.createUi(
             skin = uiSkin,
             theme = SandboxUi.createTheme()
         ) {
             sandboxUi = SandboxUi(
                 ui = this,
                 painter = painter,
-                placementController = scene.placement,
+                placementController = strata.placement,
                 buildDragController = buildDrag,
-                debugSettings = scene.debug,
-                terrainEntries = scene.terrain.entries,
-                objectEntries = scene.objects.constructibleEntries
+                debugSettings = strata.debug,
+                terrainEntries = strata.terrain.entries,
+                objectEntries =
+                    strata.objects.constructibleEntries
             )
         }
     }
@@ -311,21 +332,27 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
         sandboxUi.sync()
 
         if (!debugWalker.isMoving) {
-            val destination = if (
-                debugWalker.currentTile == DEBUG_WALKER_END
-            ) {
-                DEBUG_WALKER_START
-            } else {
-                DEBUG_WALKER_END
-            }
+            val destination =
+                if (
+                    debugWalker.currentTile ==
+                    DEBUG_WALKER_END
+                ) {
+                    DEBUG_WALKER_START
+                } else {
+                    DEBUG_WALKER_END
+                }
 
             val path = requireNotNull(
-                scene.world.findPath(
+                strata.world.findPath(
                     start = debugWalker.currentTile,
                     goal = destination
                 )
             )
-            debugWalker.followPath(path, DEBUG_WALKER_SPEED)
+
+            debugWalker.followPath(
+                path,
+                DEBUG_WALKER_SPEED
+            )
         }
     }
 
@@ -393,7 +420,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
 
                     if (placed.isNotEmpty()) {
                         println("Placed ${placed.size} object(s)")
-                        scene.audio.playSound(BuildingSound.PLACE)
+                        strata.audio.playSound(BuildingSound.PLACE)
                     }
 
                     true
@@ -462,7 +489,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
                 mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
                 enabled = { !painter.enabled }
             ) { placed ->
-                scene.world.remove(placed)
+                strata.world.remove(placed)
                 true
             },
 
@@ -470,7 +497,7 @@ class SandboxGame : StrataSceneGame<TerrainType, SoundCategory>() {
             WorldInputBinding.Tile(
                 trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
             ) { x, y ->
-                println("Tile at ($x, $y): ${scene.world.getTile(x, y)}")
+                println("Tile at ($x, $y): ${strata.world.getTile(x, y)}")
                 true
             },
 
