@@ -167,19 +167,27 @@ class IsoWorldRenderer(
     }
 
     private fun updateRenderPlan(world: World) {
-        if (
-            cachedWorld !== world ||
-            cachedObjectVersion != world.objectVersion ||
-            staticRenderPlan == null
-        ) {
-            staticRenderPlan = WorldRenderPlan.prepareStatic(
-                world = world,
-                projection = projection
-            )
+        val cachedPlan = staticRenderPlan
 
-            cachedWorld = world
-            cachedObjectVersion = world.objectVersion
+        when {
+            cachedWorld !== world || cachedPlan == null -> {
+                staticRenderPlan = WorldRenderPlan.prepareStatic(
+                    world = world,
+                    projection = projection
+                )
+            }
+
+            cachedObjectVersion != world.objectVersion -> {
+                staticRenderPlan = WorldRenderPlan.updateStatic(
+                    previous = cachedPlan,
+                    world = world,
+                    projection = projection
+                )
+            }
         }
+
+        cachedWorld = world
+        cachedObjectVersion = world.objectVersion
 
         normalRenderPlan = WorldRenderPlan.withEntities(
             staticPlan = checkNotNull(staticRenderPlan),

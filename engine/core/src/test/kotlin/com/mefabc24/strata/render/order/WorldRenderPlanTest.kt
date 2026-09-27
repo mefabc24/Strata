@@ -190,6 +190,103 @@ class WorldRenderPlanTest {
     }
 
     @Test
+    fun `adding one object updates static plan linearly`() {
+        val world = world(size = 50)
+
+        repeat(500) { index ->
+            val x = index % 50
+            val y = index / 50
+
+            requireNotNull(
+                world.place(
+                    Tree(),
+                    x,
+                    y
+                )
+            )
+        }
+
+        val previous = WorldRenderPlan.prepareStatic(
+            world = world,
+            projection = projection
+        )
+
+        val added = requireNotNull(
+            world.place(
+                Tree(),
+                0,
+                20
+            )
+        )
+
+        val metrics = IsoRenderOrderMetrics()
+
+        val updated = WorldRenderPlan.updateStatic(
+            previous = previous,
+            world = world,
+            projection = projection,
+            metrics = metrics
+        )
+
+        assertTrue(
+            updated.orderedItems.any {
+                it is WorldObjectPrimitive &&
+                        it.placedObject === added
+            }
+        )
+
+        assertEquals(
+            500,
+            metrics.relationChecks
+        )
+    }
+
+    @Test
+    fun `removing one object preserves static order without relation checks`() {
+        val world = world(size = 12)
+
+        val objects = (0 until 6).map { index ->
+            requireNotNull(
+                world.place(
+                    Tree(),
+                    index + 1,
+                    index + 1
+                )
+            )
+        }
+
+        val previous = WorldRenderPlan.prepareStatic(
+            world = world,
+            projection = projection
+        )
+
+        assertTrue(
+            world.remove(objects[2])
+        )
+
+        val metrics = IsoRenderOrderMetrics()
+
+        val updated = WorldRenderPlan.updateStatic(
+            previous = previous,
+            world = world,
+            projection = projection,
+            metrics = metrics
+        )
+
+        assertEquals(
+            0,
+            metrics.relationChecks
+        )
+
+        assertTrue(
+            updated.orderedItems.none {
+                it is WorldObjectPrimitive &&
+                        it.placedObject === objects[2]
+            }
+        )
+    }
+
+    @Test
     fun `object behind foreground terrain renders before its cell`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))

@@ -105,7 +105,7 @@ internal object IsoRenderOrder {
         return dependencies.resolve()
     }
 
-    private fun <T : IsoSortable> comparator(
+    internal fun <T : IsoSortable> comparator(
         projection: IsoProjection
     ): Comparator<T> {
         return compareByDescending<T> {

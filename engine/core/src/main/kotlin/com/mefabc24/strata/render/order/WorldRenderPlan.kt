@@ -78,7 +78,8 @@ internal data class PreviewRenderItem(
 internal class StaticWorldRenderPlan(
     val orderedItems: List<WorldRenderPrimitive>,
     val terrainIndexByCell: IntArray,
-    val objectIndices: IntArray
+    val objectIndices: IntArray,
+    val objects: Set<PlacedObject>
 )
 
 /** Builds a grid-aware, deterministic world rendering sequence. */
@@ -182,22 +183,130 @@ internal object WorldRenderPlan {
                 explicitDependencies = dependencies
             )
 
-        val orderedTerrainIndexByCell =
-            IntArray(world.width * world.height) { -1 }
+        return buildStaticPlan(
+            world = world,
+            orderedItems = orderedItems,
+            objects = world.getObjects().toSet()
+        )
+    }
 
-        val orderedObjectIndices =
-            mutableListOf<Int>()
+    /**
+     * Updates an existing static plan after world objects changed.
+     *
+     * Existing static ordering is preserved whenever new objects can be inserted
+     * without reordering previous objects. If that is not possible, a complete
+     * rebuild is used as a correctness fallback.
+     */
+    fun updateStatic(
+        previous: StaticWorldRenderPlan,
+        world: World,
+        projection: IsoProjection,
+        metrics: IsoRenderOrderMetrics? = null
+    ): StaticWorldRenderPlan {
+        metrics?.relationChecks = 0
 
-        for ((index, item) in orderedItems.withIndex()) {
+        val currentObjects = world.getObjects()
+        val removedObjects = previous.objects.filterNot(currentObjects::contains)
+        val addedObjects = currentObjects.filterNot(previous.objects::contains)
+
+        if (removedObjects.isEmpty() && addedObjects.isEmpty()) {
+            return previous
+        }
+
+        val removedSet = removedObjects.toSet()
+
+        val orderedItems = previous.orderedItems
+            .filterNot { item ->
+                item is WorldObjectPrimitive &&
+                        item.placedObject in removedSet
+            }
+            .toMutableList()
+
+        for (placedObject in addedObjects) {
+            val primitive = WorldObjectPrimitive(placedObject)
+
+            val insertionIndex = findInsertionIndex(
+                items = orderedItems,
+                primitive = primitive,
+                worldWidth = world.width,
+                projection = projection,
+                metrics = metrics
+            )
+
+            /*
+             * A new object can occasionally require previously ambiguous objects
+             * to change their relative order. In that case the incremental path
+             * cannot preserve the existing total order safely.
+             */
+            if (insertionIndex == null) {
+                return prepareStatic(
+                    world = world,
+                    projection = projection,
+                    metrics = metrics
+                )
+            }
+
+            orderedItems.add(
+                index = insertionIndex,
+                element = primitive
+            )
+        }
+
+        return buildStaticPlan(
+            world = world,
+            orderedItems = orderedItems,
+            objects = currentObjects.toSet()
+        )
+    }
+
+    private fun findInsertionIndex(
+        items: List<WorldRenderPrimitive>,
+        primitive: WorldObjectPrimitive,
+        worldWidth: Int,
+        projection: IsoProjection,
+        metrics: IsoRenderOrderMetrics?
+    ): Int? {
+        var lastRequiredBefore = -1
+        var firstRequiredAfter = items.size
+
+        val supportCells = primitive.occupiedTiles
+            .mapTo(mutableSetOf()) { position ->
+                position.y * worldWidth + position.x
+            }
+
+        for ((index, item) in items.withIndex()) {
             when (item) {
                 is TerrainCell -> {
-                    orderedTerrainIndexByCell[
-                        item.y * world.width + item.x
-                    ] = index
+                    val cell = item.y * worldWidth + item.x
+
+                    if (cell in supportCells) {
+                        lastRequiredBefore =
+                            maxOf(lastRequiredBefore, index)
+                    }
                 }
 
                 is WorldObjectPrimitive -> {
-                    orderedObjectIndices += index
+                    metrics?.let {
+                        it.relationChecks++
+                    }
+
+                    when (
+                        item.sortVolume.relationTo(
+                            primitive.sortVolume
+                        )
+                    ) {
+                        IsoSpatialRelation.BEHIND -> {
+                            lastRequiredBefore =
+                                maxOf(lastRequiredBefore, index)
+                        }
+
+                        IsoSpatialRelation.IN_FRONT -> {
+                            firstRequiredAfter =
+                                minOf(firstRequiredAfter, index)
+                        }
+
+                        IsoSpatialRelation.AMBIGUOUS -> Unit
+                    }
                 }
 
                 is WorldEntityPrimitive -> {
@@ -208,11 +317,39 @@ internal object WorldRenderPlan {
             }
         }
 
-        return StaticWorldRenderPlan(
-            orderedItems = orderedItems,
-            terrainIndexByCell = orderedTerrainIndexByCell,
-            objectIndices = orderedObjectIndices.toIntArray()
-        )
+        /*
+         * Existing static items would have to change their relative order.
+         * Let the full sorter handle that uncommon case.
+         */
+        if (lastRequiredBefore >= firstRequiredAfter) {
+            return null
+        }
+
+        val comparator =
+            IsoRenderOrder.comparator<WorldRenderPrimitive>(
+                projection
+            )
+
+        /*
+         * Hard spatial dependencies define the valid insertion interval.
+         * Inside that interval the normal deterministic fallback comparator
+         * chooses the preferred position.
+         */
+        for (
+        index in
+        lastRequiredBefore + 1 until firstRequiredAfter
+        ) {
+            if (
+                comparator.compare(
+                    primitive,
+                    items[index]
+                ) < 0
+            ) {
+                return index
+            }
+        }
+
+        return firstRequiredAfter
     }
 
     /**
@@ -360,6 +497,44 @@ internal object WorldRenderPlan {
                     (dynamicMetrics?.relationChecks ?: 0)
 
         return result
+    }
+
+    private fun buildStaticPlan(
+        world: World,
+        orderedItems: List<WorldRenderPrimitive>,
+        objects: Set<PlacedObject>
+    ): StaticWorldRenderPlan {
+        val terrainIndexByCell =
+            IntArray(world.width * world.height) { -1 }
+
+        val objectIndices = mutableListOf<Int>()
+
+        for ((index, item) in orderedItems.withIndex()) {
+            when (item) {
+                is TerrainCell -> {
+                    terrainIndexByCell[
+                        item.y * world.width + item.x
+                    ] = index
+                }
+
+                is WorldObjectPrimitive -> {
+                    objectIndices += index
+                }
+
+                is WorldEntityPrimitive -> {
+                    error(
+                        "Static world render plans must not contain entities."
+                    )
+                }
+            }
+        }
+
+        return StaticWorldRenderPlan(
+            orderedItems = orderedItems,
+            terrainIndexByCell = terrainIndexByCell,
+            objectIndices = objectIndices.toIntArray(),
+            objects = objects
+        )
     }
 
     /** Appends placement previews after every normal world primitive. */
