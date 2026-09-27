@@ -3,6 +3,10 @@ package com.mefabc24.sandbox
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.mefabc24.sandbox.registration.registerSandboxEntities
+import com.mefabc24.sandbox.registration.registerSandboxObjects
+import com.mefabc24.sandbox.registration.registerSandboxSounds
+import com.mefabc24.sandbox.registration.registerSandboxTerrain
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.ObjectPickingMode
@@ -29,194 +33,19 @@ class SandboxGame : StrataGame() {
                 objectDirectory = "objects"
             ) {
                 terrain {
-                    registerAtlas(
-                        TerrainType.GRASS,
-                        atlas = TERRAIN_ATLAS,
-                        region = "grass"
-                    )
-
-                    registerAtlas(
-                        TerrainType.BUSH,
-                        atlas = TERRAIN_ATLAS,
-                        region = "bush"
-                    )
-
-                    registerAtlas(
-                        TerrainType.LOW_GRASS,
-                        atlas = TERRAIN_ATLAS,
-                        region = "lowgrass"
-                    )
-
-                    registerAtlas(
-                        TerrainType.WATER,
-                        atlas = TERRAIN_ATLAS,
-                        region = "water4"
-                    )
-
-                    registerAtlas(
-                        TerrainType.ROCK,
-                        atlas = TERRAIN_ATLAS,
-                        region = "rock"
-                    )
-
-                    registerAtlas(
-                        TerrainType.SAND,
-                        atlas = TERRAIN_ATLAS,
-                        region = "sand"
-                    )
-
-                    registerAtlas(
-                        TerrainType.STONE,
-                        atlas = TERRAIN_ATLAS,
-                        region = "stone"
-                    )
-
-                    registerAtlas(
-                        TerrainType.DIRT,
-                        atlas = TERRAIN_ATLAS,
-                        region = "dirt"
-                    )
-
-                    registerAnimatedAtlas(
-                        TerrainType.BUSH_ANIMATED,
-                        atlas = TERRAIN_ATLAS,
-                        region = "bush-animated",
-                        frameDuration = 0.2f
-                    )
+                    registerSandboxTerrain()
                 }
 
                 entities {
-                    registerAtlas<DebugWalker>(
-                        atlas = DEMO_ATLAS,
-                        region = "debug-walker"
-                    )
+                    registerSandboxEntities()
                 }
 
                 objects {
-                    registerAtlas(
-                        atlas = DEMO_ATLAS,
-                        region = "house",
-                        factory = ::House
-                    )
-
-                    register(
-                        sprite = "oak.png",
-                        factory = ::OakTree
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "villa.png",
-                        factory = ::Villa
-                    ) {
-                        offsetY = -16f
-                        offsetX = -6f
-                    }
-
-                    register(
-                        sprite = "pine.png",
-                        factory = ::Pine
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "trunk1.png",
-                        factory = ::Trunk1
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "trunk2.png",
-                        factory = ::Trunk2
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "trunk3.png",
-                        factory = ::Trunk3
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "trunk4.png",
-                        factory = ::Trunk4
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "flower1.png",
-                        factory = ::Flower1
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "flower2.png",
-                        factory = ::Flower2
-                    ) {
-                        offsetY = 3f
-                    }
-
-                    register(
-                        sprite = "rock_water1.png",
-                        factory = ::RockWater1
-                    ) {
-                        offsetY = -3f
-                    }
-
-                    register(
-                        sprite = "rock_water2.png",
-                        factory = ::RockWater2
-                    ) {
-                        offsetY = -3f
-                    }
-
-                    register(
-                        sprite = "rock_water3.png",
-                        factory = ::RockWater3
-                    ) {
-                        offsetY = -3f
-                    }
-
-                    register(
-                        sprite = "road1.png",
-                        factory = ::Road1
-                    ) {
-                        offsetY = -9f
-                    }
-
-                    register(
-                        sprite = "road2.png",
-                        factory = ::Road2
-                    ) {
-                        offsetY = -9f
-                    }
-
-                    register(
-                        sprite = "road-intersection.png",
-                        factory = ::RoadIntersection
-                    ) {
-                        offsetY = -9f
-                    }
-
-                    register(
-                        sprite = "well.png",
-                        factory = ::Well
-                    )
+                    registerSandboxObjects()
                 }
 
                 sounds {
-                    register(
-                        id = BuildingSound.PLACE,
-                        path = "audio/pop.wav",
-                        category = SoundCategory.BUILDING
-                    )
+                    registerSandboxSounds()
                 }
 
                 audio {
@@ -578,8 +407,6 @@ class SandboxGame : StrataGame() {
     private companion object {
         const val WORLD_SIZE = 50
         const val DEBUG_WALKER_SPEED = 2f
-        const val TERRAIN_ATLAS = "atlas/tiles.atlas"
-        const val DEMO_ATLAS = "sandbox.atlas"
         val DEBUG_WALKER_START = TilePosition(2, 5)
         val DEBUG_WALKER_END = TilePosition(9, 5)
     }
