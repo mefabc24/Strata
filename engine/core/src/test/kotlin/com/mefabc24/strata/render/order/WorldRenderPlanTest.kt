@@ -102,7 +102,7 @@ class WorldRenderPlanTest {
             behindPlan.indexOfEntity(entity) < behindPlan.indexOfObject(house)
         )
 
-        entity.position = EntityPosition(7.5f, 7.5f)
+        entity.teleport(EntityPosition(7.5f, 7.5f))
         val frontPlan = WorldRenderPlan.create(world, projection)
         assertTrue(
             frontPlan.indexOfObject(house) < frontPlan.indexOfEntity(entity)
@@ -160,9 +160,11 @@ class WorldRenderPlanTest {
         )
 
         repeat(5) { step ->
-            entity.position = EntityPosition(
-                x = step + 0.5f,
-                y = step + 0.5f
+            entity.teleport(
+                EntityPosition(
+                    x = step + 0.5f,
+                    y = step + 0.5f
+                )
             )
 
             val dynamicMetrics = IsoRenderOrderMetrics()

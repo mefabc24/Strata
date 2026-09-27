@@ -51,7 +51,7 @@ class IsoWorldRendererEntityTest {
             assertEquals(1, renderer.stats.entitiesChecked)
             assertEquals(1, renderer.stats.entitiesDrawn)
 
-            entity.position = EntityPosition(1000f, 1000f)
+            entity.teleport(EntityPosition(1000f, 1000f))
             renderer.render(
                 world = world,
                 camera = camera,

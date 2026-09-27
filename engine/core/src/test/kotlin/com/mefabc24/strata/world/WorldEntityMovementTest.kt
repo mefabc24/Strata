@@ -47,6 +47,30 @@ class WorldEntityMovementTest {
     }
 
     @Test
+    fun `large delta carries remaining distance across multiple waypoints`() {
+        val entity = entityAt(0.5f, 0.5f)
+        entity.followPath(
+            path = listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(1, 1),
+                TilePosition(3, 1)
+            ),
+            speed = 2f
+        )
+
+        entity.updateMovement(1.25f)
+
+        assertEquals(EntityPosition(2f, 1.5f), entity.position)
+        assertEquals(
+            listOf(EntityPosition(3.5f, 1.5f)),
+            entity.remainingWaypoints
+        )
+        assertTrue(entity.isMoving)
+        assertEquals(2f, entity.movementSpeed)
+    }
+
+    @Test
     fun `movement reaches a waypoint without overshoot`() {
         val entity = entityAt(0.5f, 0.5f)
         entity.followPath(listOf(TilePosition(1, 0)), speed = 1f)
@@ -69,6 +93,8 @@ class WorldEntityMovementTest {
         entity.followPath(emptyList(), speed = 1f)
 
         assertFalse(entity.isMoving)
+        assertNull(entity.movementSpeed)
+        assertTrue(entity.remainingWaypoints.isEmpty())
         assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
     }
 
@@ -84,6 +110,7 @@ class WorldEntityMovementTest {
             listOf(EntityPosition(1.5f, 2.5f)),
             entity.remainingWaypoints
         )
+        assertEquals(2f, entity.movementSpeed)
         entity.updateMovement(0.25f)
         val cancelledAt = entity.position
         entity.cancelMovement()
@@ -91,6 +118,28 @@ class WorldEntityMovementTest {
 
         assertEquals(cancelledAt, entity.position)
         assertFalse(entity.isMoving)
+        assertNull(entity.movementSpeed)
+        assertTrue(entity.remainingWaypoints.isEmpty())
+    }
+
+    @Test
+    fun `teleport during movement relocates immediately and clears route`() {
+        val entity = entityAt(0.5f, 0.5f)
+        entity.followPath(
+            path = listOf(TilePosition(2, 0), TilePosition(2, 2)),
+            speed = 1f
+        )
+        entity.updateMovement(0.5f)
+
+        val destination = EntityPosition(3.25f, 2.75f)
+        entity.teleport(destination)
+        entity.updateMovement(10f)
+
+        assertEquals(destination, entity.position)
+        assertEquals(TilePosition(3, 2), entity.currentTile)
+        assertFalse(entity.isMoving)
+        assertNull(entity.movementSpeed)
+        assertTrue(entity.remainingWaypoints.isEmpty())
     }
 
     @Test

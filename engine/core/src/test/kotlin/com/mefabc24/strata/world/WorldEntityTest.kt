@@ -61,7 +61,7 @@ class WorldEntityTest {
     }
 
     @Test
-    fun `entity storage and structural version update on add and remove`() {
+    fun `entity version changes only for structural membership`() {
         val world = world()
         assertEquals(0L, world.entityVersion)
 
@@ -73,7 +73,15 @@ class WorldEntityTest {
         assertEquals(1L, world.entityVersion)
         assertEquals(setOf(entity), world.getEntities())
 
-        entity.position = EntityPosition(1.5f, 0.5f)
+        entity.followPath(
+            path = listOf(TilePosition(2, 0)),
+            speed = 1f
+        )
+        world.updateEntities(0.5f)
+        assertEquals(EntityPosition(1f, 0.5f), entity.position)
+        assertEquals(1L, world.entityVersion)
+
+        entity.teleport(EntityPosition(1.5f, 0.5f))
         assertEquals(1L, world.entityVersion)
 
         assertTrue(world.removeEntity(entity))
@@ -82,6 +90,28 @@ class WorldEntityTest {
 
         assertFalse(world.removeEntity(entity))
         assertEquals(2L, world.entityVersion)
+    }
+
+    @Test
+    fun `removed entities are no longer updated by the world`() {
+        val world = world()
+        val entity = world.addEntity(
+            TestEntity("walker"),
+            EntityPosition(0.5f, 0.5f)
+        )
+        entity.followPath(
+            path = listOf(TilePosition(3, 0)),
+            speed = 1f
+        )
+        world.updateEntities(0.5f)
+        val removedAt = entity.position
+
+        assertTrue(world.removeEntity(entity))
+        world.updateEntities(10f)
+
+        assertEquals(removedAt, entity.position)
+        assertTrue(entity.isMoving)
+        assertFalse(entity in world.getEntities())
     }
 
     @Test

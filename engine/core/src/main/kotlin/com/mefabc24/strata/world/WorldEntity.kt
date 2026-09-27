@@ -13,12 +13,24 @@ class WorldEntity internal constructor(
 ) {
     private var movement: Movement? = null
 
-    /** Current continuous position on the logical tile plane. */
+    /**
+     * Current continuous position on the logical tile plane.
+     *
+     * Engine movement updates this value. Use [teleport] for an intentional
+     * discontinuous relocation.
+     */
     var position: EntityPosition = position
+        private set
 
-    /** Intentionally teleports this entity to [position]. */
+    /**
+     * Immediately relocates this entity to [position] and cancels its route.
+     *
+     * Teleportation is an intentional discontinuity, so movement does not
+     * continue toward waypoints selected for the previous position.
+     */
     fun teleport(position: EntityPosition) {
         this.position = position
+        cancelMovement()
     }
 
     /** Tile currently containing the entity's logical position. */
@@ -45,6 +57,7 @@ class WorldEntity internal constructor(
     /**
      * Replaces the current route with tile-center waypoints from [path].
      * [speed] is measured in logical tiles per second.
+     * An empty path clears the active route.
      */
     fun followPath(
         path: List<TilePosition>,
