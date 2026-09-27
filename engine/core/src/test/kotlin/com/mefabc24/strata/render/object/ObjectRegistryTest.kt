@@ -83,7 +83,6 @@ class ObjectRegistryTest {
         )
 
         val house = registry.entries.first()
-        assertEquals("objects/house.png", house.spritePath)
         assertFalse(house.isPrepared)
 
         registry.freeze()
@@ -91,6 +90,7 @@ class ObjectRegistryTest {
 
         assertTrue(house.isPrepared)
         assertSame(texture, house.visual.texture)
+        assertSame(house.visual, house.selectionVisual)
         assertEquals(2f, house.visual.offsetX)
         assertEquals(3f, house.visual.offsetY)
         assertEquals(1.5f, house.visual.scale)
@@ -135,7 +135,9 @@ class ObjectRegistryTest {
 
         val entry = registry.entries.single()
         val visual = entry.visual
+        assertSame(visual, entry.selectionVisual)
         assertEquals(3, visual.sprite.frameCount)
+        assertSame(textures.values.first(), entry.selectionVisual.texture)
         textures.values.forEachIndexed { index, texture ->
             assertSame(texture, visual.sprite.frameAtIndex(index))
             assertSame(masks.values.elementAt(index), visual.frameAt(index * 0.2f).alphaMask)
@@ -244,7 +246,6 @@ class ObjectRegistryTest {
             registry.prepare()
 
             assertEquals(listOf("atlas/world.atlas", "atlas/world.atlas"), queued)
-            assertEquals("atlas/world.atlas", registry.entries.first().spritePath)
             assertEquals(1.5f, registry.entries.first().visual.scale)
             assertIs<House>(registry.entries.first().create())
             val animated = registry.entries.last().visual
@@ -355,14 +356,16 @@ class ObjectRegistryTest {
         val textures = mapOf(
             "objects/off.png" to region(16, 16),
             "objects/work_0.png" to region(32, 24),
-            "objects/work_1.png" to region(32, 24)
+            "objects/work_1.png" to region(32, 24),
+            "objects/workshop-icon.png" to region(24, 24)
         )
         val firstMask = alphaMask()
         val secondMask = alphaMask()
         val masks = mapOf(
             "objects/off.png" to firstMask,
             "objects/work_0.png" to firstMask,
-            "objects/work_1.png" to secondMask
+            "objects/work_1.png" to secondMask,
+            "objects/workshop-icon.png" to firstMask
         )
         val queued = mutableListOf<String>()
         val registry = ObjectRegistry(
@@ -373,7 +376,8 @@ class ObjectRegistryTest {
         )
         registry.registerStateful<Workshop>(
             factory = { Workshop(WorkshopState.OFF) },
-            stateFor = { _, workshop -> workshop.state }
+            stateFor = { _, workshop -> workshop.state },
+            selection = { sprite("workshop-icon.png") }
         ) {
             state(WorkshopState.OFF) { sprite("off.png") }
             state(WorkshopState.WORKING) {
@@ -386,7 +390,13 @@ class ObjectRegistryTest {
         registry.prepare()
 
         assertEquals(textures.keys.toList(), queued)
-        assertIs<Workshop>(registry.entries.single().create())
+        val entry = registry.entries.single()
+        assertIs<Workshop>(entry.create())
+        assertSame(
+            textures.getValue("objects/workshop-icon.png"),
+            entry.selectionVisual.texture
+        )
+        assertFailsWith<IllegalStateException> { entry.visual }
 
         val workshop = Workshop(WorkshopState.WORKING)
         val placed = PlacedObject(workshop, 0, 0)
@@ -432,6 +442,22 @@ class ObjectRegistryTest {
     }
 
     @Test
+    fun `stateful constructible object requires an explicit selection visual`() {
+        val registry = registry()
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            registry.registerStateful<Workshop>(
+                factory = { Workshop(WorkshopState.OFF) },
+                stateFor = { _, workshop -> workshop.state }
+            ) {
+                state(WorkshopState.OFF) { sprite("off.png") }
+            }
+        }
+
+        assertTrue(failure.message.orEmpty().contains("selection visual"))
+    }
+
+    @Test
     fun `entry snapshots cannot mutate registry contents`() {
         val registry = registry()
         registry.register<House>("house.png", ::House)
@@ -467,7 +493,7 @@ class ObjectRegistryTest {
         }
 
         val firstDrawable = TextureRegionDrawable(
-            entries.first().visual.texture
+            entries.first().selectionVisual.texture
         )
 
         val first = StrataSelectableImageButton(
@@ -479,7 +505,7 @@ class ObjectRegistryTest {
 
         val second = StrataSelectableImageButton(
             drawable = TextureRegionDrawable(
-                entries.last().visual.texture
+                entries.last().selectionVisual.texture
             ),
             value = entries.last(),
             selectionGroup = group,

@@ -56,15 +56,17 @@ class ObjectSpriteSettings {
 class ObjectEntry internal constructor(
     val type: KClass<out Placeable>,
     internal val definition: VisualDefinition<PlacedObject, SpriteSource>,
+    internal val selectionSource: SpriteSource?,
     private val factory: (() -> Placeable)?,
     internal val settings: ObjectSpriteSettings
 ) {
     internal val sources = definition.sources()
-    val spritePath: String = sources.first().assetPaths.first()
+    internal val allSources = (sources + listOfNotNull(selectionSource)).distinct()
 
     private var preparedDefinition:
         PreparedVisualDefinition<PlacedObject, ObjectVisual>? = null
     private var preparedVisuals: List<ObjectVisual> = emptyList()
+    private var preparedSelectionVisual: ObjectVisual? = null
 
     val visual: ObjectVisual
         get() {
@@ -74,6 +76,15 @@ class ObjectEntry internal constructor(
             return preparedVisuals.singleOrNull()
                 ?: error("Object type $type is not prepared.")
         }
+
+    /**
+     * Stable visual for construction menus and other contexts that do not
+     * have a runtime [PlacedObject]. Stateful registrations with a factory
+     * must configure this visual explicitly.
+     */
+    val selectionVisual: ObjectVisual
+        get() = preparedSelectionVisual
+            ?: error("Object type $type has no prepared selection visual.")
 
     val isPrepared: Boolean
         get() = preparedDefinition != null
@@ -96,10 +107,12 @@ class ObjectEntry internal constructor(
 
     internal fun prepare(
         definition: PreparedVisualDefinition<PlacedObject, ObjectVisual>,
-        visuals: List<ObjectVisual>
+        visuals: List<ObjectVisual>,
+        selectionVisual: ObjectVisual?
     ) {
         preparedDefinition = definition
         preparedVisuals = visuals
+        preparedSelectionVisual = selectionVisual
     }
 
     internal fun resolve(
@@ -341,11 +354,11 @@ class ObjectRegistry internal constructor(
         configure: ObjectSpriteSettings.() -> Unit = {},
         visual: SpriteDefinitionBuilder.() -> Unit
     ) {
+        val source = spriteSource(::resolvePath, visual)
         registerDefinition(
             type = type,
-            definition = VisualDefinition.Single(
-                spriteSource(::resolvePath, visual)
-            ),
+            definition = VisualDefinition.Single(source),
+            selectionSource = source,
             factory = factory,
             configure = configure
         )
@@ -363,19 +376,23 @@ class ObjectRegistry internal constructor(
      * Every state's assets are queued during scene setup. The resolver runs at
      * runtime and receives both engine placement data and the typed game object.
      * States use local playback by default, restarting when the state changes.
+     * A constructible registration must provide [selection] because Strata
+     * cannot infer which game-defined state represents the object in a menu.
      */
     fun <T : Placeable> registerStateful(
         type: KClass<T>,
         factory: (() -> T)? = null,
         stateFor: (PlacedObject) -> VisualStateId,
         configure: ObjectSpriteSettings.() -> Unit = {},
+        selection: (SpriteDefinitionBuilder.() -> Unit)? = null,
         states: StatefulSpriteBuilder.() -> Unit
     ) = registerStateful(
-        type,
-        factory,
-        { placed, _ -> stateFor(placed) },
-        configure,
-        states
+        type = type,
+        factory = factory,
+        stateFor = { placed, _ -> stateFor(placed) },
+        configure = configure,
+        selection = selection,
+        states = states
     )
 
     fun <T : Placeable> registerStateful(
@@ -383,13 +400,18 @@ class ObjectRegistry internal constructor(
         factory: (() -> T)? = null,
         stateFor: (PlacedObject, T) -> VisualStateId,
         configure: ObjectSpriteSettings.() -> Unit = {},
+        selection: (SpriteDefinitionBuilder.() -> Unit)? = null,
         states: StatefulSpriteBuilder.() -> Unit
     ) {
         checkRegistrationOpen()
+        require(factory == null || selection != null) {
+            "Stateful constructible object type $type requires a selection visual."
+        }
         val definitions = StatefulSpriteBuilder(
             ::resolvePath,
             VisualPlayback.LOCAL
         ).apply(states).build()
+        val selectionSource = selection?.let { spriteSource(::resolvePath, it) }
         registerDefinition(
             type = type,
             definition = VisualDefinition.Stateful(
@@ -399,6 +421,7 @@ class ObjectRegistry internal constructor(
                 },
                 playbackIdentityFor = PlacedObject::placeable
             ),
+            selectionSource = selectionSource,
             factory = factory,
             configure = configure
         )
@@ -408,21 +431,37 @@ class ObjectRegistry internal constructor(
         noinline factory: (() -> T)? = null,
         noinline stateFor: (PlacedObject) -> VisualStateId,
         noinline configure: ObjectSpriteSettings.() -> Unit = {},
+        noinline selection: (SpriteDefinitionBuilder.() -> Unit)? = null,
         noinline states: StatefulSpriteBuilder.() -> Unit
-    ) = registerStateful(T::class, factory, stateFor, configure, states)
+    ) = registerStateful(
+        type = T::class,
+        factory = factory,
+        stateFor = stateFor,
+        configure = configure,
+        selection = selection,
+        states = states
+    )
 
     inline fun <reified T : Placeable> registerStateful(
         noinline factory: (() -> T)? = null,
         noinline stateFor: (PlacedObject, T) -> VisualStateId,
         noinline configure: ObjectSpriteSettings.() -> Unit = {},
+        noinline selection: (SpriteDefinitionBuilder.() -> Unit)? = null,
         noinline states: StatefulSpriteBuilder.() -> Unit
-    ) = registerStateful(T::class, factory, stateFor, configure, states)
+    ) = registerStateful(
+        type = T::class,
+        factory = factory,
+        stateFor = stateFor,
+        configure = configure,
+        selection = selection,
+        states = states
+    )
 
     /** Resolves textures and builds alpha masks after loading. */
     internal fun prepare() {
         val preparedAtlasMasks = loadAtlasAlphaMasks(
             registrations.values.filterNot(ObjectEntry::isPrepared)
-                .flatMap(ObjectEntry::sources)
+                .flatMap(ObjectEntry::allSources)
                 .filter {
                     it is SpriteSource.AtlasRegion ||
                         it is SpriteSource.AtlasAnimation
@@ -432,7 +471,7 @@ class ObjectRegistry internal constructor(
             if (entry.isPrepared) continue
 
             val settings = entry.settings
-            val visualsBySource = entry.sources.associateWith { source ->
+            val visualsBySource = entry.allSources.associateWith { source ->
                 val sprite = source.prepare(regionFor, atlasFor)
                 val alphaMasks = alphaMaskCache.masksFor(
                     source,
@@ -453,7 +492,9 @@ class ObjectRegistry internal constructor(
             }
             entry.prepare(
                 definition = entry.definition.prepare(visualsBySource::getValue),
-                visuals = entry.sources.map(visualsBySource::getValue)
+                visuals = entry.sources.map(visualsBySource::getValue),
+                selectionVisual = entry.selectionSource
+                    ?.let(visualsBySource::getValue)
             )
         }
     }
@@ -484,6 +525,7 @@ class ObjectRegistry internal constructor(
     private fun <T : Placeable> registerDefinition(
         type: KClass<T>,
         definition: VisualDefinition<PlacedObject, SpriteSource>,
+        selectionSource: SpriteSource?,
         factory: (() -> T)?,
         configure: ObjectSpriteSettings.() -> Unit
     ) {
@@ -494,11 +536,14 @@ class ObjectRegistry internal constructor(
 
         val settings = ObjectSpriteSettings().apply(configure)
         settings.validate()
-        definition.sources().forEach { it.queue(queueTexture, queueAtlas) }
+        (definition.sources() + listOfNotNull(selectionSource))
+            .distinct()
+            .forEach { it.queue(queueTexture, queueAtlas) }
 
         registrations[type] = ObjectEntry(
             type = type,
             definition = definition,
+            selectionSource = selectionSource,
             factory = factory?.let { create -> { create() } },
             settings = settings
         )
