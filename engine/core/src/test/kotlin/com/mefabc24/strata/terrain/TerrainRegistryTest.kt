@@ -56,8 +56,8 @@ class TerrainRegistryTest {
     @Test
     fun `entry snapshots cannot mutate registry contents`() {
         val registry = registry()
-        registry.register(Terrain.GRASS)
-        registry.register(Terrain.WATER)
+        registry.register(Terrain.GRASS, "grass.png")
+        registry.register(Terrain.WATER, "water.png")
 
         val snapshot = registry.entries as MutableList<TerrainEntry>
         snapshot.clear()
@@ -77,7 +77,7 @@ class TerrainRegistryTest {
             regionFor = { texture }
         )
 
-        registry.register(Terrain.GRASS)
+        registry.register(Terrain.GRASS, "grass.png")
         val entry = registry.entries.single()
 
         assertFalse(entry.isPrepared)
@@ -339,11 +339,11 @@ class TerrainRegistryTest {
             regionFor = { texture }
         )
 
-        registry.register(Terrain.GRASS)
+        registry.register(Terrain.GRASS, "grass.png")
         registry.freeze()
 
         val failure = assertFailsWith<IllegalStateException> {
-            registry.register(Terrain.WATER)
+            registry.register(Terrain.WATER, "water.png")
         }
 
         assertEquals(
@@ -360,7 +360,7 @@ class TerrainRegistryTest {
     @Test
     fun `duplicate and blank registrations are rejected`() {
         val registry = registry()
-        registry.register(Terrain.GRASS)
+        registry.register(Terrain.GRASS, "grass.png")
 
         assertFailsWith<IllegalArgumentException> {
             registry.register(Terrain.GRASS, "other.png")
