@@ -1,5 +1,8 @@
+@file:Suppress("unused")
+
 package com.mefabc24.strata.world
 
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
@@ -9,9 +12,19 @@ import kotlin.math.sqrt
  */
 class WorldEntity internal constructor(
     val entity: Entity,
-    position: EntityPosition
+    position: EntityPosition,
+    initialDirection: EntityDirection = EntityDirection.SOUTH_EAST
 ) {
     private var movement: Movement? = null
+
+    /**
+     * Direction this entity is currently facing.
+     *
+     * Movement updates the direction automatically. When movement stops,
+     * the last direction is retained.
+     */
+    var direction: EntityDirection = initialDirection
+        private set
 
     /**
      * Current continuous position on the logical tile plane.
@@ -36,6 +49,15 @@ class WorldEntity internal constructor(
     /** Tile currently containing the entity's logical position. */
     val currentTile: TilePosition
         get() = position.tile
+
+    /**
+     * Changes the facing direction without moving the entity.
+     *
+     * Active movement may update the direction again on the next movement update.
+     */
+    fun face(direction: EntityDirection) {
+        this.direction = direction
+    }
 
     /** Whether this entity currently has a route to follow. */
     val isMoving: Boolean
@@ -85,7 +107,9 @@ class WorldEntity internal constructor(
             waypoints = path.map(EntityPosition::centerOf),
             speed = speed
         )
+
         skipReachedWaypoints()
+        updateDirectionToCurrentWaypoint()
     }
 
     /** Stops route following at the current continuous position. */
@@ -112,6 +136,8 @@ class WorldEntity internal constructor(
                 advanceWaypoint(state)
                 continue
             }
+
+            direction = directionFor(dx, dy)
 
             if (remainingDistance <= 0f) return
 
@@ -143,6 +169,42 @@ class WorldEntity internal constructor(
 
             position = target
             advanceWaypoint(state)
+        }
+    }
+
+    private fun updateDirectionToCurrentWaypoint() {
+        val state = movement ?: return
+        val target = state.waypoints[state.waypointIndex]
+
+        val dx = target.x - position.x
+        val dy = target.y - position.y
+
+        if (
+            dx * dx + dy * dy <=
+            POSITION_EPSILON * POSITION_EPSILON
+        ) {
+            return
+        }
+
+        direction = directionFor(dx, dy)
+    }
+
+    private fun directionFor(
+        dx: Float,
+        dy: Float
+    ): EntityDirection {
+        return if (abs(dx) >= abs(dy)) {
+            if (dx > 0f) {
+                EntityDirection.SOUTH_EAST
+            } else {
+                EntityDirection.NORTH_WEST
+            }
+        } else {
+            if (dy > 0f) {
+                EntityDirection.SOUTH_WEST
+            } else {
+                EntityDirection.NORTH_EAST
+            }
         }
     }
 

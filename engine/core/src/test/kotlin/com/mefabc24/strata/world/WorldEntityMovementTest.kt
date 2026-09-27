@@ -190,6 +190,85 @@ class WorldEntityMovementTest {
         }
     }
 
+    @Test
+    fun `movement updates entity direction along isometric grid axes`() {
+        val entity = entityAt(2.5f, 2.5f)
+
+        entity.followPath(
+            listOf(TilePosition(3, 2)),
+            speed = 1f
+        )
+        assertEquals(
+            EntityDirection.SOUTH_EAST,
+            entity.direction
+        )
+
+        entity.teleport(EntityPosition(2.5f, 2.5f))
+        entity.followPath(
+            listOf(TilePosition(1, 2)),
+            speed = 1f
+        )
+        assertEquals(
+            EntityDirection.NORTH_WEST,
+            entity.direction
+        )
+
+        entity.teleport(EntityPosition(2.5f, 2.5f))
+        entity.followPath(
+            listOf(TilePosition(2, 3)),
+            speed = 1f
+        )
+        assertEquals(
+            EntityDirection.SOUTH_WEST,
+            entity.direction
+        )
+
+        entity.teleport(EntityPosition(2.5f, 2.5f))
+        entity.followPath(
+            listOf(TilePosition(2, 1)),
+            speed = 1f
+        )
+        assertEquals(
+            EntityDirection.NORTH_EAST,
+            entity.direction
+        )
+    }
+
+    @Test
+    fun `entity retains its last direction after movement ends`() {
+        val entity = entityAt(0.5f, 0.5f)
+
+        entity.followPath(
+            listOf(TilePosition(1, 0)),
+            speed = 1f
+        )
+
+        entity.updateMovement(1f)
+
+        assertFalse(entity.isMoving)
+        assertEquals(
+            EntityDirection.SOUTH_EAST,
+            entity.direction
+        )
+    }
+
+    @Test
+    fun `entity can face a direction without moving`() {
+        val entity = entityAt(0.5f, 0.5f)
+
+        entity.face(EntityDirection.NORTH_EAST)
+
+        assertEquals(
+            EntityDirection.NORTH_EAST,
+            entity.direction
+        )
+        assertEquals(
+            EntityPosition(0.5f, 0.5f),
+            entity.position
+        )
+        assertFalse(entity.isMoving)
+    }
+
     private fun entityAt(x: Float, y: Float): WorldEntity {
         return WorldEntity(TestEntity, EntityPosition(x, y))
     }

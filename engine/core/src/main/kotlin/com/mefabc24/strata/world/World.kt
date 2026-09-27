@@ -199,11 +199,13 @@ class World(
      */
     fun addEntity(
         entity: Entity,
-        position: EntityPosition
+        position: EntityPosition,
+        direction: EntityDirection = EntityDirection.SOUTH_EAST
     ): WorldEntity {
         val worldEntity = WorldEntity(
             entity = entity,
-            position = position
+            position = position,
+            initialDirection = direction
         )
 
         entities += worldEntity
