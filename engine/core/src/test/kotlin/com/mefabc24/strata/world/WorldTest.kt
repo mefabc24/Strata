@@ -176,4 +176,74 @@ class WorldTest {
             )
         )
     }
+
+    @Test
+    fun `world exposes all ground tiles in row major order`() {
+        val world = World(3, 2) { x, y ->
+            TestTile(y * 3 + x)
+        }
+
+        val visited =
+            mutableListOf<Pair<TilePosition, Tile>>()
+
+        world.forEachTile { position, tile ->
+            visited += position to tile
+        }
+
+        assertEquals(
+            listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(2, 0),
+                TilePosition(0, 1),
+                TilePosition(1, 1),
+                TilePosition(2, 1)
+            ),
+            visited.map { it.first }
+        )
+
+        assertEquals(
+            listOf(0, 1, 2, 3, 4, 5),
+            visited.map {
+                (it.second as TestTile).id
+            }
+        )
+    }
+
+    @Test
+    fun `world exposes every overlay cell including empty cells`() {
+        val world = World(2, 2) { _, _ ->
+            TestTile(0)
+        }
+
+        world.addOverlayLayer("roads")
+
+        world.setOverlayTile(
+            layerId = "roads",
+            position = TilePosition(1, 0),
+            tile = TestTile(42)
+        )
+
+        val visited =
+            mutableListOf<Pair<TilePosition, Tile?>>()
+
+        world.forEachOverlayTile("roads") { position, tile ->
+            visited += position to tile
+        }
+
+        assertEquals(
+            listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(0, 1),
+                TilePosition(1, 1)
+            ),
+            visited.map { it.first }
+        )
+
+        assertNull(visited[0].second)
+        assertEquals(TestTile(42), visited[1].second)
+        assertNull(visited[2].second)
+        assertNull(visited[3].second)
+    }
 }

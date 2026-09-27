@@ -17,6 +17,11 @@ class WorldEntityMovementTest {
             speed = 2f
         )
 
+        assertEquals(
+            listOf(TilePosition(2, 0)),
+            entity.remainingPath
+        )
+
         assertEquals(listOf(EntityPosition(2.5f, 0.5f)), entity.remainingWaypoints)
         entity.updateMovement(0.25f)
 
@@ -44,6 +49,7 @@ class WorldEntityMovementTest {
         assertFalse(entity.isMoving)
         assertNull(entity.movementSpeed)
         assertTrue(entity.remainingWaypoints.isEmpty())
+        assertTrue(entity.remainingPath.isEmpty())
     }
 
     @Test
@@ -95,6 +101,7 @@ class WorldEntityMovementTest {
         assertFalse(entity.isMoving)
         assertNull(entity.movementSpeed)
         assertTrue(entity.remainingWaypoints.isEmpty())
+        assertTrue(entity.remainingPath.isEmpty())
         assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
     }
 
@@ -120,6 +127,7 @@ class WorldEntityMovementTest {
         assertFalse(entity.isMoving)
         assertNull(entity.movementSpeed)
         assertTrue(entity.remainingWaypoints.isEmpty())
+        assertTrue(entity.remainingPath.isEmpty())
     }
 
     @Test
@@ -140,6 +148,7 @@ class WorldEntityMovementTest {
         assertFalse(entity.isMoving)
         assertNull(entity.movementSpeed)
         assertTrue(entity.remainingWaypoints.isEmpty())
+        assertTrue(entity.remainingPath.isEmpty())
     }
 
     @Test

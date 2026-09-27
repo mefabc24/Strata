@@ -146,6 +146,22 @@ class World(
         return getTile(position.x, position.y)
     }
 
+    /**
+     * Visits every ground tile in row-major order.
+     */
+    fun forEachTile(
+        action: (position: TilePosition, tile: Tile) -> Unit
+    ) {
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                action(
+                    TilePosition(x, y),
+                    tiles[y][x]
+                )
+            }
+        }
+    }
+
     fun canPlace(
         placeable: Placeable,
         position: TilePosition
@@ -319,6 +335,27 @@ class World(
         val layer = requireOverlayLayer(layerId)
 
         return layer.getOrNull(y)?.getOrNull(x)
+    }
+
+    /**
+     * Visits every cell of an overlay layer in row-major order.
+     *
+     * Empty overlay cells are reported as null.
+     */
+    fun forEachOverlayTile(
+        layerId: String,
+        action: (position: TilePosition, tile: Tile?) -> Unit
+    ) {
+        val layer = requireOverlayLayer(layerId)
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                action(
+                    TilePosition(x, y),
+                    layer[y][x]
+                )
+            }
+        }
     }
 
     /**

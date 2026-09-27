@@ -54,6 +54,15 @@ class WorldEntity internal constructor(
             ).toList()
         }.orEmpty()
 
+    /** Remaining route tiles, returned as a snapshot. */
+    val remainingPath: List<TilePosition>
+        get() = movement?.let { state ->
+            state.waypoints.subList(
+                state.waypointIndex,
+                state.waypoints.size
+            ).map(EntityPosition::tile)
+        }.orEmpty()
+
     /**
      * Replaces the current route with tile-center waypoints from [path].
      * [speed] is measured in logical tiles per second.
