@@ -1,17 +1,13 @@
 package com.mefabc24.sandbox
 
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.mefabc24.sandbox.input.sandboxInputBindings
 import com.mefabc24.sandbox.registration.registerSandboxEntities
 import com.mefabc24.sandbox.registration.registerSandboxObjects
 import com.mefabc24.sandbox.registration.registerSandboxSounds
 import com.mefabc24.sandbox.registration.registerSandboxTerrain
-import com.mefabc24.strata.input.WorldInputBinding
-import com.mefabc24.strata.input.WorldInputTrigger
-import com.mefabc24.strata.iso.ObjectPickingMode
 import com.mefabc24.strata.render.preview.PlacementPreviewStyle
-import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
@@ -30,20 +26,22 @@ class SandboxGame : StrataGame() {
                 objectDirectory = "objects",
                 entityDirectory = "entities"
             ) {
-                terrain {
-                    registerSandboxTerrain()
-                }
+                registrations {
+                    terrain {
+                        registerSandboxTerrain()
+                    }
 
-                entities {
-                    registerSandboxEntities()
-                }
+                    objects {
+                        registerSandboxObjects()
+                    }
 
-                objects {
-                    registerSandboxObjects()
-                }
+                    entities {
+                        registerSandboxEntities()
+                    }
 
-                sounds {
-                    registerSandboxSounds()
+                    sounds {
+                        registerSandboxSounds()
+                    }
                 }
 
                 audio {
@@ -127,7 +125,7 @@ class SandboxGame : StrataGame() {
                 }
 
                 placement {
-                    showOutsideWorldPreviews = true
+                    showOutsideWorldPreviews = false
                     previewStyle = PlacementPreviewStyle(
                         validColor =
                             Color(0.35f, 0.75f, 0.3f, 0.7f),
@@ -138,7 +136,15 @@ class SandboxGame : StrataGame() {
 
                 controls {
                     gameplay {
-                        bindings = sandboxBindings()
+                        bindings = sandboxInputBindings(
+                            tools = { tools },
+                            painter = { painter },
+                            buildDrag = { buildDrag },
+                            entitySpawner = { entitySpawner },
+                            wolves = { wolves },
+                            world = { sandboxWorld },
+                            playBuildingSound = ::playBuildingSound
+                        )
                     }
                 }
             }
@@ -151,13 +157,17 @@ class SandboxGame : StrataGame() {
     private lateinit var wolves: SandboxWolfController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
+    private lateinit var sandboxWorld: World
 
     override fun onReady() {
-        val world = createSandboxWorld()
-        painter = SandboxTerrainPainter(world)
+        sandboxWorld = createSandboxWorld()
+
+        painter = SandboxTerrainPainter(
+            sandboxWorld
+        )
 
         strata.attachWorld(
-            world = world,
+            world = sandboxWorld,
             terrainFor = { tile ->
                 (tile as SandboxTile).terrain
             }
@@ -180,11 +190,14 @@ class SandboxGame : StrataGame() {
             buildDrag = buildDrag
         )
         entitySpawner = SandboxEntitySpawner(
-            world = world,
+            world = sandboxWorld,
             tools = tools,
             entries = sandboxSpawnEntries()
         )
-        wolves = SandboxWolfController(world)
+
+        wolves = SandboxWolfController(
+            sandboxWorld
+        )
 
         uiSkin = SandboxUi.createSkin()
 
@@ -216,182 +229,6 @@ class SandboxGame : StrataGame() {
         if (::uiSkin.isInitialized) {
             uiSkin.dispose()
         }
-    }
-
-    private fun sandboxBindings(): List<WorldInputBinding> {
-        return listOf(
-            WorldInputBinding.Entity(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                enabled = {
-                    tools.mode == SandboxMode.NONE ||
-                        tools.mode == SandboxMode.BUILD
-                }
-            ) { entity ->
-                if (entity.entity is Wolf) {
-                    println(
-                        "Picked wolf at ${entity.position}, " +
-                                "direction=${entity.direction}, " +
-                                "moving=${entity.isMoving}"
-                    )
-                    true
-                } else {
-                    false
-                }
-            },
-
-            // Spawn the selected Sandbox entity at the clicked tile center.
-            WorldInputBinding.Tile(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.SPAWN }
-            ) { x, y ->
-                val entity = entitySpawner.spawn(TilePosition(x, y))
-                    ?: return@Tile false
-                if (entity.entity is Wolf) {
-                    wolves.control(entity)
-                }
-                println(
-                    "Spawned ${entity.entity::class.simpleName} " +
-                        "at ${entity.position}"
-                )
-                true
-            },
-
-            // Paint terrain on the world grid.
-            WorldInputBinding.Tile(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.PAINT }
-            ) { x, y ->
-                painter.beginPaint(x, y)
-            },
-
-            // Begin rectangular object placement without committing yet.
-            WorldInputBinding.Tile(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.BUILD }
-            ) { x, y ->
-                buildDrag.begin(TilePosition(x, y))
-            },
-
-            // Continue painting while dragging.
-            WorldInputBinding.Grid(
-                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.PAINT }
-            ) { x, y ->
-                painter.dragPaint(x, y)
-            },
-
-            // Update the rectangular build preview while dragging.
-            WorldInputBinding.Grid(
-                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.BUILD }
-            ) { x, y ->
-                buildDrag.dragTo(TilePosition(x, y))
-            },
-
-            // Commit valid origins even when release is outside the world.
-            WorldInputBinding.Grid(
-                trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.BUILD }
-            ) { x, y ->
-                if (!buildDrag.active) {
-                    false
-                } else {
-                    val placed = buildDrag.finish(TilePosition(x, y))
-
-                    if (placed.isNotEmpty()) {
-                        println("Placed ${placed.size} object(s)")
-                        strata.audio.playSound(BuildingSound.PLACE)
-                    }
-
-                    true
-                }
-            },
-
-            // Finish painting even when released outside the world.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
-                enabled = { tools.mode == SandboxMode.PAINT }
-            ) {
-                painter.endPaint()
-            },
-
-            // Right click: begin erasing an overlay.
-            WorldInputBinding.Tile(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                enabled = {
-                    tools.mode == SandboxMode.PAINT &&
-                        painter.layerId != null
-                }
-            ) { x, y ->
-                painter.beginErase(x, y)
-            },
-
-            // Continue erasing while dragging.
-            WorldInputBinding.Grid(
-                trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-                enabled = {
-                    tools.mode == SandboxMode.PAINT &&
-                        painter.layerId != null
-                }
-            ) { x, y ->
-                painter.dragErase(x, y)
-            },
-
-            // Finish erasing even when released outside the world.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.MouseUp(Input.Buttons.RIGHT),
-                enabled = { tools.mode == SandboxMode.PAINT }
-            ) {
-                painter.endErase()
-            },
-
-            // Remove objects only outside painting mode.
-            WorldInputBinding.Object(
-                trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
-                enabled = {
-                    tools.mode == SandboxMode.NONE ||
-                        tools.mode == SandboxMode.BUILD
-                }
-            ) { placed ->
-                strata.world.remove(placed)
-                true
-            },
-
-            // Debug: inspect the ground tile.
-            WorldInputBinding.Tile(
-                trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
-            ) { x, y ->
-                println("Tile at ($x, $y): ${strata.world.getTile(x, y)}")
-                true
-            },
-
-            // Toggle painting mode while keeping the mode controller authoritative.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.KeyDown(Input.Keys.T)
-            ) {
-                val mode = if (tools.mode == SandboxMode.PAINT) {
-                    SandboxMode.NONE
-                } else {
-                    SandboxMode.PAINT
-                }
-                tools.select(mode)
-
-                println("Sandbox mode: ${mode.displayName}")
-                true
-            },
-
-            // Cycle ground and overlays in world rendering order.
-            WorldInputBinding.NoPicking(
-                trigger = WorldInputTrigger.KeyDown(Input.Keys.O),
-                enabled = { tools.mode == SandboxMode.PAINT }
-            ) {
-                painter.cycleLayer()
-
-                println("Selected layer: ${painter.layerId ?: "ground"}")
-                true
-            }
-        )
     }
 
     private fun createSandboxWorld(): World {
@@ -430,6 +267,10 @@ class SandboxGame : StrataGame() {
         }
 
         return world
+    }
+
+    private fun playBuildingSound() {
+        strata.audio.playSound(BuildingSound.PLACE)
     }
 
     private companion object {

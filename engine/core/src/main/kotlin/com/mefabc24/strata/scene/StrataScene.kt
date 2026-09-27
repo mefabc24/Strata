@@ -102,6 +102,13 @@ class StrataScene private constructor(
 
     val sounds = SoundRegistry(assets)
 
+    private val sceneRegistrations = SceneRegistrations(
+        terrainRegistry = terrain,
+        objectRegistry = objects,
+        entityRegistry = entities,
+        soundRegistry = sounds
+    )
+
     val audio = StrataAudio(
         assets = assets,
         sounds = sounds
@@ -204,36 +211,14 @@ class StrataScene private constructor(
         }
     }
 
-    /** Configures terrain registrations during scene setup. */
-    fun terrain(
-        configure: TerrainRegistry.() -> Unit
+    /**
+     * Configures scene-owned content registrations.
+     */
+    fun registrations(
+        configure: SceneRegistrations.() -> Unit
     ) {
         checkConfigurationOpen()
-        this.terrain.apply(configure)
-    }
-
-    /** Configures object registrations during scene setup. */
-    fun objects(
-        configure: ObjectRegistry.() -> Unit
-    ) {
-        checkConfigurationOpen()
-        this.objects.apply(configure)
-    }
-
-    /** Configures entity registrations during scene setup. */
-    fun entities(
-        configure: EntityRegistry.() -> Unit
-    ) {
-        checkConfigurationOpen()
-        this.entities.apply(configure)
-    }
-
-    /** Configures sound registrations during scene setup. */
-    fun sounds(
-        configure: SoundRegistry.() -> Unit
-    ) {
-        checkConfigurationOpen()
-        this.sounds.apply(configure)
+        sceneRegistrations.apply(configure)
     }
 
     /** Configures runtime audio during scene setup. */

@@ -107,20 +107,33 @@ class StrataSceneWorldTest {
     @Test
     fun `scene closes content registration after preparing setup entries`() {
         val scene = sceneWith(RecordingViewFactory()) {
-            terrain.register(
-                type = Terrain.GRASS,
-                sprite = TEST_TEXTURE
-            )
-            objects.register<TestPlaceable>(
-                sprite = TEST_TEXTURE,
-                factory = ::TestPlaceable
-            )
-            entities.register<TestEntity>(TEST_TEXTURE)
-            sounds.register(
-                id = TestSound.PLACE,
-                path = "test.wav",
-                category = SoundCategory.EFFECT
-            )
+            registrations {
+                terrain {
+                    register(
+                        type = Terrain.GRASS,
+                        sprite = TEST_TEXTURE
+                    )
+                }
+
+                objects {
+                    register<TestPlaceable>(
+                        sprite = TEST_TEXTURE,
+                        factory = ::TestPlaceable
+                    )
+                }
+
+                entities {
+                    register<TestEntity>(TEST_TEXTURE)
+                }
+
+                sounds {
+                    register(
+                        id = TestSound.PLACE,
+                        path = "test.wav",
+                        category = SoundCategory.EFFECT
+                    )
+                }
+            }
         }
 
         assertEquals(
