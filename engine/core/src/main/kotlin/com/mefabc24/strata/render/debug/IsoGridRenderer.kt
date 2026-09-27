@@ -33,7 +33,7 @@ class IsoGridRenderer(
 
         settings.backgroundColor?.let { color ->
             shapes.begin(ShapeRenderer.ShapeType.Filled)
-            shapes.setColor(color)
+            shapes.color = color
 
             for (y in 0 until world.height) {
                 for (x in 0 until world.width) {
@@ -78,7 +78,7 @@ class IsoGridRenderer(
         shapes.begin(ShapeRenderer.ShapeType.Line)
 
         // Draw the regular grid first.
-        shapes.setColor(settings.color)
+        shapes.color = settings.color
 
         for (y in 0 until world.height) {
             for (x in 0 until world.width) {
@@ -108,7 +108,7 @@ class IsoGridRenderer(
 
         // Hover is drawn last and therefore always remains fully visible.
         hoveredTile?.let { tile ->
-            shapes.setColor(settings.hoverColor)
+            shapes.color = settings.hoverColor
 
             val position = projection.tileToWorld(
                 tile.x,

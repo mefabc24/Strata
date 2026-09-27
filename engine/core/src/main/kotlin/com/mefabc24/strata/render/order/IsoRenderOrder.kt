@@ -86,15 +86,15 @@ internal object IsoRenderOrder {
         )
 
         for (
-        dependency in dependenciesFor(
+        (before, after) in dependenciesFor(
             items = items,
             relationCandidates = relationCandidates,
             metrics = metrics
         )
         ) {
             dependencies.add(
-                before = dependency.before,
-                after = dependency.after
+                before = before,
+                after = after
             )
         }
 

@@ -83,7 +83,7 @@ class ScenePerformanceLogger {
         val averageDynamicPlanMs = dynamicPlanMsSum / frames
 
         val sortedFrames = frameSamples.sorted()
-        val p95FrameMs = percentile(sortedFrames, 0.95)
+        val p95FrameMs = p95(sortedFrames)
 
         Gdx.app.log(
             "StrataPerf",
@@ -108,15 +108,10 @@ class ScenePerformanceLogger {
         reset()
     }
 
-    private fun percentile(
-        sortedValues: List<Double>,
-        percentile: Double
-    ): Double {
+    private fun p95(sortedValues: List<Double>): Double {
         if (sortedValues.isEmpty()) return 0.0
 
-        val index = (
-                (sortedValues.size - 1) * percentile
-                ).toInt()
+        val index = ((sortedValues.size - 1) * 0.95).toInt()
 
         return sortedValues[index]
     }

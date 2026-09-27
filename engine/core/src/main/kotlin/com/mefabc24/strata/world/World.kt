@@ -2,6 +2,7 @@ package com.mefabc24.strata.world
 
 import java.util.Collections
 
+@Suppress("unused")
 class World(
     val width: Int,
     val height: Int,
@@ -100,9 +101,7 @@ class World(
     internal fun canPlaceObject(
         placedObject: PlacedObject
     ): Boolean {
-        if (placedObject in objects) return false
-
-        return placedObject.occupiedTiles().all { (x, y) ->
+        return placedObject !in objects && placedObject.occupiedTiles().all { (x, y) ->
             getTile(x, y) != null &&
                     getObjectAt(x, y) == null
         }
@@ -319,7 +318,7 @@ class World(
         }
 
         overlayLayers[id] = Array(height) {
-            arrayOfNulls<Tile>(width)
+            arrayOfNulls(width)
         }
     }
 

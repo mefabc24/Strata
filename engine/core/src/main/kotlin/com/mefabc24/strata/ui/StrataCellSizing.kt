@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor

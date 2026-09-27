@@ -102,9 +102,7 @@ class WorldInputProcessor(
     }
 
     override fun keyDown(keycode: Int): Boolean {
-        if (!enabled) return false
-
-        return dispatch(
+        return enabled && dispatch(
             trigger = WorldInputTrigger.KeyDown(keycode),
             screenX = Gdx.input.x.toFloat(),
             screenY = Gdx.input.y.toFloat()
@@ -124,11 +122,7 @@ class WorldInputProcessor(
                 is WorldInputBinding.Tile -> {
                     val tile = pickTile(screenX, screenY)
 
-                    if (tile != null) {
-                        binding.action(tile.x, tile.y)
-                    } else {
-                        false
-                    }
+                    tile != null && binding.action(tile.x, tile.y)
                 }
 
                 is WorldInputBinding.Object -> {
@@ -138,11 +132,7 @@ class WorldInputProcessor(
                         binding.mode
                     )
 
-                    if (placed != null) {
-                        binding.action(placed)
-                    } else {
-                        false
-                    }
+                    placed != null && binding.action(placed)
                 }
 
                 is WorldInputBinding.Entity -> {
@@ -152,11 +142,7 @@ class WorldInputProcessor(
                         binding.mode
                     )
 
-                    if (entity != null) {
-                        binding.action(entity)
-                    } else {
-                        false
-                    }
+                    entity != null && binding.action(entity)
                 }
 
                 is WorldInputBinding.NoPicking -> {

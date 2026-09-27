@@ -476,6 +476,7 @@ class StrataExpander internal constructor(
     }
 
     private fun updateExpansion() {
+        @Suppress("UsePropertyAccessSyntax")
         header.setText("$title  ${if (expanded) "v" else ">"}")
         content.isVisible = expanded
 
@@ -501,15 +502,13 @@ class StrataPanel internal constructor(
     styleName: String?,
     spacing: Float,
     private val paddingOverride: StrataInsets?,
-    blocksInput: Boolean
+    var blocksInput: Boolean
 ) : StrataLayout(
     context = context,
     spacing = spacing,
     padding = StrataInsets.NONE,
     alignment = Align.topLeft
 ) {
-
-    var blocksInput: Boolean = blocksInput
 
     var style: StrataPanelStyle = StrataPanelStyle()
         private set

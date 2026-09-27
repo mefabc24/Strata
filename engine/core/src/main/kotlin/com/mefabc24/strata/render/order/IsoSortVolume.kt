@@ -13,7 +13,7 @@ internal enum class IsoSpatialRelation {
  * Closed world-axis bounds used by the isometric painter ordering.
  *
  * Zero-thickness planes are valid. Two bounds are definitely ordered when
- * one ends where the other begins on at least one axis and they are not both
+ * one ends where the other begins on at least one axis, and they are not both
  * the same zero-thickness plane on that axis.
  */
 internal data class IsoSortVolume(

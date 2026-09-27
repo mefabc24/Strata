@@ -265,26 +265,3 @@ private fun validateAtlasNames(atlas: String, region: String) {
     require(atlas.isNotBlank()) { "Texture atlas path must not be blank." }
     require(region.isNotBlank()) { "Texture atlas region must not be blank." }
 }
-
-/**
- * World visuals currently require regions packed without rotation or
- * whitespace stripping so rendering bounds and alpha masks describe the same
- * rectangle.
- */
-internal fun validateAtlasRegion(
-    atlas: String,
-    region: TextureAtlas.AtlasRegion
-) {
-    require(region.degrees == 0 && !region.rotate) {
-        "Texture atlas '$atlas' region '${region.name}' is rotated; " +
-            "world visual regions must be packed with rotation disabled."
-    }
-    require(
-        region.offsetX == 0f && region.offsetY == 0f &&
-            region.packedWidth == region.originalWidth &&
-            region.packedHeight == region.originalHeight
-    ) {
-        "Texture atlas '$atlas' region '${region.name}' is trimmed; " +
-            "world visual regions must be packed without whitespace stripping."
-    }
-}

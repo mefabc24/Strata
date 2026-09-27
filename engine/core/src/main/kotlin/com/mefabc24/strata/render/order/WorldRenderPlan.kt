@@ -137,9 +137,9 @@ internal object WorldRenderPlan {
             items += primitive
             objectIndices += objectIndex
 
-            for (position in primitive.occupiedTiles) {
+            for ((x, y) in primitive.occupiedTiles) {
                 val cellIndex =
-                    position.y * world.width + position.x
+                    y * world.width + x
 
                 val terrainIndex =
                     terrainIndexByCell[cellIndex]
@@ -327,7 +327,7 @@ internal object WorldRenderPlan {
         val order = StableDependencyOrder(
             items = items,
             comparator =
-                IsoRenderOrder.comparator<WorldRenderPrimitive>(
+                IsoRenderOrder.comparator(
                     projection
                 )
         )
@@ -358,9 +358,9 @@ internal object WorldRenderPlan {
             var lastRequiredBefore = -1
             var firstRequiredAfter = baseItems.size
 
-            for (position in primitive.occupiedTiles) {
+            for ((x, y) in primitive.occupiedTiles) {
                 val cellIndex =
-                    position.y * world.width + position.x
+                    y * world.width + x
 
                 val terrainIndex =
                     baseTerrainIndexByCell[cellIndex]

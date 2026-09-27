@@ -2,7 +2,6 @@ package com.mefabc24.strata.camera
 
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Rectangle
@@ -11,6 +10,7 @@ import com.badlogic.gdx.math.Vector3
 /**
  * Defines which point remains anchored while zooming.
  */
+@Suppress("unused")
 enum class ZoomAnchor {
     /**
      * Keeps the camera center fixed.

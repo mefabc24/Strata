@@ -28,7 +28,10 @@ class EntityPicker(
         return pickWorld(cursor.x, cursor.y)
     }
 
-    internal fun pickWorld(worldX: Float, worldY: Float): WorldEntity? {
+    internal fun pickWorld(
+        worldX: Float,
+        worldY: Float
+    ): WorldEntity? {
         val entities = orderedEntities?.invoke()
             ?: WorldRenderPlan.create(
                 world = world,
@@ -37,23 +40,23 @@ class EntityPicker(
                 (primitive as? WorldEntityPrimitive)?.worldEntity
             }
 
-        for (entity in entities.asReversed()) {
-            val visual = visualFor(entity) ?: continue
-            IsoEntityBounds.calculate(
-                projection = projection,
-                entity = entity,
-                visual = visual,
-                result = bounds
-            )
-            if (!bounds.contains(worldX, worldY)) continue
-
-            val u = (worldX - bounds.x) / bounds.width
-            val v = (worldY - bounds.y) / bounds.height
-            val mask = visual.frameAt(animationTime()).alphaMask
-
-            if (mask == null || mask.isSolid(u, v)) return entity
-        }
-
-        return null
+        return pickFrontmost(
+            items = entities,
+            worldX = worldX,
+            worldY = worldY,
+            bounds = bounds,
+            visualFor = visualFor,
+            calculateBounds = { entity, visual, result ->
+                IsoEntityBounds.calculate(
+                    projection = projection,
+                    entity = entity,
+                    visual = visual,
+                    result = result
+                )
+            },
+            alphaMaskFor = { visual ->
+                visual.frameAt(animationTime()).alphaMask
+            }
+        )
     }
 }

@@ -40,37 +40,30 @@ class ObjectPicker(
         worldX: Float,
         worldY: Float
     ): PlacedObject? {
-        val orderedObjects = orderedObjects?.invoke()
+        val objects = orderedObjects?.invoke()
             ?: IsoObjectOrdering.backToFront(
                 objects = world.getObjects(),
                 projection = projection
             )
 
-        for (placed in orderedObjects.asReversed()) {
-            val visual = visualFor(placed) ?: continue
-
-            IsoObjectBounds.calculate(
-                projection = projection,
-                placed = placed,
-                visual = visual,
-                result = bounds,
-                objectSettings = objectSettings
-            )
-
-            if (!bounds.contains(worldX, worldY)) {
-                continue
+        return pickFrontmost(
+            items = objects,
+            worldX = worldX,
+            worldY = worldY,
+            bounds = bounds,
+            visualFor = visualFor,
+            calculateBounds = { placed, visual, result ->
+                IsoObjectBounds.calculate(
+                    projection = projection,
+                    placed = placed,
+                    visual = visual,
+                    result = result,
+                    objectSettings = objectSettings
+                )
+            },
+            alphaMaskFor = { visual ->
+                visual.frameAt(animationTime()).alphaMask
             }
-
-            val u = (worldX - bounds.x) / bounds.width
-            val v = (worldY - bounds.y) / bounds.height
-
-            val alphaMask = visual.frameAt(animationTime()).alphaMask
-
-            if (alphaMask == null || alphaMask.isSolid(u, v)) {
-                return placed
-            }
-        }
-
-        return null
+        )
     }
 }

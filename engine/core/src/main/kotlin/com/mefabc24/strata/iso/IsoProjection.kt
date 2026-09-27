@@ -125,13 +125,12 @@ class IsoProjection(
         )
 
         val minY = deepestTopY - logicalTileHeight
-        val maxY = visualOverhang
 
         return Rectangle(
             minX - padding,
             minY - padding,
             maxX - minX + padding * 2f,
-            maxY - minY + padding * 2f
+            visualOverhang - minY + padding * 2f
         )
     }
 

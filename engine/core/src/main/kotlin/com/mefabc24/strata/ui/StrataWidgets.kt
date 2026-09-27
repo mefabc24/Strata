@@ -24,14 +24,10 @@ class StrataButton(
     text: String,
     skin: Skin,
     styleName: String = "default",
-    onClick: () -> Unit
+    var onClick: () -> Unit
 ) : TextButton(text, skin, styleName) {
-
-    /** Callback invoked after a completed, enabled click. */
-    var onClick: () -> Unit = onClick
-
     init {
-        setProgrammaticChangeEvents(false)
+        programmaticChangeEvents = false
         preventCheckedState()
 
         addListener(
@@ -72,11 +68,8 @@ class StrataToggleButton(
     skin: Skin,
     styleName: String = "default",
     checked: Boolean = false,
-    onChanged: (Boolean) -> Unit = {}
+    var onChanged: (Boolean) -> Unit = {}
 ) : TextButton(text, skin, styleName) {
-
-    /** Callback invoked whenever the checked state changes. */
-    var onChanged: (Boolean) -> Unit = onChanged
 
     init {
         isChecked = checked
@@ -117,7 +110,7 @@ class StrataSelectableButton<T>(
     )
 
     init {
-        setProgrammaticChangeEvents(false)
+        programmaticChangeEvents = false
 
         addListener(
             object : ChangeListener() {
@@ -149,7 +142,7 @@ class StrataImageButton(
     drawable: Drawable,
     skin: Skin,
     styleName: String = "default",
-    onClick: () -> Unit
+    var onClick: () -> Unit
 ) : ImageButton(
     imageButtonStyle(
         skin = skin,
@@ -157,12 +150,8 @@ class StrataImageButton(
         drawable = drawable
     )
 ) {
-
-    /** Callback invoked after a completed, enabled click. */
-    var onClick: () -> Unit = onClick
-
     init {
-        setProgrammaticChangeEvents(false)
+        programmaticChangeEvents = false
         preventCheckedState()
 
         addListener(
@@ -209,7 +198,7 @@ class StrataSelectableImageButton<T>(
     )
 
     init {
-        setProgrammaticChangeEvents(false)
+        programmaticChangeEvents = false
 
         addListener(
             object : ChangeListener() {

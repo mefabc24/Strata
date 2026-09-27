@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
  * it remain owned by the caller. A scene normally updates, renders, resizes,
  * and disposes this instance automatically.
  */
+@Suppress("unused")
 class StrataUi internal constructor(
     val skin: Skin,
     val theme: StrataUiTheme,

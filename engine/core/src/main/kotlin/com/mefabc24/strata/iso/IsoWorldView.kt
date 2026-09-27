@@ -63,6 +63,7 @@ enum class EntityPickingMode {
 /**
  * Manages the camera and viewport for an isometric world.
  */
+@Suppress("unused")
 class IsoWorldView(
     private val world: World,
     private val textureFor: (Tile, Float) -> TextureRegion?,

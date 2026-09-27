@@ -12,6 +12,7 @@ data class ObjectVisualFrame(
 /**
  * Defines how a placed object is drawn and resolves its current frame.
  */
+@Suppress("unused")
 class ObjectVisual internal constructor(
     val sprite: SpriteFrames,
     alphaMasks: List<AlphaMask?>,

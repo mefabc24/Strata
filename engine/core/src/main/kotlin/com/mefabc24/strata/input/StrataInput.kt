@@ -10,7 +10,6 @@ import com.badlogic.gdx.InputProcessor
 class StrataInput(
     worldProcessor: InputProcessor? = null
 ) {
-    private val multiplexer = InputMultiplexer()
     private val uiProcessors = mutableListOf<InputProcessor>()
     private var worldProcessor: InputProcessor? = null
 
@@ -21,7 +20,7 @@ class StrataInput(
     }
 
     internal val processor: InputProcessor
-        get() = multiplexer
+        field = InputMultiplexer()
 
     /**
      * Adds a UI processor with priority over world input.
@@ -33,7 +32,7 @@ class StrataInput(
             "This UI input processor is already registered."
         }
 
-        multiplexer.addProcessor(uiProcessors.size, processor)
+        this.processor.addProcessor(uiProcessors.size, processor)
         uiProcessors += processor
     }
 
@@ -50,7 +49,7 @@ class StrataInput(
         if (index < 0) return false
 
         uiProcessors.removeAt(index)
-        multiplexer.removeProcessor(index)
+        this.processor.removeProcessor(index)
         return true
     }
 
@@ -63,7 +62,7 @@ class StrataInput(
         }
 
         worldProcessor = processor
-        multiplexer.addProcessor(processor)
+        this.processor.addProcessor(processor)
     }
 
     /**
@@ -72,21 +71,21 @@ class StrataInput(
     fun removeWorldProcessor(processor: InputProcessor): Boolean {
         if (worldProcessor !== processor) return false
 
-        multiplexer.removeProcessor(processor)
+        this.processor.removeProcessor(processor)
         worldProcessor = null
         return true
     }
 
     /** Installs this router as libGDX's active input processor. */
     fun install() {
-        Gdx.input.inputProcessor = multiplexer
+        Gdx.input.inputProcessor = processor
     }
 
     /**
      * Clears libGDX's input processor only when this router is still active.
      */
     fun uninstall() {
-        if (Gdx.input.inputProcessor === multiplexer) {
+        if (Gdx.input.inputProcessor === processor) {
             Gdx.input.inputProcessor = null
         }
     }

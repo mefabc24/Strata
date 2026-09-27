@@ -15,6 +15,7 @@ class SoundHandle internal constructor()
  *
  * StrataAudio controls playback but does not own the assets.
  */
+@Suppress("unused")
 class StrataAudio(
     private val assets: StrataAssets,
     private val sounds: SoundRegistry,
@@ -221,12 +222,12 @@ class StrataAudio(
      * Recalculates the volume of all tracked sound instances.
      */
     private fun refreshSoundVolumes() {
-        for (playing in playingSounds.values) {
-            playing.sound.setVolume(
-                playing.id,
+        for ((sound, id, category, volume) in playingSounds.values) {
+            sound.setVolume(
+                id,
                 effectiveSoundVolume(
-                    playing.category,
-                    playing.volume
+                    category,
+                    volume
                 )
             )
         }

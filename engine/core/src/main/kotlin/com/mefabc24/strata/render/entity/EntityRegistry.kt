@@ -37,6 +37,7 @@ class EntitySpriteSettings {
 }
 
 /** One registered entity type and its prepared visual metadata. */
+@Suppress("unused")
 class EntityEntry internal constructor(
     val type: KClass<out Entity>,
     internal val source: SpriteSource,
@@ -59,6 +60,7 @@ class EntityEntry internal constructor(
 }
 
 /** Scene-owned visual registration for game entity types. */
+@Suppress("unused")
 class EntityRegistry internal constructor(
     directory: String,
     private val queueTexture: (String) -> Unit,

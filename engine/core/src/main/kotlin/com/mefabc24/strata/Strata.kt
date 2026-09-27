@@ -24,6 +24,7 @@ import com.mefabc24.strata.world.World
  * Strata owns one scene runtime while keeping game-owned world state outside
  * the engine configuration.
  */
+@Suppress("unused")
 class Strata : Disposable {
 
     /** Process-wide engine settings. */

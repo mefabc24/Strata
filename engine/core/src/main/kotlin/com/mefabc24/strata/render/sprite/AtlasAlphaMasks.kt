@@ -9,7 +9,7 @@ import java.io.Closeable
 
 /**
  * Reads atlas page images during visual preparation and copies each region's
- * alpha channel. Page Pixmaps are cached for the batch and always disposed.
+ * alpha channel. Page Pixmap's are cached for the batch and always disposed.
  */
 internal class AtlasAlphaMaskLoader(
     private val atlasFileFor: (String) -> FileHandle = {
@@ -57,7 +57,7 @@ internal class AtlasAlphaMaskLoader(
         }
 
         return regions.map { region ->
-            validateRegion(atlasPath, region)
+            validateAtlasRegion(atlasPath, region)
             val pageFile = checkNotNull(region.page.textureFile) {
                 "Texture atlas '$atlasPath' page '${region.page.name}' has no image file."
             }
@@ -86,24 +86,6 @@ internal class AtlasAlphaMaskLoader(
     override fun close() {
         pagePixmaps.values.forEach(Pixmap::dispose)
         pagePixmaps.clear()
-    }
-
-    private fun validateRegion(
-        atlasPath: String,
-        region: TextureAtlas.TextureAtlasData.Region
-    ) {
-        require(region.degrees == 0 && !region.rotate) {
-            "Texture atlas '$atlasPath' region '${region.name}' is rotated; " +
-                "world visual regions must be packed with rotation disabled."
-        }
-        require(
-            region.offsetX == 0f && region.offsetY == 0f &&
-                region.width == region.originalWidth &&
-                region.height == region.originalHeight
-        ) {
-            "Texture atlas '$atlasPath' region '${region.name}' is trimmed; " +
-                "world visual regions must be packed without whitespace stripping."
-        }
     }
 
     private data class RegionKey(

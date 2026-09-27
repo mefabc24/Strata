@@ -11,7 +11,7 @@ fun World.contains(position: TilePosition): Boolean {
 /**
  * Returns the valid neighboring tile positions.
  *
- * By default only edge-connected neighbors are returned.
+ * By default, only edge-connected neighbors are returned.
  */
 fun World.neighbors(
     position: TilePosition,
