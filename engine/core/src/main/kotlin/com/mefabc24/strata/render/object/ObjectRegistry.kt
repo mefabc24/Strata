@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteSheetGrid
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.spriteSource
 import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
@@ -147,13 +148,9 @@ class ObjectRegistry internal constructor(
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
         checkRegistrationOpen()
-        require(sprite.isNotBlank()) {
-            "Sprite path must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.Static(resolvePath(sprite)),
+            source = spriteSource(::resolvePath) { sprite(sprite) },
             factory = factory,
             configure = configure
         )
@@ -173,7 +170,7 @@ class ObjectRegistry internal constructor(
         checkRegistrationOpen()
         registerSource(
             type,
-            SpriteSource.AtlasRegion(atlas, region),
+            spriteSource(::resolvePath) { atlas(atlas, region) },
             factory,
             configure
         )
@@ -188,19 +185,11 @@ class ObjectRegistry internal constructor(
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
         checkRegistrationOpen()
-        require(frames.isNotEmpty()) {
-            "An animation must contain at least one frame path."
-        }
-        require(frames.all { it.isNotBlank() }) {
-            "Animation frame paths must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.AnimatedFiles(
-                paths = frames.map(::resolvePath),
-                frameDuration = frameDuration
-            ),
+            source = spriteSource(::resolvePath) {
+                animated(frames, frameDuration)
+            },
             factory = factory,
             configure = configure
         )
@@ -218,7 +207,9 @@ class ObjectRegistry internal constructor(
         checkRegistrationOpen()
         registerSource(
             type,
-            SpriteSource.AtlasAnimation(atlas, region, frameDuration),
+            spriteSource(::resolvePath) {
+                animatedAtlas(atlas, region, frameDuration)
+            },
             factory,
             configure
         )
@@ -236,19 +227,17 @@ class ObjectRegistry internal constructor(
         configure: ObjectSpriteSettings.() -> Unit = {}
     ) {
         checkRegistrationOpen()
-        require(spriteSheet.isNotBlank()) {
-            "Sprite sheet path must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.SpriteSheet(
-                path = resolvePath(spriteSheet),
-                frameWidth = frameWidth,
-                frameHeight = frameHeight,
-                frameDuration = frameDuration,
-                frameCount = frameCount
-            ),
+            source = spriteSource(::resolvePath) {
+                spriteSheet(
+                    spriteSheet,
+                    frameWidth,
+                    frameHeight,
+                    frameDuration,
+                    frameCount
+                )
+            },
             factory = factory,
             configure = configure
         )

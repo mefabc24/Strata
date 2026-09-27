@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
 import com.mefabc24.strata.render.sprite.SpriteFrames
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.spriteSource
 
 /**
  * Describes one terrain registration.
@@ -82,13 +83,9 @@ class TerrainRegistry internal constructor(
         sprite: String
     ) {
         checkRegistrationOpen()
-        require(sprite.isNotBlank()) {
-            "Sprite path must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.Static(resolvePath(sprite))
+            source = spriteSource(::resolvePath) { sprite(sprite) }
         )
     }
 
@@ -102,7 +99,7 @@ class TerrainRegistry internal constructor(
         region: String
     ) {
         checkRegistrationOpen()
-        registerSource(type, SpriteSource.AtlasRegion(atlas, region))
+        registerSource(type, spriteSource(::resolvePath) { atlas(atlas, region) })
     }
 
     /** Registers a looping terrain animation from ordered image files. */
@@ -112,19 +109,11 @@ class TerrainRegistry internal constructor(
         frameDuration: Float
     ) {
         checkRegistrationOpen()
-        require(frames.isNotEmpty()) {
-            "An animation must contain at least one frame path."
-        }
-        require(frames.all { it.isNotBlank() }) {
-            "Animation frame paths must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.AnimatedFiles(
-                paths = frames.map(::resolvePath),
-                frameDuration = frameDuration
-            )
+            source = spriteSource(::resolvePath) {
+                animated(frames, frameDuration)
+            }
         )
     }
 
@@ -136,10 +125,9 @@ class TerrainRegistry internal constructor(
         frameDuration: Float
     ) {
         checkRegistrationOpen()
-        registerSource(
-            type,
-            SpriteSource.AtlasAnimation(atlas, region, frameDuration)
-        )
+        registerSource(type, spriteSource(::resolvePath) {
+            animatedAtlas(atlas, region, frameDuration)
+        })
     }
 
     /** Registers a looping terrain animation from a tight spritesheet. */
@@ -152,19 +140,17 @@ class TerrainRegistry internal constructor(
         frameCount: Int? = null
     ) {
         checkRegistrationOpen()
-        require(spriteSheet.isNotBlank()) {
-            "Sprite sheet path must not be blank."
-        }
-
         registerSource(
             type = type,
-            source = SpriteSource.SpriteSheet(
-                path = resolvePath(spriteSheet),
-                frameWidth = frameWidth,
-                frameHeight = frameHeight,
-                frameDuration = frameDuration,
-                frameCount = frameCount
-            )
+            source = spriteSource(::resolvePath) {
+                spriteSheet(
+                    spriteSheet,
+                    frameWidth,
+                    frameHeight,
+                    frameDuration,
+                    frameCount
+                )
+            }
         )
     }
 

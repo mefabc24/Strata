@@ -7,6 +7,7 @@ import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.`object`.alphaMaskFromClasspath
 import com.mefabc24.strata.render.`object`.alphaMasksFromSpriteSheetClasspath
 import com.mefabc24.strata.render.sprite.SpriteSource
+import com.mefabc24.strata.render.sprite.spriteSource
 import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.WorldEntity
@@ -107,12 +108,9 @@ class EntityRegistry internal constructor(
         sprite: String,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        require(sprite.isNotBlank()) {
-            "Sprite path must not be blank."
-        }
         registerSource(
             type = type,
-            source = SpriteSource.Static(resolvePath(sprite)),
+            source = spriteSource(::resolvePath) { sprite(sprite) },
             configure = configure
         )
     }
@@ -128,7 +126,7 @@ class EntityRegistry internal constructor(
         configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerSource(
         type,
-        SpriteSource.AtlasRegion(atlas, region),
+        spriteSource(::resolvePath) { atlas(atlas, region) },
         configure
     )
 
@@ -138,15 +136,11 @@ class EntityRegistry internal constructor(
         frameDuration: Float,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        require(frames.isNotEmpty() && frames.all { it.isNotBlank() }) {
-            "Animation frame paths must not be empty or blank."
-        }
         registerSource(
             type = type,
-            source = SpriteSource.AnimatedFiles(
-                paths = frames.map(::resolvePath),
-                frameDuration = frameDuration
-            ),
+            source = spriteSource(::resolvePath) {
+                animated(frames, frameDuration)
+            },
             configure = configure
         )
     }
@@ -160,7 +154,9 @@ class EntityRegistry internal constructor(
         configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerSource(
         type,
-        SpriteSource.AtlasAnimation(atlas, region, frameDuration),
+        spriteSource(::resolvePath) {
+            animatedAtlas(atlas, region, frameDuration)
+        },
         configure
     )
 
@@ -173,18 +169,17 @@ class EntityRegistry internal constructor(
         frameCount: Int? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
-        require(spriteSheet.isNotBlank()) {
-            "Sprite sheet path must not be blank."
-        }
         registerSource(
             type = type,
-            source = SpriteSource.SpriteSheet(
-                path = resolvePath(spriteSheet),
-                frameWidth = frameWidth,
-                frameHeight = frameHeight,
-                frameDuration = frameDuration,
-                frameCount = frameCount
-            ),
+            source = spriteSource(::resolvePath) {
+                spriteSheet(
+                    spriteSheet,
+                    frameWidth,
+                    frameHeight,
+                    frameDuration,
+                    frameCount
+                )
+            },
             configure = configure
         )
     }

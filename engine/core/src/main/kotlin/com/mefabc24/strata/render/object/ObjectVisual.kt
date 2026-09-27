@@ -1,13 +1,15 @@
 package com.mefabc24.strata.render.`object`
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.render.sprite.PreparedSprite
+import com.mefabc24.strata.render.sprite.PreparedSpriteFrame
 import com.mefabc24.strata.render.sprite.SpriteFrames
 
 /** A prepared object frame and its matching pixel-alpha mask. */
-data class ObjectVisualFrame(
-    val texture: TextureRegion,
-    val alphaMask: AlphaMask?
-)
+typealias ObjectVisualFrame = PreparedSpriteFrame<AlphaMask?>
+
+val ObjectVisualFrame.alphaMask: AlphaMask?
+    get() = metadata
 
 /**
  * Defines how a placed object is drawn and resolves its current frame.
@@ -22,7 +24,7 @@ class ObjectVisual internal constructor(
     val height: Float? = null,
     val scale: Float = 1f
 ) {
-    private val frames: List<ObjectVisualFrame>
+    private val preparedSprite = PreparedSprite(sprite, alphaMasks)
 
     /** Creates a static object visual with the existing API. */
     constructor(
@@ -57,24 +59,18 @@ class ObjectVisual internal constructor(
             "Sprite height must be positive and finite."
         }
 
-        frames = List(sprite.frameCount) { index ->
-            ObjectVisualFrame(
-                texture = sprite.frameAtIndex(index),
-                alphaMask = alphaMasks[index]
-            )
-        }
     }
 
     /** The static texture or first animation frame. */
     val texture: TextureRegion
-        get() = frames.first().texture
+        get() = preparedSprite.frameAtIndex(0).texture
 
     /** The static mask or first animation frame's mask. */
     val alphaMask: AlphaMask?
-        get() = frames.first().alphaMask
+        get() = preparedSprite.frameAtIndex(0).metadata
 
     /** Resolves a prepared texture/mask pair without allocating. */
     fun frameAt(stateTime: Float): ObjectVisualFrame {
-        return frames[sprite.frameIndexAt(stateTime)]
+        return preparedSprite.frameAt(stateTime)
     }
 }

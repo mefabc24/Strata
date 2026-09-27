@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.render.entity.EntityVisual
+import com.mefabc24.strata.render.entity.alphaMask
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldRenderPlan

@@ -7,6 +7,7 @@ import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.IsoObjectOrdering
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.alphaMask
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
