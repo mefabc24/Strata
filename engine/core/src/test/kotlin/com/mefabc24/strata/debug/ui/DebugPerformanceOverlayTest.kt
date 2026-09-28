@@ -28,4 +28,22 @@ class DebugPerformanceOverlayTest {
         assertTrue(text.contains("Ground: 0/0"))
         assertTrue(text.contains("Entities: 0/0"))
     }
+
+    @Test
+    fun `performance and world sections share visibility independently`() {
+        val state = DebugStatsOverlayState()
+        state.sync(false, false)
+        assertFalse(state.visible)
+        state.sync(true, false)
+        assertTrue(state.visible)
+        assertTrue(state.performanceVisible)
+        assertFalse(state.worldVisible)
+        state.sync(false, true)
+        assertFalse(state.performanceVisible)
+        assertTrue(state.worldVisible)
+        assertTrue(state.worldBecameVisible)
+        state.sync(false, false)
+        assertFalse(state.visible)
+        assertFalse(state.worldVisible)
+    }
 }

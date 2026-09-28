@@ -194,7 +194,10 @@ internal class DebugRuntime(
         ui.update(delta)
     }
     fun render() = ui.render()
-    fun resize(width: Int, height: Int) = ui.resize(width, height)
+    fun resize(width: Int, height: Int) {
+        ui.resize(width, height)
+        panel.resized()
+    }
 
     fun dispose() {
         try {

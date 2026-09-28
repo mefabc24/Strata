@@ -52,4 +52,50 @@ class DebugSettingsTest {
         assertTrue(settings.camera.enabled)
         assertEquals(true, settings.worldStats.enabled)
     }
+
+    @Test
+    fun `off preset disables every optional diagnostic overlay`() {
+        val settings = DebugSettings().apply {
+            DebugPreset.EVERYTHING.let(::applyPreset)
+            simulation.enabled = true
+            panel.enabled = true
+            panel.visible = true
+        }
+
+        settings.applyPreset(DebugPreset.OFF)
+
+        assertFalse(settings.performance.enabled)
+        assertFalse(settings.simulation.enabled)
+        assertFalse(settings.grid.enabled)
+        assertFalse(settings.objects.enabled)
+        assertFalse(settings.entities.enabled)
+        assertFalse(settings.picking.enabled)
+        assertFalse(settings.renderOrder.enabled)
+        assertFalse(settings.culling.enabled)
+        assertFalse(settings.camera.enabled)
+        assertFalse(settings.worldStats.enabled)
+        assertFalse(settings.pathfinding.enabled)
+        assertFalse(settings.placement.enabled)
+        assertTrue(settings.panel.enabled)
+        assertTrue(settings.panel.visible)
+    }
+
+    @Test
+    fun `every preset starts from a disabled diagnostic state`() {
+        val settings = DebugSettings()
+        DebugPreset.entries.forEach { preset ->
+            settings.applyPreset(DebugPreset.EVERYTHING)
+            settings.simulation.enabled = true
+            settings.applyPreset(preset)
+            assertFalse(settings.simulation.enabled)
+        }
+        settings.applyPreset(DebugPreset.MINIMAL)
+        assertTrue(settings.performance.enabled)
+        assertTrue(settings.grid.enabled)
+        assertFalse(settings.worldStats.enabled)
+        settings.applyPreset(DebugPreset.RENDERING)
+        assertTrue(settings.renderOrder.enabled)
+        assertTrue(settings.culling.enabled)
+        assertTrue(settings.camera.enabled)
+    }
 }

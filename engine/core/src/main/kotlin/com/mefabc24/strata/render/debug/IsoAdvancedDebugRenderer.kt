@@ -32,7 +32,9 @@ internal class IsoAdvancedDebugRenderer(
     ) {
         val inspection = state.inspection
         val path = state.pathfinding
-        val drawShapes = inspection != null || state.pathStart != null || path != null ||
+        val drawPath = settings.pathfinding.enabled &&
+            (state.pathStart != null || path != null)
+        val drawShapes = inspection != null || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled
         val drawLabels = settings.renderOrder.enabled && settings.renderOrder.showLabels
         if (!drawShapes && !drawLabels) return
@@ -41,7 +43,7 @@ internal class IsoAdvancedDebugRenderer(
             shapes.projectionMatrix = camera.combined
             Gdx.gl.glEnable(GL20.GL_BLEND)
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-            drawFills(inspection, path)
+            drawFills(inspection, if (settings.pathfinding.enabled) path else null)
             drawLines(inspection, cameraSnapshot, renderSnapshot)
             Gdx.gl.glLineWidth(1f)
             Gdx.gl.glDisable(GL20.GL_BLEND)
@@ -69,14 +71,15 @@ internal class IsoAdvancedDebugRenderer(
     ) {
         val explored = path?.explored.orEmpty()
         val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
-        if (!shouldDrawExplored && inspection == null && state.pathStart == null) return
+        val pathStart = state.pathStart.takeIf { settings.pathfinding.enabled }
+        if (!shouldDrawExplored && inspection == null && pathStart == null) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         if (shouldDrawExplored) {
             shapes.color = Color(0.2f, 0.55f, 1f, 0.16f)
             explored.forEach(::drawTileFill)
         }
         shapes.color = Color(1f, 0.75f, 0.15f, 0.22f)
-        state.pathStart?.let(::drawTileFill)
+        pathStart?.let(::drawTileFill)
         when (inspection) {
             is DebugInspection.EntityTarget -> drawTileFill(inspection.entity.currentTile)
             is DebugInspection.ObjectTarget -> inspection.placedObject.occupiedTiles().forEach(::drawTileFill)
@@ -102,7 +105,7 @@ internal class IsoAdvancedDebugRenderer(
         }
 
         val result = state.pathfinding
-        if (settings.pathfinding.showFinalPath && result?.path != null) {
+        if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && result?.path != null) {
             shapes.color = Color(0.2f, 1f, 0.35f, 1f)
             result.path.zipWithNext().forEach { (from, to) ->
                 val a = projection.tileToWorld(from.x + 0.5f, from.y + 0.5f)

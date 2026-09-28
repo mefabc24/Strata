@@ -41,14 +41,16 @@ internal class IsoWorldDebugRenderer(
         val drawObjects = objectSettings.enabled && (
             objectSettings.showOccupiedTiles ||
                 objectSettings.showOriginTile ||
-                objectSettings.showSpriteBounds
+                objectSettings.showSpriteBounds ||
+                objectSettings.occupiedTileFillColor != null
             )
         val drawEntities = entitySettings.enabled && (
             entitySettings.showCurrentTile ||
                 entitySettings.showPosition ||
                 entitySettings.showPath ||
                 entitySettings.showDirection ||
-                entitySettings.showSpriteBounds
+                entitySettings.showSpriteBounds ||
+                entitySettings.currentTileFillColor != null
             )
         if (!drawObjects && !drawEntities) return
 
@@ -79,10 +81,8 @@ internal class IsoWorldDebugRenderer(
     ) {
         val objectFill = objectSettings.occupiedTileFillColor
         val entityFill = entitySettings.currentTileFillColor
-        val hasObjectFill = drawObjects &&
-            objectSettings.showOccupiedTiles && objectFill != null
-        val hasEntityFill = drawEntities &&
-            entitySettings.showCurrentTile && entityFill != null
+        val hasObjectFill = drawObjects && objectFill != null
+        val hasEntityFill = drawEntities && entityFill != null
         val hasPositionMarkers = drawEntities && entitySettings.showPosition
         if (!hasObjectFill && !hasEntityFill && !hasPositionMarkers) return
 

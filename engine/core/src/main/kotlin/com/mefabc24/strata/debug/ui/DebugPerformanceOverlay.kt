@@ -3,49 +3,160 @@ package com.mefabc24.strata.debug.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.render.RenderStats
+import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataUi
+import com.mefabc24.strata.world.World
 import java.util.Locale
 
-internal class DebugPerformanceOverlay(
+internal class DebugStatsOverlay(
     ui: StrataUi,
     private val stats: () -> RenderStats,
-    private val enabled: () -> Boolean,
+    private val performanceEnabled: () -> Boolean,
+    private val worldStatsEnabled: () -> Boolean,
+    private val world: World,
+    private val placement: PlacementController?,
     private val framesPerSecond: () -> Int = { Gdx.graphics.framesPerSecond }
 ) {
-    private val state = DebugPerformanceOverlayState()
-    private val label = Label("", ui.skin, ui.theme.labelStyle).apply {
+    private val performanceState = DebugPerformanceOverlayState()
+    private val state = DebugStatsOverlayState()
+    private val performanceLabel = Label("", ui.skin, ui.theme.labelStyle).apply {
         setAlignment(Align.left)
         touchable = Touchable.disabled
     }
+    private val worldLabel = Label("", ui.skin, ui.theme.labelStyle).apply {
+        setAlignment(Align.left)
+        touchable = Touchable.disabled
+    }
+    private lateinit var performanceCell: Cell<Label>
+    private lateinit var worldCell: Cell<Label>
+    private val content = Table(ui.skin).apply {
+        background = ui.skin.get(
+            requireNotNull(ui.theme.panelStyle),
+            StrataPanelStyle::class.java
+        ).background
+        pad(8f)
+        touchable = Touchable.disabled
+        performanceCell = add(performanceLabel).left()
+        row()
+        worldCell = add(worldLabel).left()
+    }
+    private var worldElapsed = 0f
     private val root = Table().apply {
         setFillParent(true)
         top().right()
         pad(16f)
         touchable = Touchable.disabled
         isVisible = false
-        add(Table(ui.skin).apply {
-            background = ui.skin.get(
-                requireNotNull(ui.theme.panelStyle),
-                StrataPanelStyle::class.java
-            ).background
-            pad(8f)
-            touchable = Touchable.disabled
-            add(label)
-        })
+        add(content)
     }
 
     init { ui.stage.addActor(root) }
 
     fun update(delta: Float) {
-        val average = state.update(enabled(), delta)
+        val performance = performanceEnabled()
+        val worldStats = worldStatsEnabled()
+        state.sync(performance, worldStats)
         root.isVisible = state.visible
+        performanceLabel.isVisible = state.performanceVisible
+        worldLabel.isVisible = state.worldVisible
+        if (performance) performanceCell.height(Value.prefHeight)
+        else performanceCell.height(0f)
+        if (worldStats) worldCell.height(Value.prefHeight)
+        else worldCell.height(0f)
+        worldCell.padTop(if (performance && worldStats) 8f else 0f)
+        content.invalidateHierarchy()
+
+        val average = performanceState.update(performance, delta)
         if (average != null) {
-            label.setText(
+            performanceLabel.setText(
                 DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).format()
+            )
+        }
+        if (!performance) performanceLabel.setText("")
+
+        if (!worldStats) {
+            worldElapsed = 0f
+            worldLabel.setText("")
+        } else {
+            worldElapsed += delta
+            if (state.worldBecameVisible || worldElapsed >= 0.25f) {
+                worldElapsed = 0f
+                worldLabel.setText(
+                    DebugWorldStatsSnapshot.from(world, placement, stats()).format()
+                )
+            }
+        }
+    }
+}
+
+/** Visibility model for independently enabled sections in the shared overlay. */
+class DebugStatsOverlayState {
+    var performanceVisible: Boolean = false
+        private set
+    var worldVisible: Boolean = false
+        private set
+    var worldBecameVisible: Boolean = false
+        private set
+    val visible: Boolean get() = performanceVisible || worldVisible
+
+    fun sync(performanceEnabled: Boolean, worldEnabled: Boolean) {
+        worldBecameVisible = worldEnabled && !worldVisible
+        performanceVisible = performanceEnabled
+        worldVisible = worldEnabled
+    }
+}
+
+data class DebugWorldStatsSnapshot(
+    val width: Int,
+    val height: Int,
+    val groundTiles: Int,
+    val overlayTiles: Int,
+    val overlayLayers: Int,
+    val objects: Int,
+    val objectsDrawn: Int,
+    val entities: Int,
+    val entitiesDrawn: Int,
+    val movingEntities: Int,
+    val activePaths: Int,
+    val placementPreviews: Int
+) {
+    fun format(): String = buildString {
+        append("World: $width x $height")
+        append("\nGround: $groundTiles")
+        append("\nOverlays: $overlayTiles ($overlayLayers layers)")
+        append("\nObjects: $objects ($objectsDrawn drawn)")
+        append("\nEntities: $entities ($entitiesDrawn drawn)")
+        append("\nMoving: $movingEntities")
+        append("\nActive paths: $activePaths")
+        append("\nPlacement previews: $placementPreviews")
+    }
+
+    companion object {
+        fun from(
+            world: World,
+            placement: PlacementController?,
+            stats: RenderStats
+        ): DebugWorldStatsSnapshot {
+            val entities = world.getEntities()
+            return DebugWorldStatsSnapshot(
+                width = world.width,
+                height = world.height,
+                groundTiles = world.groundTileCount,
+                overlayTiles = world.overlayTileCount,
+                overlayLayers = world.overlayLayerIds.size,
+                objects = world.placedObjectCount,
+                objectsDrawn = stats.objectsDrawn,
+                entities = world.entityCount,
+                entitiesDrawn = stats.entitiesDrawn,
+                movingEntities = entities.count { it.isMoving },
+                activePaths = entities.count { it.remainingPath.isNotEmpty() },
+                placementPreviews = placement?.previews?.size ?: 0
             )
         }
     }

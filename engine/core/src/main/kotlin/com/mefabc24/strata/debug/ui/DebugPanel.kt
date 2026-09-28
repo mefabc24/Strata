@@ -2,39 +2,33 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.Value
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
-import com.mefabc24.strata.debug.DebugGridExtent
-import com.mefabc24.strata.debug.DebugGridRenderLayer
-import com.mefabc24.strata.debug.DebugPreset
-import com.mefabc24.strata.debug.DebugSettings
-import com.mefabc24.strata.debug.DebugToolMode
+import com.badlogic.gdx.utils.Scaling
+import com.mefabc24.strata.debug.*
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.inspector.DebugInspector
-import com.mefabc24.strata.debug.tools.DebugEntitySpawner
-import com.mefabc24.strata.debug.tools.DebugPathfindingTool
-import com.mefabc24.strata.debug.tools.DebugTerrainPainter
-import com.mefabc24.strata.debug.tools.DebugToolController
+import com.mefabc24.strata.debug.tools.*
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
+import com.mefabc24.strata.render.entity.EntityEntry
 import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.simulation.SimulationController
+import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.terrain.TerrainId
-import com.mefabc24.strata.ui.StrataColumn
-import com.mefabc24.strata.ui.StrataLayout
-import com.mefabc24.strata.ui.StrataUi
-import com.mefabc24.strata.ui.cell
-import com.mefabc24.strata.ui.fillAvailableX
-import com.mefabc24.strata.ui.hugX
+import com.mefabc24.strata.ui.*
 import com.mefabc24.strata.world.Tile
-import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import java.util.Locale
 
 private enum class DebugPanelTab(val label: String) { TOOLS("Tools"), DEBUG("Debug") }
-
 private sealed interface PaintLayer {
     val id: String?
     data object Ground : PaintLayer { override val id: String? = null }
@@ -42,7 +36,6 @@ private sealed interface PaintLayer {
     val label: String get() = id?.toDisplayName() ?: "Ground"
 }
 
-/** Builds and synchronizes the engine-owned developer panel. */
 internal class DebugPanel(
     private val ui: StrataUi,
     private val settings: DebugSettings,
@@ -60,16 +53,16 @@ internal class DebugPanel(
     private val objects: ObjectRegistry,
     private val entities: EntityRegistry
 ) {
-    private val performance = DebugPerformanceOverlay(
-        ui, { view.renderStats }, { settings.performance.enabled }
+    private val statsOverlay = DebugStatsOverlay(
+        ui, { view.renderStats }, { settings.performance.enabled },
+        { settings.worldStats.enabled }, world, placement
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
-
-    private val tabs = ui.selectionGroup(
-        DebugPanelTab.entries,
-        DebugPanelTab.TOOLS
-    ) { syncVisibility() }
-
+    private val synchronizers = DebugControlBindings()
+    private val previewState = DebugContentPreviewState()
+    private val tabs = ui.selectionGroup(DebugPanelTab.entries, DebugPanelTab.TOOLS) {
+        hidePreview(); syncVisibility()
+    }
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
@@ -79,8 +72,7 @@ internal class DebugPanel(
         add(DebugToolMode.PATHFINDING)
     }
     private val modeSelection = ui.selectionGroup(modes, DebugToolMode.NONE) {
-        tools.select(it)
-        syncVisibility()
+        hidePreview(); tools.select(it); syncVisibility()
     }
     private val buildSelection = buildEntries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { tools.selectBuildEntry(it) }
@@ -91,12 +83,13 @@ internal class DebugPanel(
     private val spawnSelection = spawner.entries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { spawner.selectedEntry = it }
     }
-    private val paintLayers = listOf(PaintLayer.Ground) +
-        world.overlayLayerIds.map(PaintLayer::Overlay)
+    private val paintLayers = listOf(PaintLayer.Ground) + world.overlayLayerIds.map(PaintLayer::Overlay)
     private val layerSelection = ui.selectionGroup(paintLayers, paintLayers.first()) {
         painter.layerId = it.id
     }
 
+    private lateinit var panelActor: StrataPanel
+    private lateinit var bodyScroll: StrataScrollPane
     private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
     private lateinit var buildControls: StrataColumn
@@ -109,362 +102,517 @@ internal class DebugPanel(
     private lateinit var pickingLabel: Label
     private lateinit var cameraLabel: Label
     private lateinit var cullingLabel: Label
-    private lateinit var worldStatsLabel: Label
     private lateinit var placementLabel: Label
+    private lateinit var previewName: Label
+    private lateinit var previewImage: Image
+    private lateinit var previewPopover: StrataPopover
+    private var previewAnchor: Actor? = null
+    private var lastTab = DebugPanelTab.TOOLS
+    private var lastMode = DebugToolMode.NONE
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
         terrainSelection?.selected?.let { painter.selectedEntry = it }
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
+        buildPreview()
+        synchronizers += { modeSelection.select(tools.mode) }
+        terrainSelection?.let { group ->
+            synchronizers += { painter.selectedEntry?.let(group::select) }
+        }
+        spawnSelection?.let { group ->
+            synchronizers += { spawner.selectedEntry?.let(group::select) }
+        }
+        synchronizers += {
+            paintLayers.firstOrNull { it.id == painter.layerId }?.let(layerSelection::select)
+        }
         setPanelVisible(settings.panel.visible)
+        syncControls()
         syncVisibility()
     }
 
     fun setPanelVisible(visible: Boolean) {
         settings.panel.visible = visible
         ui.root.isVisible = visible
+        if (!visible) hidePreview()
     }
 
     fun update(delta: Float) {
-        performance.update(delta)
+        statsOverlay.update(delta)
         simulationOverlay.setVisible(settings.simulation.enabled)
         simulationOverlay.sync()
+        if (ui.root.isVisible != settings.panel.visible) {
+            ui.root.isVisible = settings.panel.visible
+            if (!settings.panel.visible) hidePreview()
+        }
+        syncControls()
         syncVisibility()
         syncDiagnostics()
     }
 
+    fun resized() {
+        val anchor = previewAnchor ?: return
+        if (previewState.current != null) previewPopover.showRightOf(panelActor, anchor)
+    }
+
     private fun buildUi() {
-        ui.root.pad(16f)
-        ui.panel(spacing = 0f) {
+        ui.root.pad(12f)
+        panelActor = ui.panel(
+            spacing = 8f,
+            padding = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
+        ) {
             defaults().fillAvailableX()
-            expander("STRATA DEBUG", expanded = false, spacing = 6f) {
+            label("STRATA DEBUG").cell { height(28f); left() }
+            row(spacing = 6f) {
+                defaults().fillAvailableX().uniformX().height(40f)
+                DebugPanelTab.entries.forEach { selectableButton(it.label, it, tabs) }
+            }
+            separator()
+            bodyScroll = scrollColumn(spacing = 8f) {
                 defaults().fillAvailableX()
-                row(spacing = 4f) {
-                    defaults().fillAvailableX().uniformX().height(34f)
-                    DebugPanelTab.entries.forEach { tab ->
-                        selectableButton(tab.label, tab, tabs)
-                    }
-                }
-                separator()
                 stack {
-                    toolsTab = column(spacing = 6f) {
-                        defaults().fillAvailableX()
-                        buildTools()
+                    toolsTab = column(spacing = 10f) {
+                        defaults().fillAvailableX(); buildTools()
                     }
-                    debugTab = column(spacing = 6f) {
-                        defaults().fillAvailableX()
-                        buildDebug()
+                    debugTab = column(spacing = 10f) {
+                        defaults().fillAvailableX(); buildDebug()
                     }
                 }.cell { fillAvailableX() }
-            }.cell { fillAvailableX() }
-        }.cell { minWidth(310f); hugX(); top(); left() }
+            }.cell { grow(); fill(); minHeight(0f) }
+        }.cell {
+            minWidth(260f)
+            prefWidth(Value.percentWidth(0.34f, ui.root))
+            maxWidth(460f)
+            growY(); fillY(); top(); left()
+        }
+    }
+
+    private fun buildPreview() {
+        previewPopover = ui.popover(width = 128f, height = 154f) {
+            defaults().fillAvailableX()
+            previewName = label("").apply {
+                setAlignment(Align.center); setWrap(true)
+            }.cell { height(30f) }
+            previewImage = actor(Image().apply { setScaling(Scaling.fit) })
+                .cell { grow(); fill(); minHeight(96f) }
+        }
     }
 
     private fun StrataColumn.buildTools() {
         label("Mode")
-        grid(columns = 3, spacing = 4f, alignment = Align.center) {
-            defaults().fillAvailableX().uniformX().height(32f)
-            modes.forEach { mode ->
-                selectableButton(mode.displayName, mode, modeSelection)
-            }
-        }
+        responsiveGrid(105f, 40f, maximumColumns = 3) {
+            modes.forEach { selectableButton(it.displayName, it, modeSelection) }
+        }.cell { fillAvailableX() }
         if (!tools.buildAvailable || buildEntries.isEmpty()) {
-            label(
-                if (!tools.buildAvailable) {
-                    "Build unavailable: no PlacementController"
-                } else {
-                    "Build unavailable: no constructible objects"
-                }
+            wrappingLabel(
+                if (!tools.buildAvailable) "Build unavailable: no PlacementController"
+                else "Build unavailable: no constructible objects"
             )
         }
         stack {
-            buildControls = column(spacing = 4f) {
+            buildControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Build object")
-                buildEntries.forEach { entry ->
-                    selectableButton(entry.displayName(), entry, checkNotNull(buildSelection))
-                }
-                placementLabel = label("")
+                responsiveGrid(130f, maximumColumns = 2) {
+                    buildEntries.forEach { entry ->
+                        selectableButton(entry.displayName(), entry, checkNotNull(buildSelection))
+                            .previewOnHover(entry, DebugContentKind.OBJECT, entry.displayName(), entry.selectionVisual.texture)
+                    }
+                }.cell { fillAvailableX() }
+                placementLabel = wrappingLabel("")
             }
-            paintControls = column(spacing = 4f) {
+            paintControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Terrain")
-                painter.entries.forEach { entry ->
-                    selectableButton(entry.type.toString().toDisplayName(), entry, checkNotNull(terrainSelection))
-                }
+                responsiveGrid(130f, maximumColumns = 2) {
+                    painter.entries.forEach { entry ->
+                        val name = entry.type.toString().toDisplayName()
+                        selectableButton(name, entry, checkNotNull(terrainSelection))
+                            .previewOnHover(entry, DebugContentKind.TERRAIN, name, entry.selectionTexture)
+                    }
+                }.cell { fillAvailableX() }
                 label("Layer")
-                paintLayers.forEach { layer ->
-                    selectableButton(layer.label, layer, layerSelection)
-                }
+                responsiveGrid(130f, maximumColumns = 2) {
+                    paintLayers.forEach { selectableButton(it.label, it, layerSelection) }
+                }.cell { fillAvailableX() }
             }
-            spawnControls = column(spacing = 4f) {
+            spawnControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Spawn entity")
-                spawner.entries.forEach { entry ->
-                    selectableButton(entry.type.displayName(), entry, checkNotNull(spawnSelection))
-                }
+                responsiveGrid(130f, maximumColumns = 2) {
+                    spawner.entries.forEach { entry ->
+                        val name = entry.type.displayName()
+                        selectableButton(name, entry, checkNotNull(spawnSelection))
+                            .previewOnHover(entry, DebugContentKind.ENTITY, name, entry.selectionVisual.texture)
+                    }
+                }.cell { fillAvailableX() }
             }
-            inspectControls = column(spacing = 4f) {
+            inspectControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Inspector")
                 inspectorLabel = wrappingLabel("Click an entity, object, or tile")
-                button("Clear selection") { inspector.clear() }
+                button("Clear selection") { inspector.clear() }.cell { height(38f) }
             }
-            pathControls = column(spacing = 4f) {
+            pathControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Pathfinding")
                 pathLabel = wrappingLabel("Click a start tile, then a goal tile")
-                button("Clear path") { pathfinding.clear() }
+                button("Clear path") { pathfinding.clear() }.cell { height(38f) }
             }
         }.cell { fillAvailableX() }
     }
 
     private fun StrataColumn.buildDebug() {
-        expander("Presets", expanded = true) {
-            grid(columns = 2, spacing = 4f) {
-                defaults().fillAvailableX().uniformX().height(30f)
-                DebugPreset.entries.forEach { preset ->
-                    button(preset.name.toDisplayName()) { settings.applyPreset(preset) }
+        label("Presets")
+        responsiveGrid(105f, 38f, maximumColumns = 3) {
+            DebugPreset.entries.forEach { preset ->
+                button(preset.name.toDisplayName()) {
+                    settings.applyPreset(preset); syncControls()
                 }
             }
+        }.cell { fillAvailableX() }
+        separator()
+        simpleToggle("Performance overlay", { settings.performance.enabled }) { settings.performance.enabled = it }
+        simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
+        simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
+        simpleToggle(
+            "Render order",
+            { settings.renderOrder.enabled && settings.renderOrder.showLabels }
+        ) {
+            settings.renderOrder.enabled = it
+            if (it) settings.renderOrder.showLabels = true
         }
-        expander("Performance", expanded = false) {
-            toggleButton("Enabled", settings.performance.enabled) {
-                settings.performance.enabled = it
-            }
-        }
-        expander("Simulation", expanded = false) {
-            toggleButton("Show controls", settings.simulation.enabled) {
-                settings.simulation.enabled = it
-            }
-        }
-        expander("Grid", expanded = false) { buildGridSettings() }
-        expander("Objects", expanded = false) { buildObjectSettings() }
-        expander("Entities", expanded = false) { buildEntitySettings() }
-        expander("Picking", expanded = false) {
-            toggleButton("Enabled", settings.picking.enabled) { settings.picking.enabled = it }
-            toggleButton("Picked sprite bounds", settings.picking.showSpriteBounds) {
-                settings.picking.showSpriteBounds = it
-            }
-            toggleButton("Cursor hit marker", settings.picking.showCursorHit) {
-                settings.picking.showCursorHit = it
-            }
+        simpleToggle("Placement diagnostics", { settings.placement.enabled }) { settings.placement.enabled = it }
+        featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
+        featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
+        featureExpander("Entities", { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
+        featureExpander("Picking", { settings.picking.enabled }, { settings.picking.enabled = it }) {
+            toggleGrid(
+                toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
+                toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
+            )
             pickingLabel = wrappingLabel("")
         }
-        expander("Render Order", expanded = false) {
-            toggleButton("Enabled", settings.renderOrder.enabled) { settings.renderOrder.enabled = it }
-            toggleButton("Labels", settings.renderOrder.showLabels) { settings.renderOrder.showLabels = it }
-        }
-        expander("Culling", expanded = false) {
-            toggleButton("Enabled", settings.culling.enabled) { settings.culling.enabled = it }
-            toggleButton("Visible area", settings.culling.showVisibleArea) { settings.culling.showVisibleArea = it }
-            toggleButton("Object bounds", settings.culling.showObjectBounds) { settings.culling.showObjectBounds = it }
-            toggleButton("Entity bounds", settings.culling.showEntityBounds) { settings.culling.showEntityBounds = it }
+        featureExpander("Culling", { settings.culling.enabled }, { settings.culling.enabled = it }) {
+            toggleGrid(
+                toggle("Visible area", { settings.culling.showVisibleArea }) { settings.culling.showVisibleArea = it },
+                toggle("Object bounds", { settings.culling.showObjectBounds }) { settings.culling.showObjectBounds = it },
+                toggle("Entity bounds", { settings.culling.showEntityBounds }) { settings.culling.showEntityBounds = it }
+            )
             cullingLabel = wrappingLabel("")
         }
-        expander("Pathfinding", expanded = false) {
-            toggleButton("Diagnostics enabled", settings.pathfinding.enabled) {
-                settings.pathfinding.enabled = it
-            }
-            toggleButton("Explored nodes", settings.pathfinding.showExploredNodes) {
-                settings.pathfinding.showExploredNodes = it
-            }
-            toggleButton("Final path", settings.pathfinding.showFinalPath) {
-                settings.pathfinding.showFinalPath = it
-            }
+        featureExpander("Pathfinding", { settings.pathfinding.enabled }, { settings.pathfinding.enabled = it }) {
+            toggleGrid(
+                toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) { settings.pathfinding.showExploredNodes = it },
+                toggle("Final path", { settings.pathfinding.showFinalPath }) { settings.pathfinding.showFinalPath = it }
+            )
         }
-        expander("Placement", expanded = false) {
-            toggleButton("Diagnostics enabled", settings.placement.enabled) {
-                settings.placement.enabled = it
-            }
-            label("Build previews use the same checks as final placement.")
-        }
-        expander("Camera", expanded = false) {
-            toggleButton("Enabled", settings.camera.enabled) { settings.camera.enabled = it }
-            toggleButton("Visible area", settings.camera.showVisibleArea) { settings.camera.showVisibleArea = it }
-            toggleButton("World bounds", settings.camera.showWorldBounds) { settings.camera.showWorldBounds = it }
-            toggleButton("Clamp bounds", settings.camera.showClampBounds) { settings.camera.showClampBounds = it }
+        featureExpander("Camera", { settings.camera.enabled }, { settings.camera.enabled = it }) {
+            toggleGrid(
+                toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
+                toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
+                toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
+            )
             cameraLabel = wrappingLabel("")
-        }
-        expander("World Stats", expanded = false) {
-            toggleButton("Enabled", settings.worldStats.enabled) { settings.worldStats.enabled = it }
-            worldStatsLabel = wrappingLabel("")
         }
     }
 
     private fun StrataColumn.buildGridSettings() {
-        toggleButton("Enabled", settings.grid.enabled) { settings.grid.enabled = it }
+        label("Layer")
         val layers = ui.selectionGroup(DebugGridRenderLayer.entries, settings.grid.renderLayer) {
             settings.grid.renderLayer = it
         }
-        row(spacing = 4f) {
-            defaults().fillAvailableX().uniformX()
+        synchronizers += { layers.select(settings.grid.renderLayer) }
+        responsiveGrid(130f, maximumColumns = 2) {
             selectableButton("Below objects", DebugGridRenderLayer.BELOW_OBJECTS, layers)
             selectableButton("Above objects", DebugGridRenderLayer.ABOVE_OBJECTS, layers)
-        }
+        }.cell { fillAvailableX() }
+        label("Extent")
         val extents = ui.selectionGroup(DebugGridExtent.entries, settings.grid.extent) {
             settings.grid.extent = it
         }
-        row(spacing = 4f) {
-            defaults().fillAvailableX().uniformX()
+        synchronizers += { extents.select(settings.grid.extent) }
+        responsiveGrid(130f, maximumColumns = 2) {
             selectableButton("World", DebugGridExtent.WORLD, extents)
             selectableButton("Visible", DebugGridExtent.VISIBLE, extents)
-        }
-        numericControl("Line width", settings.grid.lineWidth, 0.25f, 0.25f..8f) {
+        }.cell { fillAvailableX() }
+        toggleGrid(
+            toggle("Background", { settings.grid.backgroundColor != null }) { enabled ->
+                settings.grid.backgroundColor = if (enabled) Color(1f, 1f, 1f, 0.2f) else null
+            },
+            toggle("Hover background", { settings.grid.hoverBackgroundColor != null }) { enabled ->
+                settings.grid.hoverBackgroundColor = if (enabled) Color(1f, 0f, 0f, 0.5f) else null
+            }
+        )
+        boundStepper("Line width", { settings.grid.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.grid.lineWidth = it
         }
-        numericControl("Grid alpha", settings.grid.color.a, 0.05f, 0f..1f) { alpha ->
+        boundStepper("Grid alpha", { settings.grid.color.a }, 0f, 1f, 0.05f) { alpha ->
             settings.grid.color = settings.grid.color.apply { a = alpha }
         }
-        numericControl("Hover alpha", settings.grid.hoverColor.a, 0.05f, 0f..1f) { alpha ->
+        boundStepper("Hover alpha", { settings.grid.hoverColor.a }, 0f, 1f, 0.05f) { alpha ->
             settings.grid.hoverColor = settings.grid.hoverColor.apply { a = alpha }
         }
-        toggleButton("Background", settings.grid.backgroundColor != null) {
-            settings.grid.backgroundColor = if (it) Color(1f, 1f, 1f, 0.2f) else null
-        }
-        toggleButton("Hover background", settings.grid.hoverBackgroundColor != null) {
-            settings.grid.hoverBackgroundColor = if (it) Color(1f, 0f, 0f, 0.5f) else null
-        }
-        numericControl("Background alpha", settings.grid.backgroundColor?.a ?: 0.2f, 0.05f, 0f..1f) { alpha ->
+        boundStepper("Background alpha", { settings.grid.backgroundColor?.a ?: 0.2f }, 0f, 1f, 0.05f) { alpha ->
             settings.grid.backgroundColor?.let { settings.grid.backgroundColor = it.apply { a = alpha } }
         }
-        numericControl("Hover background alpha", settings.grid.hoverBackgroundColor?.a ?: 0.5f, 0.05f, 0f..1f) { alpha ->
+        boundStepper("Hover background alpha", { settings.grid.hoverBackgroundColor?.a ?: 0.5f }, 0f, 1f, 0.05f) { alpha ->
             settings.grid.hoverBackgroundColor?.let { settings.grid.hoverBackgroundColor = it.apply { a = alpha } }
         }
     }
 
     private fun StrataColumn.buildObjectSettings() {
-        toggleButton("Enabled", settings.objects.enabled) { settings.objects.enabled = it }
-        toggleButton("Occupied tiles", settings.objects.showOccupiedTiles) { settings.objects.showOccupiedTiles = it }
-        toggleButton("Origin tile", settings.objects.showOriginTile) { settings.objects.showOriginTile = it }
-        toggleButton("Sprite bounds", settings.objects.showSpriteBounds) { settings.objects.showSpriteBounds = it }
-        toggleButton("Tile fill", settings.objects.occupiedTileFillColor != null) {
-            settings.objects.occupiedTileFillColor = if (it) Color(0.2f, 0.65f, 1f, 0.18f) else null
+        toggleGrid(
+            toggle("Occupied tiles", { settings.objects.showOccupiedTiles }) { settings.objects.showOccupiedTiles = it },
+            toggle("Origin tile", { settings.objects.showOriginTile }) { settings.objects.showOriginTile = it },
+            toggle("Sprite bounds", { settings.objects.showSpriteBounds }) { settings.objects.showSpriteBounds = it },
+            toggle("Tile fill", { settings.objects.occupiedTileFillColor != null }) { enabled ->
+                settings.objects.occupiedTileFillColor =
+                    if (enabled) Color(0.2f, 0.65f, 1f, 0.18f) else null
+            }
+        )
+        boundStepper("Line width", { settings.objects.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.objects.lineWidth = it
         }
-        numericControl("Line width", settings.objects.lineWidth, 0.25f, 0.25f..8f) { settings.objects.lineWidth = it }
-        numericControl("Fill alpha", settings.objects.occupiedTileFillColor?.a ?: 0.18f, 0.05f, 0f..1f) { alpha ->
-            settings.objects.occupiedTileFillColor?.let { settings.objects.occupiedTileFillColor = it.apply { a = alpha } }
+        boundStepper("Fill alpha", { settings.objects.occupiedTileFillColor?.a ?: 0.18f }, 0f, 1f, 0.05f) { alpha ->
+            settings.objects.occupiedTileFillColor?.let {
+                settings.objects.occupiedTileFillColor = it.apply { a = alpha }
+            }
         }
     }
 
     private fun StrataColumn.buildEntitySettings() {
-        toggleButton("Enabled", settings.entities.enabled) { settings.entities.enabled = it }
-        toggleButton("Current tile", settings.entities.showCurrentTile) { settings.entities.showCurrentTile = it }
-        toggleButton("Exact position", settings.entities.showPosition) { settings.entities.showPosition = it }
-        toggleButton("Path", settings.entities.showPath) { settings.entities.showPath = it }
-        toggleButton("Direction", settings.entities.showDirection) { settings.entities.showDirection = it }
-        toggleButton("Sprite bounds", settings.entities.showSpriteBounds) { settings.entities.showSpriteBounds = it }
-        toggleButton("Tile fill", settings.entities.currentTileFillColor != null) {
-            settings.entities.currentTileFillColor = if (it) Color(0.3f, 1f, 0.3f, 0.16f) else null
+        toggleGrid(
+            toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
+            toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
+            toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
+            toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
+            toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
+            toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
+                settings.entities.currentTileFillColor =
+                    if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
+            }
+        )
+        boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.entities.lineWidth = it
         }
-        numericControl("Line width", settings.entities.lineWidth, 0.25f, 0.25f..8f) { settings.entities.lineWidth = it }
-        numericControl("Fill alpha", settings.entities.currentTileFillColor?.a ?: 0.16f, 0.05f, 0f..1f) { alpha ->
-            settings.entities.currentTileFillColor?.let { settings.entities.currentTileFillColor = it.apply { a = alpha } }
+        boundStepper("Fill alpha", { settings.entities.currentTileFillColor?.a ?: 0.16f }, 0f, 1f, 0.05f) { alpha ->
+            settings.entities.currentTileFillColor?.let {
+                settings.entities.currentTileFillColor = it.apply { a = alpha }
+            }
         }
     }
 
-    private fun StrataLayout.numericControl(
-        label: String,
-        initial: Float,
-        step: Float,
-        range: ClosedFloatingPointRange<Float>,
-        changed: (Float) -> Unit
+    private data class ToggleBinding(
+        val text: String,
+        val read: () -> Boolean,
+        val write: (Boolean) -> Unit
+    )
+
+    private fun toggle(
+        text: String,
+        read: () -> Boolean,
+        write: (Boolean) -> Unit
+    ) = ToggleBinding(text, read, write)
+
+    private fun StrataColumn.simpleToggle(
+        text: String,
+        read: () -> Boolean,
+        write: (Boolean) -> Unit
     ) {
-        var value = initial.coerceIn(range.start, range.endInclusive)
-        lateinit var valueLabel: Label
-        row(spacing = 4f) {
-            label(label).cell { growX(); left() }
-            button("-") {
-                value = (value - step).coerceIn(range.start, range.endInclusive)
-                changed(value); valueLabel.setText(value.format())
-            }
-            valueLabel = label(value.format())
-            button("+") {
-                value = (value + step).coerceIn(range.start, range.endInclusive)
-                changed(value); valueLabel.setText(value.format())
-            }
+        row(spacing = 8f) {
+            label(text).cell { growX(); left() }
+            settingToggle(read, write).cell { minWidth(64f); height(36f) }
         }
+    }
+
+    private fun StrataColumn.featureExpander(
+        title: String,
+        read: () -> Boolean,
+        write: (Boolean) -> Unit,
+        configure: StrataColumn.() -> Unit
+    ) {
+        expander(
+            title = title,
+            expanded = false,
+            spacing = 8f,
+            headerContent = {
+                settingToggle(read, write).cell { minWidth(64f); height(36f) }
+            }
+        ) {
+            defaults().fillAvailableX()
+            configure()
+        }.cell { fillAvailableX() }
+    }
+
+    private fun StrataColumn.toggleGrid(vararg controls: ToggleBinding) {
+        responsiveGrid(130f, 36f, maximumColumns = 2) {
+            controls.forEach { binding ->
+                val button = StrataToggleButton(
+                    binding.text, ui.skin, ui.theme.toggleButtonStyle,
+                    binding.read(), binding.write
+                )
+                actor(button)
+                synchronizers += { button.syncChecked(binding.read()) }
+            }
+        }.cell { fillAvailableX() }
+    }
+
+    private fun StrataLayout.settingToggle(
+        read: () -> Boolean,
+        write: (Boolean) -> Unit
+    ): StrataToggleButton {
+        val button = toggleButton(
+            if (read()) "ON" else "OFF",
+            read(),
+            onChanged = write
+        )
+        synchronizers += {
+            val checked = read()
+            button.syncChecked(checked)
+            button.setText(if (checked) "ON" else "OFF")
+        }
+        return button
+    }
+
+    private fun StrataLayout.boundStepper(
+        text: String,
+        read: () -> Float,
+        minimum: Float,
+        maximum: Float,
+        step: Float,
+        write: (Float) -> Unit
+    ): StrataNumericStepper {
+        val stepper = numericStepper(
+            text, read(), minimum, maximum, step, onChanged = write
+        ).cell { fillAvailableX(); height(38f) }
+        synchronizers += { stepper.sync(read()) }
+        return stepper
     }
 
     private fun StrataLayout.wrappingLabel(text: String): Label = label(text).apply {
         setWrap(true)
     }.cell { fillAvailableX() }
 
+    private fun <A : Actor> A.previewOnHover(
+        key: Any,
+        kind: DebugContentKind,
+        name: String,
+        texture: TextureRegion
+    ): A = onHover(
+        entered = { actor ->
+            showPreview(DebugContentPreview(key, kind, name, texture), actor)
+        },
+        exited = { hidePreview(key) }
+    )
+
+    private fun showPreview(preview: DebugContentPreview, anchor: Actor) {
+        if (!settings.panel.visible || tabs.selected != DebugPanelTab.TOOLS) return
+        previewState.show(preview)
+        previewAnchor = anchor
+        previewName.setText(preview.name)
+        previewImage.drawable = TextureRegionDrawable(preview.texture)
+        previewPopover.showRightOf(panelActor, anchor)
+    }
+
+    private fun hidePreview(key: Any? = null) {
+        previewState.hide(key)
+        if (previewState.current == null && ::previewPopover.isInitialized) {
+            previewAnchor = null
+            previewPopover.hide()
+        }
+    }
+
+    private fun syncControls() {
+        synchronizers.sync()
+    }
+
     private fun syncVisibility() {
         if (!::toolsTab.isInitialized) return
-        val toolsVisible = tabs.selected == DebugPanelTab.TOOLS
-        toolsTab.isVisible = toolsVisible
-        debugTab.isVisible = !toolsVisible
-        buildControls.isVisible = tools.mode == DebugToolMode.BUILD
-        paintControls.isVisible = tools.mode == DebugToolMode.PAINT
-        spawnControls.isVisible = tools.mode == DebugToolMode.SPAWN
-        inspectControls.isVisible = tools.mode == DebugToolMode.INSPECT
-        pathControls.isVisible = tools.mode == DebugToolMode.PATHFINDING
+        val tab = requireNotNull(tabs.selected)
+        val mode = tools.mode
+        if (tab != lastTab || mode != lastMode) {
+            hidePreview()
+            bodyScroll.scrollY = 0f
+            lastTab = tab
+            lastMode = mode
+        }
+        toolsTab.isVisible = tab == DebugPanelTab.TOOLS
+        debugTab.isVisible = tab == DebugPanelTab.DEBUG
+        buildControls.isVisible = mode == DebugToolMode.BUILD
+        paintControls.isVisible = mode == DebugToolMode.PAINT
+        spawnControls.isVisible = mode == DebugToolMode.SPAWN
+        inspectControls.isVisible = mode == DebugToolMode.INSPECT
+        pathControls.isVisible = mode == DebugToolMode.PATHFINDING
     }
 
     private fun syncDiagnostics() {
-        if (::inspectorLabel.isInitialized) inspectorLabel.setText(formatInspection())
-        if (::pathLabel.isInitialized) pathLabel.setText(formatPath())
-        if (::placementLabel.isInitialized) {
-            val diagnostic = placement?.previewDiagnostics?.firstOrNull()
-            placementLabel.setText(
-                when {
-                    placement == null -> "Placement unavailable"
-                    diagnostic == null -> "Hover or drag to preview"
-                    diagnostic.valid -> "Placement valid"
-                    else -> "Invalid: ${diagnostic.reason?.name?.toDisplayName()}"
-                }
-            )
+        inspectorLabel.setText(formatInspection())
+        pathLabel.setText(formatPath())
+        val showPlacement = settings.placement.enabled && tools.mode == DebugToolMode.BUILD
+        placementLabel.isVisible = showPlacement
+        placementLabel.setText(if (showPlacement) formatPlacement() else "")
+        syncDiagnosticLabel(pickingLabel, settings.picking.enabled, ::formatPicking)
+        syncDiagnosticLabel(cameraLabel, settings.camera.enabled, ::formatCamera)
+        syncDiagnosticLabel(cullingLabel, settings.culling.enabled, ::formatCulling)
+    }
+
+    private fun syncDiagnosticLabel(
+        label: Label,
+        visible: Boolean,
+        text: () -> String
+    ) {
+        label.isVisible = visible
+        label.setText(if (visible) text() else "")
+    }
+
+    private fun formatPlacement(): String {
+        val diagnostic = placement?.previewDiagnostics?.firstOrNull()
+        return when {
+            placement == null -> "Placement unavailable"
+            diagnostic == null -> "Hover or drag to preview"
+            diagnostic.valid -> "Placement valid"
+            else -> "Invalid: ${diagnostic.reason?.name?.toDisplayName() ?: "unknown reason"}"
         }
-        if (::pickingLabel.isInitialized && settings.picking.enabled) {
-            val x = Gdx.input.x.toFloat()
-            val y = Gdx.input.y.toFloat()
-            val projected = view.screenToWorld(x, y)
-            pickingLabel.setText(
-                "Screen: ${x.toInt()}, ${y.toInt()}\n" +
-                    "World: ${projected.x.format()}, ${projected.y.format()}\n" +
-                    "Grid: ${view.pickGrid(x, y)}\n" +
-                    "Tile: ${view.pickTile(x, y)}\n" +
-                    "Object: ${view.pickObject(x, y)?.placeable?.javaClass?.simpleName}\n" +
-                    "Entity: ${view.pickEntity(x, y)?.entity?.javaClass?.simpleName}\n" +
-                    "Object alpha: ${alphaText(settings.worldState.picking?.objectResult?.alphaAccepted)}\n" +
-                    "Entity alpha: ${alphaText(settings.worldState.picking?.entityResult?.alphaAccepted)}"
-            )
-        }
-        if (::cameraLabel.isInitialized && settings.camera.enabled) {
-            val camera = view.cameraDebugSnapshot()
-            cameraLabel.setText(
-                "Position: ${camera.x.format()}, ${camera.y.format()}\n" +
-                    "Zoom: ${camera.zoom.format()}\n" +
-                    "Viewport: ${camera.viewportWidth.format()} x ${camera.viewportHeight.format()}\n" +
-                    "Visible: ${camera.visibleArea}\nWorld: ${camera.worldBounds}\nClamp: ${camera.clampBounds}"
-            )
-        }
-        if (::cullingLabel.isInitialized && settings.culling.enabled) {
-            val stats = view.renderStats
-            cullingLabel.setText(
-                "Objects: ${stats.objectsDrawn} drawn, " +
-                    "${(stats.objectsChecked - stats.objectsDrawn).coerceAtLeast(0)} culled\n" +
-                    "Entities: ${stats.entitiesDrawn} drawn, " +
-                    "${(stats.entitiesChecked - stats.entitiesDrawn).coerceAtLeast(0)} culled"
-            )
-        }
-        if (::worldStatsLabel.isInitialized && settings.worldStats.enabled) {
-            val moving = world.getEntities().count { it.isMoving }
-            val paths = world.getEntities().count { it.remainingPath.isNotEmpty() }
-            val stats = view.renderStats
-            worldStatsLabel.setText(
-                "World: ${world.width} x ${world.height}\n" +
-                    "Ground tiles: ${world.groundTileCount}\n" +
-                    "Overlay tiles: ${world.overlayTileCount}\n" +
-                    "Overlay layers: ${world.overlayLayerIds.size}\n" +
-                    "Objects: ${world.placedObjectCount} (${stats.objectsDrawn} drawn)\n" +
-                    "Entities: ${world.entityCount} (${stats.entitiesDrawn} drawn)\n" +
-                    "Moving: $moving, active paths: $paths\n" +
-                    "Placement previews: ${placement?.previews?.size ?: 0}"
-            )
-        }
+    }
+
+    private fun formatPicking(): String {
+        val x = Gdx.input.x.toFloat()
+        val y = Gdx.input.y.toFloat()
+        val projected = view.screenToWorld(x, y)
+        val snapshot = settings.worldState.picking
+        return formatRows(
+            "Screen" to "${x.toInt()}, ${y.toInt()}",
+            "World" to "${projected.x.format()}, ${projected.y.format()}",
+            "Grid" to display(view.pickGrid(x, y)),
+            "Tile" to display(view.pickTile(x, y)),
+            "Object" to display(snapshot?.objectResult?.picked?.placeable?.javaClass?.simpleName),
+            "Entity" to display(snapshot?.entityResult?.picked?.entity?.javaClass?.simpleName),
+            "Object alpha" to alphaText(snapshot?.objectResult?.alphaAccepted),
+            "Entity alpha" to alphaText(snapshot?.entityResult?.alphaAccepted)
+        )
+    }
+
+    private fun formatCamera(): String {
+        val camera = view.cameraDebugSnapshot()
+        return formatRows(
+            "Position" to "${camera.x.format()}, ${camera.y.format()}",
+            "Zoom" to camera.zoom.format(),
+            "Viewport" to "${camera.viewportWidth.format()} x ${camera.viewportHeight.format()}",
+            "Visible" to camera.visibleArea.toString(),
+            "World" to camera.worldBounds.toString(),
+            "Clamp" to camera.clampBounds.toString()
+        )
+    }
+
+    private fun formatCulling(): String {
+        val stats = view.renderStats
+        return formatRows(
+            "Objects" to "${stats.objectsDrawn} drawn, " +
+                "${(stats.objectsChecked - stats.objectsDrawn).coerceAtLeast(0)} culled",
+            "Entities" to "${stats.entitiesDrawn} drawn, " +
+                "${(stats.entitiesChecked - stats.entitiesDrawn).coerceAtLeast(0)} culled"
+        )
     }
 
     private fun formatInspection(): String = when (val selected = inspector.selection) {
@@ -472,24 +620,33 @@ internal class DebugPanel(
         is DebugInspection.EntityTarget -> {
             val entity = selected.entity
             val visual = entities.resolve(entity, view.animationTime)
-            val sprite = visual?.visual?.sprite
-            "Entity: ${entity.entity::class.displayName()}\n" +
-                "Position: ${entity.position}\nTile: ${entity.currentTile}\n" +
-                "Direction: ${entity.direction}\nMoving: ${entity.isMoving}\n" +
-                "Waypoints: ${entity.remainingWaypoints.size}\nPath: ${entity.remainingPath}\n" +
-                animationText(visual?.state?.toString(), visual?.stateTime, sprite) +
-                "\nBounds: ${view.entitySpriteBounds(entity)}"
+            formatRows(
+                "Entity" to entity.entity::class.displayName(),
+                "Position" to entity.position.toString(),
+                "Tile" to entity.currentTile.toString(),
+                "Direction" to entity.direction.toString(),
+                "Moving" to entity.isMoving.toString(),
+                "Waypoints" to entity.remainingWaypoints.size.toString(),
+                "Path" to entity.remainingPath.toString(),
+                "Animation" to animationText(
+                    visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
+                ),
+                "Bounds" to display(view.entitySpriteBounds(entity))
+            )
         }
         is DebugInspection.ObjectTarget -> {
             val placed = selected.placedObject
             val visual = objects.resolve(placed, view.animationTime)
-            val sprite = visual?.visual?.sprite
-            "Object: ${placed.placeable::class.displayName()}\n" +
-                "Origin: (${placed.x}, ${placed.y})\n" +
-                "Footprint: ${placed.placeable.footprint}\n" +
-                "Occupied: ${placed.occupiedTiles()}\n" +
-                animationText(visual?.state?.toString(), visual?.stateTime, sprite) +
-                "\nBounds: ${view.objectSpriteBounds(placed)}"
+            formatRows(
+                "Object" to placed.placeable::class.displayName(),
+                "Origin" to "(${placed.x}, ${placed.y})",
+                "Footprint" to placed.placeable.footprint.toString(),
+                "Occupied" to placed.occupiedTiles().toString(),
+                "Animation" to animationText(
+                    visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
+                ),
+                "Bounds" to display(view.objectSpriteBounds(placed))
+            )
         }
         is DebugInspection.TileTarget -> {
             val position = selected.position
@@ -498,22 +655,37 @@ internal class DebugPanel(
                 world.getOverlayTile(id, position.x, position.y)?.let { id to terrainFor(it) }
             }
             val tileEntities = world.getEntities().filter { it.currentTile == position }
-            "Tile: $position\nTerrain: ${tile?.let(terrainFor)}\n" +
-                "Overlays: $overlays\nObject: ${world.getObjectAt(position)?.placeable?.javaClass?.simpleName}\n" +
-                "Entities: ${tileEntities.map { it.entity::class.simpleName }}"
+            formatRows(
+                "Tile" to position.toString(),
+                "Terrain" to display(tile?.let(terrainFor)),
+                "Overlays" to display(overlays.takeIf { it.isNotEmpty() }),
+                "Object" to display(
+                    world.getObjectAt(position)?.placeable?.javaClass?.simpleName
+                ),
+                "Entities" to display(
+                    tileEntities.map { it.entity::class.simpleName }.takeIf { it.isNotEmpty() }
+                )
+            )
         }
     }
 
     private fun formatPath(): String {
         val result = pathfinding.result
         return when {
-            pathfinding.start != null -> "Start: ${pathfinding.start}\nClick a goal tile"
+            pathfinding.start != null -> formatRows(
+                "Start" to pathfinding.start.toString(),
+                "Next" to "Click a goal tile"
+            )
             result == null -> "Click a start tile, then a goal tile"
-            else -> "Start: ${result.start}\nGoal: ${result.goal}\n" +
-                "Result: ${if (result.success) "success" else "no path"}\n" +
-                "Length: ${result.path?.size ?: 0}\n" +
-                "Duration: ${result.durationNanos / 1_000_000.0} ms\n" +
-                "Explored: ${result.explored.size}\nPath: ${result.path.orEmpty()}"
+            else -> formatRows(
+                "Start" to result.start.toString(),
+                "Goal" to result.goal.toString(),
+                "Result" to if (result.success) "success" else "no path",
+                "Length" to (result.path?.size ?: 0).toString(),
+                "Duration" to "${(result.durationNanos / 1_000_000.0).format()} ms",
+                "Explored" to result.explored.size.toString(),
+                "Path" to result.path.orEmpty().toString()
+            )
         }
     }
 
@@ -522,20 +694,27 @@ internal class DebugPanel(
         stateTime: Float?,
         sprite: com.mefabc24.strata.render.sprite.SpriteFrames?
     ): String {
-        if (sprite == null || stateTime == null) return "Visual: unavailable"
-        return "State: ${state ?: "default"}\nState time: ${stateTime.format()}\n" +
-            "Frame: ${sprite.frameIndexAt(stateTime) + 1}/${sprite.frameCount}\n" +
-            "Frame duration: ${sprite.frameDuration?.format() ?: "static"}"
+        if (sprite == null || stateTime == null) return "unavailable"
+        return "${state ?: "default"}, t=${stateTime.format()}, " +
+            "frame ${sprite.frameIndexAt(stateTime) + 1}/${sprite.frameCount}, " +
+            (sprite.frameDuration?.let { "${it.format()} s" } ?: "static")
     }
 
     private fun alphaText(value: Boolean?): String = when (value) {
         true -> "accepted"
         false -> "rejected"
-        null -> "not available"
+        null -> "unavailable"
     }
 }
 
+internal fun formatRows(vararg rows: Pair<String, String>): String {
+    val width = rows.maxOfOrNull { it.first.length } ?: 0
+    return rows.joinToString("\n") { (key, value) -> "${key.padEnd(width)}  $value" }
+}
+
+private fun display(value: Any?): String = value?.toString() ?: "—"
 private fun Float.format() = String.format(Locale.ROOT, "%.2f", this)
+private fun Double.format() = String.format(Locale.ROOT, "%.2f", this)
 private fun String.toDisplayName() = replace('_', ' ').replace('-', ' ')
     .lowercase().replaceFirstChar(Char::titlecase)
 private fun kotlin.reflect.KClass<*>.displayName() = simpleName?.toDisplayName() ?: toString()

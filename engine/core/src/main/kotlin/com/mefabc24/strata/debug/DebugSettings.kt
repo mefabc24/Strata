@@ -235,12 +235,13 @@ class DebugGridSettings : DebugFeatureSettings() {
     }
 }
 
-enum class DebugPreset { MINIMAL, PLACEMENT, ENTITIES, RENDERING, EVERYTHING }
+enum class DebugPreset { OFF, MINIMAL, PLACEMENT, ENTITIES, RENDERING, EVERYTHING }
 
 internal object DebugPresets {
     fun apply(settings: DebugSettings, preset: DebugPreset) {
         disableVisuals(settings)
         when (preset) {
+            DebugPreset.OFF -> Unit
             DebugPreset.MINIMAL -> {
                 settings.performance.enabled = true
                 settings.grid.enabled = true
@@ -250,6 +251,7 @@ internal object DebugPresets {
                 settings.objects.enabled = true
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
+                settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
                 settings.placement.enabled = true
             }
             DebugPreset.ENTITIES -> {
@@ -259,6 +261,7 @@ internal object DebugPresets {
                 settings.entities.showPath = true
                 settings.entities.showDirection = true
                 settings.entities.showSpriteBounds = true
+                settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
             }
             DebugPreset.RENDERING -> {
                 settings.performance.enabled = true
@@ -267,8 +270,15 @@ internal object DebugPresets {
                 settings.entities.enabled = true
                 settings.entities.showSpriteBounds = true
                 settings.renderOrder.enabled = true
+                settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
+                settings.culling.showVisibleArea = true
+                settings.culling.showObjectBounds = true
+                settings.culling.showEntityBounds = true
                 settings.camera.enabled = true
+                settings.camera.showVisibleArea = true
+                settings.camera.showWorldBounds = true
+                settings.camera.showClampBounds = true
             }
             DebugPreset.EVERYTHING -> {
                 settings.performance.enabled = true
@@ -276,11 +286,22 @@ internal object DebugPresets {
                 settings.objects.enabled = true
                 settings.entities.enabled = true
                 settings.picking.enabled = true
+                settings.picking.showSpriteBounds = true
+                settings.picking.showCursorHit = true
                 settings.renderOrder.enabled = true
+                settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
+                settings.culling.showVisibleArea = true
+                settings.culling.showObjectBounds = true
+                settings.culling.showEntityBounds = true
                 settings.camera.enabled = true
+                settings.camera.showVisibleArea = true
+                settings.camera.showWorldBounds = true
+                settings.camera.showClampBounds = true
                 settings.worldStats.enabled = true
                 settings.pathfinding.enabled = true
+                settings.pathfinding.showExploredNodes = true
+                settings.pathfinding.showFinalPath = true
                 settings.placement.enabled = true
             }
         }
@@ -288,6 +309,7 @@ internal object DebugPresets {
 
     private fun disableVisuals(settings: DebugSettings) {
         settings.performance.enabled = false
+        settings.simulation.enabled = false
         settings.grid.enabled = false
         settings.objects.enabled = false
         settings.entities.enabled = false

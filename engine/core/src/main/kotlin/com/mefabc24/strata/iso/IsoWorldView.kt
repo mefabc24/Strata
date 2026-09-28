@@ -410,8 +410,10 @@ class IsoWorldView(
 
         debugSettings?.let { settings ->
             val state = settings.worldState
-            val active = state.inspection != null || state.pathStart != null ||
-                state.pathfinding != null || settings.picking.enabled ||
+            val pathActive = settings.pathfinding.enabled &&
+                (state.pathStart != null || state.pathfinding != null)
+            val active = state.inspection != null || pathActive ||
+                settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
                 settings.camera.enabled
             if (active) {
