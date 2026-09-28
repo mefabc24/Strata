@@ -62,7 +62,7 @@ The resolver runs at runtime. Missing states fail instead of loading assets late
 
 ## Playback clocks
 
-`VisualPlayback.LOCAL` restarts a state's animation from frame zero when that runtime identity enters the state. `SYNCHRONIZED` uses the scene clock, keeping every user of that state on the same frame schedule.
+`VisualPlayback.LOCAL` restarts a state's animation from frame zero when that runtime identity enters the state. `SYNCHRONIZED` uses the scene clock, keeping every user of that state on the same frame schedule. The scene clock advances with `strata.simulation`, so pausing freezes world visuals and changing `timeScale` changes their playback speed. Camera and UI timing remain unscaled.
 
 Object and entity state builders default to `LOCAL`; terrain states default to `SYNCHRONIZED`. Override a state when needed:
 

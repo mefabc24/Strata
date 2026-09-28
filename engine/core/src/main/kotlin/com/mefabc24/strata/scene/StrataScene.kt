@@ -428,19 +428,35 @@ class StrataScene private constructor(
         inputInstalled = true
     }
 
-    /** Updates the optional world view and UI layers. */
-    fun update(delta: Float) {
+    /**
+     * Updates simulation systems with [simulationDelta] and real-time systems
+     * with [realDelta].
+     */
+    fun update(
+        realDelta: Float,
+        simulationDelta: Float = realDelta
+    ) {
         checkActive()
         checkConfigurationComplete()
 
-        attachedWorld?.updateEntities(delta)
+        require(realDelta.isFinite() && realDelta >= 0f) {
+            "Real frame delta must be finite and non-negative."
+        }
+        require(simulationDelta.isFinite() && simulationDelta >= 0f) {
+            "Simulation delta must be finite and non-negative."
+        }
+
+        attachedWorld?.updateEntities(simulationDelta)
 
         attachedView?.let { view ->
-            view.update(delta)
+            view.update(
+                realDelta = realDelta,
+                simulationDelta = simulationDelta
+            )
             attachedPlacement?.update(view.hoveredTile)
         }
 
-        attachedUi?.update(delta)
+        attachedUi?.update(realDelta)
     }
 
     /**

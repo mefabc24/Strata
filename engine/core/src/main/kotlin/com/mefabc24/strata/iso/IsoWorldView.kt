@@ -302,11 +302,22 @@ class IsoWorldView(
     }
 
     /**
-     * Updates the state of the world view.
+     * Updates camera and hover state in real time while advancing world
+     * animations with simulation time.
      */
-    fun update(delta: Float) {
-        animationTime += delta
-        cameraController.update(delta)
+    fun update(
+        realDelta: Float,
+        simulationDelta: Float = realDelta
+    ) {
+        require(realDelta.isFinite() && realDelta >= 0f) {
+            "Real frame delta must be finite and non-negative."
+        }
+        require(simulationDelta.isFinite() && simulationDelta >= 0f) {
+            "Simulation delta must be finite and non-negative."
+        }
+
+        animationTime += simulationDelta
+        cameraController.update(realDelta)
 
         hoveredGridPosition = tilePicker.pickGrid(
             Gdx.input.x.toFloat(),

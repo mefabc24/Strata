@@ -11,6 +11,7 @@ import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
 import com.mefabc24.strata.scene.DebugSettings
 import com.mefabc24.strata.scene.StrataScene
+import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.ui.StrataUi
@@ -29,6 +30,9 @@ class Strata : Disposable {
 
     /** Process-wide engine settings. */
     val engineSettings = EngineSettings()
+
+    /** Runtime control over simulation pause and time scaling. */
+    val simulation = SimulationController()
 
     private var sceneSpec: SceneSpec? = null
     private var activeScene: StrataScene? = null
@@ -161,8 +165,16 @@ class Strata : Disposable {
         )
     }
 
-    fun update(delta: Float) {
-        scene.update(delta)
+    /**
+     * Updates real-time and simulation systems and returns the simulation delta.
+     */
+    fun update(realDelta: Float): Float {
+        val simulationDelta = simulation.simulationDelta(realDelta)
+        scene.update(
+            realDelta = realDelta,
+            simulationDelta = simulationDelta
+        )
+        return simulationDelta
     }
 
     fun render() {

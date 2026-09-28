@@ -17,7 +17,7 @@ class IsoWorldViewAnimationTest {
     }
 
     @Test
-    fun `update alone advances the shared animation time`() {
+    fun `simulation delta alone advances the shared animation time`() {
         val observedRenderTimes = mutableListOf<Float>()
         val view = IsoWorldView(
             world = World(1, 1) { _, _ -> TestTile() },
@@ -33,22 +33,34 @@ class IsoWorldViewAnimationTest {
             view.render()
             assertEquals(0f, view.animationTime)
 
-            view.update(0.25f)
-            assertEquals(0.25f, view.animationTime)
+            view.update(
+                realDelta = 0.25f,
+                simulationDelta = 0f
+            )
+            assertEquals(0f, view.animationTime)
+
+            view.update(
+                realDelta = 0.25f,
+                simulationDelta = 0.5f
+            )
+            assertEquals(0.5f, view.animationTime)
 
             view.render()
             view.render()
-            assertEquals(0.25f, view.animationTime)
+            assertEquals(0.5f, view.animationTime)
 
             view.resize(1024, 768)
-            assertEquals(0.25f, view.animationTime)
+            assertEquals(0.5f, view.animationTime)
 
-            view.update(0.5f)
-            assertEquals(0.75f, view.animationTime)
+            view.update(
+                realDelta = 0.5f,
+                simulationDelta = 1f
+            )
+            assertEquals(1.5f, view.animationTime)
             view.render()
 
             assertEquals(
-                listOf(0f, 0.25f, 0.25f, 0.75f),
+                listOf(0f, 0.5f, 0.5f, 1.5f),
                 observedRenderTimes
             )
         } finally {

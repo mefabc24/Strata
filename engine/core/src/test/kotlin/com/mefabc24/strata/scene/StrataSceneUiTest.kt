@@ -126,7 +126,7 @@ class StrataSceneUiTest {
         scene.resize(800, 600)
 
         assertTrue(inputState.inputProcessor === scene.input.processor)
-        assertEquals(listOf(0.25f), worldView.updateDeltas)
+        assertEquals(listOf(0.25f to 0.25f), worldView.updateDeltas)
         assertEquals(listOf(0.25f), stage.actDeltas)
         assertEquals(1, worldView.renderCalls)
         assertEquals(1, stage.drawCalls)
@@ -210,15 +210,18 @@ class StrataSceneUiTest {
         override val hoveredTile: TilePosition? = null
         override val renderStats = RenderStats()
 
-        val updateDeltas = mutableListOf<Float>()
+        val updateDeltas = mutableListOf<Pair<Float, Float>>()
         var renderCalls = 0
             private set
         val resizes = mutableListOf<Pair<Int, Int>>()
         var disposed = false
             private set
 
-        override fun update(delta: Float) {
-            updateDeltas += delta
+        override fun update(
+            realDelta: Float,
+            simulationDelta: Float
+        ) {
+            updateDeltas += realDelta to simulationDelta
         }
 
         override fun render(previews: List<PlacementPreview>) {

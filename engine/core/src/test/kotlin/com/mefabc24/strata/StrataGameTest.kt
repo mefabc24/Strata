@@ -74,6 +74,7 @@ class StrataGameTest {
 
         assertEquals(
             listOf(
+                "real update 0.5",
                 "game update 0.5",
                 "game resize 900x700",
                 "game dispose"
@@ -84,6 +85,31 @@ class StrataGameTest {
         assertFailsWith<IllegalStateException> {
             game.runtime.scene
         }
+    }
+
+    @Test
+    fun `game receives real and scaled simulation deltas`() {
+        val events = mutableListOf<String>()
+        val game = TestGame(events)
+        game.create()
+        events.clear()
+
+        game.runtime.simulation.timeScale = 2f
+        game.update(0.25f)
+        game.runtime.simulation.pause()
+        game.update(0.25f)
+
+        assertEquals(
+            listOf(
+                "real update 0.25",
+                "game update 0.5",
+                "real update 0.25",
+                "game update 0.0"
+            ),
+            events
+        )
+
+        game.dispose()
     }
 
     private class TestGame(
@@ -111,8 +137,12 @@ class StrataGameTest {
             events += "ready"
         }
 
-        override fun updateGame(delta: Float) {
-            events += "game update $delta"
+        override fun updateRealTime(realDelta: Float) {
+            events += "real update $realDelta"
+        }
+
+        override fun updateGame(simulationDelta: Float) {
+            events += "game update $simulationDelta"
         }
 
         override fun resizeGame(

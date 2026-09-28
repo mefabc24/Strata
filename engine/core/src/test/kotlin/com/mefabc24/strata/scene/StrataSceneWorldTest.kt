@@ -311,7 +311,7 @@ class StrataSceneWorldTest {
         scene.render()
         scene.resize(900, 700)
 
-        assertEquals(listOf(0.5f), factory.view.updateDeltas)
+        assertEquals(listOf(0.5f to 0.5f), factory.view.updateDeltas)
         assertEquals(1, factory.view.renderedPreviews.size)
         assertTrue(factory.view.renderedPreviews.single().isEmpty())
         assertEquals(listOf(900 to 700), factory.view.resizes)
@@ -332,10 +332,24 @@ class StrataSceneWorldTest {
         entity.followPath(listOf(TilePosition(1, 0)), speed = 2f)
         scene.attachWorld(world) { Terrain.GRASS }
 
-        scene.update(0.25f)
+        scene.update(
+            realDelta = 0.25f,
+            simulationDelta = 0f
+        )
+
+        assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
+        assertTrue(entity.isMoving)
+
+        scene.update(
+            realDelta = 0.125f,
+            simulationDelta = 0.25f
+        )
 
         assertEquals(EntityPosition(1f, 0.5f), entity.position)
-        assertEquals(listOf(0.25f), factory.view.updateDeltas)
+        assertEquals(
+            listOf(0.25f to 0f, 0.125f to 0.25f),
+            factory.view.updateDeltas
+        )
         scene.dispose()
     }
 
@@ -465,14 +479,17 @@ class StrataSceneWorldTest {
             private set
 
         var nextHoveredTile: TilePosition? = null
-        val updateDeltas = mutableListOf<Float>()
+        val updateDeltas = mutableListOf<Pair<Float, Float>>()
         val renderedPreviews = mutableListOf<List<PlacementPreview>>()
         val resizes = mutableListOf<Pair<Int, Int>>()
         var disposed = false
             private set
 
-        override fun update(delta: Float) {
-            updateDeltas += delta
+        override fun update(
+            realDelta: Float,
+            simulationDelta: Float
+        ) {
+            updateDeltas += realDelta to simulationDelta
             hoveredTile = nextHoveredTile
         }
 

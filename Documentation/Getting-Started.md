@@ -156,6 +156,6 @@ fun main() {
 
 Construction configures the game, `DesktopLauncher` creates `StrataEngine`, and libGDX calls the lifecycle. `StrataGame.create()` creates the scene before calling `onReady()`. Scene creation performs registrations, loads assets synchronously, and prepares visuals. This is why world attachment belongs in `onReady()`, not inside the scene configuration block.
 
-Strata updates entity movement, the view, placement previews, and UI before calling `updateGame(delta)`. It renders the world before the UI. Resize and disposal are forwarded automatically. Game resources that Strata does not own, such as a supplied UI `Skin`, belong in `disposeGame()`.
+Strata updates entity movement, the view, placement previews, and UI before calling the game hooks. Override `updateGame(simulationDelta)` for game progression and `updateRealTime(realDelta)` for game-owned UI or other work that must continue while paused. It renders the world before the UI. Resize and disposal are forwarded automatically. Game resources that Strata does not own, such as a supplied UI `Skin`, belong in `disposeGame()`.
 
 Continue with [Architecture](Architecture.md) for ownership and lifecycle, then [Configuration](Configuration.md) for all setup blocks.

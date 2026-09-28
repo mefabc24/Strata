@@ -122,6 +122,8 @@ class WorldEntity internal constructor(
             "Entity movement delta must be finite and non-negative."
         }
 
+        if (delta == 0f) return
+
         var remainingDistance = (movement?.speed ?: return) * delta
 
         while (true) {

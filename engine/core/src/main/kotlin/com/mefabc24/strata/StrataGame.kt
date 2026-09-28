@@ -29,9 +29,22 @@ abstract class StrataGame {
     protected open fun onReady() = Unit
 
     /**
-     * Called after Strata has updated its runtime state.
+     * Called after Strata has updated its runtime state with unscaled frame
+     * time.
+     *
+     * Override this for game-owned UI and other real-time work that must
+     * continue while simulation is paused.
      */
-    protected open fun updateGame(delta: Float) = Unit
+    protected open fun updateRealTime(realDelta: Float) = Unit
+
+    /**
+     * Called after [updateRealTime] with scaled simulation time.
+     *
+     * [simulationDelta] is zero while paused and otherwise equals real frame
+     * delta multiplied by [Strata.simulation]'s time scale. Game simulation,
+     * including AI and economy systems, should update from this value.
+     */
+    protected open fun updateGame(simulationDelta: Float) = Unit
 
     /**
      * Called after Strata has processed a resize.
@@ -75,8 +88,9 @@ abstract class StrataGame {
     }
 
     fun update(delta: Float) {
-        strata.update(delta)
-        updateGame(delta)
+        val simulationDelta = strata.update(delta)
+        updateRealTime(delta)
+        updateGame(simulationDelta)
     }
 
     fun render() {

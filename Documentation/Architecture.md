@@ -68,13 +68,27 @@ During scene setup, register all content and configure audio, debug, camera, ren
 
 After creation, `onReady()` can attach one world and create one UI. A world attachment creates its view, input processor, and optional placement controller. `createUi` may happen before or after world attachment, but only after scene setup finishes.
 
-During each frame, Strata advances entity movement, updates the view and hover/placement state, updates the UI, and then calls `updateGame`. Rendering draws the world first and UI second. Disposal uninstalls input, disposes UI and the view, stops audio, disposes assets, and finally calls `disposeGame`.
+During each frame, Strata advances entity movement with simulation time, updates the view and hover/placement state, updates the UI with real time, and then calls the game update hooks. Rendering draws the world first and UI second. Disposal uninstalls input, disposes UI and the view, stops audio, disposes assets, and finally calls `disposeGame`.
+
+## Real time and simulation time
+
+`strata.simulation` controls world and game simulation without stopping the application loop:
+
+```kotlin
+strata.simulation.timeScale = 2f
+strata.simulation.pause()
+strata.simulation.resume()
+```
+
+`timeScale` accepts any positive finite value. Pause is separate, so pausing at `2f` and resuming continues at 2x. Entity movement and world visual animation use the scaled simulation delta. Camera control, input and hover, placement previews, Scene2D UI, rendering, and performance measurement use real frame time.
+
+`StrataGame.updateRealTime(realDelta)` runs first for game-owned UI or other work that must continue while paused. `StrataGame.updateGame(simulationDelta)` then receives scaled simulation time for AI, economy, production, and other game progression.
 
 ## Setup snapshots and runtime state
 
 `EngineSettings.backgroundColor` is captured when `StrataEngine` is constructed. Scene camera, rendering, controls, and placement settings are setup-only snapshots used when the world is attached. Registrations are setup-only.
 
-Audio volumes/category volumes and `DebugSettings` are runtime mutable. Once attached, `PlacementController.enabled` and `selectedFactory`, `IsoWorldView.worldInputEnabled`, and the exposed `CameraController` runtime values can also change. The `World` is deliberately mutable at runtime.
+Audio volumes/category volumes, `DebugSettings`, and `strata.simulation` are runtime mutable. Once attached, `PlacementController.enabled` and `selectedFactory`, `IsoWorldView.worldInputEnabled`, and the exposed `CameraController` runtime values can also change. The `World` is deliberately mutable at runtime.
 
 Accessors such as `strata.scene`, `strata.world`, `strata.view`, `strata.placement`, and `strata.ui` require their corresponding runtime object to exist. Calling them from the scene configuration lambda fails because runtime operations are unavailable during setup. Use the setup receiver there, and use the facade from `onReady()` onward.
 

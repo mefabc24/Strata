@@ -39,7 +39,10 @@ internal interface SceneWorldView {
     val hoveredTile: TilePosition?
     val renderStats: RenderStats
 
-    fun update(delta: Float)
+    fun update(
+        realDelta: Float,
+        simulationDelta: Float
+    )
 
     fun render(previews: List<PlacementPreview>)
 
@@ -85,8 +88,14 @@ private class DefaultSceneWorldView(
     override val renderStats: RenderStats
         get() = publicView.renderStats
 
-    override fun update(delta: Float) {
-        publicView.update(delta)
+    override fun update(
+        realDelta: Float,
+        simulationDelta: Float
+    ) {
+        publicView.update(
+            realDelta = realDelta,
+            simulationDelta = simulationDelta
+        )
     }
 
     override fun render(previews: List<PlacementPreview>) {
