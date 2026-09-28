@@ -13,6 +13,9 @@ internal fun EntityRegistry.registerSandboxEntities() {
             } else {
                 WolfState.IDLE
             }
+        },
+        configure = {
+            offsetY = -24f
         }
     ) {
         state(WolfState.IDLE) {
