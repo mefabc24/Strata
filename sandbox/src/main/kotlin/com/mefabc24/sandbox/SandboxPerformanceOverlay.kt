@@ -146,12 +146,14 @@ internal data class SandboxPerformanceSnapshot(
     val dynamicPlanMs: Double,
     val drawCalls: Int,
     val groundTerrainDrawn: Int,
+    val groundTerrainTotal: Int,
     val overlayTerrainDrawn: Int,
+    val overlayTerrainTotal: Int,
     val terrainChecked: Int,
     val objectsDrawn: Int,
-    val objectsChecked: Int,
+    val objectsTotal: Int,
     val entitiesDrawn: Int,
-    val entitiesChecked: Int,
+    val entitiesTotal: Int,
     val previewsDrawn: Int,
     val staticPlanMs: Double,
     val staticPlanUpdates: Int
@@ -182,18 +184,22 @@ internal data class SandboxPerformanceSnapshot(
         append(drawCalls)
         append("\n\nGround: ")
         append(groundTerrainDrawn)
+        append('/')
+        append(groundTerrainTotal)
         append("\nOverlays: ")
         append(overlayTerrainDrawn)
+        append('/')
+        append(overlayTerrainTotal)
         append("\nChecks: ")
         append(terrainChecked)
         append("\nObjects: ")
         append(objectsDrawn)
         append('/')
-        append(objectsChecked)
+        append(objectsTotal)
         append("\nEntities: ")
         append(entitiesDrawn)
         append('/')
-        append(entitiesChecked)
+        append(entitiesTotal)
         append("\nPreviews: ")
         append(previewsDrawn)
     }
@@ -211,12 +217,14 @@ internal data class SandboxPerformanceSnapshot(
             dynamicPlanMs = stats.dynamicPlanMs,
             drawCalls = stats.drawCalls,
             groundTerrainDrawn = stats.groundTerrainDrawn,
+            groundTerrainTotal = stats.groundTerrainTotal,
             overlayTerrainDrawn = stats.overlayTerrainDrawn,
+            overlayTerrainTotal = stats.overlayTerrainTotal,
             terrainChecked = stats.terrainChecked,
             objectsDrawn = stats.objectsDrawn,
-            objectsChecked = stats.objectsChecked,
+            objectsTotal = stats.objectsTotal,
             entitiesDrawn = stats.entitiesDrawn,
-            entitiesChecked = stats.entitiesChecked,
+            entitiesTotal = stats.entitiesTotal,
             previewsDrawn = stats.previewsDrawn,
             staticPlanMs = stats.staticPlanMs,
             staticPlanUpdates = stats.staticPlanUpdates
