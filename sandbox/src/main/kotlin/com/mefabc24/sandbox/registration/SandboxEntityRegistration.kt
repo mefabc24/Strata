@@ -52,7 +52,7 @@ internal fun EntityRegistry.registerSandboxEntities() {
             }
         },
         configure = {
-            offsetY = -12f
+            offsetY = -6f
         }
     ) {
         state(BoarState.IDLE) {
