@@ -23,7 +23,10 @@ class PlacementSettings {
         }
 
     /**
-     * Whether placement previews may be shown outside the world bounds.
+     * Whether previews whose placement origin is outside the world may be shown.
+     *
+     * A preview whose origin is inside the world is still shown when part of its
+     * footprint extends outside the world; such a preview is invalid.
      */
     var showOutsideWorldPreviews: Boolean = false
 

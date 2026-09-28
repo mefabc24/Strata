@@ -91,7 +91,7 @@ class PlacementController(
 
         if (
             !showOutsideWorldPreviews &&
-            !isInsideWorld(placedObject.occupiedTiles())
+            world.getTile(hoveredTile) == null
         ) {
             previews = emptyList()
             return
@@ -144,7 +144,7 @@ class PlacementController(
 
                 if (
                     !showOutsideWorldPreviews &&
-                    !isInsideWorld(occupiedTiles)
+                    world.getTile(position) == null
                 ) {
                     continue
                 }
@@ -264,13 +264,5 @@ class PlacementController(
         positions: Iterable<TilePosition>
     ): List<TilePosition> {
         return positions.toCollection(linkedSetOf()).toList()
-    }
-
-    private fun isInsideWorld(
-        occupiedTiles: Iterable<TilePosition>
-    ): Boolean {
-        return occupiedTiles.all { position ->
-            world.getTile(position) != null
-        }
     }
 }
