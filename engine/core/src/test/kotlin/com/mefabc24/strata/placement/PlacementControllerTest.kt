@@ -63,6 +63,74 @@ class PlacementControllerTest {
     }
 
     @Test
+    fun `all tiles inside policy hides preview when footprint crosses world bounds`() {
+        val controller = PlacementController(
+            world = createWorld(),
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
+        )
+        controller.selectedFactory = ::LargePlaceable
+
+        controller.update(TilePosition(4, 4))
+
+        assertTrue(controller.previews.isEmpty())
+    }
+
+    @Test
+    fun `origin inside policy shows invalid preview when footprint crosses world bounds`() {
+        val controller = PlacementController(
+            world = createWorld(),
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
+        )
+        controller.selectedFactory = ::LargePlaceable
+
+        controller.update(TilePosition(4, 4))
+
+        assertEquals(
+            listOf(TilePosition(4, 4)),
+            controller.previewPositions()
+        )
+        assertFalse(controller.previews.single().valid)
+    }
+
+    @Test
+    fun `any tile inside policy shows preview when origin is outside world`() {
+        val controller = PlacementController(
+            world = createWorld(),
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ANY_TILE_INSIDE
+        )
+        controller.selectedFactory = ::LargePlaceable
+
+        controller.update(TilePosition(-1, 0))
+
+        assertEquals(
+            listOf(TilePosition(-1, 0)),
+            controller.previewPositions()
+        )
+        assertFalse(controller.previews.single().valid)
+    }
+
+    @Test
+    fun `always policy shows preview when footprint is completely outside world`() {
+        val controller = PlacementController(
+            world = createWorld(),
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ALWAYS
+        )
+        controller.selectedFactory = ::LargePlaceable
+
+        controller.update(TilePosition(6, 6))
+
+        assertEquals(
+            listOf(TilePosition(6, 6)),
+            controller.previewPositions()
+        )
+        assertFalse(controller.previews.single().valid)
+    }
+
+    @Test
     fun `preview reflects world and external validation`() {
         val world = createWorld()
         assertNotNull(world.place(TestPlaceable(), TilePosition(2, 2)))
@@ -80,6 +148,29 @@ class PlacementControllerTest {
 
         controller.update(TilePosition(3, 2))
         assertTrue(controller.previews.single().valid)
+    }
+
+    @Test
+    fun `explicit previews use the configured bounds policy`() {
+        val controller = PlacementController(
+            world = createWorld(),
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
+        )
+        controller.selectedFactory = ::LargePlaceable
+
+        controller.previewAt(
+            listOf(
+                TilePosition(4, 4),
+                TilePosition(5, 4)
+            )
+        )
+
+        assertEquals(
+            listOf(TilePosition(4, 4)),
+            controller.previewPositions()
+        )
+        assertFalse(controller.previews.single().valid)
     }
 
     @Test

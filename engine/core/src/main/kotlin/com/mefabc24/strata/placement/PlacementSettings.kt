@@ -10,6 +10,32 @@ typealias PlacementValidator = (
     position: TilePosition
 ) -> Boolean
 
+enum class PlacementPreviewBoundsPolicy {
+
+    /**
+     * Shows a preview only when every occupied footprint tile is inside
+     * the world.
+     */
+    ALL_TILES_INSIDE,
+
+    /**
+     * Shows a preview when the placement origin is inside the world.
+     */
+    ORIGIN_INSIDE,
+
+    /**
+     * Shows a preview when at least one occupied footprint tile is inside
+     * the world.
+     */
+    ANY_TILE_INSIDE,
+
+    /**
+     * Always shows the preview, even when the complete footprint is outside
+     * the world.
+     */
+    ALWAYS
+}
+
 /**
  * Configures the optional placement controller owned by a scene.
  *
@@ -23,12 +49,11 @@ class PlacementSettings {
         }
 
     /**
-     * Whether previews whose placement origin is outside the world may be shown.
-     *
-     * A preview whose origin is inside the world is still shown when part of its
-     * footprint extends outside the world; such a preview is invalid.
+     * Controls when placement previews are visible near or outside
+     * the world bounds.
      */
-    var showOutsideWorldPreviews: Boolean = false
+    var previewBoundsPolicy: PlacementPreviewBoundsPolicy =
+        PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
 
     private var placementValidator: PlacementValidator = { _, _ -> true }
 
@@ -40,7 +65,7 @@ class PlacementSettings {
         return PlacementController(
             world = world,
             style = previewStyle.snapshot(),
-            showOutsideWorldPreviews = showOutsideWorldPreviews,
+            previewBoundsPolicy = previewBoundsPolicy,
             placementValidator = placementValidator
         )
     }
@@ -48,7 +73,7 @@ class PlacementSettings {
     internal fun copy(): PlacementSettings {
         return PlacementSettings().also { copy ->
             copy.previewStyle = previewStyle
-            copy.showOutsideWorldPreviews = showOutsideWorldPreviews
+            copy.previewBoundsPolicy = previewBoundsPolicy
             copy.placementValidator = placementValidator
         }
     }

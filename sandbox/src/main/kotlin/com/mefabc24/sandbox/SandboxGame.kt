@@ -12,6 +12,7 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
 
 class SandboxGame : StrataGame() {
 
@@ -126,7 +127,7 @@ class SandboxGame : StrataGame() {
                 }
 
                 placement {
-                    showOutsideWorldPreviews = false
+                    previewBoundsPolicy  = PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
                     previewStyle = PlacementPreviewStyle(
                         validColor =
                             Color(0.35f, 0.75f, 0.3f, 0.7f),

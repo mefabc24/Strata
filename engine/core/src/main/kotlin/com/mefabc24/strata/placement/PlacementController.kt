@@ -17,7 +17,8 @@ import com.mefabc24.strata.world.World
 class PlacementController(
     private val world: World,
     private val style: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT,
-    private val showOutsideWorldPreviews: Boolean = false,
+    private val previewBoundsPolicy: PlacementPreviewBoundsPolicy =
+        PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE,
     private val placementValidator: (
         placeable: Placeable,
         position: TilePosition
@@ -89,10 +90,7 @@ class PlacementController(
             y = hoveredTile.y
         )
 
-        if (
-            !showOutsideWorldPreviews &&
-            world.getTile(hoveredTile) == null
-        ) {
+        if (!shouldShowPreview(placedObject)) {
             previews = emptyList()
             return
         }
@@ -142,10 +140,7 @@ class PlacementController(
 
                 val occupiedTiles = placedObject.occupiedTiles()
 
-                if (
-                    !showOutsideWorldPreviews &&
-                    world.getTile(position) == null
-                ) {
+                if (!shouldShowPreview(placedObject)) {
                     continue
                 }
 
@@ -264,5 +259,32 @@ class PlacementController(
         positions: Iterable<TilePosition>
     ): List<TilePosition> {
         return positions.toCollection(linkedSetOf()).toList()
+    }
+
+    private fun shouldShowPreview(
+        placedObject: PlacedObject
+    ): Boolean {
+        val occupiedTiles = placedObject.occupiedTiles()
+
+        return when (previewBoundsPolicy) {
+            PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE ->
+                occupiedTiles.all { position ->
+                    world.getTile(position) != null
+                }
+
+            PlacementPreviewBoundsPolicy.ORIGIN_INSIDE ->
+                world.getTile(
+                    placedObject.x,
+                    placedObject.y
+                ) != null
+
+            PlacementPreviewBoundsPolicy.ANY_TILE_INSIDE ->
+                occupiedTiles.any { position ->
+                    world.getTile(position) != null
+                }
+
+            PlacementPreviewBoundsPolicy.ALWAYS ->
+                true
+        }
     }
 }
