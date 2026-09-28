@@ -213,6 +213,7 @@ class SandboxGame : StrataGame() {
                 toolController = tools,
                 entitySpawner = entitySpawner,
                 debugSettings = strata.debug,
+                renderStats = { strata.view.renderStats },
                 terrainEntries = strata.terrain.entries,
                 objectEntries =
                     strata.objects.constructibleEntries
@@ -221,7 +222,7 @@ class SandboxGame : StrataGame() {
     }
 
     override fun updateGame(delta: Float) {
-        sandboxUi.sync()
+        sandboxUi.update(delta)
         wolves.update(delta)
     }
 

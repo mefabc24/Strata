@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.scene.DebugGridRenderLayer
@@ -87,6 +88,7 @@ class SandboxUi(
     private val toolController: SandboxToolController,
     private val entitySpawner: SandboxEntitySpawner,
     private val debugSettings: DebugSettings,
+    renderStats: () -> RenderStats,
     terrainEntries: List<TerrainEntry>,
     objectEntries: List<ObjectEntry>
 ) {
@@ -118,6 +120,12 @@ class SandboxUi(
     }
 
     private val paintLayers = paintLayersFor(painter.overlayLayerIds)
+
+    private val performanceOverlay = SandboxPerformanceOverlay(
+        ui = ui,
+        stats = renderStats,
+        enabled = { debugSettings.performance.enabled }
+    )
 
     private val tabSelection = ui.selectionGroup(
         options = SandboxPanelTab.entries,
@@ -851,6 +859,11 @@ class SandboxUi(
         updatePanelTab()
 
         updateStatus()
+    }
+
+    fun update(delta: Float) {
+        sync()
+        performanceOverlay.update(delta)
     }
 
     private fun updateDebugVisibility() {
