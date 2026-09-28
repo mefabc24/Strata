@@ -1,6 +1,7 @@
 package com.mefabc24.sandbox
 
 import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.FootprintOrigin
 import com.mefabc24.strata.world.Placeable
@@ -392,7 +393,8 @@ class SandboxBuildDragControllerTest {
     fun `drag beyond world can show invalid outside previews`() {
         val placement = placement(
             footprint = Footprint.square(1),
-            showOutsideWorldPreviews = true
+            previewBoundsPolicy =
+                PlacementPreviewBoundsPolicy.ALWAYS
         )
         val drag = SandboxBuildDragController(placement)
 
@@ -420,11 +422,12 @@ class SandboxBuildDragControllerTest {
     private fun placement(
         footprint: Footprint,
         world: World = world(),
-        showOutsideWorldPreviews: Boolean = false
+        previewBoundsPolicy: PlacementPreviewBoundsPolicy =
+            PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
     ): PlacementController {
         return PlacementController(
             world = world,
-            showOutsideWorldPreviews = showOutsideWorldPreviews
+            previewBoundsPolicy = previewBoundsPolicy
         ).apply {
             selectedFactory = { TestPlaceable(footprint) }
         }
