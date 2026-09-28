@@ -9,3 +9,10 @@ enum class WolfState : VisualStateId {
     IDLE,
     WALK
 }
+
+class Boar : Entity
+
+enum class BoarState : VisualStateId {
+    IDLE,
+    WALK
+}

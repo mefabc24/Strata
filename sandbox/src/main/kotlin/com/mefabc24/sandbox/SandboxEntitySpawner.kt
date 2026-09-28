@@ -54,6 +54,10 @@ fun sandboxSpawnEntries(): List<SandboxSpawnEntry> {
         SandboxSpawnEntry(
             name = "Wolf",
             create = ::Wolf
+        ),
+        SandboxSpawnEntry(
+            name = "Boar",
+            create = ::Boar
         )
     )
 }

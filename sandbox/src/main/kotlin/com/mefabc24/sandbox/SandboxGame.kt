@@ -11,6 +11,7 @@ import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
+import com.mefabc24.strata.iso.TileGeometry
 
 class SandboxGame : StrataGame() {
 
@@ -115,8 +116,8 @@ class SandboxGame : StrataGame() {
 
                 rendering {
                     tileGeometry {
-                        width = 32f
-                        height = 24f
+                        width = TILE_GEOMETRY.width
+                        height = TILE_GEOMETRY.height
                     }
 
                     objects {
@@ -158,6 +159,7 @@ class SandboxGame : StrataGame() {
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
     private lateinit var sandboxWorld: World
+    private lateinit var hoverCrosshair: SandboxHoverCrosshair
 
     override fun onReady() {
         sandboxWorld = createSandboxWorld()
@@ -220,10 +222,18 @@ class SandboxGame : StrataGame() {
                     strata.objects.constructibleEntries
             )
         }
+
+        hoverCrosshair = SandboxHoverCrosshair(
+            ui = strata.ui,
+            view = strata.view,
+            tools = tools,
+            tileGeometry = TILE_GEOMETRY
+        )
     }
 
     override fun updateRealTime(realDelta: Float) {
         sandboxUi.update(realDelta)
+        hoverCrosshair.update()
     }
 
     override fun updateGame(simulationDelta: Float) {
@@ -231,6 +241,10 @@ class SandboxGame : StrataGame() {
     }
 
     override fun disposeGame() {
+        if (::hoverCrosshair.isInitialized) {
+            hoverCrosshair.dispose()
+        }
+
         if (::uiSkin.isInitialized) {
             uiSkin.dispose()
         }
@@ -279,6 +293,11 @@ class SandboxGame : StrataGame() {
     }
 
     private companion object {
-        const val WORLD_SIZE = 50
+        private val TILE_GEOMETRY = TileGeometry(
+            width = 32f,
+            height = 24f
+        )
+
+        private const val WORLD_SIZE = 50
     }
 }
