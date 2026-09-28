@@ -262,6 +262,7 @@ class SandboxUi(
 
             expander(
                 title = "Strata tools",
+                expanded = false,
                 spacing = SECTION_GAP
             ) {
                 defaults().fillAvailableX()
