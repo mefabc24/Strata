@@ -120,6 +120,7 @@ class TerrainRegistryTest {
 
         assertTrue(entry.isPrepared)
         assertSame(texture, entry.texture)
+        assertSame(texture, entry.selectionTexture)
         assertSame(texture, registry[Terrain.GRASS])
     }
 
@@ -389,6 +390,8 @@ class TerrainRegistryTest {
             }
         }
         registry.prepare()
+
+        assertSame(calm, registry.entries.single().selectionTexture)
 
         val tile = WaterTile(WaterState.CALM)
         assertSame(calm, registry.frameAt(Terrain.WATER, tile, 3f))

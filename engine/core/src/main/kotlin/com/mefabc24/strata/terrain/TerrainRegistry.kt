@@ -30,6 +30,11 @@ class TerrainEntry internal constructor(
     val texture: TextureRegion
         get() = sprite.frameAtIndex(0)
 
+    /** Stable first registered frame for menus and debug selection previews. */
+    val selectionTexture: TextureRegion
+        get() = preparedSprites.firstOrNull()?.frameAtIndex(0)
+            ?: error("Terrain type $type is not prepared.")
+
     /** Prepared frames for a single-visual terrain registration. */
     val sprite: SpriteFrames
         get() {

@@ -70,6 +70,11 @@ class EntityEntry internal constructor(
             return prepared?.visual ?: error("Entity type $type is not prepared.")
         }
 
+    /** Stable representative visual for menus and debug selection previews. */
+    val selectionVisual: EntityVisual
+        get() = preparedSprites.firstOrNull()?.representativeVisual()
+            ?: error("Entity type $type is not prepared.")
+
     val isPrepared: Boolean
         get() = preparedDefinition != null
 

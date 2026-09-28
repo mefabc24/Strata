@@ -69,6 +69,7 @@ class EntityRegistryTest {
             EntityPosition(0.5f, 0.5f)
         )
         val visual = requireNotNull(registry.get(runtime))
+        assertSame(visual, registry.entries.single().selectionVisual)
         assertSame(texture, visual.texture)
         assertEquals(2f, visual.offsetX)
         assertEquals(3f, visual.offsetY)
@@ -209,6 +210,11 @@ class EntityRegistryTest {
             }
         }
         registry.prepare()
+
+        assertSame(
+            textures.getValue("entities/rest.png"),
+            registry.entries.single().selectionVisual.texture
+        )
 
         val wolf = Wolf(WolfState.MOVING)
         val runtime = WorldEntity(wolf, EntityPosition(0.5f, 0.5f))
