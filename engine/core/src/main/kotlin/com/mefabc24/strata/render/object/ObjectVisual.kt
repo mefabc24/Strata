@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render.`object`
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.mefabc24.strata.render.sprite.AlphaMask
 import com.mefabc24.strata.render.sprite.PreparedSprite
 import com.mefabc24.strata.render.sprite.SpriteFrames
 

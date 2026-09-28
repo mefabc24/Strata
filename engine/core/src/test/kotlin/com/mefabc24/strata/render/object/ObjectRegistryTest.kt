@@ -9,6 +9,7 @@ import com.mefabc24.strata.render.sprite.VisualStateId
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import com.mefabc24.strata.render.sprite.AlphaMask
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.ui.StrataSelectableImageButton
 import com.mefabc24.strata.ui.StrataSelectionGroup

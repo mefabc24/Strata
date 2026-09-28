@@ -1,9 +1,10 @@
-package com.mefabc24.strata.render.`object`
+package com.mefabc24.strata.render.sprite
 
 import com.badlogic.gdx.graphics.Pixmap
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -40,7 +41,7 @@ class AlphaMaskTest {
         val pixmap = Pixmap(2, 2, Pixmap.Format.RGBA8888)
 
         try {
-            kotlin.test.assertFailsWith<IllegalArgumentException> {
+            assertFailsWith<IllegalArgumentException> {
                 AlphaMask.fromPixmap(pixmap, 1, 1, 2, 2)
             }
         } finally {

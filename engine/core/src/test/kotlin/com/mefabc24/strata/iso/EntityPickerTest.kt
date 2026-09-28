@@ -4,10 +4,10 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
-import com.mefabc24.strata.render.`object`.AlphaMask
 import com.mefabc24.strata.render.entity.EntityVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
+import com.mefabc24.strata.render.sprite.AlphaMask
 import com.mefabc24.strata.render.sprite.SpriteFrames
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity

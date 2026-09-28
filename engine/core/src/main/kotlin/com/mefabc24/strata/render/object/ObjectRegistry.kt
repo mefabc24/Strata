@@ -3,6 +3,7 @@ package com.mefabc24.strata.render.`object`
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.mefabc24.strata.assets.StrataAssets
+import com.mefabc24.strata.render.sprite.AlphaMask
 import com.mefabc24.strata.render.sprite.SpriteSource
 import com.mefabc24.strata.render.sprite.SpriteAlphaMaskCache
 import com.mefabc24.strata.render.sprite.PreparedVisualDefinition
