@@ -14,6 +14,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.placement.PlacementController
+import com.mefabc24.strata.lighting.Lighting
+import com.mefabc24.strata.lighting.PointLight
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.scene.DebugGridExtent
@@ -89,6 +91,8 @@ class SandboxUi(
     private val toolController: SandboxToolController,
     private val entitySpawner: SandboxEntitySpawner,
     private val debugSettings: DebugSettings,
+    private val lighting: Lighting,
+    private val demoLights: List<PointLight>,
     simulation: SimulationController,
     renderStats: () -> RenderStats,
     terrainEntries: List<TerrainEntry>,
@@ -504,6 +508,63 @@ class SandboxUi(
             fillAvailableX()
             height(MODE_BUTTON_HEIGHT)
         }
+
+        separator()
+        label("Lighting", styleName = "title")
+
+        row(spacing = CONTROL_GAP) {
+            defaults()
+                .fillAvailableX()
+                .uniformX()
+                .height(MODE_BUTTON_HEIGHT)
+
+            toggleButton(
+                text = "Lighting enabled",
+                checked = lighting.enabled
+            ) { enabled ->
+                lighting.enabled = enabled
+            }
+
+            toggleButton(
+                text = "Point lights",
+                checked = demoLights.any(PointLight::enabled)
+            ) { enabled ->
+                demoLights.forEach { light ->
+                    light.enabled = enabled
+                }
+            }
+        }
+
+        numericControl(
+            label = "Ambient intensity",
+            initialValue = lighting.ambientIntensity,
+            step = 0.05f,
+            range = 0f..1f
+        ) { value ->
+            lighting.ambientIntensity = value
+        }
+
+        demoLights.firstOrNull()?.let { selectedLight ->
+            numericControl(
+                label = "Demo light intensity",
+                initialValue = selectedLight.intensity,
+                step = 0.1f,
+                range = 0f..2f
+            ) { value ->
+                selectedLight.intensity = value
+            }
+
+            numericControl(
+                label = "Demo light radius",
+                initialValue = selectedLight.radius,
+                step = 0.5f,
+                range = 1f..16f
+            ) { value ->
+                selectedLight.radius = value
+            }
+        }
+
+        separator()
 
         gridDebugControls = column(spacing = SECTION_GAP) {
             defaults().fillAvailableX()
