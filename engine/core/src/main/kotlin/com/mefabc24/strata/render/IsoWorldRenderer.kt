@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.IsoObjectRenderer
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
@@ -36,13 +37,15 @@ import com.mefabc24.strata.world.WorldEntity
  */
 class IsoWorldRenderer(
     private val projection: IsoProjection,
-    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings()
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings(),
+    private val lighting: Lighting = Lighting()
 ) {
     private val objectSettings = objectSettings.copy().also {
         it.validate()
     }
 
     private val batch = SpriteBatch()
+    private val lightingShader = LightingShader(projection, lighting)
 
     private val terrainRenderer = IsoTerrainRenderer(projection)
     private val objectRenderer = IsoObjectRenderer(
@@ -129,7 +132,7 @@ class IsoWorldRenderer(
 
         val overlayIds = world.overlayLayerIds
 
-        batch.begin()
+        beginWorldBatch()
 
         renderTerrain(
             world = world,
@@ -422,7 +425,7 @@ class IsoWorldRenderer(
     ) {
         batch.projectionMatrix = camera.combined
 
-        batch.begin()
+        beginWorldBatch()
 
         for (item in normalRenderPlan) {
             if (item is WorldObjectPrimitive) {
@@ -502,7 +505,22 @@ class IsoWorldRenderer(
         return (System.nanoTime() - startNanos) / 1_000_000.0
     }
 
+    private fun beginWorldBatch() {
+        if (lighting.enabled) {
+            batch.shader = lightingShader.program
+            batch.begin()
+            lightingShader.apply()
+        } else {
+            batch.shader = null
+            batch.begin()
+        }
+    }
+
     fun dispose() {
-        batch.dispose()
+        try {
+            lightingShader.dispose()
+        } finally {
+            batch.dispose()
+        }
     }
 }

@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.world.TilePosition
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.sqrt
 
 class IsoProjection(
     geometry: TileGeometry = TileGeometry()
@@ -32,6 +33,14 @@ class IsoProjection(
     val logicalTileHeight: Float
         get() = geometry.height
 
+    /** Projected distance of one logical step along either tile axis. */
+    val tileStepLength: Float
+        get() {
+            val halfWidth = tileWidth / 2f
+            val halfHeight = tileHeight / 2f
+            return sqrt(halfWidth * halfWidth + halfHeight * halfHeight)
+        }
+
     /**
      * Projects a tile to the back vertex of its logical top face.
      */
@@ -48,7 +57,16 @@ class IsoProjection(
      * centers.
      */
     fun tileToWorld(x: Float, y: Float): Vector2 {
-        return Vector2(
+        return tileToWorld(x, y, Vector2())
+    }
+
+    /** Projects into [result] without allocating a vector. */
+    fun tileToWorld(
+        x: Float,
+        y: Float,
+        result: Vector2
+    ): Vector2 {
+        return result.set(
             (x - y) * tileWidth / 2f,
             -(x + y) * tileHeight / 2f
         )

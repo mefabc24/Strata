@@ -9,6 +9,7 @@ import com.badlogic.gdx.InputMultiplexer
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.render.IsoWorldRenderer
+import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.render.debug.IsoGridRenderer
 import com.mefabc24.strata.render.debug.IsoWorldDebugRenderer
 import com.mefabc24.strata.world.Tile
@@ -79,6 +80,7 @@ class IsoWorldView(
     cameraSettings: CameraSettings = CameraSettings(),
     controls: ControlsSettings = ControlsSettings(),
     renderingSettings: RenderingSettings = RenderingSettings(),
+    lighting: Lighting = Lighting(),
     debugGridSettings: DebugGridSettings = DebugGridSettings(),
     private val resolvedObjectVisualFor: (
         (PlacedObject, Float) -> ResolvedObjectVisual?
@@ -131,7 +133,8 @@ class IsoWorldView(
 
     private val worldRenderer = IsoWorldRenderer(
         projection = projection,
-        objectSettings = renderingConfig.objects
+        objectSettings = renderingConfig.objects,
+        lighting = lighting
     )
 
     private val debugGridConfig = debugGridSettings

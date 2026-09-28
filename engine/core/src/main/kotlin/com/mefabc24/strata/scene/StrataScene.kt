@@ -8,6 +8,7 @@ import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.placement.PlacementSettings
 import com.mefabc24.strata.render.`object`.ObjectRegistry
@@ -118,6 +119,9 @@ class StrataScene private constructor(
      * Provides access to scene debugging facilities.
      */
     val debug = DebugSettings()
+
+    /** Scene-owned runtime ambient and point lighting. */
+    val lighting = Lighting()
 
     private val cameraSettings = CameraSettings()
     private val renderingSettings = RenderingSettings()
@@ -233,6 +237,12 @@ class StrataScene private constructor(
         debug.apply(configure)
     }
 
+    /** Configures scene lighting while retaining runtime mutability. */
+    fun lighting(configure: Lighting.() -> Unit) {
+        checkConfigurationOpen()
+        lighting.apply(configure)
+    }
+
     /**
      * Configures the camera snapshot applied when a world is attached.
      */
@@ -313,6 +323,7 @@ class StrataScene private constructor(
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,
+                lighting = lighting,
                 debugGridSettings = debug.grid,
                 debugObjectSettings = debug.objects,
                 debugEntitySettings = debug.entities

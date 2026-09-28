@@ -6,6 +6,7 @@ import com.mefabc24.strata.audio.SoundRegistry
 import com.mefabc24.strata.audio.StrataAudio
 import com.mefabc24.strata.input.StrataInput
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
@@ -62,6 +63,10 @@ class Strata : Disposable {
 
     val debug: DebugSettings
         get() = scene.debug
+
+    /** Runtime ambient and point lighting for the active scene. */
+    val lighting: Lighting
+        get() = scene.lighting
 
     val world: World
         get() = scene.world

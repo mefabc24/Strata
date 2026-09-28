@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.camera.CameraSettings
 import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.render.`object`.ObjectVisual
 import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.EntityVisual
@@ -28,6 +29,7 @@ internal data class SceneWorldViewSpec(
     val cameraSettings: CameraSettings,
     val controlsSettings: ControlsSettings,
     val renderingSettings: RenderingSettings,
+    val lighting: Lighting,
     val debugGridSettings: DebugGridSettings,
     val debugObjectSettings: DebugObjectSettings,
     val debugEntitySettings: DebugEntitySettings
@@ -68,6 +70,7 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
                 cameraSettings = spec.cameraSettings,
                 controls = spec.controlsSettings,
                 renderingSettings = spec.renderingSettings,
+                lighting = spec.lighting,
                 debugGridSettings = spec.debugGridSettings,
                 debugObjectSettings = spec.debugObjectSettings,
                 debugEntitySettings = spec.debugEntitySettings
