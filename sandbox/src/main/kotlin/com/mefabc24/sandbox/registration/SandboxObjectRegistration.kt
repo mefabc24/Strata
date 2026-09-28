@@ -99,21 +99,21 @@ internal fun ObjectRegistry.registerSandboxObjects() {
         sprite = "road1.png",
         factory = ::Road1
     ) {
-        offsetY = -9f
+        offsetY = -7f
     }
 
     register(
         sprite = "road2.png",
         factory = ::Road2
     ) {
-        offsetY = -9f
+        offsetY = -7f
     }
 
     register(
         sprite = "road-intersection.png",
         factory = ::RoadIntersection
     ) {
-        offsetY = -9f
+        offsetY = -7f
     }
 
     register(
