@@ -30,7 +30,7 @@ internal class IsoAdvancedDebugRenderer(
         cameraSnapshot: CameraDebugSnapshot,
         renderSnapshot: RenderDebugSnapshot?
     ) {
-        val inspection = state.inspection
+        val inspection = state.inspection.takeIf { state.inspectionHighlightVisible }
         val path = state.pathfinding
         val drawPath = settings.pathfinding.enabled &&
             (state.pathStart != null || path != null)
@@ -124,11 +124,7 @@ internal class IsoAdvancedDebugRenderer(
                 }
             }
             if (settings.picking.showSpriteBounds) {
-                val picked = state.pickedObject
-                val entity = state.pickedEntity
-                renderSnapshot?.items?.firstOrNull {
-                    it.placedObject === picked || it.entity === entity
-                }?.bounds?.let { bounds ->
+                state.picking?.picked?.bounds?.let { bounds ->
                     shapes.color = Color(1f, 0.3f, 0.9f, 1f)
                     shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
                 }
@@ -136,10 +132,6 @@ internal class IsoAdvancedDebugRenderer(
         }
 
         if (settings.culling.enabled && renderSnapshot != null) {
-            if (settings.culling.showVisibleArea) {
-                shapes.color = Color(0.25f, 0.8f, 1f, 1f)
-                drawRect(renderSnapshot.visibleArea)
-            }
             renderSnapshot.items.forEach { item ->
                 val show = item.placedObject != null && settings.culling.showObjectBounds ||
                     item.entity != null && settings.culling.showEntityBounds

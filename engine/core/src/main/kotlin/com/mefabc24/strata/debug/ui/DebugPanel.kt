@@ -13,6 +13,10 @@ import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.debug.*
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.inspector.DebugInspector
+import com.mefabc24.strata.debug.inspector.formatEntityPosition
+import com.mefabc24.strata.debug.inspector.formatFootprint
+import com.mefabc24.strata.debug.inspector.formatTilePosition
+import com.mefabc24.strata.debug.inspector.formatTilePositions
 import com.mefabc24.strata.debug.tools.*
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.placement.PlacementController
@@ -97,12 +101,12 @@ internal class DebugPanel(
     private lateinit var spawnControls: StrataColumn
     private lateinit var inspectControls: StrataColumn
     private lateinit var pathControls: StrataColumn
-    private lateinit var inspectorLabel: Label
-    private lateinit var pathLabel: Label
-    private lateinit var pickingLabel: Label
-    private lateinit var cameraLabel: Label
-    private lateinit var cullingLabel: Label
-    private lateinit var placementLabel: Label
+    private lateinit var inspectorRows: DebugDiagnosticTable
+    private lateinit var pathRows: DebugDiagnosticTable
+    private lateinit var pickingRows: DebugDiagnosticTable
+    private lateinit var cameraRows: DebugDiagnosticTable
+    private lateinit var cullingRows: DebugDiagnosticTable
+    private lateinit var placementRows: DebugDiagnosticTable
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
@@ -219,7 +223,11 @@ internal class DebugPanel(
                             .previewOnHover(entry, DebugContentKind.OBJECT, entry.displayName(), entry.selectionVisual.texture)
                     }
                 }.cell { fillAvailableX() }
-                placementLabel = wrappingLabel("")
+                simpleToggle(
+                    "Show placement reasons",
+                    { settings.placement.enabled }
+                ) { settings.placement.enabled = it }
+                placementRows = diagnosticTable()
             }
             paintControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
@@ -250,13 +258,25 @@ internal class DebugPanel(
             inspectControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Inspector")
-                inspectorLabel = wrappingLabel("Click an entity, object, or tile")
+                inspectorRows = diagnosticTable()
                 button("Clear selection") { inspector.clear() }.cell { height(38f) }
             }
             pathControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
                 label("Pathfinding")
-                pathLabel = wrappingLabel("Click a start tile, then a goal tile")
+                simpleToggle(
+                    "World visualization",
+                    { settings.pathfinding.enabled }
+                ) { settings.pathfinding.enabled = it }
+                toggleGrid(
+                    toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) {
+                        settings.pathfinding.showExploredNodes = it
+                    },
+                    toggle("Final path", { settings.pathfinding.showFinalPath }) {
+                        settings.pathfinding.showFinalPath = it
+                    }
+                )
+                pathRows = diagnosticTable()
                 button("Clear path") { pathfinding.clear() }.cell { height(38f) }
             }
         }.cell { fillAvailableX() }
@@ -282,7 +302,6 @@ internal class DebugPanel(
             settings.renderOrder.enabled = it
             if (it) settings.renderOrder.showLabels = true
         }
-        simpleToggle("Placement diagnostics", { settings.placement.enabled }) { settings.placement.enabled = it }
         featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
         featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
         featureExpander("Entities", { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
@@ -291,29 +310,22 @@ internal class DebugPanel(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
             )
-            pickingLabel = wrappingLabel("")
+            pickingRows = diagnosticTable()
         }
         featureExpander("Culling", { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleGrid(
-                toggle("Visible area", { settings.culling.showVisibleArea }) { settings.culling.showVisibleArea = it },
                 toggle("Object bounds", { settings.culling.showObjectBounds }) { settings.culling.showObjectBounds = it },
                 toggle("Entity bounds", { settings.culling.showEntityBounds }) { settings.culling.showEntityBounds = it }
             )
-            cullingLabel = wrappingLabel("")
-        }
-        featureExpander("Pathfinding", { settings.pathfinding.enabled }, { settings.pathfinding.enabled = it }) {
-            toggleGrid(
-                toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) { settings.pathfinding.showExploredNodes = it },
-                toggle("Final path", { settings.pathfinding.showFinalPath }) { settings.pathfinding.showFinalPath = it }
-            )
+            cullingRows = diagnosticTable()
         }
         featureExpander("Camera", { settings.camera.enabled }, { settings.camera.enabled = it }) {
             toggleGrid(
-                toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
+                toggle("Camera view rectangle", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
                 toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
             )
-            cameraLabel = wrappingLabel("")
+            cameraRows = diagnosticTable()
         }
     }
 
@@ -494,6 +506,9 @@ internal class DebugPanel(
         setWrap(true)
     }.cell { fillAvailableX() }
 
+    private fun StrataLayout.diagnosticTable(): DebugDiagnosticTable =
+        actor(DebugDiagnosticTable(ui.skin)).cell { fillAvailableX() }
+
     private fun <A : Actor> A.previewOnHover(
         key: Any,
         kind: DebugContentKind,
@@ -547,67 +562,56 @@ internal class DebugPanel(
     }
 
     private fun syncDiagnostics() {
-        inspectorLabel.setText(formatInspection())
-        pathLabel.setText(formatPath())
+        inspectorRows.show(formatInspection())
+        pathRows.show(pathfindingDiagnosticRows(pathfinding.start, pathfinding.result))
         val showPlacement = settings.placement.enabled && tools.mode == DebugToolMode.BUILD
-        placementLabel.isVisible = showPlacement
-        placementLabel.setText(if (showPlacement) formatPlacement() else "")
-        syncDiagnosticLabel(pickingLabel, settings.picking.enabled, ::formatPicking)
-        syncDiagnosticLabel(cameraLabel, settings.camera.enabled, ::formatCamera)
-        syncDiagnosticLabel(cullingLabel, settings.culling.enabled, ::formatCulling)
+        placementRows.show(
+            if (showPlacement) {
+                placementDiagnosticRows(
+                    placementAvailable = placement != null,
+                    diagnostics = placement?.currentDiagnostic?.let(::listOf).orEmpty()
+                )
+            } else {
+                emptyList()
+            }
+        )
+        pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
+        cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
+        cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
     }
 
-    private fun syncDiagnosticLabel(
-        label: Label,
-        visible: Boolean,
-        text: () -> String
-    ) {
-        label.isVisible = visible
-        label.setText(if (visible) text() else "")
-    }
-
-    private fun formatPlacement(): String {
-        val diagnostic = placement?.previewDiagnostics?.firstOrNull()
-        return when {
-            placement == null -> "Placement unavailable"
-            diagnostic == null -> "Hover or drag to preview"
-            diagnostic.valid -> "Placement valid"
-            else -> "Invalid: ${diagnostic.reason?.name?.toDisplayName() ?: "unknown reason"}"
-        }
-    }
-
-    private fun formatPicking(): String {
+    private fun formatPicking(): List<DebugDiagnosticRow> {
         val x = Gdx.input.x.toFloat()
         val y = Gdx.input.y.toFloat()
         val projected = view.screenToWorld(x, y)
         val snapshot = settings.worldState.picking
-        return formatRows(
+        return diagnosticRows(
             "Screen" to "${x.toInt()}, ${y.toInt()}",
             "World" to "${projected.x.format()}, ${projected.y.format()}",
-            "Grid" to display(view.pickGrid(x, y)),
-            "Tile" to display(view.pickTile(x, y)),
-            "Object" to display(snapshot?.objectResult?.picked?.placeable?.javaClass?.simpleName),
-            "Entity" to display(snapshot?.entityResult?.picked?.entity?.javaClass?.simpleName),
+            "Grid" to formatTilePosition(view.pickGrid(x, y)),
+            "Tile" to (view.pickTile(x, y)?.let(::formatTilePosition) ?: "—"),
+            "Object" to display(settings.worldState.pickedObject?.placeable?.javaClass?.simpleName),
+            "Entity" to display(settings.worldState.pickedEntity?.entity?.javaClass?.simpleName),
             "Object alpha" to alphaText(snapshot?.objectResult?.alphaAccepted),
             "Entity alpha" to alphaText(snapshot?.entityResult?.alphaAccepted)
         )
     }
 
-    private fun formatCamera(): String {
+    private fun formatCamera(): List<DebugDiagnosticRow> {
         val camera = view.cameraDebugSnapshot()
-        return formatRows(
+        return diagnosticRows(
             "Position" to "${camera.x.format()}, ${camera.y.format()}",
             "Zoom" to camera.zoom.format(),
             "Viewport" to "${camera.viewportWidth.format()} x ${camera.viewportHeight.format()}",
-            "Visible" to camera.visibleArea.toString(),
+            "Camera view" to camera.visibleArea.toString(),
             "World" to camera.worldBounds.toString(),
             "Clamp" to camera.clampBounds.toString()
         )
     }
 
-    private fun formatCulling(): String {
+    private fun formatCulling(): List<DebugDiagnosticRow> {
         val stats = view.renderStats
-        return formatRows(
+        return diagnosticRows(
             "Objects" to "${stats.objectsDrawn} drawn, " +
                 "${(stats.objectsChecked - stats.objectsDrawn).coerceAtLeast(0)} culled",
             "Entities" to "${stats.entitiesDrawn} drawn, " +
@@ -615,19 +619,20 @@ internal class DebugPanel(
         )
     }
 
-    private fun formatInspection(): String = when (val selected = inspector.selection) {
-        null -> "Click an entity, object, or tile"
+    private fun formatInspection(): List<DebugDiagnosticRow> =
+        when (val selected = inspector.selection) {
+        null -> diagnosticRows("Status" to "Click an entity, object, or tile")
         is DebugInspection.EntityTarget -> {
             val entity = selected.entity
             val visual = entities.resolve(entity, view.animationTime)
-            formatRows(
+            diagnosticRows(
                 "Entity" to entity.entity::class.displayName(),
-                "Position" to entity.position.toString(),
-                "Tile" to entity.currentTile.toString(),
+                "Position" to formatEntityPosition(entity.position),
+                "Tile" to formatTilePosition(entity.currentTile),
                 "Direction" to entity.direction.toString(),
                 "Moving" to entity.isMoving.toString(),
                 "Waypoints" to entity.remainingWaypoints.size.toString(),
-                "Path" to entity.remainingPath.toString(),
+                "Path" to formatTilePositions(entity.remainingPath),
                 "Animation" to animationText(
                     visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
                 ),
@@ -637,11 +642,11 @@ internal class DebugPanel(
         is DebugInspection.ObjectTarget -> {
             val placed = selected.placedObject
             val visual = objects.resolve(placed, view.animationTime)
-            formatRows(
+            diagnosticRows(
                 "Object" to placed.placeable::class.displayName(),
                 "Origin" to "(${placed.x}, ${placed.y})",
-                "Footprint" to placed.placeable.footprint.toString(),
-                "Occupied" to placed.occupiedTiles().toString(),
+                "Footprint" to formatFootprint(placed.placeable.footprint),
+                "Occupied" to formatTilePositions(placed.occupiedTiles()),
                 "Animation" to animationText(
                     visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
                 ),
@@ -655,8 +660,8 @@ internal class DebugPanel(
                 world.getOverlayTile(id, position.x, position.y)?.let { id to terrainFor(it) }
             }
             val tileEntities = world.getEntities().filter { it.currentTile == position }
-            formatRows(
-                "Tile" to position.toString(),
+            diagnosticRows(
+                "Tile" to formatTilePosition(position),
                 "Terrain" to display(tile?.let(terrainFor)),
                 "Overlays" to display(overlays.takeIf { it.isNotEmpty() }),
                 "Object" to display(
@@ -665,26 +670,6 @@ internal class DebugPanel(
                 "Entities" to display(
                     tileEntities.map { it.entity::class.simpleName }.takeIf { it.isNotEmpty() }
                 )
-            )
-        }
-    }
-
-    private fun formatPath(): String {
-        val result = pathfinding.result
-        return when {
-            pathfinding.start != null -> formatRows(
-                "Start" to pathfinding.start.toString(),
-                "Next" to "Click a goal tile"
-            )
-            result == null -> "Click a start tile, then a goal tile"
-            else -> formatRows(
-                "Start" to result.start.toString(),
-                "Goal" to result.goal.toString(),
-                "Result" to if (result.success) "success" else "no path",
-                "Length" to (result.path?.size ?: 0).toString(),
-                "Duration" to "${(result.durationNanos / 1_000_000.0).format()} ms",
-                "Explored" to result.explored.size.toString(),
-                "Path" to result.path.orEmpty().toString()
             )
         }
     }
@@ -707,9 +692,10 @@ internal class DebugPanel(
     }
 }
 
-internal fun formatRows(vararg rows: Pair<String, String>): String {
-    val width = rows.maxOfOrNull { it.first.length } ?: 0
-    return rows.joinToString("\n") { (key, value) -> "${key.padEnd(width)}  $value" }
+internal fun diagnosticRows(
+    vararg rows: Pair<String, String>
+): List<DebugDiagnosticRow> = rows.map { (key, value) ->
+    DebugDiagnosticRow(key, value)
 }
 
 private fun display(value: Any?): String = value?.toString() ?: "—"

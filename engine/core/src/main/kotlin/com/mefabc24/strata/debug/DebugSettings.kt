@@ -90,7 +90,6 @@ class DebugRenderOrderSettings : DebugFeatureSettings() {
 }
 
 class DebugCullingSettings : DebugFeatureSettings() {
-    var showVisibleArea: Boolean = true
     var showObjectBounds: Boolean = true
     var showEntityBounds: Boolean = true
 }
@@ -272,7 +271,6 @@ internal object DebugPresets {
                 settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
-                settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
                 settings.camera.enabled = true
@@ -291,7 +289,6 @@ internal object DebugPresets {
                 settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
-                settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
                 settings.camera.enabled = true

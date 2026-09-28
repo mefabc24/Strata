@@ -43,6 +43,7 @@ internal object DebugPanelSkin {
         val drawable = TextureRegionDrawable(TextureRegion(texture))
         skin.add("default", Label.LabelStyle(font, Color.WHITE))
         skin.add("title", Label.LabelStyle(font, Color(0.55f, 0.82f, 1f, 1f)))
+        skin.add("debug-key", Label.LabelStyle(font, Color(0.55f, 0.82f, 1f, 1f)))
         skin.add("default", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color.WHITE

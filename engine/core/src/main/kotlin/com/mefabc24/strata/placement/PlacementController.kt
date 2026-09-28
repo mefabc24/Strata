@@ -92,6 +92,10 @@ class PlacementController(
     var previewDiagnostics: List<PlacementDiagnostic> = emptyList()
         private set
 
+    /** Diagnostic for the most recently evaluated hover or drag position. */
+    var currentDiagnostic: PlacementDiagnostic? = null
+        private set
+
     /**
      * Updates the preview for the currently hovered tile.
      */
@@ -99,6 +103,7 @@ class PlacementController(
         if (!enabled) {
             previews = emptyList()
             previewDiagnostics = emptyList()
+            currentDiagnostic = null
             return
         }
 
@@ -109,6 +114,7 @@ class PlacementController(
         if (hoveredTile == null || placeable == null) {
             previews = emptyList()
             previewDiagnostics = emptyList()
+            currentDiagnostic = null
             return
         }
 
@@ -118,13 +124,14 @@ class PlacementController(
             y = hoveredTile.y
         )
 
+        val diagnostic = diagnose(placeable, hoveredTile)
+        currentDiagnostic = diagnostic
+
         if (!shouldShowPreview(placedObject)) {
             previews = emptyList()
             previewDiagnostics = emptyList()
             return
         }
-
-        val diagnostic = diagnose(placeable, hoveredTile)
 
         previews = listOf(
             PlacementPreview(
@@ -155,10 +162,12 @@ class PlacementController(
         if (placeable == null) {
             previews = emptyList()
             previewDiagnostics = emptyList()
+            currentDiagnostic = null
             return
         }
 
         val reservedTiles = mutableSetOf<TilePosition>()
+        currentDiagnostic = null
 
         val diagnostics = mutableListOf<PlacementDiagnostic>()
         previews = buildList {
@@ -171,15 +180,16 @@ class PlacementController(
 
                 val occupiedTiles = placedObject.occupiedTiles()
 
-                if (!shouldShowPreview(placedObject)) {
-                    continue
-                }
-
                 val diagnostic = diagnose(
                     placeable = placeable,
                     position = position,
                     reservedTiles = reservedTiles
                 )
+                currentDiagnostic = diagnostic
+
+                if (!shouldShowPreview(placedObject)) {
+                    continue
+                }
                 val valid = diagnostic.valid
 
                 if (valid) {
@@ -206,6 +216,7 @@ class PlacementController(
         explicitPreviewPositionsActive = false
         previews = emptyList()
         previewDiagnostics = emptyList()
+        currentDiagnostic = null
     }
 
     /**

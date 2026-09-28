@@ -45,5 +45,6 @@ data class SpritePickDiagnostic<T>(
     val picked: T?,
     val tested: T?,
     val testedBounds: Rectangle?,
-    val alphaAccepted: Boolean?
+    val alphaAccepted: Boolean?,
+    val pickedBounds: Rectangle? = null
 )

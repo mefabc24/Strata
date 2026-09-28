@@ -34,6 +34,7 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
+import com.mefabc24.strata.render.order.WorldRenderPrimitive
 import com.mefabc24.strata.debug.DebugGridSettings
 import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.debug.DebugEntitySettings
@@ -410,9 +411,11 @@ class IsoWorldView(
 
         debugSettings?.let { settings ->
             val state = settings.worldState
+            val inspectionActive = state.inspectionHighlightVisible &&
+                state.inspection != null
             val pathActive = settings.pathfinding.enabled &&
                 (state.pathStart != null || state.pathfinding != null)
-            val active = state.inspection != null || pathActive ||
+            val active = inspectionActive || pathActive ||
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
                 settings.camera.enabled
@@ -513,10 +516,14 @@ class IsoWorldView(
         screenX: Float,
         screenY: Float
     ): PickingDebugSnapshot {
-        return PickingDebugSnapshot(
-            objectResult = objectPicker.diagnose(screenX, screenY),
-            entityResult = entityPicker.diagnose(screenX, screenY)
+        val objectResult = objectPicker.diagnose(screenX, screenY)
+        val entityResult = entityPicker.diagnose(screenX, screenY)
+        val picked = frontmostPickedSprite(
+            worldRenderer.currentRenderPlan(world),
+            objectResult,
+            entityResult
         )
+        return PickingDebugSnapshot(objectResult, entityResult, picked)
     }
 
     /** Projects screen coordinates into the renderer's world plane. */
@@ -588,5 +595,49 @@ data class CameraDebugSnapshot(
 
 data class PickingDebugSnapshot(
     val objectResult: SpritePickDiagnostic<PlacedObject>,
-    val entityResult: SpritePickDiagnostic<WorldEntity>
+    val entityResult: SpritePickDiagnostic<WorldEntity>,
+    val picked: PickedSpriteTarget? = null
 )
+
+sealed interface PickedSpriteTarget {
+    val bounds: Rectangle?
+
+    data class Object(
+        val placedObject: PlacedObject,
+        override val bounds: Rectangle?
+    ) : PickedSpriteTarget
+
+    data class Entity(
+        val worldEntity: WorldEntity,
+        override val bounds: Rectangle?
+    ) : PickedSpriteTarget
+}
+
+internal fun frontmostPickedSprite(
+    renderPlan: List<WorldRenderPrimitive>,
+    objectResult: SpritePickDiagnostic<PlacedObject>,
+    entityResult: SpritePickDiagnostic<WorldEntity>
+): PickedSpriteTarget? {
+    val pickedObject = objectResult.picked
+    val pickedEntity = entityResult.picked
+    if (pickedObject == null && pickedEntity == null) return null
+    for (primitive in renderPlan.asReversed()) {
+        when {
+            primitive is WorldObjectPrimitive &&
+                primitive.placedObject === pickedObject -> {
+                return PickedSpriteTarget.Object(
+                    primitive.placedObject,
+                    objectResult.pickedBounds
+                )
+            }
+            primitive is WorldEntityPrimitive &&
+                primitive.worldEntity === pickedEntity -> {
+                return PickedSpriteTarget.Entity(
+                    primitive.worldEntity,
+                    entityResult.pickedBounds
+                )
+            }
+        }
+    }
+    return null
+}

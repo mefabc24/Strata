@@ -46,14 +46,18 @@ class ObjectPicker(
         var tested: PlacedObject? = null
         var testedBounds: Rectangle? = null
         var alphaAccepted: Boolean? = null
+        var pickedBounds: Rectangle? = null
         val picked = pickWorld(cursor.x, cursor.y) { item, itemBounds, accepted ->
             if (tested == null) {
                 tested = item
                 testedBounds = Rectangle(itemBounds)
                 alphaAccepted = accepted
             }
+            if (accepted != false) pickedBounds = Rectangle(itemBounds)
         }
-        return SpritePickDiagnostic(picked, tested, testedBounds, alphaAccepted)
+        return SpritePickDiagnostic(
+            picked, tested, testedBounds, alphaAccepted, pickedBounds
+        )
     }
 
     internal fun pickWorld(

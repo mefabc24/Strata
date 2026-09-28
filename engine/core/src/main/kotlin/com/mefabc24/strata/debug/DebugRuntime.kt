@@ -4,6 +4,7 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.debug.inspector.DebugInspector
 import com.mefabc24.strata.debug.tools.DebugBuildDragController
@@ -15,6 +16,7 @@ import com.mefabc24.strata.debug.ui.DebugPanel
 import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.iso.PickedSpriteTarget
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.mefabc24.strata.input.WorldInputTrigger
@@ -177,13 +179,17 @@ internal class DebugRuntime(
 
     fun update(delta: Float) {
         if (settings.picking.enabled) {
-            val screenX = com.badlogic.gdx.Gdx.input.x.toFloat()
-            val screenY = com.badlogic.gdx.Gdx.input.y.toFloat()
+            val screenX = Gdx.input.x.toFloat()
+            val screenY = Gdx.input.y.toFloat()
             settings.worldState.cursorWorld = view.screenToWorld(screenX, screenY)
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.picking = picking
-            settings.worldState.pickedObject = picking.objectResult.picked
-            settings.worldState.pickedEntity = picking.entityResult.picked
+            settings.worldState.pickedObject =
+                (picking.picked as? PickedSpriteTarget.Object)
+                    ?.placedObject
+            settings.worldState.pickedEntity =
+                (picking.picked as? PickedSpriteTarget.Entity)
+                    ?.worldEntity
         } else {
             settings.worldState.cursorWorld = null
             settings.worldState.pickedObject = null

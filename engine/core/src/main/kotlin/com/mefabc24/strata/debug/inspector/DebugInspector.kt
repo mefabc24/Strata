@@ -20,6 +20,13 @@ class DebugInspector internal constructor(
     val selection: DebugInspection?
         get() = state.inspection
 
+    val highlightVisible: Boolean
+        get() = state.inspectionHighlightVisible
+
+    internal fun setHighlightVisible(visible: Boolean) {
+        state.inspectionHighlightVisible = visible
+    }
+
     fun selectFrontmost(
         entity: WorldEntity?,
         placedObject: PlacedObject?,

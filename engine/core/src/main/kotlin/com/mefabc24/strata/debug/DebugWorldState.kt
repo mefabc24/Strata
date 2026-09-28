@@ -11,6 +11,7 @@ import com.mefabc24.strata.iso.PickingDebugSnapshot
 /** Mutable runtime-only state consumed by debug world rendering. */
 internal class DebugWorldState {
     var inspection: DebugInspection? = null
+    var inspectionHighlightVisible: Boolean = false
     var pathfinding: PathfindingDiagnosticResult? = null
     var pathStart: TilePosition? = null
     var cursorWorld: Vector2? = null

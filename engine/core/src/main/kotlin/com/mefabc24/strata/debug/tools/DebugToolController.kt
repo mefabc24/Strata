@@ -49,6 +49,9 @@ class DebugToolController(
     }
 
     private fun leave(mode: DebugToolMode) {
+        if (mode == DebugToolMode.INSPECT) {
+            inspector.setHighlightVisible(false)
+        }
         when (mode) {
             DebugToolMode.BUILD -> {
                 buildDrag?.cancel()
@@ -67,6 +70,9 @@ class DebugToolController(
     }
 
     private fun enter(mode: DebugToolMode) {
+        if (mode == DebugToolMode.INSPECT) {
+            inspector.setHighlightVisible(true)
+        }
         if (mode == DebugToolMode.BUILD) {
             placement?.let { controller ->
                 savedPlacementEnabled = controller.enabled

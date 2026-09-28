@@ -2,11 +2,9 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Touchable
-import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Value
-import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -25,70 +23,76 @@ internal class DebugStatsOverlay(
 ) {
     private val performanceState = DebugPerformanceOverlayState()
     private val state = DebugStatsOverlayState()
-    private val performanceLabel = Label("", ui.skin, ui.theme.labelStyle).apply {
-        setAlignment(Align.left)
-        touchable = Touchable.disabled
-    }
-    private val worldLabel = Label("", ui.skin, ui.theme.labelStyle).apply {
-        setAlignment(Align.left)
-        touchable = Touchable.disabled
-    }
-    private lateinit var performanceCell: Cell<Label>
-    private lateinit var worldCell: Cell<Label>
-    private val content = Table(ui.skin).apply {
+    private val performanceRows = DebugDiagnosticTable(ui.skin)
+    private val worldRows = DebugDiagnosticTable(ui.skin)
+    private val performancePanel = Table(ui.skin).apply {
         background = ui.skin.get(
             requireNotNull(ui.theme.panelStyle),
             StrataPanelStyle::class.java
         ).background
         pad(8f)
         touchable = Touchable.disabled
-        performanceCell = add(performanceLabel).left()
-        row()
-        worldCell = add(worldLabel).left()
+        add(performanceRows).growX().fillX().left()
     }
-    private var worldElapsed = 0f
-    private val root = Table().apply {
-        setFillParent(true)
-        top().right()
-        pad(16f)
+    private val worldPanel = Table(ui.skin).apply {
+        background = ui.skin.get(
+            requireNotNull(ui.theme.panelStyle),
+            StrataPanelStyle::class.java
+        ).background
+        pad(8f)
         touchable = Touchable.disabled
-        isVisible = false
-        add(content)
+        add(worldRows).growX().fillX().left()
     }
+    private val performanceCell: Cell<Table>
+    private val worldCell: Cell<Table>
+    private var worldElapsed = 0f
+    private val root = Table()
 
-    init { ui.stage.addActor(root) }
+    init {
+        root.apply {
+            setFillParent(true)
+            top().right()
+            pad(16f)
+            touchable = Touchable.disabled
+            isVisible = false
+            performanceCell = add(performancePanel).right()
+            row()
+            worldCell = add(worldPanel).right()
+        }
+        ui.stage.addActor(root)
+    }
 
     fun update(delta: Float) {
         val performance = performanceEnabled()
         val worldStats = worldStatsEnabled()
         state.sync(performance, worldStats)
         root.isVisible = state.visible
-        performanceLabel.isVisible = state.performanceVisible
-        worldLabel.isVisible = state.worldVisible
+        performancePanel.isVisible = state.performanceVisible
+        worldPanel.isVisible = state.worldVisible
         if (performance) performanceCell.height(Value.prefHeight)
         else performanceCell.height(0f)
         if (worldStats) worldCell.height(Value.prefHeight)
         else worldCell.height(0f)
         worldCell.padTop(if (performance && worldStats) 8f else 0f)
-        content.invalidateHierarchy()
+        root.invalidateHierarchy()
 
         val average = performanceState.update(performance, delta)
         if (average != null) {
-            performanceLabel.setText(
-                DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).format()
+            performanceRows.show(
+                DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).rows()
             )
         }
-        if (!performance) performanceLabel.setText("")
+        if (!performance) performanceRows.show(emptyList())
 
         if (!worldStats) {
             worldElapsed = 0f
-            worldLabel.setText("")
+            worldRows.show(emptyList())
         } else {
             worldElapsed += delta
             if (state.worldBecameVisible || worldElapsed >= 0.25f) {
                 worldElapsed = 0f
-                worldLabel.setText(
-                    DebugWorldStatsSnapshot.from(world, placement, stats()).format()
+                worldRows.show(
+                    DebugWorldStatsSnapshot.from(world, placement, stats()).rows()
                 )
             }
         }
@@ -104,6 +108,11 @@ class DebugStatsOverlayState {
     var worldBecameVisible: Boolean = false
         private set
     val visible: Boolean get() = performanceVisible || worldVisible
+    val visibleSections: List<DebugStatsSection>
+        get() = buildList {
+            if (performanceVisible) add(DebugStatsSection.PERFORMANCE)
+            if (worldVisible) add(DebugStatsSection.WORLD)
+        }
 
     fun sync(performanceEnabled: Boolean, worldEnabled: Boolean) {
         worldBecameVisible = worldEnabled && !worldVisible
@@ -111,6 +120,8 @@ class DebugStatsOverlayState {
         worldVisible = worldEnabled
     }
 }
+
+enum class DebugStatsSection { PERFORMANCE, WORLD }
 
 data class DebugWorldStatsSnapshot(
     val width: Int,
@@ -126,16 +137,18 @@ data class DebugWorldStatsSnapshot(
     val activePaths: Int,
     val placementPreviews: Int
 ) {
-    fun format(): String = buildString {
-        append("World: $width x $height")
-        append("\nGround: $groundTiles")
-        append("\nOverlays: $overlayTiles ($overlayLayers layers)")
-        append("\nObjects: $objects ($objectsDrawn drawn)")
-        append("\nEntities: $entities ($entitiesDrawn drawn)")
-        append("\nMoving: $movingEntities")
-        append("\nActive paths: $activePaths")
-        append("\nPlacement previews: $placementPreviews")
-    }
+    fun rows(): List<DebugDiagnosticRow> = diagnosticRows(
+        "World" to "$width x $height",
+        "Ground" to groundTiles.toString(),
+        "Overlays" to "$overlayTiles ($overlayLayers layers)",
+        "Objects" to "$objects ($objectsDrawn drawn)",
+        "Entities" to "$entities ($entitiesDrawn drawn)",
+        "Moving" to movingEntities.toString(),
+        "Active paths" to activePaths.toString(),
+        "Placement previews" to placementPreviews.toString()
+    )
+
+    fun format(): String = rows().joinToString("\n") { "${it.key}: ${it.value}" }
 
     companion object {
         fun from(
@@ -219,23 +232,25 @@ data class DebugPerformanceSnapshot(
     val staticPlanMs: Double,
     val staticPlanUpdates: Int
 ) {
-    fun format(): String = buildString {
-        append("FPS: $framesPerSecond")
-        append("\nFrame: ${ms(averageFrameMs)} ms")
-        append("\nRender: ${ms(renderMs)} ms")
-        append("\nPlan: ${ms(dynamicPlanMs)} ms")
+    fun rows(): List<DebugDiagnosticRow> = buildList {
+        add(DebugDiagnosticRow("FPS", framesPerSecond.toString()))
+        add(DebugDiagnosticRow("Frame", "${ms(averageFrameMs)} ms"))
+        add(DebugDiagnosticRow("Render", "${ms(renderMs)} ms"))
+        add(DebugDiagnosticRow("Plan", "${ms(dynamicPlanMs)} ms"))
         if (staticPlanUpdates > 0) {
-            append("\nStatic plan: ${ms(staticPlanMs)} ms")
-            append("\nStatic updates: $staticPlanUpdates")
+            add(DebugDiagnosticRow("Static plan", "${ms(staticPlanMs)} ms"))
+            add(DebugDiagnosticRow("Static updates", staticPlanUpdates.toString()))
         }
-        append("\nDraw calls: $drawCalls")
-        append("\n\nGround: $groundTerrainDrawn/$groundTerrainTotal")
-        append("\nOverlays: $overlayTerrainDrawn/$overlayTerrainTotal")
-        append("\nChecks: $terrainChecked")
-        append("\nObjects: $objectsDrawn/$objectsTotal")
-        append("\nEntities: $entitiesDrawn/$entitiesTotal")
-        append("\nPreviews: $previewsDrawn")
+        add(DebugDiagnosticRow("Draw calls", drawCalls.toString()))
+        add(DebugDiagnosticRow("Ground", "$groundTerrainDrawn/$groundTerrainTotal"))
+        add(DebugDiagnosticRow("Overlays", "$overlayTerrainDrawn/$overlayTerrainTotal"))
+        add(DebugDiagnosticRow("Checks", terrainChecked.toString()))
+        add(DebugDiagnosticRow("Objects", "$objectsDrawn/$objectsTotal"))
+        add(DebugDiagnosticRow("Entities", "$entitiesDrawn/$entitiesTotal"))
+        add(DebugDiagnosticRow("Previews", previewsDrawn.toString()))
     }
+
+    fun format(): String = rows().joinToString("\n") { "${it.key}: ${it.value}" }
 
     companion object {
         fun from(stats: RenderStats, framesPerSecond: Int, averageFrameMs: Double) =
