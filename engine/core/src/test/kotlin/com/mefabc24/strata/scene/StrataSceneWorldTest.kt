@@ -297,6 +297,44 @@ class StrataSceneWorldTest {
     }
 
     @Test
+    fun `scene lighting configuration remains runtime mutable`() {
+        val factory = RecordingViewFactory()
+        val scene = sceneWith(factory) {
+            lighting {
+                enabled = true
+                ambientIntensity = 0.4f
+                ambientColor = Color(0.5f, 0.6f, 0.8f, 1f)
+                addPointLight(
+                    position = EntityPosition(2.5f, 3.5f),
+                    radius = 4f,
+                    intensity = 1f,
+                    color = Color.ORANGE
+                )
+            }
+        }
+
+        scene.attachWorld(world()) { Terrain.GRASS }
+
+        assertSame(scene.lighting, factory.spec.lighting)
+        assertTrue(scene.lighting.enabled)
+        assertEquals(0.4f, scene.lighting.ambientIntensity)
+        assertEquals(1, scene.lighting.pointLights.size)
+
+        scene.lighting.ambientIntensity = 0.2f
+        scene.lighting.pointLights.single().radius = 6f
+
+        assertEquals(0.2f, factory.spec.lighting.ambientIntensity)
+        assertEquals(6f, factory.spec.lighting.pointLights.single().radius)
+        assertFailsWith<IllegalStateException> {
+            scene.lighting {
+                enabled = false
+            }
+        }
+
+        scene.dispose()
+    }
+
+    @Test
     fun `world view lifecycle is coordinated without a ui`() {
         val inputState = TestGdxEnvironment.install()
         val factory = RecordingViewFactory()
