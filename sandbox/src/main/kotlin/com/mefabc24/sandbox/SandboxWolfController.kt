@@ -38,6 +38,8 @@ class SandboxWolfController(
             "Wolf behavior delta must be finite and non-negative."
         }
 
+        if (delta == 0f) return
+
         val activeEntities = world.getEntities()
         val iterator = wolves.iterator()
         while (iterator.hasNext()) {

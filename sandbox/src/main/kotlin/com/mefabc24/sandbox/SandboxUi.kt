@@ -19,6 +19,7 @@ import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.scene.DebugGridRenderLayer
 import com.mefabc24.strata.scene.DebugSettings
+import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.ui.StrataColumn
 import com.mefabc24.strata.ui.StrataInsets
@@ -88,6 +89,7 @@ class SandboxUi(
     private val toolController: SandboxToolController,
     private val entitySpawner: SandboxEntitySpawner,
     private val debugSettings: DebugSettings,
+    simulation: SimulationController,
     renderStats: () -> RenderStats,
     terrainEntries: List<TerrainEntry>,
     objectEntries: List<ObjectEntry>
@@ -125,6 +127,11 @@ class SandboxUi(
         ui = ui,
         stats = renderStats,
         enabled = { debugSettings.performance.enabled }
+    )
+
+    private val simulationOverlay = SandboxSimulationOverlay(
+        ui = ui,
+        simulation = simulation
     )
 
     private val tabSelection = ui.selectionGroup(
@@ -457,11 +464,9 @@ class SandboxUi(
             }
 
             toggleButton(
-                text = "Grid",
-                checked = debugSettings.grid.enabled
+                text = "Simulation"
             ) { enabled ->
-                debugSettings.grid.enabled = enabled
-                updateDebugVisibility()
+                simulationOverlay.setVisible(enabled)
             }
         }
 
@@ -472,20 +477,31 @@ class SandboxUi(
                 .height(MODE_BUTTON_HEIGHT)
 
             toggleButton(
+                text = "Grid",
+                checked = debugSettings.grid.enabled
+            ) { enabled ->
+                debugSettings.grid.enabled = enabled
+                updateDebugVisibility()
+            }
+
+            toggleButton(
                 text = "Objects",
                 checked = debugSettings.objects.enabled
             ) { enabled ->
                 debugSettings.objects.enabled = enabled
                 updateDebugVisibility()
             }
+        }
 
-            toggleButton(
-                text = "Entities",
-                checked = debugSettings.entities.enabled
-            ) { enabled ->
-                debugSettings.entities.enabled = enabled
-                updateDebugVisibility()
-            }
+        toggleButton(
+            text = "Entities",
+            checked = debugSettings.entities.enabled
+        ) { enabled ->
+            debugSettings.entities.enabled = enabled
+            updateDebugVisibility()
+        }.cell {
+            fillAvailableX()
+            height(MODE_BUTTON_HEIGHT)
         }
 
         gridDebugControls = column(spacing = SECTION_GAP) {
@@ -864,6 +880,7 @@ class SandboxUi(
     fun update(delta: Float) {
         sync()
         performanceOverlay.update(delta)
+        simulationOverlay.sync()
     }
 
     private fun updateDebugVisibility() {

@@ -25,6 +25,12 @@ class SandboxWolfControllerTest {
         }
         controller.control(wolf)
 
+        repeat(10) {
+            controller.update(0f)
+        }
+        assertFalse(wolf.isMoving)
+        assertEquals(0, pathRequests)
+
         controller.update(1.49f)
         assertFalse(wolf.isMoving)
         assertEquals(0, pathRequests)
@@ -53,7 +59,7 @@ class SandboxWolfControllerTest {
         controller.update(1.5f)
         wolf.cancelMovement()
 
-        controller.update(0f)
+        controller.update(0.01f)
         controller.update(1.49f)
 
         assertFalse(wolf.isMoving)
