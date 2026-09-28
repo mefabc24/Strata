@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.mefabc24.strata.ui.StrataInsets
@@ -60,6 +61,10 @@ internal object DebugPanelSkin {
             checked = drawable.tint(Color(0.16f, 0.45f, 0.68f, 1f))
             checkedOver = drawable.tint(Color(0.20f, 0.55f, 0.78f, 1f))
             disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
+        })
+        skin.add("default", ScrollPane.ScrollPaneStyle().apply {
+            vScroll = drawable.tint(Color(0.10f, 0.10f, 0.12f, 0.85f))
+            vScrollKnob = drawable.tint(Color(0.42f, 0.42f, 0.46f, 0.95f))
         })
         skin.add(
             "debug-panel",

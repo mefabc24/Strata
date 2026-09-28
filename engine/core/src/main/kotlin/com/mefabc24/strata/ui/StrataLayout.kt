@@ -223,6 +223,44 @@ abstract class StrataLayout internal constructor(
         return actor(grid)
     }
 
+    fun responsiveGrid(
+        minimumItemWidth: Float = 120f,
+        itemHeight: Float = 38f,
+        spacing: Float = theme.spacing,
+        maximumColumns: Int = 3,
+        configure: StrataResponsiveGrid.() -> Unit
+    ): StrataResponsiveGrid = actor(
+        StrataResponsiveGrid(
+            context, minimumItemWidth, itemHeight, spacing, maximumColumns
+        ).apply(configure)
+    )
+
+    fun scrollColumn(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataScrollPane {
+        val content = StrataColumn(
+            context, spacing, padding, Align.topLeft
+        ).apply(configure)
+        return actor(StrataScrollPane(context, content))
+    }
+
+    fun numericStepper(
+        label: String,
+        value: Float,
+        minimum: Float,
+        maximum: Float,
+        step: Float,
+        decimals: Int = 2,
+        onChanged: (Float) -> Unit
+    ): StrataNumericStepper = actor(
+        StrataNumericStepper(
+            label, context.skin, context.theme.buttonStyle, value,
+            minimum, maximum, step, decimals, onChanged
+        )
+    )
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack {
@@ -235,6 +273,7 @@ abstract class StrataLayout internal constructor(
         title: String,
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
+        headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
         return actor(
@@ -243,6 +282,7 @@ abstract class StrataLayout internal constructor(
                 title = title,
                 expanded = expanded,
                 spacing = spacing,
+                headerContent = headerContent,
                 configure = configure
             )
         )
@@ -432,6 +472,7 @@ class StrataExpander internal constructor(
     val title: String,
     expanded: Boolean,
     private val spacing: Float,
+    headerContent: (StrataRow.() -> Unit)? = null,
     configure: StrataColumn.() -> Unit
 ) : Table(context.skin) {
 
@@ -465,7 +506,12 @@ class StrataExpander internal constructor(
         }
 
         top().left()
-        add(header).growX().fillX()
+        val headerRow = StrataRow(
+            context, context.theme.spacing, StrataInsets.NONE, Align.left
+        )
+        headerRow.actor(header).cell { growX().fillX() }
+        headerContent?.let(headerRow::apply)
+        add(headerRow).growX().fillX()
         row()
         contentCell = add(content).growX().fillX()
         updateExpansion()

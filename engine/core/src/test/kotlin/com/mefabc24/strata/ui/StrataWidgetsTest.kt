@@ -538,6 +538,49 @@ class StrataWidgetsTest {
         skin.dispose()
     }
 
+    @Test
+    fun `expander header controls remain independent from expanded state`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        lateinit var enabled: StrataToggleButton
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            headerContent = {
+                enabled = toggleButton("ON", checked = true)
+            }
+        ) { spacer(height = 20f) }
+
+        assertFalse(expander.expanded)
+        assertTrue(enabled.isChecked)
+        enabled.syncChecked(false)
+        assertFalse(enabled.isChecked)
+        assertFalse(expander.expanded)
+        expander.toggle()
+        assertTrue(expander.expanded)
+        assertFalse(enabled.isChecked)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `toggle synchronization does not report a user change`() {
+        val skin = createSkin()
+        var changes = 0
+        val toggle = StrataToggleButton("Enabled", skin, checked = false) {
+            changes++
+        }
+
+        toggle.syncChecked(true)
+
+        assertTrue(toggle.isChecked)
+        assertEquals(0, changes)
+        skin.dispose()
+    }
+
     private fun createSkin(): Skin {
         val font = BitmapFont(
             BitmapFont.BitmapFontData(),

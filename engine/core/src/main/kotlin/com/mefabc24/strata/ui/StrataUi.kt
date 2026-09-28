@@ -162,6 +162,34 @@ class StrataUi internal constructor(
         configure = configure
     )
 
+    fun responsiveGrid(
+        minimumItemWidth: Float = 120f,
+        itemHeight: Float = 38f,
+        spacing: Float = theme.spacing,
+        maximumColumns: Int = 3,
+        configure: StrataResponsiveGrid.() -> Unit
+    ): StrataResponsiveGrid = root.responsiveGrid(
+        minimumItemWidth, itemHeight, spacing, maximumColumns, configure
+    )
+
+    fun scrollColumn(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataScrollPane = root.scrollColumn(spacing, padding, configure)
+
+    fun numericStepper(
+        label: String,
+        value: Float,
+        minimum: Float,
+        maximum: Float,
+        step: Float,
+        decimals: Int = 2,
+        onChanged: (Float) -> Unit
+    ): StrataNumericStepper = root.numericStepper(
+        label, value, minimum, maximum, step, decimals, onChanged
+    )
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack = root.stack(configure)
@@ -170,11 +198,13 @@ class StrataUi internal constructor(
         title: String,
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
+        headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander = root.expander(
         title = title,
         expanded = expanded,
         spacing = spacing,
+        headerContent = headerContent,
         configure = configure
     )
 
@@ -191,6 +221,24 @@ class StrataUi internal constructor(
         blocksInput = blocksInput,
         configure = configure
     )
+
+    fun popover(
+        width: Float,
+        height: Float,
+        styleName: String? = theme.panelStyle,
+        padding: StrataInsets? = null,
+        configure: StrataPanel.() -> Unit
+    ): StrataPopover {
+        checkActive()
+        val content = StrataPanel(
+            context = context,
+            styleName = styleName,
+            spacing = theme.spacing,
+            paddingOverride = padding,
+            blocksInput = false
+        ).apply(configure)
+        return StrataPopover(stage, content, width, height)
+    }
 
     fun separator(
         orientation: StrataSeparatorOrientation =

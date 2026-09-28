@@ -85,6 +85,14 @@ class StrataToggleButton(
             }
         )
     }
+
+    /** Updates checked state without reporting a user change. */
+    fun syncChecked(checked: Boolean) {
+        val previous = programmaticChangeEvents
+        programmaticChangeEvents = false
+        isChecked = checked
+        programmaticChangeEvents = previous
+    }
 }
 
 /**
@@ -380,4 +388,49 @@ internal fun Actor.blockPointerInput(
             }
         }
     )
+}
+
+internal fun Actor.blockScrollInput() {
+    addListener(
+        object : InputListener() {
+            override fun scrolled(
+                event: InputEvent,
+                x: Float,
+                y: Float,
+                amountX: Float,
+                amountY: Float
+            ): Boolean = true
+        }
+    )
+}
+
+/** Invokes callbacks when the pointer enters or leaves this actor. */
+fun <A : Actor> A.onHover(
+    entered: (A) -> Unit,
+    exited: (A) -> Unit
+): A {
+    addListener(
+        object : InputListener() {
+            override fun enter(
+                event: InputEvent,
+                x: Float,
+                y: Float,
+                pointer: Int,
+                fromActor: Actor?
+            ) {
+                if (pointer == -1) entered(this@onHover)
+            }
+
+            override fun exit(
+                event: InputEvent,
+                x: Float,
+                y: Float,
+                pointer: Int,
+                toActor: Actor?
+            ) {
+                if (pointer == -1) exited(this@onHover)
+            }
+        }
+    )
+    return this
 }
