@@ -333,7 +333,8 @@ class IsoWorldRenderer(
                 renderTerrainSprite(
                     x = x,
                     y = y,
-                    texture = texture
+                    texture = texture,
+                    overlay = false
                 )
             }
 
@@ -346,7 +347,8 @@ class IsoWorldRenderer(
                     renderTerrainSprite(
                         x = x,
                         y = y,
-                        texture = texture
+                        texture = texture,
+                        overlay = true
                     )
                 }
         }
@@ -465,7 +467,8 @@ class IsoWorldRenderer(
     private fun renderTerrainSprite(
         x: Int,
         y: Int,
-        texture: TextureRegion
+        texture: TextureRegion,
+        overlay: Boolean
     ) {
         IsoTerrainBounds.calculate(
             projection = projection,
@@ -484,6 +487,11 @@ class IsoWorldRenderer(
             texture = texture
         )
         stats.terrainDrawn++
+        if (overlay) {
+            stats.overlayTerrainDrawn++
+        } else {
+            stats.groundTerrainDrawn++
+        }
     }
 
     private fun elapsedMs(startNanos: Long): Double {

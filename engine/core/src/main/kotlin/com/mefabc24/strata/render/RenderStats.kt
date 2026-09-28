@@ -11,6 +11,14 @@ class RenderStats {
     var terrainDrawn = 0
         internal set
 
+    /** Number of ground terrain sprites drawn during the frame. */
+    var groundTerrainDrawn = 0
+        internal set
+
+    /** Number of overlay terrain sprites drawn during the frame. */
+    var overlayTerrainDrawn = 0
+        internal set
+
     var objectsChecked = 0
         internal set
 
@@ -47,6 +55,8 @@ class RenderStats {
     internal fun reset() {
         terrainChecked = 0
         terrainDrawn = 0
+        groundTerrainDrawn = 0
+        overlayTerrainDrawn = 0
         objectsChecked = 0
         objectsDrawn = 0
         entitiesChecked = 0
