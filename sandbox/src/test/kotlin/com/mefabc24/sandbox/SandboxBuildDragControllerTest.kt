@@ -24,7 +24,7 @@ class SandboxBuildDragControllerTest {
     ) : Placeable
 
     @Test
-    fun `one by one footprint uses every tile in the area`() {
+    fun `one by one footprint extends from the drag start in drag direction`() {
         val placement = placement(Footprint.square(1))
         val drag = SandboxBuildDragController(placement)
 
@@ -37,19 +37,19 @@ class SandboxBuildDragControllerTest {
         assertTrue(drag.dragTo(TilePosition(1, 1)))
         assertEquals(
             listOf(
-                TilePosition(1, 1),
-                TilePosition(2, 1),
-                TilePosition(3, 1),
-                TilePosition(1, 2),
+                TilePosition(3, 2),
                 TilePosition(2, 2),
-                TilePosition(3, 2)
+                TilePosition(1, 2),
+                TilePosition(3, 1),
+                TilePosition(2, 1),
+                TilePosition(1, 1)
             ),
             placement.previewPositions()
         )
     }
 
     @Test
-    fun `two by two footprint uses its width and height as spacing`() {
+    fun `two by two footprint uses anchored width and height spacing`() {
         val placement = placement(Footprint.square(2))
         val drag = SandboxBuildDragController(placement)
 
@@ -60,15 +60,20 @@ class SandboxBuildDragControllerTest {
             listOf(
                 TilePosition(1, 1),
                 TilePosition(3, 1),
+                TilePosition(5, 1),
                 TilePosition(1, 3),
-                TilePosition(3, 3)
+                TilePosition(3, 3),
+                TilePosition(5, 3),
+                TilePosition(1, 5),
+                TilePosition(3, 5),
+                TilePosition(5, 5)
             ),
             placement.previewPositions()
         )
     }
 
     @Test
-    fun `two by three footprint uses rectangular spacing`() {
+    fun `two by three footprint uses anchored rectangular spacing`() {
         val placement = placement(Footprint.rectangle(2, 3))
         val drag = SandboxBuildDragController(placement)
 
@@ -79,41 +84,105 @@ class SandboxBuildDragControllerTest {
             listOf(
                 TilePosition(1, 1),
                 TilePosition(3, 1),
+                TilePosition(5, 1),
                 TilePosition(1, 4),
-                TilePosition(3, 4)
+                TilePosition(3, 4),
+                TilePosition(5, 4),
+                TilePosition(1, 7),
+                TilePosition(3, 7),
+                TilePosition(5, 7)
             ),
             placement.previewPositions()
         )
     }
 
     @Test
-    fun `all drag directions produce the same normalized origins`() {
+    fun `all drag directions remain anchored to their drag start`() {
         val placement = placement(Footprint.square(2))
         val drag = SandboxBuildDragController(placement)
-        val expected = listOf(
-            TilePosition(1, 1),
-            TilePosition(3, 1),
-            TilePosition(1, 3),
-            TilePosition(3, 3)
-        )
-        val drags = listOf(
-            TilePosition(1, 1) to TilePosition(5, 5),
-            TilePosition(5, 5) to TilePosition(1, 1),
-            TilePosition(5, 1) to TilePosition(1, 5),
-            TilePosition(1, 5) to TilePosition(5, 1)
+
+        val cases = listOf(
+            Triple(
+                TilePosition(1, 1),
+                TilePosition(5, 5),
+                listOf(
+                    TilePosition(1, 1),
+                    TilePosition(3, 1),
+                    TilePosition(5, 1),
+                    TilePosition(1, 3),
+                    TilePosition(3, 3),
+                    TilePosition(5, 3),
+                    TilePosition(1, 5),
+                    TilePosition(3, 5),
+                    TilePosition(5, 5)
+                )
+            ),
+            Triple(
+                TilePosition(5, 5),
+                TilePosition(1, 1),
+                listOf(
+                    TilePosition(5, 5),
+                    TilePosition(3, 5),
+                    TilePosition(1, 5),
+                    TilePosition(5, 3),
+                    TilePosition(3, 3),
+                    TilePosition(1, 3),
+                    TilePosition(5, 1),
+                    TilePosition(3, 1),
+                    TilePosition(1, 1)
+                )
+            ),
+            Triple(
+                TilePosition(5, 1),
+                TilePosition(1, 5),
+                listOf(
+                    TilePosition(5, 1),
+                    TilePosition(3, 1),
+                    TilePosition(1, 1),
+                    TilePosition(5, 3),
+                    TilePosition(3, 3),
+                    TilePosition(1, 3),
+                    TilePosition(5, 5),
+                    TilePosition(3, 5),
+                    TilePosition(1, 5)
+                )
+            ),
+            Triple(
+                TilePosition(1, 5),
+                TilePosition(5, 1),
+                listOf(
+                    TilePosition(1, 5),
+                    TilePosition(3, 5),
+                    TilePosition(5, 5),
+                    TilePosition(1, 3),
+                    TilePosition(3, 3),
+                    TilePosition(5, 3),
+                    TilePosition(1, 1),
+                    TilePosition(3, 1),
+                    TilePosition(5, 1)
+                )
+            )
         )
 
-        for ((start, end) in drags) {
-            drag.begin(start)
-            drag.dragTo(end)
+        for ((start, end, expected) in cases) {
+            assertTrue(drag.begin(start))
+            assertTrue(drag.dragTo(end))
 
-            assertEquals(expected, placement.previewPositions())
-            drag.cancel()
+            assertEquals(
+                expected,
+                placement.previewPositions()
+            )
+            assertEquals(
+                start,
+                placement.previewPositions().first()
+            )
+
+            assertTrue(drag.cancel())
         }
     }
 
     @Test
-    fun `packed origins account for footprint origin and stay inside the area`() {
+    fun `footprint origin does not shift the anchored drag grid`() {
         val placement = placement(
             Footprint.rectangle(
                 width = 2,
@@ -122,25 +191,37 @@ class SandboxBuildDragControllerTest {
             )
         )
         val drag = SandboxBuildDragController(placement)
-        val min = TilePosition(1, 1)
-        val max = TilePosition(5, 7)
 
-        drag.begin(min)
-        drag.dragTo(max)
+        val start = TilePosition(2, 3)
+
+        assertTrue(drag.begin(start))
+        assertTrue(drag.dragTo(TilePosition(6, 9)))
 
         assertEquals(
             listOf(
                 TilePosition(2, 3),
                 TilePosition(4, 3),
+                TilePosition(6, 3),
                 TilePosition(2, 6),
-                TilePosition(4, 6)
+                TilePosition(4, 6),
+                TilePosition(6, 6),
+                TilePosition(2, 9),
+                TilePosition(4, 9),
+                TilePosition(6, 9)
             ),
             placement.previewPositions()
         )
+
+        assertEquals(
+            start,
+            placement.previewPositions().first()
+        )
+
         assertTrue(
             placement.previews.all { preview ->
                 preview.placedObject.occupiedTiles().all { tile ->
-                    tile.x in min.x..max.x && tile.y in min.y..max.y
+                    tile.x in 0 until 10 &&
+                            tile.y in 0 until 10
                 }
             }
         )
