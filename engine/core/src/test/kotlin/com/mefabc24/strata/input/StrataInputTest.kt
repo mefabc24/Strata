@@ -11,6 +11,21 @@ import kotlin.test.assertTrue
 class StrataInputTest {
 
     @Test
+    fun `debug tiers route before game ui and world`() {
+        val calls = mutableListOf<String>()
+        val input = StrataInput()
+        input.addDebugUiProcessor(processor("debug-ui", calls, false))
+        input.addUiProcessor(processor("game-ui", calls, false))
+        input.setDebugWorldProcessor(processor("debug-tool", calls, false))
+        input.setWorldProcessor(processor("game-world", calls, true))
+        assertTrue(input.processor.touchDown(0, 0, 0, 0))
+        assertEquals(
+            listOf("debug-ui", "game-ui", "debug-tool", "game-world"),
+            calls
+        )
+    }
+
+    @Test
     fun `ui input works without a world processor`() {
         val calls = mutableListOf<String>()
         val input = StrataInput()

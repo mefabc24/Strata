@@ -79,6 +79,26 @@ class TerrainRegistryTest {
     }
 
     @Test
+    fun `paintable entries expose optional validated tile factories`() {
+        val registry = registry()
+        val tile = WaterTile(WaterState.CALM)
+        registry.register(Terrain.GRASS, "grass.png")
+        registry.register(Terrain.WATER, "water.png", factory = { tile })
+
+        assertEquals(listOf(Terrain.WATER), registry.paintableEntries.map { it.type })
+        assertSame(tile, registry.paintableEntries.single().createTile())
+        assertFailsWith<IllegalStateException> { registry.entries.first().createTile() }
+
+        @Suppress("UNCHECKED_CAST")
+        val invalidFactory = ({ null } as () -> Tile)
+        val invalid = registry()
+        invalid.register(Terrain.SAND, "sand.png", factory = invalidFactory)
+        assertFailsWith<IllegalStateException> {
+            invalid.paintableEntries.single().createTile()
+        }
+    }
+
+    @Test
     fun `prepare exposes the registry-owned texture region`() {
         val texture = TextureRegion()
         val registry = TerrainRegistry(

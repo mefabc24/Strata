@@ -78,6 +78,24 @@ class EntityRegistryTest {
     }
 
     @Test
+    fun `spawnable entries expose optional validated factories`() {
+        val registry = registry()
+        registry.register<Citizen>("citizen.png", factory = ::Citizen)
+        registry.register<Trader>("trader.png")
+        assertEquals(listOf(Citizen::class), registry.spawnableEntries.map { it.type })
+        assertTrue(registry.spawnableEntries.single().create() is Citizen)
+        assertFailsWith<IllegalStateException> { registry.entries.last().create() }
+
+        @Suppress("UNCHECKED_CAST")
+        val invalidFactory = ({ Trader() } as () -> Citizen)
+        val invalid = registry()
+        invalid.register<Citizen>("citizen.png", factory = invalidFactory)
+        assertFailsWith<IllegalStateException> {
+            invalid.spawnableEntries.single().create()
+        }
+    }
+
+    @Test
     fun `animated entity visual reuses sprite frames and matching masks`() {
         val textures = mapOf(
             "entities/citizen_0.png" to region(16, 24),
@@ -431,6 +449,13 @@ class EntityRegistryTest {
             registry.register<Trader>("trader.png")
         }
     }
+
+    private fun registry() = EntityRegistry(
+        directory = "entities",
+        queueTexture = {},
+        regionFor = { region(16, 16) },
+        loadAlphaMask = { null }
+    )
 
     private fun region(width: Int, height: Int): TextureRegion {
         return object : TextureRegion() {
