@@ -32,13 +32,28 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
 
+/** Authoritative per-frame render-order and culling diagnostics. */
+data class RenderDebugSnapshot(
+    val visibleArea: Rectangle,
+    val items: List<RenderItemDebugSnapshot>
+)
+
+data class RenderItemDebugSnapshot(
+    val index: Int,
+    val placedObject: PlacedObject? = null,
+    val entity: WorldEntity? = null,
+    val bounds: Rectangle? = null,
+    val drawn: Boolean
+)
+
 /**
  * Renders flat terrain first, followed by depth-ordered world content.
  */
 class IsoWorldRenderer(
     private val projection: IsoProjection,
     objectSettings: ObjectRenderingSettings = ObjectRenderingSettings(),
-    private val lighting: Lighting = Lighting()
+    private val lighting: Lighting = Lighting(),
+    private val collectDebugSnapshot: () -> Boolean = { false }
 ) {
     private val objectSettings = objectSettings.copy().also {
         it.validate()
@@ -71,6 +86,9 @@ class IsoWorldRenderer(
     private var pendingStaticPlanRelationChecks = 0
 
     val stats = RenderStats()
+
+    var debugSnapshot: RenderDebugSnapshot? = null
+        private set
 
     fun render(
         world: World,
@@ -119,6 +137,15 @@ class IsoWorldRenderer(
             viewHeight
         )
 
+        val debugItems = if (collectDebugSnapshot()) {
+            ArrayList<RenderItemDebugSnapshot>(
+                stats.objectsTotal + stats.entitiesTotal
+            )
+        } else {
+            debugSnapshot = null
+            null
+        }
+
         batch.projectionMatrix = camera.combined
 
         val terrainDepths = TerrainDepthCulling.visibleDepths(
@@ -142,7 +169,7 @@ class IsoWorldRenderer(
             animationTime = animationTime
         )
 
-        for (item in normalRenderPlan) {
+        for ((renderIndex, item) in normalRenderPlan.withIndex()) {
             when (item) {
                 is TerrainCell -> Unit
 
@@ -159,7 +186,9 @@ class IsoWorldRenderer(
                                 null
                             )
                         },
-                        preview = null
+                        preview = null,
+                        renderIndex = renderIndex,
+                        debugItems = debugItems
                     )
                 }
 
@@ -175,7 +204,9 @@ class IsoWorldRenderer(
                                 animationTime,
                                 null
                             )
-                        }
+                        },
+                        renderIndex = renderIndex,
+                        debugItems = debugItems
                     )
                 }
             }
@@ -204,6 +235,13 @@ class IsoWorldRenderer(
 
         stats.cpuRenderMs =
             (System.nanoTime() - renderStartNanos) / 1_000_000.0
+
+        if (debugItems != null) {
+            debugSnapshot = RenderDebugSnapshot(
+                visibleArea = Rectangle(visibleArea),
+                items = debugItems
+            )
+        }
     }
 
     /**
@@ -271,10 +309,19 @@ class IsoWorldRenderer(
     private fun renderEntity(
         entity: WorldEntity,
         visual: ResolvedEntityVisual?,
-        recordStats: Boolean = true
+        recordStats: Boolean = true,
+        renderIndex: Int? = null,
+        debugItems: MutableList<RenderItemDebugSnapshot>? = null
     ) {
         if (recordStats) stats.entitiesChecked++
-        if (visual == null) return
+        if (visual == null) {
+            if (renderIndex != null) {
+                debugItems?.add(
+                    RenderItemDebugSnapshot(renderIndex, entity = entity, drawn = false)
+                )
+            }
+            return
+        }
 
         IsoEntityBounds.calculate(
             projection = projection,
@@ -282,7 +329,18 @@ class IsoWorldRenderer(
             visual = visual,
             result = entityBounds
         )
-        if (!entityBounds.overlaps(visibleArea)) return
+        val drawn = entityBounds.overlaps(visibleArea)
+        if (renderIndex != null) {
+            debugItems?.add(
+                RenderItemDebugSnapshot(
+                    index = renderIndex,
+                    entity = entity,
+                    bounds = Rectangle(entityBounds),
+                    drawn = drawn
+                )
+            )
+        }
+        if (!drawn) return
 
         entityRenderer.render(
             batch = batch,
@@ -365,13 +423,22 @@ class IsoWorldRenderer(
         placed: PlacedObject,
         visual: ResolvedObjectVisual?,
         preview: PlacementPreview?,
-        recordStats: Boolean = true
+        recordStats: Boolean = true,
+        renderIndex: Int? = null,
+        debugItems: MutableList<RenderItemDebugSnapshot>? = null
     ) {
         if (preview == null && recordStats) {
             stats.objectsChecked++
         }
 
-        if (visual == null) return
+        if (visual == null) {
+            if (renderIndex != null) {
+                debugItems?.add(
+                    RenderItemDebugSnapshot(renderIndex, placedObject = placed, drawn = false)
+                )
+            }
+            return
+        }
 
         IsoObjectBounds.calculate(
             projection = projection,
@@ -381,7 +448,18 @@ class IsoWorldRenderer(
             objectSettings = objectSettings
         )
 
-        if (!objectBounds.overlaps(visibleArea)) return
+        val drawn = objectBounds.overlaps(visibleArea)
+        if (renderIndex != null) {
+            debugItems?.add(
+                RenderItemDebugSnapshot(
+                    index = renderIndex,
+                    placedObject = placed,
+                    bounds = Rectangle(objectBounds),
+                    drawn = drawn
+                )
+            )
+        }
+        if (!drawn) return
 
         if (preview != null) {
             batch.color = if (preview.valid) {

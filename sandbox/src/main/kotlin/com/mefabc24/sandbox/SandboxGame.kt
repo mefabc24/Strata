@@ -1,8 +1,6 @@
 package com.mefabc24.sandbox
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.mefabc24.sandbox.input.sandboxInputBindings
 import com.mefabc24.sandbox.registration.registerSandboxEntities
 import com.mefabc24.sandbox.registration.registerSandboxObjects
 import com.mefabc24.sandbox.registration.registerSandboxSounds
@@ -58,6 +56,10 @@ class SandboxGame : StrataGame() {
                 }
 
                 debug {
+                    panel {
+                        enabled = true
+                    }
+
                     performance {
                         enabled = false
                         intervalSeconds = 2f
@@ -109,6 +111,16 @@ class SandboxGame : StrataGame() {
                         spriteBoundsColor =
                             Color(1f, 0.3f, 0.9f, 1f)
                     }
+
+                    onEntitySpawned { entity ->
+                        roaming.control(entity)
+                    }
+
+                    onObjectsPlaced { placed ->
+                        if (placed.isNotEmpty()) {
+                            playBuildingSound()
+                        }
+                    }
                 }
 
                 camera {
@@ -136,38 +148,14 @@ class SandboxGame : StrataGame() {
                     )
                 }
 
-                controls {
-                    gameplay {
-                        bindings = sandboxInputBindings(
-                            tools = { tools },
-                            painter = { painter },
-                            buildDrag = { buildDrag },
-                            entitySpawner = { entitySpawner },
-                            roaming = { roaming },
-                            world = { sandboxWorld },
-                            playBuildingSound = ::playBuildingSound
-                        )
-                    }
-                }
             }
         }
 
-    private lateinit var painter: SandboxTerrainPainter
-    private lateinit var buildDrag: SandboxBuildDragController
-    private lateinit var tools: SandboxToolController
-    private lateinit var entitySpawner: SandboxEntitySpawner
     private lateinit var roaming: SandboxRoamingController
-    private lateinit var uiSkin: Skin
-    private lateinit var sandboxUi: SandboxUi
     private lateinit var sandboxWorld: World
-    private lateinit var hoverCrosshair: SandboxHoverCrosshair
 
     override fun onReady() {
         sandboxWorld = createSandboxWorld()
-
-        painter = SandboxTerrainPainter(
-            sandboxWorld
-        )
 
         strata.attachWorld(
             world = sandboxWorld,
@@ -176,79 +164,13 @@ class SandboxGame : StrataGame() {
             }
         )
 
-        strata.placement.selectedFactory =
-            strata.objects.constructibleEntries
-                .firstOrNull()
-                ?.let { entry ->
-                    entry::create
-                }
-
-        buildDrag =
-            SandboxBuildDragController(
-                strata.placement
-            )
-        tools = SandboxToolController(
-            painter = painter,
-            placement = strata.placement,
-            buildDrag = buildDrag
-        )
-        entitySpawner = SandboxEntitySpawner(
-            world = sandboxWorld,
-            tools = tools,
-            entries = sandboxSpawnEntries()
-        )
-
         roaming = SandboxRoamingController(
             sandboxWorld
         )
-
-        uiSkin = SandboxUi.createSkin()
-
-        strata.createUi(
-            skin = uiSkin,
-            theme = SandboxUi.createTheme()
-        ) {
-            sandboxUi = SandboxUi(
-                ui = this,
-                painter = painter,
-                placementController = strata.placement,
-                buildDragController = buildDrag,
-                toolController = tools,
-                entitySpawner = entitySpawner,
-                debugSettings = strata.debug,
-                simulation = strata.simulation,
-                renderStats = { strata.view.renderStats },
-                terrainEntries = strata.terrain.entries,
-                objectEntries =
-                    strata.objects.constructibleEntries
-            )
-        }
-
-        hoverCrosshair = SandboxHoverCrosshair(
-            ui = strata.ui,
-            view = strata.view,
-            tools = tools,
-            tileGeometry = TILE_GEOMETRY
-        )
-    }
-
-    override fun updateRealTime(realDelta: Float) {
-        sandboxUi.update(realDelta)
-        hoverCrosshair.update()
     }
 
     override fun updateGame(simulationDelta: Float) {
         roaming.update(simulationDelta)
-    }
-
-    override fun disposeGame() {
-        if (::hoverCrosshair.isInitialized) {
-            hoverCrosshair.dispose()
-        }
-
-        if (::uiSkin.isInitialized) {
-            uiSkin.dispose()
-        }
     }
 
     private fun createSandboxWorld(): World {

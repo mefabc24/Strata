@@ -6,6 +6,28 @@ import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldPlacementFailure
+
+/** Engine-known reason that a placement preview is invalid. */
+enum class PlacementFailureReason {
+    FOOTPRINT_OUTSIDE_WORLD,
+    OCCUPIED_TILE,
+    RESERVED_TILE_CONFLICT,
+    EXTERNAL_VALIDATOR_REJECTED
+}
+
+/** Result of the authoritative placement checks used by the controller. */
+data class PlacementDiagnostic(
+    val valid: Boolean,
+    val reason: PlacementFailureReason? = null,
+    val detail: String? = null
+) {
+    init {
+        require(valid == (reason == null)) {
+            "A valid placement cannot have a failure reason."
+        }
+    }
+}
 
 /**
  * Manages object placement and its previews.
@@ -66,12 +88,17 @@ class PlacementController(
     var previews: List<PlacementPreview> = emptyList()
         private set
 
+    /** Diagnostics aligned with [previews]. */
+    var previewDiagnostics: List<PlacementDiagnostic> = emptyList()
+        private set
+
     /**
      * Updates the preview for the currently hovered tile.
      */
     fun update(hoveredTile: TilePosition?) {
         if (!enabled) {
             previews = emptyList()
+            previewDiagnostics = emptyList()
             return
         }
 
@@ -81,6 +108,7 @@ class PlacementController(
 
         if (hoveredTile == null || placeable == null) {
             previews = emptyList()
+            previewDiagnostics = emptyList()
             return
         }
 
@@ -92,19 +120,20 @@ class PlacementController(
 
         if (!shouldShowPreview(placedObject)) {
             previews = emptyList()
+            previewDiagnostics = emptyList()
             return
         }
+
+        val diagnostic = diagnose(placeable, hoveredTile)
 
         previews = listOf(
             PlacementPreview(
                 placedObject = placedObject,
-                valid = canPlace(
-                    placeable = placeable,
-                    position = hoveredTile
-                ),
+                valid = diagnostic.valid,
                 style = style
             )
         )
+        previewDiagnostics = listOf(diagnostic)
     }
 
     /**
@@ -125,11 +154,13 @@ class PlacementController(
         val placeable = previewPlaceable
         if (placeable == null) {
             previews = emptyList()
+            previewDiagnostics = emptyList()
             return
         }
 
         val reservedTiles = mutableSetOf<TilePosition>()
 
+        val diagnostics = mutableListOf<PlacementDiagnostic>()
         previews = buildList {
             for (position in distinctPositions(positions)) {
                 val placedObject = PlacedObject(
@@ -144,8 +175,12 @@ class PlacementController(
                     continue
                 }
 
-                val valid = canPlace(placeable, position) &&
-                        occupiedTiles.none(reservedTiles::contains)
+                val diagnostic = diagnose(
+                    placeable = placeable,
+                    position = position,
+                    reservedTiles = reservedTiles
+                )
+                val valid = diagnostic.valid
 
                 if (valid) {
                     reservedTiles += occupiedTiles
@@ -158,8 +193,10 @@ class PlacementController(
                         style = style
                     )
                 )
+                diagnostics += diagnostic
             }
         }
+        previewDiagnostics = diagnostics
     }
 
     /**
@@ -168,6 +205,7 @@ class PlacementController(
     fun clearPreviewPositions() {
         explicitPreviewPositionsActive = false
         previews = emptyList()
+        previewDiagnostics = emptyList()
     }
 
     /**
@@ -185,12 +223,7 @@ class PlacementController(
 
         val placeable = create()
 
-        if (
-            !canPlace(
-                placeable = placeable,
-                position = position
-            )
-        ) {
+        if (!diagnose(placeable, position).valid) {
             return null
         }
 
@@ -232,7 +265,7 @@ class PlacementController(
             for (position in distinctPositions(positions)) {
                 val placeable = create()
 
-                if (!canPlace(placeable, position)) continue
+                if (!diagnose(placeable, position).valid) continue
 
                 world.place(
                     placeable = placeable,
@@ -242,17 +275,43 @@ class PlacementController(
         }
     }
 
-    private fun canPlace(
+    /** Runs the same checks used by previews and final placement. */
+    fun diagnose(
         placeable: Placeable,
-        position: TilePosition
-    ): Boolean {
-        return world.canPlace(
+        position: TilePosition,
+        reservedTiles: Set<TilePosition> = emptySet()
+    ): PlacementDiagnostic {
+        val worldFailure = world.placementFailure(placeable, position)
+        if (worldFailure != null) {
+            return PlacementDiagnostic(
+                valid = false,
+                reason = when (worldFailure) {
+                    WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD ->
+                        PlacementFailureReason.FOOTPRINT_OUTSIDE_WORLD
+                    WorldPlacementFailure.OCCUPIED_TILE ->
+                        PlacementFailureReason.OCCUPIED_TILE
+                }
+            )
+        }
+
+        val occupiedTiles = PlacedObject(
             placeable = placeable,
-            position = position
-        ) && placementValidator(
-            placeable,
-            position
-        )
+            x = position.x,
+            y = position.y
+        ).occupiedTiles()
+        if (occupiedTiles.any(reservedTiles::contains)) {
+            return PlacementDiagnostic(
+                valid = false,
+                reason = PlacementFailureReason.RESERVED_TILE_CONFLICT
+            )
+        }
+        if (!placementValidator(placeable, position)) {
+            return PlacementDiagnostic(
+                valid = false,
+                reason = PlacementFailureReason.EXTERNAL_VALIDATOR_REJECTED
+            )
+        }
+        return PlacementDiagnostic(valid = true)
     }
 
     private fun distinctPositions(

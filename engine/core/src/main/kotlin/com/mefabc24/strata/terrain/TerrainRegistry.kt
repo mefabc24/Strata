@@ -17,7 +17,8 @@ import com.mefabc24.strata.world.Tile
 /** Describes one terrain registration and its prepared visual data. */
 class TerrainEntry internal constructor(
     val type: TerrainId,
-    internal val definition: VisualDefinition<Tile, SpriteSource>
+    internal val definition: VisualDefinition<Tile, SpriteSource>,
+    private val factory: (() -> Tile)?
 ) {
     internal val sources: List<SpriteSource> = definition.sources()
 
@@ -41,6 +42,19 @@ class TerrainEntry internal constructor(
 
     val isPrepared: Boolean
         get() = preparedDefinition != null
+
+    /** Whether this terrain can be created by engine tooling. */
+    val isPaintable: Boolean
+        get() = factory != null
+
+    /** Creates a tile through the explicitly registered factory. */
+    fun createTile(): Tile {
+        val create = factory
+            ?: error("Terrain type $type has no registered tile factory.")
+        return checkNotNull(create()) {
+            "The tile factory for $type returned null."
+        }
+    }
 
     internal fun resolve(tile: Tile, animationTime: Float): TextureRegion {
         val resolved = preparedDefinition?.resolve(tile, animationTime)
@@ -102,29 +116,46 @@ class TerrainRegistry internal constructor(
     val entries: List<TerrainEntry>
         get() = registrations.values.toList()
 
-    fun register(type: TerrainId, sprite: String) {
-        registerVisual(type) { sprite(sprite) }
+    /** A registration-order snapshot containing entries with tile factories. */
+    val paintableEntries: List<TerrainEntry>
+        get() = registrations.values.filter(TerrainEntry::isPaintable)
+
+    fun register(
+        type: TerrainId,
+        sprite: String,
+        factory: (() -> Tile)? = null
+    ) {
+        registerVisual(type, factory) { sprite(sprite) }
     }
 
-    fun registerAtlas(type: TerrainId, atlas: String, region: String) {
-        registerVisual(type) { atlas(atlas, region) }
+    fun registerAtlas(
+        type: TerrainId,
+        atlas: String,
+        region: String,
+        factory: (() -> Tile)? = null
+    ) {
+        registerVisual(type, factory) { atlas(atlas, region) }
     }
 
     fun registerAnimated(
         type: TerrainId,
         frames: List<String>,
-        frameDuration: Float
+        frameDuration: Float,
+        factory: (() -> Tile)? = null
     ) {
-        registerVisual(type) { animated(frames, frameDuration) }
+        registerVisual(type, factory) { animated(frames, frameDuration) }
     }
 
     fun registerAnimatedAtlas(
         type: TerrainId,
         atlas: String,
         region: String,
-        frameDuration: Float
+        frameDuration: Float,
+        factory: (() -> Tile)? = null
     ) {
-        registerVisual(type) { animatedAtlas(atlas, region, frameDuration) }
+        registerVisual(type, factory) {
+            animatedAtlas(atlas, region, frameDuration)
+        }
     }
 
     fun registerAnimated(
@@ -133,9 +164,10 @@ class TerrainRegistry internal constructor(
         frameWidth: Int,
         frameHeight: Int,
         frameDuration: Float,
-        frameCount: Int? = null
+        frameCount: Int? = null,
+        factory: (() -> Tile)? = null
     ) {
-        registerVisual(type) {
+        registerVisual(type, factory) {
             spriteSheet(
                 spriteSheet,
                 frameWidth,
@@ -149,11 +181,13 @@ class TerrainRegistry internal constructor(
     /** Registers one static or animated sprite through the common source DSL. */
     fun registerVisual(
         type: TerrainId,
+        factory: (() -> Tile)? = null,
         visual: SpriteDefinitionBuilder.() -> Unit
     ) {
         registerDefinition(
             type,
-            VisualDefinition.Single(spriteSource(::resolvePath, visual))
+            VisualDefinition.Single(spriteSource(::resolvePath, visual)),
+            factory
         )
     }
 
@@ -164,6 +198,7 @@ class TerrainRegistry internal constructor(
     fun registerStateful(
         type: TerrainId,
         stateFor: (Tile) -> VisualStateId,
+        factory: (() -> Tile)? = null,
         configure: StatefulSpriteBuilder.() -> Unit
     ) {
         checkRegistrationOpen()
@@ -171,7 +206,11 @@ class TerrainRegistry internal constructor(
             ::resolvePath,
             VisualPlayback.SYNCHRONIZED
         ).apply(configure).build()
-        registerDefinition(type, VisualDefinition.Stateful(states, stateFor))
+        registerDefinition(
+            type,
+            VisualDefinition.Stateful(states, stateFor),
+            factory
+        )
     }
 
     internal fun prepare() {
@@ -221,14 +260,15 @@ class TerrainRegistry internal constructor(
 
     private fun registerDefinition(
         type: TerrainId,
-        definition: VisualDefinition<Tile, SpriteSource>
+        definition: VisualDefinition<Tile, SpriteSource>,
+        factory: (() -> Tile)?
     ) {
         checkRegistrationOpen()
         require(type !in registrations) {
             "Terrain type $type is already registered."
         }
         definition.sources().forEach { it.queue(queueTexture, queueAtlas) }
-        registrations[type] = TerrainEntry(type, definition)
+        registrations[type] = TerrainEntry(type, definition, factory)
     }
 
     private fun entry(type: TerrainId): TerrainEntry {

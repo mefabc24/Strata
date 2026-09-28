@@ -49,6 +49,7 @@ class EntitySpriteSettings {
 class EntityEntry internal constructor(
     val type: KClass<out Entity>,
     internal val definition: VisualDefinition<WorldEntity, EntitySpriteDefinition>,
+    private val factory: (() -> Entity)?,
     internal val settings: EntitySpriteSettings
 ) {
     internal val sources = definition.sources().flatMap(EntitySpriteDefinition::sources)
@@ -71,6 +72,23 @@ class EntityEntry internal constructor(
 
     val isPrepared: Boolean
         get() = preparedDefinition != null
+
+    /** Whether this entity can be created by engine tooling. */
+    val isSpawnable: Boolean
+        get() = factory != null
+
+    /** Creates an entity through the explicitly registered factory. */
+    fun create(): Entity {
+        val create = factory
+            ?: error("Entity type $type has no registered factory.")
+        val entity = checkNotNull(create()) {
+            "The entity factory for $type returned null."
+        }
+        check(type.isInstance(entity)) {
+            "The factory for $type created ${entity::class}."
+        }
+        return entity
+    }
 
     internal fun prepare(
         definition: PreparedVisualDefinition<WorldEntity, PreparedEntitySprites>,
@@ -146,13 +164,19 @@ class EntityRegistry internal constructor(
     val entries: List<EntityEntry>
         get() = registrations.values.toList()
 
+    /** A registration-order snapshot containing entries with factories. */
+    val spawnableEntries: List<EntityEntry>
+        get() = registrations.values.filter(EntityEntry::isSpawnable)
+
     fun <T : Entity> register(
         type: KClass<T>,
         sprite: String,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
         registerVisual(
             type = type,
+            factory = factory,
             configure = configure
         ) { sprite(sprite) }
     }
@@ -165,9 +189,11 @@ class EntityRegistry internal constructor(
         type: KClass<T>,
         atlas: String,
         region: String,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerVisual(
         type,
+        factory,
         configure
     ) { atlas(atlas, region) }
 
@@ -175,10 +201,12 @@ class EntityRegistry internal constructor(
         type: KClass<T>,
         frames: List<String>,
         frameDuration: Float,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
         registerVisual(
             type = type,
+            factory = factory,
             configure = configure
         ) { animated(frames, frameDuration) }
     }
@@ -189,9 +217,11 @@ class EntityRegistry internal constructor(
         atlas: String,
         region: String,
         frameDuration: Float,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerVisual(
         type,
+        factory,
         configure
     ) { animatedAtlas(atlas, region, frameDuration) }
 
@@ -202,10 +232,12 @@ class EntityRegistry internal constructor(
         frameHeight: Int,
         frameDuration: Float,
         frameCount: Int? = null,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {}
     ) {
         registerVisual(
             type = type,
+            factory = factory,
             configure = configure
         ) {
             spriteSheet(
@@ -220,31 +252,36 @@ class EntityRegistry internal constructor(
 
     inline fun <reified T : Entity> register(
         sprite: String,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
-    ) = register(T::class, sprite, configure)
+    ) = register(T::class, sprite, factory, configure)
 
     inline fun <reified T : Entity> registerAtlas(
         atlas: String,
         region: String,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
-    ) = registerAtlas(T::class, atlas, region, configure)
+    ) = registerAtlas(T::class, atlas, region, factory, configure)
 
     inline fun <reified T : Entity> registerAnimated(
         frames: List<String>,
         frameDuration: Float,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
-    ) = registerAnimated(T::class, frames, frameDuration, configure)
+    ) = registerAnimated(T::class, frames, frameDuration, factory, configure)
 
     inline fun <reified T : Entity> registerAnimatedAtlas(
         atlas: String,
         region: String,
         frameDuration: Float,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerAnimatedAtlas(
         T::class,
         atlas,
         region,
         frameDuration,
+        factory,
         configure
     )
 
@@ -254,6 +291,7 @@ class EntityRegistry internal constructor(
         frameHeight: Int,
         frameDuration: Float,
         frameCount: Int? = null,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {}
     ) = registerAnimated(
         T::class,
@@ -262,12 +300,14 @@ class EntityRegistry internal constructor(
         frameHeight,
         frameDuration,
         frameCount,
+        factory,
         configure
     )
 
     /** Registers one sprite source through the shared sprite-definition DSL. */
     fun <T : Entity> registerVisual(
         type: KClass<T>,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {},
         visual: SpriteDefinitionBuilder.() -> Unit
     ) {
@@ -276,18 +316,21 @@ class EntityRegistry internal constructor(
             definition = VisualDefinition.Single(
                 EntitySpriteDefinition.Single(spriteSource(::resolvePath, visual))
             ),
+            factory = factory,
             configure = configure
         )
     }
 
     inline fun <reified T : Entity> registerVisual(
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {},
         noinline visual: SpriteDefinitionBuilder.() -> Unit
-    ) = registerVisual(T::class, configure, visual)
+    ) = registerVisual(T::class, factory, configure, visual)
 
     /** Registers visuals selected only by the entity's engine-owned direction. */
     fun <T : Entity> registerDirectional(
         type: KClass<T>,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {},
         visual: EntitySpriteDefinitionBuilder.() -> Unit
     ) {
@@ -298,14 +341,16 @@ class EntityRegistry internal constructor(
                     .apply(visual)
                     .buildEntity()
             ),
+            factory,
             configure
         )
     }
 
     inline fun <reified T : Entity> registerDirectional(
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {},
         noinline visual: EntitySpriteDefinitionBuilder.() -> Unit
-    ) = registerDirectional(T::class, configure, visual)
+    ) = registerDirectional(T::class, factory, configure, visual)
 
     /**
      * Registers game-defined states for an entity type.
@@ -317,11 +362,13 @@ class EntityRegistry internal constructor(
     fun <T : Entity> registerStateful(
         type: KClass<T>,
         stateFor: (WorldEntity) -> VisualStateId,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {},
         states: EntityStatefulVisualBuilder.() -> Unit
     ) = registerStateful(
         type,
         { runtime, _ -> stateFor(runtime) },
+        factory,
         configure,
         states
     )
@@ -329,6 +376,7 @@ class EntityRegistry internal constructor(
     fun <T : Entity> registerStateful(
         type: KClass<T>,
         stateFor: (WorldEntity, T) -> VisualStateId,
+        factory: (() -> T)? = null,
         configure: EntitySpriteSettings.() -> Unit = {},
         states: EntityStatefulVisualBuilder.() -> Unit
     ) {
@@ -347,21 +395,24 @@ class EntityRegistry internal constructor(
                     stateFor(runtime, type.java.cast(runtime.entity))
                 }
             ),
+            factory = factory,
             configure = configure
         )
     }
 
     inline fun <reified T : Entity> registerStateful(
         noinline stateFor: (WorldEntity) -> VisualStateId,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {},
         noinline states: EntityStatefulVisualBuilder.() -> Unit
-    ) = registerStateful(T::class, stateFor, configure, states)
+    ) = registerStateful(T::class, stateFor, factory, configure, states)
 
     inline fun <reified T : Entity> registerStateful(
         noinline stateFor: (WorldEntity, T) -> VisualStateId,
+        noinline factory: (() -> T)? = null,
         noinline configure: EntitySpriteSettings.() -> Unit = {},
         noinline states: EntityStatefulVisualBuilder.() -> Unit
-    ) = registerStateful(T::class, stateFor, configure, states)
+    ) = registerStateful(T::class, stateFor, factory, configure, states)
 
     internal fun prepare() {
         val preparedAtlasMasks = loadAtlasAlphaMasks(
@@ -429,6 +480,7 @@ class EntityRegistry internal constructor(
     private fun <T : Entity> registerDefinition(
         type: KClass<T>,
         definition: VisualDefinition<WorldEntity, EntitySpriteDefinition>,
+        factory: (() -> T)?,
         configure: EntitySpriteSettings.() -> Unit
     ) {
         check(registrationOpen) {
@@ -443,7 +495,7 @@ class EntityRegistry internal constructor(
         val sources = definition.sources().flatMap(EntitySpriteDefinition::sources)
         sources.flatMap(SpriteSource::texturePaths).distinct().forEach(queueTexture)
         sources.flatMap(SpriteSource::atlasPaths).distinct().forEach(queueAtlas)
-        registrations[type] = EntityEntry(type, definition, settings)
+        registrations[type] = EntityEntry(type, definition, factory, settings)
     }
 
     private fun resolvePath(path: String): String {

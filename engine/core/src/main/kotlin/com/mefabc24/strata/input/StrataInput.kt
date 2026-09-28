@@ -5,12 +5,14 @@ import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.InputProcessor
 
 /**
- * Routes optional UI processors before an optional game-world processor.
+ * Routes debug UI, game UI, debug tools, and game-world input in that order.
  */
 class StrataInput(
     worldProcessor: InputProcessor? = null
 ) {
+    private val debugUiProcessors = mutableListOf<InputProcessor>()
     private val uiProcessors = mutableListOf<InputProcessor>()
+    private var debugWorldProcessor: InputProcessor? = null
     private var worldProcessor: InputProcessor? = null
 
     internal val processor: InputProcessor
@@ -32,8 +34,8 @@ class StrataInput(
             "This UI input processor is already registered."
         }
 
-        this.processor.addProcessor(uiProcessors.size, processor)
         uiProcessors += processor
+        rebuild()
     }
 
     /**
@@ -49,7 +51,39 @@ class StrataInput(
         if (index < 0) return false
 
         uiProcessors.removeAt(index)
-        this.processor.removeProcessor(index)
+        rebuild()
+        return true
+    }
+
+    /** Adds a debug UI processor at the highest input priority. */
+    fun addDebugUiProcessor(processor: InputProcessor) {
+        check(debugUiProcessors.none { it === processor }) {
+            "This debug UI input processor is already registered."
+        }
+        debugUiProcessors += processor
+        rebuild()
+    }
+
+    /** Removes a previously registered debug UI processor. */
+    fun removeDebugUiProcessor(processor: InputProcessor): Boolean {
+        val removed = debugUiProcessors.removeAll { it === processor }
+        if (removed) rebuild()
+        return removed
+    }
+
+    /** Installs the active debug world tool after UI and before game input. */
+    fun setDebugWorldProcessor(processor: InputProcessor) {
+        check(debugWorldProcessor == null) {
+            "A debug world input processor is already registered."
+        }
+        debugWorldProcessor = processor
+        rebuild()
+    }
+
+    fun removeDebugWorldProcessor(processor: InputProcessor): Boolean {
+        if (debugWorldProcessor !== processor) return false
+        debugWorldProcessor = null
+        rebuild()
         return true
     }
 
@@ -62,7 +96,7 @@ class StrataInput(
         }
 
         worldProcessor = processor
-        this.processor.addProcessor(processor)
+        rebuild()
     }
 
     /**
@@ -71,9 +105,17 @@ class StrataInput(
     fun removeWorldProcessor(processor: InputProcessor): Boolean {
         if (worldProcessor !== processor) return false
 
-        this.processor.removeProcessor(processor)
         worldProcessor = null
+        rebuild()
         return true
+    }
+
+    private fun rebuild() {
+        processor.clear()
+        debugUiProcessors.forEach(processor::addProcessor)
+        uiProcessors.forEach(processor::addProcessor)
+        debugWorldProcessor?.let(processor::addProcessor)
+        worldProcessor?.let(processor::addProcessor)
     }
 
     /** Installs this router as libGDX's active input processor. */

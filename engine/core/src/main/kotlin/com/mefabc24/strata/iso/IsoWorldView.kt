@@ -2,6 +2,9 @@ package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.math.Vector3
 import com.mefabc24.strata.camera.CameraBounds
 import com.mefabc24.strata.camera.CameraController
 import com.mefabc24.strata.camera.CameraViewport
@@ -12,11 +15,14 @@ import com.mefabc24.strata.render.IsoWorldRenderer
 import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.render.debug.IsoGridRenderer
 import com.mefabc24.strata.render.debug.IsoWorldDebugRenderer
+import com.mefabc24.strata.render.debug.IsoAdvancedDebugRenderer
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.camera.ZoomMode
 import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.EntityVisual
+import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.render.RenderStats
@@ -28,12 +34,14 @@ import com.mefabc24.strata.input.ControlsSettings
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
-import com.mefabc24.strata.scene.DebugGridSettings
-import com.mefabc24.strata.scene.DebugObjectSettings
-import com.mefabc24.strata.scene.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugGridSettings
+import com.mefabc24.strata.debug.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugEntitySettings
 import com.mefabc24.strata.world.TilePosition
-import com.mefabc24.strata.scene.DebugGridExtent
-import com.mefabc24.strata.scene.DebugGridRenderLayer
+import com.mefabc24.strata.debug.DebugGridExtent
+import com.mefabc24.strata.debug.DebugGridRenderLayer
+import com.mefabc24.strata.debug.DebugSettings
+import com.mefabc24.strata.render.RenderDebugSnapshot
 
 /**
  * Determines how placed objects are picked.
@@ -89,7 +97,8 @@ class IsoWorldView(
         (WorldEntity, Float) -> ResolvedEntityVisual?
     )? = null,
     debugObjectSettings: DebugObjectSettings = DebugObjectSettings(),
-    debugEntitySettings: DebugEntitySettings = DebugEntitySettings()
+    debugEntitySettings: DebugEntitySettings = DebugEntitySettings(),
+    private val debugSettings: DebugSettings? = null
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -121,7 +130,7 @@ class IsoWorldView(
 
     private var hoveredGridPosition: TilePosition? = null
 
-    internal var animationTime: Float = 0f
+    var animationTime: Float = 0f
         private set
 
     private val worldBounds = projection.worldBounds(
@@ -134,7 +143,13 @@ class IsoWorldView(
     private val worldRenderer = IsoWorldRenderer(
         projection = projection,
         objectSettings = renderingConfig.objects,
-        lighting = lighting
+        lighting = lighting,
+        collectDebugSnapshot = {
+            debugSettings?.let { settings ->
+                settings.picking.enabled || settings.renderOrder.enabled ||
+                    settings.culling.enabled
+            } ?: false
+        }
     )
 
     private val debugGridConfig = debugGridSettings
@@ -150,6 +165,14 @@ class IsoWorldView(
         entitySettings = debugEntitySettings,
         objectRenderingSettings = renderingConfig.objects
     )
+
+    private val advancedDebugRenderer = lazy {
+        IsoAdvancedDebugRenderer(
+            projection = projection,
+            settings = checkNotNull(debugSettings),
+            state = checkNotNull(debugSettings).worldState
+        )
+    }
 
     private val debugObjectVisualFor =
         { placed: PlacedObject, time: Float ->
@@ -172,6 +195,9 @@ class IsoWorldView(
      */
     val renderStats: RenderStats
         get() = worldRenderer.stats
+
+    val renderDebugSnapshot: RenderDebugSnapshot?
+        get() = worldRenderer.debugSnapshot
 
     private val cameraBounds = projection.worldBounds(
         width = world.width,
@@ -381,6 +407,21 @@ class IsoWorldView(
             objectVisualFor = debugObjectVisualFor,
             entityVisualFor = debugEntityVisualFor
         )
+
+        debugSettings?.let { settings ->
+            val state = settings.worldState
+            val active = state.inspection != null || state.pathStart != null ||
+                state.pathfinding != null || settings.picking.enabled ||
+                settings.renderOrder.enabled || settings.culling.enabled ||
+                settings.camera.enabled
+            if (active) {
+                advancedDebugRenderer.value.render(
+                    camera = camera,
+                    cameraSnapshot = cameraDebugSnapshot(),
+                    renderSnapshot = worldRenderer.debugSnapshot
+                )
+            }
+        }
     }
 
     fun resize(width: Int, height: Int) {
@@ -449,13 +490,101 @@ class IsoWorldView(
      */
     fun dispose() {
         try {
-            worldDebugRenderer.dispose()
+            if (advancedDebugRenderer.isInitialized()) {
+                advancedDebugRenderer.value.dispose()
+            }
         } finally {
             try {
-                gridRenderer.dispose()
+                worldDebugRenderer.dispose()
             } finally {
-                worldRenderer.dispose()
+                try {
+                    gridRenderer.dispose()
+                } finally {
+                    worldRenderer.dispose()
+                }
             }
         }
     }
+
+    /** Runs the real object and entity pickers with pixel diagnostics. */
+    fun pickingDebugSnapshot(
+        screenX: Float,
+        screenY: Float
+    ): PickingDebugSnapshot {
+        return PickingDebugSnapshot(
+            objectResult = objectPicker.diagnose(screenX, screenY),
+            entityResult = entityPicker.diagnose(screenX, screenY)
+        )
+    }
+
+    /** Projects screen coordinates into the renderer's world plane. */
+    fun screenToWorld(screenX: Float, screenY: Float): Vector2 {
+        val point = camera.unproject(Vector3(screenX, screenY, 0f))
+        return Vector2(point.x, point.y)
+    }
+
+    /** Returns the active object sprite bounds, when a visual is registered. */
+    fun objectSpriteBounds(placed: PlacedObject): Rectangle? {
+        val visual = debugObjectVisualFor(placed, animationTime) ?: return null
+        return IsoObjectBounds.calculate(
+            projection = projection,
+            placed = placed,
+            visual = visual,
+            result = Rectangle(),
+            objectSettings = renderingConfig.objects
+        )
+    }
+
+    /** Returns the active entity sprite bounds, when a visual is registered. */
+    fun entitySpriteBounds(entity: WorldEntity): Rectangle? {
+        val visual = debugEntityVisualFor(entity, animationTime) ?: return null
+        return IsoEntityBounds.calculate(
+            projection = projection,
+            entity = entity,
+            visual = visual,
+            result = Rectangle()
+        )
+    }
+
+    /** Current camera and authoritative renderer bounds for diagnostics. */
+    fun cameraDebugSnapshot(): CameraDebugSnapshot {
+        val width = camera.viewportWidth * camera.zoom
+        val height = camera.viewportHeight * camera.zoom
+        return CameraDebugSnapshot(
+            x = camera.position.x,
+            y = camera.position.y,
+            zoom = camera.zoom,
+            viewportWidth = camera.viewportWidth,
+            viewportHeight = camera.viewportHeight,
+            visibleArea = Rectangle(
+                camera.position.x - width / 2f,
+                camera.position.y - height / 2f,
+                width,
+                height
+            ),
+            worldBounds = Rectangle(worldBounds),
+            clampBounds = Rectangle(
+                cameraBounds.minX,
+                cameraBounds.minY,
+                cameraBounds.maxX - cameraBounds.minX,
+                cameraBounds.maxY - cameraBounds.minY
+            )
+        )
+    }
 }
+
+data class CameraDebugSnapshot(
+    val x: Float,
+    val y: Float,
+    val zoom: Float,
+    val viewportWidth: Float,
+    val viewportHeight: Float,
+    val visibleArea: Rectangle,
+    val worldBounds: Rectangle,
+    val clampBounds: Rectangle
+)
+
+data class PickingDebugSnapshot(
+    val objectResult: SpritePickDiagnostic<PlacedObject>,
+    val entityResult: SpritePickDiagnostic<WorldEntity>
+)

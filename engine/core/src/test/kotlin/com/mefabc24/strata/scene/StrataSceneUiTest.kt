@@ -1,6 +1,7 @@
 package com.mefabc24.strata.scene
 
 import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.Camera
@@ -106,6 +107,39 @@ class StrataSceneUiTest {
     }
 
     @Test
+    fun `enabled debug panel owns an independent automatic ui lifecycle`() {
+        val inputState = TestGdxEnvironment.install()
+        val stage = TrackingStage()
+        val scene = sceneWith(stage, configure = {
+            registrations {
+                terrain { register(Terrain.GRASS, "com/badlogic/gdx/utils/lsans-15.png") }
+            }
+            debug { panel { enabled = true } }
+        })
+
+        scene.attachWorld(
+            World(2, 2) { _, _ -> TestTile() },
+            terrainFor = { Terrain.GRASS }
+        )
+        assertTrue(inputState.inputProcessor === scene.input.processor)
+        assertTrue(scene.debug.panel.visible)
+        assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
+        assertFalse(scene.debug.panel.visible)
+
+        scene.update(0.1f)
+        scene.render()
+        scene.resize(900, 700)
+        assertEquals(listOf(0.1f), stage.actDeltas)
+        assertEquals(1, stage.drawCalls)
+        assertEquals(900, stage.viewport.screenWidth)
+        assertEquals(700, stage.viewport.screenHeight)
+
+        scene.dispose()
+        assertTrue(stage.disposed)
+        assertNull(inputState.inputProcessor)
+    }
+
+    @Test
     fun `scene coordinates world and ui layers together`() {
         val inputState = TestGdxEnvironment.install()
         val stage = TrackingStage()
@@ -187,7 +221,8 @@ class StrataSceneUiTest {
     private fun sceneWith(
         stage: Stage,
         worldViewFactory: SceneWorldViewFactory =
-            DefaultSceneWorldViewFactory
+            DefaultSceneWorldViewFactory,
+        configure: StrataScene.() -> Unit = {}
     ): StrataScene {
         return StrataScene(
             terrainDirectory = "",
@@ -200,7 +235,7 @@ class StrataSceneUiTest {
                 )
             },
             worldViewFactory = worldViewFactory,
-            configure = {}
+            configure = configure
         )
     }
 

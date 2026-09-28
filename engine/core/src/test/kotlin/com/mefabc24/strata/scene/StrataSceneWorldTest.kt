@@ -1,5 +1,9 @@
 package com.mefabc24.strata.scene
 
+import com.mefabc24.strata.debug.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugGridSettings
+import com.mefabc24.strata.debug.DebugObjectSettings
+
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.Color

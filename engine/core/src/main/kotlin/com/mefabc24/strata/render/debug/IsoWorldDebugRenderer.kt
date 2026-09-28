@@ -11,8 +11,8 @@ import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
-import com.mefabc24.strata.scene.DebugEntitySettings
-import com.mefabc24.strata.scene.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.world.EntityDirection
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.PlacedObject

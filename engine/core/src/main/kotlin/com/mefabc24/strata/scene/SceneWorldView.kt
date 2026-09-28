@@ -18,6 +18,10 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
+import com.mefabc24.strata.debug.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugGridSettings
+import com.mefabc24.strata.debug.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugSettings
 
 internal data class SceneWorldViewSpec(
     val world: World,
@@ -32,7 +36,8 @@ internal data class SceneWorldViewSpec(
     val lighting: Lighting,
     val debugGridSettings: DebugGridSettings,
     val debugObjectSettings: DebugObjectSettings,
-    val debugEntitySettings: DebugEntitySettings
+    val debugEntitySettings: DebugEntitySettings,
+    val debugSettings: DebugSettings? = null
 )
 
 internal interface SceneWorldView {
@@ -73,7 +78,8 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
                 lighting = spec.lighting,
                 debugGridSettings = spec.debugGridSettings,
                 debugObjectSettings = spec.debugObjectSettings,
-                debugEntitySettings = spec.debugEntitySettings
+                debugEntitySettings = spec.debugEntitySettings,
+                debugSettings = spec.debugSettings
             )
         )
     }

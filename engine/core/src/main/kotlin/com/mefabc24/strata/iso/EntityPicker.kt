@@ -32,9 +32,26 @@ class EntityPicker(
         return pickWorld(cursor.x, cursor.y)
     }
 
+    fun diagnose(screenX: Float, screenY: Float): SpritePickDiagnostic<WorldEntity> {
+        cursor.set(screenX, screenY, 0f)
+        camera.unproject(cursor)
+        var tested: WorldEntity? = null
+        var testedBounds: Rectangle? = null
+        var alphaAccepted: Boolean? = null
+        val picked = pickWorld(cursor.x, cursor.y) { item, itemBounds, accepted ->
+            if (tested == null) {
+                tested = item
+                testedBounds = Rectangle(itemBounds)
+                alphaAccepted = accepted
+            }
+        }
+        return SpritePickDiagnostic(picked, tested, testedBounds, alphaAccepted)
+    }
+
     internal fun pickWorld(
         worldX: Float,
-        worldY: Float
+        worldY: Float,
+        onSpriteTest: ((WorldEntity, Rectangle, Boolean?) -> Unit)? = null
     ): WorldEntity? {
         val currentAnimationTime = animationTime()
         val entities = orderedEntities?.invoke()
@@ -66,7 +83,8 @@ class EntityPicker(
             },
             alphaMaskFor = { visual: ResolvedEntityVisual ->
                 visual.frame.alphaMask
-            }
+            },
+            onSpriteTest = onSpriteTest
         )
     }
 }

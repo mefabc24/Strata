@@ -4,8 +4,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
-import com.mefabc24.strata.scene.DebugEntitySettings
-import com.mefabc24.strata.scene.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityDirection

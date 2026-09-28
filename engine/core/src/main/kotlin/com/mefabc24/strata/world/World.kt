@@ -2,6 +2,12 @@ package com.mefabc24.strata.world
 
 import java.util.Collections
 
+/** Engine-owned reason that a footprint cannot be placed in a world. */
+enum class WorldPlacementFailure {
+    FOOTPRINT_OUTSIDE_WORLD,
+    OCCUPIED_TILE
+}
+
 @Suppress("unused")
 class World(
     val width: Int,
@@ -81,13 +87,7 @@ class World(
         x: Int,
         y: Int
     ): Boolean {
-        return canPlaceObject(
-            PlacedObject(
-                placeable = placeable,
-                x = x,
-                y = y
-            )
-        )
+        return placementFailure(placeable, TilePosition(x, y)) == null
     }
 
     /**
@@ -119,10 +119,34 @@ class World(
     internal fun canPlaceObject(
         placedObject: PlacedObject
     ): Boolean {
-        return placedObject !in objects && placedObject.occupiedTiles().all { (x, y) ->
-            getTile(x, y) != null &&
-                    getObjectAt(x, y) == null
+        if (placedObject in objects) return false
+        return placementFailure(
+            placedObject.placeable,
+            TilePosition(placedObject.x, placedObject.y)
+        ) == null
+    }
+
+    /**
+     * Returns the first engine-owned placement failure, or null when the
+     * footprint is inside the world and unoccupied.
+     */
+    fun placementFailure(
+        placeable: Placeable,
+        position: TilePosition
+    ): WorldPlacementFailure? {
+        val occupied = PlacedObject(
+            placeable = placeable,
+            x = position.x,
+            y = position.y
+        ).occupiedTiles()
+
+        if (occupied.any { getTile(it) == null }) {
+            return WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD
         }
+        if (occupied.any { getObjectAt(it) != null }) {
+            return WorldPlacementFailure.OCCUPIED_TILE
+        }
+        return null
     }
 
     /**

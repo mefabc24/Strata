@@ -10,7 +10,7 @@ import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.entity.EntityRegistry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
-import com.mefabc24.strata.scene.DebugSettings
+import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.scene.StrataScene
 import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.terrain.TerrainId
@@ -138,6 +138,7 @@ class Strata : Disposable {
             terrainDirectory = spec.terrainDirectory,
             objectDirectory = spec.objectDirectory,
             entityDirectory = spec.entityDirectory,
+            simulation = simulation,
             configure = spec.configure
         )
     }

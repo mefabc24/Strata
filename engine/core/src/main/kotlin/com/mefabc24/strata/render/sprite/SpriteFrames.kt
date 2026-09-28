@@ -9,7 +9,9 @@ import com.badlogic.gdx.utils.Array
  */
 class SpriteFrames private constructor(
     private val frames: List<TextureRegion>,
-    private val animation: Animation<TextureRegion>?
+    private val animation: Animation<TextureRegion>?,
+    /** Duration of one animation frame, or null for a static sprite. */
+    val frameDuration: Float?
 ) {
     val frameCount: Int
         get() = frames.size
@@ -40,7 +42,8 @@ class SpriteFrames private constructor(
         fun static(texture: TextureRegion): SpriteFrames {
             return SpriteFrames(
                 frames = listOf(texture),
-                animation = null
+                animation = null,
+                frameDuration = null
             )
         }
 
@@ -74,7 +77,8 @@ class SpriteFrames private constructor(
                     frameDuration,
                     keyFrames,
                     Animation.PlayMode.LOOP
-                )
+                ),
+                frameDuration = frameDuration
             )
         }
 

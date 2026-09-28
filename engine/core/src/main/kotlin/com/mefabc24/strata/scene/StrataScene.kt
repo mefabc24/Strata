@@ -22,6 +22,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.terrain.TerrainId
+import com.mefabc24.strata.debug.DebugSettings
+import com.mefabc24.strata.debug.DebugRuntime
+import com.mefabc24.strata.debug.ui.DebugPanelSkin
+import com.mefabc24.strata.simulation.SimulationController
 
 internal fun interface StrataUiFactory {
     fun create(
@@ -44,6 +48,7 @@ class StrataScene private constructor(
     terrainDirectory: String,
     objectDirectory: String,
     entityDirectory: String,
+    private val simulation: SimulationController,
     configure: StrataScene.() -> Unit,
     private val uiFactory: StrataUiFactory,
     private val worldViewFactory: SceneWorldViewFactory
@@ -53,11 +58,13 @@ class StrataScene private constructor(
         terrainDirectory: String,
         objectDirectory: String,
         entityDirectory: String = objectDirectory,
+        simulation: SimulationController = SimulationController(),
         configure: StrataScene.() -> Unit
     ) : this(
         terrainDirectory,
         objectDirectory,
         entityDirectory,
+        simulation,
         configure,
         StrataUiFactory { skin, theme ->
             StrataUi(
@@ -72,6 +79,7 @@ class StrataScene private constructor(
         terrainDirectory: String,
         objectDirectory: String,
         entityDirectory: String = objectDirectory,
+        simulation: SimulationController = SimulationController(),
         uiFactory: StrataUiFactory,
         worldViewFactory: SceneWorldViewFactory = DefaultSceneWorldViewFactory,
         configure: StrataScene.() -> Unit
@@ -79,6 +87,7 @@ class StrataScene private constructor(
         terrainDirectory,
         objectDirectory,
         entityDirectory,
+        simulation,
         configure,
         uiFactory,
         worldViewFactory
@@ -138,6 +147,7 @@ class StrataScene private constructor(
     private var attachedView: SceneWorldView? = null
     private var attachedPlacement: PlacementController? = null
     private var attachedUi: StrataUi? = null
+    private var attachedDebug: DebugRuntime? = null
 
     private val sceneInput = StrataInput()
     private var inputInstalled = false
@@ -326,7 +336,8 @@ class StrataScene private constructor(
                 lighting = lighting,
                 debugGridSettings = debug.grid,
                 debugObjectSettings = debug.objects,
-                debugEntitySettings = debug.entities
+                debugEntitySettings = debug.entities,
+                debugSettings = debug
             )
         )
 
@@ -337,6 +348,61 @@ class StrataScene private constructor(
             view = view,
             placement = placement
         )
+
+        if (debug.panel.enabled) {
+            attachDebugRuntime(
+                world = world,
+                view = checkNotNull(view.publicView) {
+                    "The built-in debug panel requires an IsoWorldView."
+                },
+                terrainFor = terrainFor
+            )
+        }
+    }
+
+    private fun attachDebugRuntime(
+        world: World,
+        view: IsoWorldView,
+        terrainFor: (Tile) -> TerrainId
+    ) {
+        check(attachedDebug == null) { "A debug runtime is already attached." }
+        val skin = DebugPanelSkin.create()
+        val ui = try {
+            uiFactory.create(skin, DebugPanelSkin.theme())
+        } catch (failure: Throwable) {
+            skin.dispose()
+            throw failure
+        }
+        val runtime = try {
+            DebugRuntime(
+                settings = debug,
+                ui = ui,
+                skin = skin,
+                world = world,
+                view = view,
+                terrain = terrain,
+                objects = objects,
+                entities = entities,
+                placement = attachedPlacement,
+                simulation = simulation,
+                terrainFor = terrainFor
+            )
+        } catch (failure: Throwable) {
+            try { ui.dispose() } finally { skin.dispose() }
+            throw failure
+        }
+
+        try {
+            sceneInput.addDebugUiProcessor(runtime.uiInputProcessor)
+            sceneInput.setDebugWorldProcessor(runtime.worldInputProcessor)
+            installInputIfNeeded()
+        } catch (failure: Throwable) {
+            sceneInput.removeDebugUiProcessor(runtime.uiInputProcessor)
+            sceneInput.removeDebugWorldProcessor(runtime.worldInputProcessor)
+            runtime.dispose()
+            throw failure
+        }
+        attachedDebug = runtime
     }
 
     /**
@@ -468,6 +534,7 @@ class StrataScene private constructor(
         }
 
         attachedUi?.update(realDelta)
+        attachedDebug?.update(realDelta)
     }
 
     /**
@@ -487,6 +554,7 @@ class StrataScene private constructor(
         }
 
         attachedUi?.render()
+        attachedDebug?.render()
     }
 
     /** Resizes every attached layer. */
@@ -506,6 +574,8 @@ class StrataScene private constructor(
             width,
             height
         )
+
+        attachedDebug?.resize(width, height)
     }
 
     private fun checkActive() {
@@ -538,15 +608,19 @@ class StrataScene private constructor(
             sceneInput.uninstall()
         } finally {
             try {
-                attachedUi?.dispose()
+                attachedDebug?.dispose()
             } finally {
                 try {
-                    attachedView?.dispose()
+                    attachedUi?.dispose()
                 } finally {
                     try {
-                        audio.dispose()
+                        attachedView?.dispose()
                     } finally {
-                        assets.dispose()
+                        try {
+                            audio.dispose()
+                        } finally {
+                            assets.dispose()
+                        }
                     }
                 }
             }

@@ -9,6 +9,7 @@ import com.mefabc24.strata.world.EntityDirection
 
 internal fun EntityRegistry.registerSandboxEntities() {
     registerStateful<Wolf>(
+        factory = ::Wolf,
         stateFor = { entity ->
             if (entity.isMoving) {
                 WolfState.WALK
@@ -44,6 +45,7 @@ internal fun EntityRegistry.registerSandboxEntities() {
     }
 
     registerStateful<Boar>(
+        factory = ::Boar,
         stateFor = { entity ->
             if (entity.isMoving) {
                 BoarState.WALK

@@ -21,6 +21,45 @@ fun World.findPath(
     goal: TilePosition,
     canEnter: (TilePosition) -> Boolean = { true }
 ): List<TilePosition>? {
+    return findPathInternal(start, goal, canEnter, null)
+}
+
+/** Diagnostic pathfinding output collected only for explicit debug searches. */
+data class PathfindingDiagnosticResult(
+    val start: TilePosition,
+    val goal: TilePosition,
+    val path: List<TilePosition>?,
+    val explored: List<TilePosition>,
+    val durationNanos: Long
+) {
+    val success: Boolean
+        get() = path != null
+}
+
+/** Runs the normal pathfinder while collecting explored nodes and timing. */
+fun World.findPathDiagnostic(
+    start: TilePosition,
+    goal: TilePosition,
+    canEnter: (TilePosition) -> Boolean = { true }
+): PathfindingDiagnosticResult {
+    val explored = mutableListOf<TilePosition>()
+    val started = System.nanoTime()
+    val path = findPathInternal(start, goal, canEnter, explored)
+    return PathfindingDiagnosticResult(
+        start = start,
+        goal = goal,
+        path = path,
+        explored = explored,
+        durationNanos = System.nanoTime() - started
+    )
+}
+
+private fun World.findPathInternal(
+    start: TilePosition,
+    goal: TilePosition,
+    canEnter: (TilePosition) -> Boolean,
+    explored: MutableList<TilePosition>?
+): List<TilePosition>? {
     require(contains(start)) {
         "Start position $start is outside the world."
     }
@@ -72,6 +111,7 @@ fun World.findPath(
         if (!closed.add(current)) {
             continue
         }
+        explored?.add(current)
 
         if (current == goal) {
             return reconstructPath(

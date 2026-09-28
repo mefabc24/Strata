@@ -1,12 +1,12 @@
 package com.mefabc24.strata.render.debug
 
-import com.mefabc24.strata.scene.DebugGridSettings
+import com.mefabc24.strata.debug.DebugGridSettings
+import com.mefabc24.strata.debug.DebugGridExtent
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.mefabc24.strata.iso.IsoProjection
-import com.mefabc24.strata.scene.DebugGridExtent
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 
