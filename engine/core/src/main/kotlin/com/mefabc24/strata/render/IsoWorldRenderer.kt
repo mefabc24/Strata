@@ -32,7 +32,7 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
 
 /**
- * Renders terrain and world objects in isometric depth order.
+ * Renders flat terrain first, followed by depth-ordered world content.
  */
 class IsoWorldRenderer(
     private val projection: IsoProjection,
@@ -124,26 +124,20 @@ class IsoWorldRenderer(
         )
 
         val overlayIds = world.overlayLayerIds
+
         batch.begin()
 
-        val renderPlan = WorldRenderPlan.withPreviews(
-            normalItems = normalRenderPlan,
-            previews = previews
+        renderTerrain(
+            world = world,
+            terrainDepths = terrainDepths,
+            overlayIds = overlayIds,
+            textureFor = textureFor,
+            animationTime = animationTime
         )
 
-        for (item in renderPlan) {
+        for (item in normalRenderPlan) {
             when (item) {
-                is TerrainCell -> {
-                    if (item.x + item.y !in terrainDepths) continue
-
-                    renderCell(
-                        world = world,
-                        item = item,
-                        overlayIds = overlayIds,
-                        textureFor = textureFor,
-                        animationTime = animationTime
-                    )
-                }
+                is TerrainCell -> Unit
 
                 is WorldObjectPrimitive -> {
                     renderObject(
@@ -152,7 +146,11 @@ class IsoWorldRenderer(
                             item.placedObject,
                             animationTime
                         ) ?: objectVisualFor(item.placedObject)?.let {
-                            ResolvedObjectVisual(it, animationTime, null)
+                            ResolvedObjectVisual(
+                                it,
+                                animationTime,
+                                null
+                            )
                         },
                         preview = null
                     )
@@ -165,24 +163,32 @@ class IsoWorldRenderer(
                             item.worldEntity,
                             animationTime
                         ) ?: entityVisualFor(item.worldEntity)?.let {
-                            ResolvedEntityVisual(it, animationTime, null)
+                            ResolvedEntityVisual(
+                                it,
+                                animationTime,
+                                null
+                            )
                         }
                     )
                 }
-
-                is PreviewRenderItem -> {
-                    renderObject(
-                        placed = item.preview.placedObject,
-                        visual = resolvedObjectVisualFor?.invoke(
-                            item.preview.placedObject,
-                            animationTime
-                        ) ?: objectVisualFor(item.preview.placedObject)?.let {
-                            ResolvedObjectVisual(it, animationTime, null)
-                        },
-                        preview = item.preview
-                    )
-                }
             }
+        }
+
+        for (preview in previews) {
+            renderObject(
+                placed = preview.placedObject,
+                visual = resolvedObjectVisualFor?.invoke(
+                    preview.placedObject,
+                    animationTime
+                ) ?: objectVisualFor(preview.placedObject)?.let {
+                    ResolvedObjectVisual(
+                        it,
+                        animationTime,
+                        null
+                    )
+                },
+                preview = preview
+            )
         }
 
         batch.end()
@@ -279,21 +285,54 @@ class IsoWorldRenderer(
         if (recordStats) stats.entitiesDrawn++
     }
 
+    private fun renderTerrain(
+        world: World,
+        terrainDepths: IntRange,
+        overlayIds: List<String>,
+        textureFor: (Tile, Float) -> TextureRegion?,
+        animationTime: Float
+    ) {
+        for (depth in terrainDepths) {
+            val minX = maxOf(
+                0,
+                depth - world.height + 1
+            )
+            val maxX = minOf(
+                world.width - 1,
+                depth
+            )
+
+            for (x in minX..maxX) {
+                val y = depth - x
+
+                renderCell(
+                    world = world,
+                    x = x,
+                    y = y,
+                    overlayIds = overlayIds,
+                    textureFor = textureFor,
+                    animationTime = animationTime
+                )
+            }
+        }
+    }
+
     private fun renderCell(
         world: World,
-        item: TerrainCell,
+        x: Int,
+        y: Int,
         overlayIds: List<String>,
         textureFor: (Tile, Float) -> TextureRegion?,
         animationTime: Float
     ) {
         stats.terrainChecked++
 
-        world.getTile(item.x, item.y)
+        world.getTile(x, y)
             ?.let { textureFor(it, animationTime) }
             ?.let { texture ->
                 renderTerrainSprite(
-                    x = item.x,
-                    y = item.y,
+                    x = x,
+                    y = y,
                     texture = texture
                 )
             }
@@ -301,12 +340,12 @@ class IsoWorldRenderer(
         for (layerId in overlayIds) {
             stats.terrainChecked++
 
-            world.getOverlayTile(layerId, item.x, item.y)
+            world.getOverlayTile(layerId, x, y)
                 ?.let { textureFor(it, animationTime) }
                 ?.let { texture ->
                     renderTerrainSprite(
-                        x = item.x,
-                        y = item.y,
+                        x = x,
+                        y = y,
                         texture = texture
                     )
                 }
