@@ -34,14 +34,22 @@ class DebugPerformanceOverlayTest {
         val state = DebugStatsOverlayState()
         state.sync(false, false)
         assertFalse(state.visible)
+        assertEquals(emptyList(), state.visibleSections)
         state.sync(true, false)
         assertTrue(state.visible)
         assertTrue(state.performanceVisible)
         assertFalse(state.worldVisible)
+        assertEquals(listOf(DebugStatsSection.PERFORMANCE), state.visibleSections)
         state.sync(false, true)
         assertFalse(state.performanceVisible)
         assertTrue(state.worldVisible)
         assertTrue(state.worldBecameVisible)
+        assertEquals(listOf(DebugStatsSection.WORLD), state.visibleSections)
+        state.sync(true, true)
+        assertEquals(
+            listOf(DebugStatsSection.PERFORMANCE, DebugStatsSection.WORLD),
+            state.visibleSections
+        )
         state.sync(false, false)
         assertFalse(state.visible)
         assertFalse(state.worldVisible)

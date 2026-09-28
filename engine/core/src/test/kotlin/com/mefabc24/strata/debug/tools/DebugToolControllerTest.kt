@@ -3,6 +3,7 @@ package com.mefabc24.strata.debug.tools
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.debug.DebugToolMode
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.inspector.DebugInspector
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.terrain.TerrainId
@@ -13,6 +14,7 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -54,6 +56,34 @@ class DebugToolControllerTest {
         assertFalse(painter.dragPaint(1, 0))
         assertFalse(placement.enabled)
         assertSame(gameFactory, placement.selectedFactory)
+    }
+
+    @Test
+    fun `inspection highlight follows mode without clearing selection`() {
+        val world = World(2, 2) { _, _ -> TestTile }
+        val state = DebugWorldState()
+        val inspector = DebugInspector(state)
+        val painter = DebugTerrainPainter(world, emptyList())
+        val tools = DebugToolController(
+            painter = painter,
+            placement = null,
+            buildDrag = null,
+            inspector = inspector,
+            pathfinding = DebugPathfindingTool(world, state)
+        )
+        val selected = TilePosition(1, 1)
+        inspector.selectFrontmost(null, null, selected)
+
+        tools.select(DebugToolMode.INSPECT)
+        assertTrue(inspector.highlightVisible)
+
+        tools.select(DebugToolMode.NONE)
+        assertFalse(inspector.highlightVisible)
+        assertEquals(selected, (inspector.selection as DebugInspection.TileTarget).position)
+
+        tools.select(DebugToolMode.INSPECT)
+        assertTrue(inspector.highlightVisible)
+        assertEquals(selected, (inspector.selection as DebugInspection.TileTarget).position)
     }
 
     private fun objectEntryFor(world: World): com.mefabc24.strata.render.`object`.ObjectEntry {

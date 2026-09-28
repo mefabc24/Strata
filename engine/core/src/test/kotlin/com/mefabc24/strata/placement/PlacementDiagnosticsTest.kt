@@ -47,4 +47,19 @@ class PlacementDiagnosticsTest {
         assertEquals(controller.previews.size, controller.previewDiagnostics.size)
         assertTrue(controller.previewDiagnostics.first().valid)
     }
+
+    @Test
+    fun `current diagnostic remains available when an outside preview is hidden`() {
+        val controller = PlacementController(World(2, 2) { _, _ -> TestTile }).apply {
+            selectedFactory = { TestObject(Footprint.square(2)) }
+        }
+
+        controller.update(TilePosition(1, 1))
+
+        assertTrue(controller.previews.isEmpty())
+        assertEquals(
+            PlacementFailureReason.FOOTPRINT_OUTSIDE_WORLD,
+            controller.currentDiagnostic?.reason
+        )
+    }
 }
