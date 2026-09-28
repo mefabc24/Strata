@@ -12,7 +12,6 @@ import com.mefabc24.strata.world.World
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.iso.TileGeometry
-import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
 
 class SandboxGame : StrataGame() {
@@ -55,25 +54,6 @@ class SandboxGame : StrataGame() {
                     setCategoryVolume(
                         SoundCategory.BUILDING,
                         1f
-                    )
-                }
-
-                lighting {
-                    enabled = true
-                    ambientIntensity = 0.32f
-                    ambientColor = Color(0.62f, 0.72f, 1f, 1f)
-
-                    addPointLight(
-                        position = EntityPosition(6.5f, 6.5f),
-                        radius = 7f,
-                        intensity = 1.15f,
-                        color = Color(1f, 0.72f, 0.32f, 1f)
-                    )
-                    addPointLight(
-                        position = EntityPosition(24.5f, 24.5f),
-                        radius = 8.5f,
-                        intensity = 1.05f,
-                        color = Color(1f, 0.42f, 0.18f, 1f)
                     )
                 }
 
@@ -236,8 +216,6 @@ class SandboxGame : StrataGame() {
                 toolController = tools,
                 entitySpawner = entitySpawner,
                 debugSettings = strata.debug,
-                lighting = strata.lighting,
-                demoLights = strata.lighting.pointLights,
                 simulation = strata.simulation,
                 renderStats = { strata.view.renderStats },
                 terrainEntries = strata.terrain.entries,
