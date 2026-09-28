@@ -121,4 +121,3 @@ Layer IDs must be non-blank and unique. Layers render in insertion order after t
 `strata.terrain.entries` returns entries in registration order. `TerrainEntry.texture` and `sprite` are valid only for a single-visual registration; stateful terrain must be resolved with a runtime tile. Registrations are already prepared by `onReady()` and cannot be added after scene setup.
 
 See [Assets](Assets.md), [World and Coordinates](World-and-Coordinates.md), and [Visuals and Animation](Visuals-and-Animation.md).
-

@@ -65,4 +65,3 @@ flowchart LR
 Keep the returned `WorldEntity` when a controller needs to command or inspect that specific runtime instance. Do not try to cast it to the game entity; use `runtimeWolf.entity as Wolf` when the typed data is needed.
 
 See [Movement and Pathfinding](Movement-and-Pathfinding.md), [Visuals and Animation](Visuals-and-Animation.md), and [Input and Picking](Input-and-Picking.md).
-

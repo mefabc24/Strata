@@ -89,4 +89,3 @@ strata.audio.stopMusic()
 Starting music stops the previous track. Its effective volume is `masterVolume × musicVolume × per-track volume`; sound categories do not apply. The scene stops playback and disposes loaded audio assets during disposal.
 
 See [Assets](Assets.md) and [Configuration](Configuration.md).
-

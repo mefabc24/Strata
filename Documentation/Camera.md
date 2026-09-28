@@ -72,4 +72,3 @@ Scrolling changes `camera.zoom` by `amountY * zoomSpeed`. Smaller zoom values sh
 `StrataGame.resize` forwards to the view automatically. Non-positive sizes are ignored.
 
 See [World and Coordinates](World-and-Coordinates.md) and [Rendering](Rendering.md).
-

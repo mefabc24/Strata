@@ -74,4 +74,3 @@ The Sandbox's `SandboxBuildDragController` is an example of game-side policy. It
 Interactive placement normally combines a `Tile` mouse-down binding with `Grid` drag/up bindings. `Tile` ensures the gesture begins inside the world. `Grid` lets the game finish or update a drag even when the pointer leaves it. Tool controllers should cancel explicit previews when leaving build mode.
 
 See [Objects](Objects.md) and [Input and Picking](Input-and-Picking.md).
-

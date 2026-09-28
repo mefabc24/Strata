@@ -36,4 +36,3 @@ This guide is for developers building a game on the current `dev` implementation
 - [Troubleshooting](Troubleshooting.md) — symptoms, likely causes, and fixes
 
 The fastest route for a first project is **Getting Started → Configuration → World and Coordinates → Terrain**, followed by Objects or Entities depending on the game. Read Architecture before adding game rules so engine-owned spatial state stays separate from game-owned behavior.
-

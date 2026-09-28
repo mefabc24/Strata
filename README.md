@@ -24,4 +24,3 @@ Start with the [documentation guide](Documentation/README.md), or go directly to
 The guide covers architecture and lifecycle, configuration, assets, coordinates, terrain, objects, placement, entities, movement, animation, input and picking, camera, rendering, audio, debugging, UI, practical recipes, and troubleshooting. It documents the current `dev` implementation; KDoc remains the low-level API reference.
 
 Atlas generation is documented separately in the [texture-atlas tools README](engine/tools/README.md).
-

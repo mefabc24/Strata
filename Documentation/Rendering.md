@@ -54,11 +54,11 @@ Because object and entity defaults differ, set explicit world-unit dimensions wh
 
 ## Layers and order
 
-For a terrain cell, Strata draws ground first and overlay layers in `World.overlayLayerIds` order. Terrain cells, placed objects, entities, and previews participate in an isometric back-to-front plan based on logical spatial bounds. This lets tall sprites overlap nearby content consistently without game code assigning manual depth values.
+Strata renders visible terrain first, walking isometric depth rows. For each terrain cell it draws the ground and then the overlay layers in `World.overlayLayerIds` order. Terrain is a flat base pass; even when authored terrain art extends above its logical height, it is not depth-interleaved with objects or entities.
 
-Entities use continuous point-like sort positions; placed objects use their footprint extents. Stable fallback keys make ambiguous relationships deterministic. These ordering helpers are internal and are not a game API.
+After the terrain pass, placed objects and entities use an isometric back-to-front plan based on logical spatial bounds. Entities use continuous point-like sort positions; placed objects use their footprint extents. Stable fallback keys make ambiguous relationships deterministic. These ordering helpers are internal and are not a game API.
 
-Placement previews use the selected object's active visual and tint it with the valid/invalid `PlacementPreviewStyle` color. Animation frame resolution occurs during the render using scene time, game state, and entity direction.
+Placement previews render after normal objects and entities, in the order supplied by the placement controller. They use the selected object's active visual and tint it with the valid/invalid `PlacementPreviewStyle` color. Animation frame resolution occurs during the render using scene time, game state, and entity direction.
 
 The debug grid may appear above objects or be followed by a redraw of objects/entities/previews for `BELOW_OBJECTS`. Object/entity diagnostics render after the normal world and grid. UI always renders after the world.
 
@@ -71,4 +71,3 @@ The debug grid may appear above objects or be followed by a redraw of objects/en
 - Object visual settings never alter collision/occupancy; entity visuals never create a footprint.
 
 See [Assets](Assets.md), [Visuals and Animation](Visuals-and-Animation.md), and [Debugging](Debugging.md).
-

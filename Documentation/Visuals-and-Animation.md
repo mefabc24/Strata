@@ -110,6 +110,9 @@ enum class WolfState : VisualStateId { IDLE, WALK }
 registerStateful<Wolf>(
     stateFor = { entity ->
         if (entity.isMoving) WolfState.WALK else WolfState.IDLE
+    },
+    configure = {
+        offsetY = -24f
     }
 ) {
     state(WolfState.IDLE) {
@@ -152,4 +155,3 @@ Within `EntityStatefulVisualBuilder.state`, a state may define one non-direction
 `TerrainEntry.sprite`, `ObjectEntry.visual`, and `EntityEntry.visual` are single-visual conveniences. They reject stateful registrations; the entity convenience also rejects directional registrations. Runtime rendering uses the appropriate `resolve(...)` path. Game UI should use `ObjectEntry.selectionVisual` for constructible object choices.
 
 See [Rendering](Rendering.md), [Objects](Objects.md), and [Entities](Entities.md).
-

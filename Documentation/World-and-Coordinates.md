@@ -80,4 +80,3 @@ world.forEachTile { position, tile -> /* ... */ }
 The camera derives bounds from the finite world, configured padding, logical tile geometry, and the maximum terrain sprite height. Logical grid picking can still return coordinates beyond those bounds when the cursor projects there; this is useful for finishing drag interactions outside the world.
 
 See [Terrain](Terrain.md), [Objects](Objects.md), [Entities](Entities.md), and [Input and Picking](Input-and-Picking.md).
-

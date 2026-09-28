@@ -70,4 +70,3 @@ Strata moves along a provided route. It does not choose goals, retry failed path
 If world occupancy changes while an entity is already following a route, Strata does not revalidate it. A game that needs dynamic avoidance should cancel or replace routes.
 
 See [Entities](Entities.md) and [Debugging](Debugging.md).
-

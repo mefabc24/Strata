@@ -183,4 +183,3 @@
 **Likely cause:** `ZoomMode.WORLD_BASED` derives the limit from world bounds, viewport, and `worldFill`.
 
 **Fix:** Use `ZoomMode.FIXED` when `maxZoom` must be the explicit limit, or tune `worldFill` for world-based fitting.
-

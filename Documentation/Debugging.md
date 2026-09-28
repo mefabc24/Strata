@@ -86,4 +86,3 @@ All four setting objects are shared with the attached renderers rather than copi
 Debug output diagnoses engine spatial/render state. It does not display game-specific AI, economy, or semantic visual state unless the game builds that UI/logging itself.
 
 See [Rendering](Rendering.md), [Objects](Objects.md), and [Entities](Entities.md).
-

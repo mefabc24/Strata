@@ -130,4 +130,3 @@ After creation, call `strata.audio.playMusic("audio/ambient.mp3")`. See [Audio](
 `StrataAssets` deduplicates the same path/type. Reusing a path for a different asset type fails. Lookups require the requested asset to have been queued and loaded. The normal scene workflow is synchronous: there is no loading-screen hook between registration and preparation in `StrataScene`.
 
 The scene owns and disposes its loaded textures, atlases, sounds, and music. Do not dispose registry textures or visuals yourself.
-

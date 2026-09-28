@@ -109,4 +109,3 @@ world.remove(placed)
 Footprint picking checks the tile under the pointer and then `getObjectAt`. Sprite-alpha picking checks the current visual's rendered bounds and alpha mask. `SPRITE_OR_FOOTPRINT` tries the sprite first, then the footprint. Visual offsets and size settings therefore affect sprite picking but never logical occupancy.
 
 See [Placement](Placement.md), [Rendering](Rendering.md), and [Input and Picking](Input-and-Picking.md).
-

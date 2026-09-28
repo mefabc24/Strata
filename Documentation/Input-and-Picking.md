@@ -144,4 +144,3 @@ val entity: WorldEntity? = strata.view.pickEntity(
 Sprite picking walks the current front-to-back render order, checks rendered bounds, and uses the alpha mask for the active state, direction, and animation frame. Alpha values of at least 16/255 count as solid. Missing visuals cannot be sprite-picked. Object `FOOTPRINT` remains available even if no visual is registered.
 
 See [World and Coordinates](World-and-Coordinates.md), [Placement](Placement.md), and [Assets](Assets.md).
-

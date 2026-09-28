@@ -135,4 +135,3 @@ Game code may call `group.select(value)` directly. Callbacks fire only on subseq
 `SandboxUi` is application code. It uses engine primitives to build tool tabs, catalogs from terrain/object registry entries, and live debug controls. Its concrete toolbar, modes, labels, and sync policy are examples, not reusable Strata API.
 
 See [Input and Picking](Input-and-Picking.md) and [Debugging](Debugging.md).
-

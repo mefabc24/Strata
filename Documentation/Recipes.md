@@ -357,4 +357,3 @@ strata.debug.entities.apply {
 ```
 
 These settings are live; no world reattachment is required.
-
