@@ -145,7 +145,8 @@ internal data class SandboxPerformanceSnapshot(
     val renderMs: Double,
     val dynamicPlanMs: Double,
     val drawCalls: Int,
-    val terrainDrawn: Int,
+    val groundTerrainDrawn: Int,
+    val overlayTerrainDrawn: Int,
     val terrainChecked: Int,
     val objectsDrawn: Int,
     val objectsChecked: Int,
@@ -179,9 +180,11 @@ internal data class SandboxPerformanceSnapshot(
 
         append("\nDraw calls: ")
         append(drawCalls)
-        append("\n\nTerrain: ")
-        append(terrainDrawn)
-        append('/')
+        append("\n\nGround: ")
+        append(groundTerrainDrawn)
+        append("\nOverlays: ")
+        append(overlayTerrainDrawn)
+        append("\nChecks: ")
         append(terrainChecked)
         append("\nObjects: ")
         append(objectsDrawn)
@@ -207,7 +210,8 @@ internal data class SandboxPerformanceSnapshot(
             renderMs = stats.cpuRenderMs,
             dynamicPlanMs = stats.dynamicPlanMs,
             drawCalls = stats.drawCalls,
-            terrainDrawn = stats.terrainDrawn,
+            groundTerrainDrawn = stats.groundTerrainDrawn,
+            overlayTerrainDrawn = stats.overlayTerrainDrawn,
             terrainChecked = stats.terrainChecked,
             objectsDrawn = stats.objectsDrawn,
             objectsChecked = stats.objectsChecked,

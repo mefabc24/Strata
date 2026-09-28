@@ -56,8 +56,9 @@ class SandboxPerformanceOverlayTest {
             renderMs = 0.416,
             dynamicPlanMs = 0.054,
             drawCalls = 12,
-            terrainDrawn = 320,
-            terrainChecked = 2500,
+            groundTerrainDrawn = 2500,
+            overlayTerrainDrawn = 9,
+            terrainChecked = 5000,
             objectsDrawn = 18,
             objectsChecked = 24,
             entitiesDrawn = 7,
@@ -77,7 +78,9 @@ class SandboxPerformanceOverlayTest {
             Static updates: 1
             Draw calls: 12
 
-            Terrain: 320/2500
+            Ground: 2500
+            Overlays: 9
+            Checks: 5000
             Objects: 18/24
             Entities: 7/7
             Previews: 0
@@ -94,8 +97,9 @@ class SandboxPerformanceOverlayTest {
             renderMs = 0.4,
             dynamicPlanMs = 0.05,
             drawCalls = 12,
-            terrainDrawn = 320,
-            terrainChecked = 2500,
+            groundTerrainDrawn = 2500,
+            overlayTerrainDrawn = 9,
+            terrainChecked = 5000,
             objectsDrawn = 18,
             objectsChecked = 24,
             entitiesDrawn = 7,
