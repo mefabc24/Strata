@@ -86,6 +86,10 @@ class IsoWorldRenderer(
         )? = null
     ) {
         stats.reset()
+        stats.groundTerrainTotal = world.groundTileCount
+        stats.overlayTerrainTotal = world.overlayTileCount
+        stats.objectsTotal = world.placedObjectCount
+        stats.entitiesTotal = world.entityCount
 
         val renderStartNanos = System.nanoTime()
 

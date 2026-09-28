@@ -24,6 +24,7 @@ class WorldTest {
         assertEquals(2, world.height)
         assertEquals(TestTile(0), world.getTile(0, 0))
         assertEquals(TestTile(5), world.getTile(2, 1))
+        assertEquals(6, world.groundTileCount)
     }
 
     @Test
@@ -94,6 +95,8 @@ class WorldTest {
         world.setOverlayTile("infrastructure", 1, 1, TestTile(1))
         world.setOverlayTile("decoration", 1, 1, TestTile(2))
 
+        assertEquals(2, world.overlayTileCount)
+
         assertEquals(TestTile(0), world.getTile(1, 1))
         assertEquals(
             TestTile(1),
@@ -105,6 +108,8 @@ class WorldTest {
         )
 
         world.setOverlayTile("infrastructure", 1, 1, null)
+
+        assertEquals(1, world.overlayTileCount)
 
         assertNull(world.getOverlayTile("infrastructure", 1, 1))
         assertEquals(

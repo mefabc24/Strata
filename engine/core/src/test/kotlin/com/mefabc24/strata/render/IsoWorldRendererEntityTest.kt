@@ -51,6 +51,7 @@ class IsoWorldRendererEntityTest {
 
             assertEquals(1, renderer.stats.entitiesChecked)
             assertEquals(1, renderer.stats.entitiesDrawn)
+            assertEquals(1, renderer.stats.entitiesTotal)
 
             entity.teleport(EntityPosition(1000f, 1000f))
             renderer.render(
@@ -62,6 +63,7 @@ class IsoWorldRendererEntityTest {
 
             assertEquals(1, renderer.stats.entitiesChecked)
             assertEquals(0, renderer.stats.entitiesDrawn)
+            assertEquals(1, renderer.stats.entitiesTotal)
         } finally {
             renderer.dispose()
             texture.dispose()

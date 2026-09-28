@@ -45,6 +45,7 @@ class WorldObjectTest {
         }
 
         assertEquals(1, world.getObjects().size)
+        assertEquals(1, world.placedObjectCount)
     }
 
     @Test
@@ -95,6 +96,7 @@ class WorldObjectTest {
 
         assertSame(terrainBefore, world.getTile(4, 4))
         assertTrue(world.getObjects().isEmpty())
+        assertEquals(0, world.placedObjectCount)
     }
 
     @Test

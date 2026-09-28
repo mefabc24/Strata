@@ -26,6 +26,16 @@ class World(
      */
     private val overlayLayers = linkedMapOf<String, Array<Array<Tile?>>>()
 
+    private var nonNullOverlayTileCount = 0
+
+    /** Total number of ground tiles in this world. */
+    val groundTileCount: Int
+        get() = width * height
+
+    /** Total number of non-empty tiles across every terrain overlay layer. */
+    val overlayTileCount: Int
+        get() = nonNullOverlayTileCount
+
     /**
      * Returns overlay identifiers in their rendering order.
      */
@@ -35,6 +45,14 @@ class World(
     private val objects = linkedSetOf<PlacedObject>()
 
     private val entities = linkedSetOf<WorldEntity>()
+
+    /** Total number of currently placed objects. */
+    val placedObjectCount: Int
+        get() = objects.size
+
+    /** Total number of currently active world entities. */
+    val entityCount: Int
+        get() = entities.size
 
     /**
      * Changes whenever an object is placed or removed.
@@ -389,8 +407,14 @@ class World(
         }
 
         val layer = requireOverlayLayer(layerId)
-
+        val previousTile = layer[y][x]
         layer[y][x] = tile
+
+        if (previousTile == null && tile != null) {
+            nonNullOverlayTileCount++
+        } else if (previousTile != null && tile == null) {
+            nonNullOverlayTileCount--
+        }
     }
 
     /**

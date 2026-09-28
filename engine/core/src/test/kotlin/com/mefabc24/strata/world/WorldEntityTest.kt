@@ -58,6 +58,7 @@ class WorldEntityTest {
         assertEquals(EntityPosition(2.25f, 3.75f), first.position)
         assertEquals(TilePosition(2, 3), first.currentTile)
         assertEquals(EntityPosition(1.5f, 1.5f), second.position)
+        assertEquals(2, world.entityCount)
     }
 
     @Test

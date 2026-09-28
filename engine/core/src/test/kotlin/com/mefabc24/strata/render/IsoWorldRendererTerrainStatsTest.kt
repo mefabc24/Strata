@@ -7,6 +7,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.testing.TestGdxEnvironment
+import com.mefabc24.strata.world.Entity
+import com.mefabc24.strata.world.EntityPosition
+import com.mefabc24.strata.world.Footprint
+import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import kotlin.test.BeforeTest
@@ -34,6 +38,8 @@ class IsoWorldRendererTerrainStatsTest {
             world.addOverlayLayer("decoration")
             world.setOverlayTile("decoration", 0, 0, OverlayTile)
             world.setOverlayTile("decoration", 1, 1, OverlayTile)
+            world.place(TestPlaceable, 0, 0)
+            world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
             val camera = OrthographicCamera(200f, 200f).apply {
                 position.set(0f, -24f, 0f)
                 update()
@@ -49,6 +55,10 @@ class IsoWorldRendererTerrainStatsTest {
             assertEquals(2, renderer.stats.overlayTerrainDrawn)
             assertEquals(6, renderer.stats.terrainDrawn)
             assertEquals(8, renderer.stats.terrainChecked)
+            assertEquals(4, renderer.stats.groundTerrainTotal)
+            assertEquals(2, renderer.stats.overlayTerrainTotal)
+            assertEquals(1, renderer.stats.objectsTotal)
+            assertEquals(1, renderer.stats.entitiesTotal)
         } finally {
             renderer.dispose()
             texture.dispose()
@@ -57,4 +67,8 @@ class IsoWorldRendererTerrainStatsTest {
 
     private data object GroundTile : Tile
     private data object OverlayTile : Tile
+    private data object TestPlaceable : Placeable {
+        override val footprint = Footprint.square(1)
+    }
+    private data object TestEntity : Entity
 }

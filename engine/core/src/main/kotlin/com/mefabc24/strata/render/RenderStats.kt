@@ -19,16 +19,32 @@ class RenderStats {
     var overlayTerrainDrawn = 0
         internal set
 
+    /** Total number of ground terrain tiles in the rendered world. */
+    var groundTerrainTotal = 0
+        internal set
+
+    /** Total number of non-empty overlay terrain tiles in the rendered world. */
+    var overlayTerrainTotal = 0
+        internal set
+
     var objectsChecked = 0
         internal set
 
     var objectsDrawn = 0
         internal set
 
+    /** Total number of placed objects in the rendered world. */
+    var objectsTotal = 0
+        internal set
+
     var entitiesChecked = 0
         internal set
 
     var entitiesDrawn = 0
+        internal set
+
+    /** Total number of active world entities in the rendered world. */
+    var entitiesTotal = 0
         internal set
 
     var previewsDrawn = 0
@@ -57,10 +73,14 @@ class RenderStats {
         terrainDrawn = 0
         groundTerrainDrawn = 0
         overlayTerrainDrawn = 0
+        groundTerrainTotal = 0
+        overlayTerrainTotal = 0
         objectsChecked = 0
         objectsDrawn = 0
+        objectsTotal = 0
         entitiesChecked = 0
         entitiesDrawn = 0
+        entitiesTotal = 0
         previewsDrawn = 0
         drawCalls = 0
         cpuRenderMs = 0.0
