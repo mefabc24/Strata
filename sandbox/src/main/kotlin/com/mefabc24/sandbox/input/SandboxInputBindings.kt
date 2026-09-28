@@ -1,12 +1,13 @@
 package com.mefabc24.sandbox.input
 
 import com.badlogic.gdx.Input
+import com.mefabc24.sandbox.Boar
 import com.mefabc24.sandbox.SandboxBuildDragController
 import com.mefabc24.sandbox.SandboxEntitySpawner
 import com.mefabc24.sandbox.SandboxMode
 import com.mefabc24.sandbox.SandboxTerrainPainter
 import com.mefabc24.sandbox.SandboxToolController
-import com.mefabc24.sandbox.SandboxWolfController
+import com.mefabc24.sandbox.SandboxRoamingController
 import com.mefabc24.sandbox.Wolf
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
@@ -19,7 +20,7 @@ internal fun sandboxInputBindings(
     painter: () -> SandboxTerrainPainter,
     buildDrag: () -> SandboxBuildDragController,
     entitySpawner: () -> SandboxEntitySpawner,
-    wolves: () -> SandboxWolfController,
+    roaming: () -> SandboxRoamingController,
     world: () -> World,
     playBuildingSound: () -> Unit
 ): List<WorldInputBinding> {
@@ -31,9 +32,13 @@ internal fun sandboxInputBindings(
                         tools().mode == SandboxMode.BUILD
             }
         ) { entity ->
-            if (entity.entity is Wolf) {
+            if (
+                entity.entity is Wolf ||
+                entity.entity is Boar
+            ) {
                 println(
-                    "Picked wolf at ${entity.position}, " +
+                    "Picked ${entity.entity::class.simpleName} " +
+                            "at ${entity.position}, " +
                             "direction=${entity.direction}, " +
                             "moving=${entity.isMoving}"
                 )
@@ -57,8 +62,11 @@ internal fun sandboxInputBindings(
             if (entity == null) {
                 false
             } else {
-                if (entity.entity is Wolf) {
-                    wolves().control(entity)
+                if (
+                    entity.entity is Wolf ||
+                    entity.entity is Boar
+                ) {
+                    roaming().control(entity)
                 }
 
                 println(

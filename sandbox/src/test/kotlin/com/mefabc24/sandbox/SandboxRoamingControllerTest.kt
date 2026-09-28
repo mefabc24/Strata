@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class SandboxWolfControllerTest {
+class SandboxRoamingControllerTest {
     @Test
     fun `new wolf idles before starting one movement path`() {
         val world = world()
@@ -132,8 +132,8 @@ class SandboxWolfControllerTest {
     private fun controller(
         world: World,
         pathFor: (TilePosition, TilePosition) -> List<TilePosition>?
-    ): SandboxWolfController {
-        return SandboxWolfController(
+    ): SandboxRoamingController {
+        return SandboxRoamingController(
             world = world,
             random = ZeroRandom,
             pathFor = pathFor

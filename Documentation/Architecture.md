@@ -16,7 +16,7 @@ Strata owns isometric projection and rendering, the finite `World` container, te
 
 The game owns concrete `Tile`, `TerrainId`, `Placeable`, `Entity`, `SoundId`, `SoundCategoryId`, and `VisualStateId` implementations. It also owns terrain passability, build rules beyond geometric occupancy, AI, production, economy, weather, tool modes, and the meaning of states such as `IDLE`, `WALK`, `ON`, `OFF`, `WORKING`, or `RAINING`.
 
-Strata can render a state chosen by the game, but it does not decide that a workshop is `WORKING` or a wolf is `IDLE`. The Sandbox's `WolfState` and `SandboxWolfController` are application code, not engine concepts.
+Strata can render a state chosen by the game, but it does not decide that a workshop is `WORKING` or a wolf is `IDLE`. The Sandbox's `WolfState` and `SandboxRoamingController` are application code, not engine concepts.
 
 ## Registration, instances, and behavior
 

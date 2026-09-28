@@ -51,7 +51,7 @@ val removed = world.removeEntity(runtimeWolf)
 
 `getEntities()` is a read-only live view, and `entityVersion` changes when entities are added or removed. Position/movement changes do not increment `entityVersion`.
 
-Strata updates movement with simulation time before `StrataGame.updateGame(simulationDelta)`. A game controller can therefore observe completed routes in its update and choose the next action. Pass `simulationDelta` to such controllers so pause and time scaling apply consistently. The Sandbox `SandboxEntitySpawner` and `SandboxWolfController` demonstrate this split: one creates a wolf, the other decides when and where it roams.
+Strata updates movement with simulation time before `StrataGame.updateGame(simulationDelta)`. A game controller can therefore observe completed routes in its update and choose the next action. Pass `simulationDelta` to such controllers so pause and time scaling apply consistently. The Sandbox `SandboxEntitySpawner` and `SandboxRoamingController` demonstrate this split: one creates a wolf, the other decides when and where it roams.
 
 ## Identity and ownership
 

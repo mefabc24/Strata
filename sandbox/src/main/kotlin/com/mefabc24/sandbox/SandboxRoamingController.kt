@@ -7,8 +7,8 @@ import com.mefabc24.strata.world.WorldEntity
 import kotlin.math.abs
 import kotlin.random.Random
 
-/** Gives spawned Sandbox wolves independent idle-and-roam behavior. */
-class SandboxWolfController(
+/** Gives Sandbox entities independent idle-and-roam behavior. */
+class SandboxRoamingController(
     private val world: World,
     private val random: Random = Random.Default,
     private val pathFor: (
@@ -18,50 +18,59 @@ class SandboxWolfController(
         world.findPath(start, goal)
     }
 ) {
-    private val wolves = linkedMapOf<WorldEntity, WolfBehavior>()
+    private val entities =
+        linkedMapOf<WorldEntity, RoamingBehavior>()
 
     fun control(entity: WorldEntity) {
-        require(entity.entity is Wolf) {
-            "SandboxWolfController can only control Wolf entities."
-        }
         require(entity in world.getEntities()) {
-            "A controlled wolf must belong to the controller's world."
+            "A controlled entity must belong to the controller's world."
         }
-        wolves.putIfAbsent(
+
+        entities.putIfAbsent(
             entity,
-            WolfBehavior(idleRemaining = nextIdleDuration())
+            RoamingBehavior(
+                idleRemaining = nextIdleDuration()
+            )
         )
     }
 
     fun update(delta: Float) {
         require(delta.isFinite() && delta >= 0f) {
-            "Wolf behavior delta must be finite and non-negative."
+            "Roaming behavior delta must be finite and non-negative."
         }
 
         if (delta == 0f) return
 
         val activeEntities = world.getEntities()
-        val iterator = wolves.iterator()
+        val iterator = entities.iterator()
+
         while (iterator.hasNext()) {
             val (entity, behavior) = iterator.next()
+
             if (entity !in activeEntities) {
                 iterator.remove()
                 continue
             }
 
             when {
-                entity.isMoving -> behavior.wasMoving = true
+                entity.isMoving -> {
+                    behavior.wasMoving = true
+                }
+
                 behavior.wasMoving -> {
                     behavior.wasMoving = false
                     behavior.idleRemaining = nextIdleDuration()
                 }
+
                 behavior.idleRemaining > delta -> {
                     behavior.idleRemaining -= delta
                 }
+
                 startRoaming(entity) -> {
                     behavior.idleRemaining = 0f
                     behavior.wasMoving = true
                 }
+
                 else -> {
                     behavior.idleRemaining = nextIdleDuration()
                 }
@@ -69,24 +78,50 @@ class SandboxWolfController(
         }
     }
 
-    private fun startRoaming(entity: WorldEntity): Boolean {
+    private fun startRoaming(
+        entity: WorldEntity
+    ): Boolean {
         val start = entity.currentTile
 
         repeat(DESTINATION_ATTEMPTS) {
             val destination = TilePosition(
-                x = start.x + random.nextInt(-MAX_DISTANCE, MAX_DISTANCE + 1),
-                y = start.y + random.nextInt(-MAX_DISTANCE, MAX_DISTANCE + 1)
+                x = start.x +
+                        random.nextInt(
+                            -MAX_DISTANCE,
+                            MAX_DISTANCE + 1
+                        ),
+                y = start.y +
+                        random.nextInt(
+                            -MAX_DISTANCE,
+                            MAX_DISTANCE + 1
+                        )
             )
-            val distance = abs(destination.x - start.x) +
-                abs(destination.y - start.y)
 
-            if (distance < MIN_DISTANCE) return@repeat
-            if (world.getTile(destination) == null) return@repeat
+            val distance =
+                abs(destination.x - start.x) +
+                        abs(destination.y - start.y)
 
-            val path = pathFor(start, destination) ?: return@repeat
-            if (path.size < 2) return@repeat
+            if (distance < MIN_DISTANCE) {
+                return@repeat
+            }
 
-            entity.followPath(path, MOVEMENT_SPEED)
+            if (world.getTile(destination) == null) {
+                return@repeat
+            }
+
+            val path =
+                pathFor(start, destination)
+                    ?: return@repeat
+
+            if (path.size < 2) {
+                return@repeat
+            }
+
+            entity.followPath(
+                path = path,
+                speed = MOVEMENT_SPEED
+            )
+
             return true
         }
 
@@ -95,10 +130,11 @@ class SandboxWolfController(
 
     private fun nextIdleDuration(): Float {
         return MIN_IDLE_SECONDS +
-            random.nextFloat() * (MAX_IDLE_SECONDS - MIN_IDLE_SECONDS)
+                random.nextFloat() *
+                (MAX_IDLE_SECONDS - MIN_IDLE_SECONDS)
     }
 
-    private data class WolfBehavior(
+    private data class RoamingBehavior(
         var idleRemaining: Float,
         var wasMoving: Boolean = false
     )

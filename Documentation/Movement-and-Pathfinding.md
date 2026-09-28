@@ -65,7 +65,7 @@ When absolute `x` and `y` deltas tie, the `x` direction wins. After route comple
 
 ## What game AI owns
 
-Strata moves along a provided route. It does not choose goals, retry failed paths, avoid moving entities, reserve destinations, idle, roam, or react to world changes. The Sandbox's `SandboxWolfController` holds those policies: it waits for a random idle duration, chooses bounded destinations, calls `findPath`, and starts `followPath` at `2f` tiles per second.
+Strata moves along a provided route. It does not choose goals, retry failed paths, avoid moving entities, reserve destinations, idle, roam, or react to world changes. The Sandbox's `SandboxRoamingController` holds those policies: it waits for a random idle duration, chooses bounded destinations, calls `findPath`, and starts `followPath` at `2f` tiles per second.
 
 If world occupancy changes while an entity is already following a route, Strata does not revalidate it. A game that needs dynamic avoidance should cancel or replace routes.
 

@@ -142,7 +142,7 @@ class SandboxGame : StrataGame() {
                             painter = { painter },
                             buildDrag = { buildDrag },
                             entitySpawner = { entitySpawner },
-                            wolves = { wolves },
+                            roaming = { roaming },
                             world = { sandboxWorld },
                             playBuildingSound = ::playBuildingSound
                         )
@@ -155,7 +155,7 @@ class SandboxGame : StrataGame() {
     private lateinit var buildDrag: SandboxBuildDragController
     private lateinit var tools: SandboxToolController
     private lateinit var entitySpawner: SandboxEntitySpawner
-    private lateinit var wolves: SandboxWolfController
+    private lateinit var roaming: SandboxRoamingController
     private lateinit var uiSkin: Skin
     private lateinit var sandboxUi: SandboxUi
     private lateinit var sandboxWorld: World
@@ -197,7 +197,7 @@ class SandboxGame : StrataGame() {
             entries = sandboxSpawnEntries()
         )
 
-        wolves = SandboxWolfController(
+        roaming = SandboxRoamingController(
             sandboxWorld
         )
 
@@ -237,7 +237,7 @@ class SandboxGame : StrataGame() {
     }
 
     override fun updateGame(simulationDelta: Float) {
-        wolves.update(simulationDelta)
+        roaming.update(simulationDelta)
     }
 
     override fun disposeGame() {
