@@ -185,11 +185,11 @@ internal class DebugRuntime(
         ) { painter.endPaint() },
         WorldInputBinding.Tile(
             WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-            { tools.mode == DebugToolMode.PAINT && painter.layerId != null }
+            { tools.mode == DebugToolMode.PAINT && painter.activeOverlayLayerId != null }
         ) { x, y -> painter.beginErase(x, y) },
         WorldInputBinding.Grid(
             WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-            { tools.mode == DebugToolMode.PAINT && painter.layerId != null }
+            { tools.mode == DebugToolMode.PAINT && painter.activeOverlayLayerId != null }
         ) { x, y -> painter.dragErase(x, y) },
         WorldInputBinding.NoPicking(
             WorldInputTrigger.MouseUp(Input.Buttons.RIGHT),

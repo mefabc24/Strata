@@ -34,13 +34,6 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import java.util.Locale
 
-private sealed interface PaintLayer {
-    val id: String?
-    data object Ground : PaintLayer { override val id: String? = null }
-    data class Overlay(override val id: String) : PaintLayer
-    val label: String get() = id?.toDisplayName() ?: "Ground"
-}
-
 internal class DebugPanel(
     private val ui: StrataUi,
     private val settings: DebugSettings,
@@ -93,9 +86,15 @@ internal class DebugPanel(
     private val spawnSelection = spawner.entries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { spawner.selectedEntry = it }
     }
-    private val paintLayers = listOf(PaintLayer.Ground) + world.overlayLayerIds.map(PaintLayer::Overlay)
-    private val layerSelection = ui.selectionGroup(paintLayers, paintLayers.first()) {
-        painter.layerId = it.id
+    private val paintTargets = buildList {
+        add(DebugPaintTarget.GROUND)
+        if (painter.overlayLayerIds.isNotEmpty()) add(DebugPaintTarget.OVERLAY)
+    }
+    private val paintTargetSelection = ui.selectionGroup(paintTargets, DebugPaintTarget.GROUND) {
+        painter.target = it
+    }
+    private val overlaySelection = painter.overlayLayerIds.takeIf { it.isNotEmpty() }?.let { layers ->
+        ui.selectionGroup(layers, layers.first()) { painter.selectedOverlayLayerId = it }
     }
 
     private lateinit var panelActor: StrataPanel
@@ -106,6 +105,7 @@ internal class DebugPanel(
     private lateinit var debugTab: StrataColumn
     private lateinit var buildControls: StrataColumn
     private lateinit var paintControls: StrataColumn
+    private lateinit var overlayPaintControls: StrataColumn
     private lateinit var spawnControls: StrataColumn
     private lateinit var inspectControls: StrataColumn
     private lateinit var pathControls: StrataColumn
@@ -139,8 +139,9 @@ internal class DebugPanel(
         spawnSelection?.let { group ->
             synchronizers += { spawner.selectedEntry?.let(group::select) }
         }
-        synchronizers += {
-            paintLayers.firstOrNull { it.id == painter.layerId }?.let(layerSelection::select)
+        synchronizers += { paintTargetSelection.select(painter.target) }
+        overlaySelection?.let { group ->
+            synchronizers += { painter.selectedOverlayLayerId?.let(group::select) }
         }
         setPanelVisible(settings.panel.visible)
         syncControls()
@@ -274,10 +275,21 @@ internal class DebugPanel(
                             .previewOnHover(entry, DebugContentKind.TERRAIN, name, entry.selectionTexture)
                     }
                 }.cell { fillAvailableX() }
-                label("Layer")
+                label("Terrain target")
                 responsiveGrid(130f, maximumColumns = 2) {
-                    paintLayers.forEach { selectableButton(it.label, it, layerSelection) }
+                    paintTargets.forEach { target ->
+                        selectableButton(target.name.toDisplayName(), target, paintTargetSelection)
+                    }
                 }.cell { fillAvailableX() }
+                overlayPaintControls = column(spacing = 6f) {
+                    defaults().fillAvailableX()
+                    label("Overlay")
+                    responsiveGrid(130f, maximumColumns = 2) {
+                        painter.overlayLayerIds.forEach { id ->
+                            selectableButton(id.toDisplayName(), id, checkNotNull(overlaySelection))
+                        }
+                    }.cell { fillAvailableX() }
+                }
             }
             spawnControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
@@ -704,6 +716,8 @@ internal class DebugPanel(
         spawnControls.isVisible = mode == DebugToolMode.SPAWN
         inspectControls.isVisible = mode == DebugToolMode.INSPECT
         pathControls.isVisible = mode == DebugToolMode.PATHFINDING
+        overlayPaintControls.isVisible = mode == DebugToolMode.PAINT &&
+            painter.target == DebugPaintTarget.OVERLAY
     }
 
     private fun syncDiagnostics() {
@@ -788,7 +802,10 @@ internal class DebugPanel(
                 buildDragging = tools.buildDragging,
                 buildPreviewCount = tools.buildPreviewCount,
                 paintTerrain = terrainSelection?.selected?.type?.toString()?.toDisplayName(),
-                paintLayer = layerSelection.selected?.label,
+                paintLayer = when (painter.target) {
+                    DebugPaintTarget.GROUND -> "Ground"
+                    DebugPaintTarget.OVERLAY -> "Overlay: ${painter.selectedOverlayLayerId?.toDisplayName()}"
+                },
                 spawnEntity = spawnSelection?.selected?.type?.displayName(),
                 inspection = inspectionSummary(),
                 pathStart = pathfinding.start,

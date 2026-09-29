@@ -4,6 +4,8 @@ import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.world.World
 import kotlin.math.abs
 
+enum class DebugPaintTarget { GROUND, OVERLAY }
+
 /** Paints registered terrain on ground and overlay layers with continuous strokes. */
 class DebugTerrainPainter(
     private val world: World,
@@ -32,25 +34,31 @@ class DebugTerrainPainter(
             field = value
         }
 
-    /** Null selects ground; non-null selects a registered overlay layer. */
-    var layerId: String? = null
+    val overlayLayerIds: List<String> get() = world.overlayLayerIds
+
+    var target: DebugPaintTarget = DebugPaintTarget.GROUND
         set(value) {
-            require(value == null || value in world.overlayLayerIds) {
+            require(value != DebugPaintTarget.OVERLAY || overlayLayerIds.isNotEmpty()) {
+                "Overlay painting requires a registered overlay layer."
+            }
+            if (field != value) cancel()
+            field = value
+        }
+
+    var selectedOverlayLayerId: String? = overlayLayerIds.firstOrNull()
+        set(value) {
+            require(value == null || value in overlayLayerIds) {
                 "Unknown overlay layer '$value'."
             }
             if (field != value) cancel()
             field = value
         }
 
-    val overlayLayerIds: List<String> get() = world.overlayLayerIds
+    val activeOverlayLayerId: String?
+        get() = selectedOverlayLayerId.takeIf { target == DebugPaintTarget.OVERLAY }
 
     private var activeStroke: Stroke? = null
     private var lastTile: Pair<Int, Int>? = null
-
-    fun cycleLayer() {
-        val layers = listOf<String?>(null) + overlayLayerIds
-        layerId = layers[(layers.indexOf(layerId) + 1) % layers.size]
-    }
 
     fun beginPaint(x: Int, y: Int): Boolean {
         if (!enabled || selectedEntry == null) return false
@@ -71,7 +79,7 @@ class DebugTerrainPainter(
     }
 
     fun beginErase(x: Int, y: Int): Boolean {
-        if (!enabled || layerId == null) return false
+        if (!enabled || activeOverlayLayerId == null) return false
         cancel()
         activeStroke = Stroke.ERASE
         return erase(x, y)
@@ -96,7 +104,7 @@ class DebugTerrainPainter(
     private fun paint(x: Int, y: Int): Boolean {
         val entry = selectedEntry ?: return false
         val target = x to y
-        val selectedLayer = layerId
+        val selectedLayer = activeOverlayLayerId
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
             if (world.getTile(tileX, tileY) == null) return@forEachTileOnLine
             val tile = entry.createTile()
@@ -111,7 +119,7 @@ class DebugTerrainPainter(
     }
 
     private fun erase(x: Int, y: Int): Boolean {
-        val selectedLayer = layerId ?: return false
+        val selectedLayer = activeOverlayLayerId ?: return false
         val target = x to y
         forEachTileOnLine(lastTile, target) { tileX, tileY ->
             if (world.getTile(tileX, tileY) != null) {
