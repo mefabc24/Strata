@@ -112,8 +112,8 @@ internal object DebugPanelSkin {
         skin.add(
             "debug-expander",
             StrataExpanderStyle(
-                background = drawable.tint(Color(0.11f, 0.11f, 0.14f, 0.9f)),
-                padding = StrataInsets.all(8f)
+                background = drawable.tint(Color(0.16f, 0.16f, 0.19f, 0f)),
+                padding = StrataInsets.NONE
             ),
             StrataExpanderStyle::class.java
         )
