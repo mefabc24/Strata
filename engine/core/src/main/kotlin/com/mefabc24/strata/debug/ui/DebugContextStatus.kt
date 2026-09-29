@@ -19,17 +19,17 @@ internal data class DebugContextStatus(
  */
 internal object DebugContextFooterLayout {
     private const val separatorHeight = 1f
-    private const val sectionSpacing = 6f
-    private const val headingHeight = 24f
+    private const val sectionSpacing = 4f
+    private const val headingHeight = 18f
     private const val maximumStatusRows = 4
-    private const val linesPerStatusValue = 2
-    private const val statusLineHeight = 16f
+    private const val linesPerStatusValue = 1
+    private const val statusLineHeight = 20f
 
     val reservedHeight: Float = separatorHeight +
-        sectionSpacing +
-        headingHeight +
-        sectionSpacing +
-        maximumStatusRows * linesPerStatusValue * statusLineHeight
+            sectionSpacing +
+            headingHeight +
+            sectionSpacing +
+            maximumStatusRows * linesPerStatusValue * statusLineHeight
 }
 
 internal data class DebugContextInputs(

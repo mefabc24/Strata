@@ -208,7 +208,7 @@ internal class DebugPanel(
                         }
                     }.cell { fillAvailableX() }
                 }.cell { grow(); fill(); minHeight(0f) }
-                contextFooter = column(spacing = 6f) {
+                contextFooter = column(spacing = 3f) {
                     defaults().fillAvailableX()
                     separator()
                     label("STATUS").cell { height(24f); left() }
