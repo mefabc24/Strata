@@ -24,6 +24,7 @@ class DebugSettingsTest {
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
+        assertFalse(settings.eventBus.enabled)
         assertFalse(settings.camera.disableRestrictions)
         assertTrue(settings.inspect.showTile)
         assertTrue(settings.inspect.showObjectFootprint)
@@ -90,6 +91,8 @@ class DebugSettingsTest {
         assertTrue(settings.culling.enabled)
         assertTrue(settings.camera.enabled)
         assertTrue(settings.worldStats.enabled)
+        assertTrue(settings.eventBus.enabled)
+        assertTrue(settings.camera.disableRestrictions)
         assertNotNull(settings.grid.backgroundColor)
         assertNotNull(settings.grid.hoverBackgroundColor)
         assertTrue(settings.objects.showOccupiedTiles)
@@ -139,6 +142,7 @@ class DebugSettingsTest {
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
+        assertFalse(settings.eventBus.enabled)
         assertTrue(settings.pathfinding.enabled)
         assertTrue(settings.pathfinding.showExploredNodes)
         assertTrue(settings.pathfinding.showFinalPath)
@@ -188,5 +192,20 @@ class DebugSettingsTest {
         assertTrue(settings.renderOrder.enabled)
         assertTrue(settings.culling.enabled)
         assertTrue(settings.camera.enabled)
+    }
+
+    @Test
+    fun `only everything explicitly disables camera restrictions`() {
+        DebugPreset.entries.forEach { preset ->
+            val settings = DebugSettings()
+
+            settings.applyPreset(preset)
+
+            assertEquals(
+                preset == DebugPreset.EVERYTHING,
+                settings.camera.disableRestrictions,
+                preset.name
+            )
+        }
     }
 }
