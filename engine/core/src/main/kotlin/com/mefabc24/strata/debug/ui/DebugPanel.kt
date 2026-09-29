@@ -431,12 +431,20 @@ internal class DebugPanel(
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it }
         ) {
-            simpleToggle("Pause capture", { settings.eventBus.paused }) {
-                settings.eventBus.paused = it
-            }
-            simpleToggle("Newest first", { settings.eventBus.newestFirst }) {
-                settings.eventBus.newestFirst = it
-            }
+            toggleGrid(
+                toggle(
+                    "Pause capture",
+                    { settings.eventBus.paused }
+                ) {
+                    settings.eventBus.paused = it
+                },
+                toggle(
+                    "Newest first",
+                    { settings.eventBus.newestFirst }
+                ) {
+                    settings.eventBus.newestFirst = it
+                }
+            )
             boundStepper(
                 "Visible records",
                 { settings.eventBus.maximumVisibleRecords.toFloat() },
