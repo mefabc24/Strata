@@ -337,32 +337,39 @@ internal class DebugPanel(
                     )
                 }.cell { height(38f) }
                 label("World visualization")
+                label("Tile")
                 toggleGrid(
                     toggle("Selected tile", { settings.inspect.showTile }) {
                         settings.inspect.showTile = it
-                    },
-                    toggle("Object footprint", { settings.inspect.showObjectFootprint }) {
+                    }
+                )
+                label("Object")
+                toggleGrid(
+                    toggle("Footprint", { settings.inspect.showObjectFootprint }) {
                         settings.inspect.showObjectFootprint = it
                     },
-                    toggle("Object origin", { settings.inspect.showObjectOrigin }) {
+                    toggle("Origin", { settings.inspect.showObjectOrigin }) {
                         settings.inspect.showObjectOrigin = it
                     },
-                    toggle("Object sprite bounds", { settings.inspect.showObjectSpriteBounds }) {
+                    toggle("Sprite bounds", { settings.inspect.showObjectSpriteBounds }) {
                         settings.inspect.showObjectSpriteBounds = it
-                    },
-                    toggle("Entity tile", { settings.inspect.showEntityTile }) {
+                    }
+                )
+                label("Entity")
+                toggleGrid(
+                    toggle("Current tile", { settings.inspect.showEntityTile }) {
                         settings.inspect.showEntityTile = it
                     },
-                    toggle("Entity position", { settings.inspect.showEntityPosition }) {
+                    toggle("Position", { settings.inspect.showEntityPosition }) {
                         settings.inspect.showEntityPosition = it
                     },
-                    toggle("Entity path", { settings.inspect.showEntityPath }) {
+                    toggle("Path", { settings.inspect.showEntityPath }) {
                         settings.inspect.showEntityPath = it
                     },
-                    toggle("Entity direction", { settings.inspect.showEntityDirection }) {
+                    toggle("Direction", { settings.inspect.showEntityDirection }) {
                         settings.inspect.showEntityDirection = it
                     },
-                    toggle("Entity sprite bounds", { settings.inspect.showEntitySpriteBounds }) {
+                    toggle("Sprite bounds", { settings.inspect.showEntitySpriteBounds }) {
                         settings.inspect.showEntitySpriteBounds = it
                     }
                 )
