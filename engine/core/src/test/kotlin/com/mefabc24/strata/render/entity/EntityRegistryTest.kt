@@ -259,6 +259,42 @@ class EntityRegistryTest {
     }
 
     @Test
+    fun `stateful entity can define representative visual state`() {
+        val textures = mapOf(
+            "entities/rest.png" to region(16, 24),
+            "entities/move.png" to region(16, 24)
+        )
+
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = textures::getValue,
+            loadAlphaMask = { null }
+        )
+
+        registry.registerStateful<Wolf>(
+            stateFor = { _, wolf -> wolf.state }
+        ) {
+            state(WolfState.RESTING) {
+                sprite("rest.png")
+            }
+
+            state(WolfState.MOVING) {
+                sprite("move.png")
+            }
+
+            representativeState(WolfState.MOVING)
+        }
+
+        registry.prepare()
+
+        assertSame(
+            textures.getValue("entities/move.png"),
+            registry.entries.single().selectionVisual.texture
+        )
+    }
+
+    @Test
     fun `directional sheet uses arbitrary game-defined row order`() {
         val pixmap = Pixmap(32, 40, Pixmap.Format.RGBA8888)
         val texture = Texture(pixmap)
