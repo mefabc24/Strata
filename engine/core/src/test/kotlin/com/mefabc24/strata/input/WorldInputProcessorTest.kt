@@ -80,6 +80,32 @@ class WorldInputProcessorTest {
     }
 
     @Test
+    fun `pointer observer can inspect a click without consuming later bindings`() {
+        val events = mutableListOf<String>()
+        val processor = WorldInputProcessor(
+            bindings = listOf(
+                WorldInputBinding.Pointer(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { x, y ->
+                    events += "pointer:$x,$y"
+                    false
+                },
+                WorldInputBinding.Tile(
+                    trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
+                ) { x, y ->
+                    events += "tile:$x,$y"
+                    true
+                }
+            ),
+            pickTile = { _, _ -> TilePosition(2, 3) },
+            pickObject = { _, _, _ -> null }
+        )
+
+        assertTrue(processor.touchDown(10, 20, 0, Input.Buttons.LEFT))
+        assertEquals(listOf("pointer:10.0,20.0", "tile:2,3"), events)
+    }
+
+    @Test
     fun `entity binding dispatches the picked runtime entity`() {
         val world = World(1, 1) { _, _ -> TestTile }
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))

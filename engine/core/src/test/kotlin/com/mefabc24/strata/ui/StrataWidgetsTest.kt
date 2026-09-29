@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
@@ -561,6 +562,25 @@ class StrataWidgetsTest {
         expander.toggle()
         assertTrue(expander.expanded)
         assertFalse(enabled.isChecked)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander applies an explicit header button height`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            headerHeight = 36f
+        ) { spacer(height = 20f) }
+
+        val headerTable = expander.header.parent as Table
+        assertEquals(36f, requireNotNull(headerTable.getCell(expander.header)).maxHeight)
 
         context.dispose()
         skin.dispose()

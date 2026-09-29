@@ -1,0 +1,89 @@
+package com.mefabc24.strata.debug.ui
+
+import com.mefabc24.strata.debug.DebugToolMode
+import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
+import com.mefabc24.strata.placement.PlacementDiagnostic
+import com.mefabc24.strata.placement.PlacementFailureReason
+import com.mefabc24.strata.world.TilePosition
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class DebugContextStatusTest {
+    @Test
+    fun `none mode hides contextual status`() {
+        assertNull(debugContextStatus(DebugContextInputs(DebugToolMode.NONE)))
+    }
+
+    @Test
+    fun `build status reports selection preview and drag state`() {
+        val hover = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.BUILD,
+            buildObject = "House"
+        )))
+        assertEquals("House", hover.rows.first { it.key == "Object" }.value)
+        assertEquals("Hover a tile to preview", hover.rows.first { it.key == "Status" }.value)
+
+        val invalidDrag = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.BUILD,
+            buildObject = "House",
+            placementDiagnostic = PlacementDiagnostic(
+                false,
+                PlacementFailureReason.OCCUPIED_TILE
+            ),
+            buildDragging = true,
+            buildPreviewCount = 3
+        )))
+        assertEquals(
+            "Dragging 3 placements — invalid: occupied tile",
+            invalidDrag.rows.first { it.key == "Status" }.value
+        )
+    }
+
+    @Test
+    fun `paint spawn and inspect modes expose concise context`() {
+        val paint = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.PAINT,
+            paintTerrain = "Low grass",
+            paintLayer = "Ground"
+        )))
+        assertEquals(listOf("Terrain", "Layer"), paint.rows.map { it.key })
+
+        val spawn = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.SPAWN,
+            spawnEntity = "Boar"
+        )))
+        assertEquals("Boar", spawn.rows.single().value)
+
+        val inspect = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.INSPECT,
+            inspection = "House (Object)"
+        )))
+        assertEquals("House (Object)", inspect.rows.single().value)
+    }
+
+    @Test
+    fun `path mode summarizes waiting and completed searches`() {
+        val start = TilePosition(1, 1)
+        val waiting = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.PATHFINDING,
+            pathStart = start
+        )))
+        assertTrue(waiting.rows.any { it.value == "Click a goal tile" })
+
+        val result = PathfindingDiagnosticResult(
+            start,
+            TilePosition(2, 1),
+            listOf(start, TilePosition(2, 1)),
+            listOf(start),
+            10L
+        )
+        val complete = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.PATHFINDING,
+            pathResult = result
+        )))
+        assertEquals("Success", complete.rows.first { it.key == "Result" }.value)
+        assertEquals("2", complete.rows.first { it.key == "Length" }.value)
+    }
+}

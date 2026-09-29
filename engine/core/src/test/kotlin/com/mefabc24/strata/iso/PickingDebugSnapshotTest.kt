@@ -40,7 +40,8 @@ class PickingDebugSnapshotTest {
             tested = entity,
             testedBounds = entityBounds,
             alphaAccepted = true,
-            pickedBounds = entityBounds
+            pickedBounds = entityBounds,
+            pickedAlphaAccepted = true
         )
 
         val picked = frontmostPickedSprite(
@@ -52,6 +53,7 @@ class PickingDebugSnapshotTest {
         val pickedEntity = assertIs<PickedSpriteTarget.Entity>(picked)
         assertSame(entity, pickedEntity.worldEntity)
         assertEquals(entityBounds, pickedEntity.bounds)
+        assertEquals(true, pickedEntity.alphaAccepted)
     }
 
     @Test

@@ -3,11 +3,12 @@ package com.mefabc24.strata.debug
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DebugSettingsTest {
     @Test
-    fun `all debug functionality is disabled by default`() {
+    fun `optional overlays are disabled while tool context defaults are ready`() {
         val settings = DebugSettings()
         assertFalse(settings.panel.enabled)
         assertTrue(settings.panel.visible)
@@ -21,8 +22,9 @@ class DebugSettingsTest {
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
-        assertFalse(settings.pathfinding.enabled)
-        assertFalse(settings.placement.enabled)
+        assertTrue(settings.pathfinding.enabled)
+        assertTrue(settings.placement.enabled)
+        assertNull(settings.worldState.pickingSelection.lockedTarget)
     }
 
     @Test
