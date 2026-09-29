@@ -50,7 +50,7 @@ internal class DebugRuntime(
 ) {
     private val eventMonitor = DebugEventMonitor(events).apply {
         enabled = settings.eventBus.enabled
-        paused = settings.eventBus.paused
+        paused = !settings.eventBus.captureEnabled
     }
     private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
     private val inspector = DebugInspector(settings.worldState)
@@ -300,7 +300,7 @@ internal class DebugRuntime(
     fun update(delta: Float) {
         syncCameraRestrictions()
         eventMonitor.enabled = settings.eventBus.enabled
-        eventMonitor.paused = settings.eventBus.paused
+        eventMonitor.paused = !settings.eventBus.captureEnabled
         settings.notifications.update(delta)
         notificationOverlay.sync()
 

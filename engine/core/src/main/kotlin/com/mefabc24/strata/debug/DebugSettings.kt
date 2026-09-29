@@ -176,7 +176,7 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 }
 
 class DebugEventMonitorSettings : DebugFeatureSettings() {
-    var paused: Boolean = false
+    var captureEnabled: Boolean = true
     var maximumVisibleRecords: Int = 8
         set(value) {
             require(value in 1..25) {

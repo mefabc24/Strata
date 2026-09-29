@@ -433,10 +433,10 @@ internal class DebugPanel(
         ) {
             toggleGrid(
                 toggle(
-                    "Pause capture",
-                    { settings.eventBus.paused }
+                    "Capture",
+                    { settings.eventBus.captureEnabled }
                 ) {
-                    settings.eventBus.paused = it
+                    settings.eventBus.captureEnabled = it
                 },
                 toggle(
                     "Newest first",
