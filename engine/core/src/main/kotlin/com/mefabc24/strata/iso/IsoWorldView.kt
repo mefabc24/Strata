@@ -25,6 +25,7 @@ import com.mefabc24.strata.render.entity.EntityVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
+import com.mefabc24.strata.render.preview.EntityPreview
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
@@ -129,7 +130,8 @@ class IsoWorldView(
     var hoveredTile: TilePosition? = null
         private set
 
-    private var hoveredGridPosition: TilePosition? = null
+    internal var hoveredGridPosition: TilePosition? = null
+        private set
 
     var animationTime: Float = 0f
         private set
@@ -383,6 +385,12 @@ class IsoWorldView(
         } else {
             previews + debugMovePreview
         }
+        val entityPreviews = debugSettings?.worldState?.let { state ->
+            listOfNotNull(
+                state.spawnPreview,
+                state.movePreview?.entityPreview
+            )
+        }.orEmpty()
         worldRenderer.render(
             world = world,
             camera = camera,
@@ -392,6 +400,7 @@ class IsoWorldView(
             resolvedObjectVisualFor = resolvedObjectVisualFor,
             resolvedEntityVisualFor = effectiveEntityVisualFor,
             previews = visiblePreviews,
+            entityPreviews = entityPreviews,
             animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
@@ -415,6 +424,7 @@ class IsoWorldView(
                     objectVisualFor = objectVisualFor,
                     entityVisualFor = entityVisualFor,
                     previews = visiblePreviews,
+                    entityPreviews = entityPreviews,
                     animationTime = animationTime,
                     resolvedObjectVisualFor = resolvedObjectVisualFor,
                     resolvedEntityVisualFor = effectiveEntityVisualFor
@@ -439,7 +449,7 @@ class IsoWorldView(
             val active = inspectionActive || pathActive ||
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
-                settings.camera.enabled || state.movePreview != null
+                settings.camera.enabled || state.movePreview?.visible == true
             if (active) {
                 advancedDebugRenderer.value.render(
                     camera = camera,

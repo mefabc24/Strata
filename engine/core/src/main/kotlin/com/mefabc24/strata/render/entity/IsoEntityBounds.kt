@@ -2,6 +2,7 @@ package com.mefabc24.strata.render.entity
 
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.WorldEntity
 
 /** Calculates a bottom-center anchored entity sprite rectangle. */
@@ -13,7 +14,7 @@ object IsoEntityBounds {
         visual: EntityVisual,
         result: Rectangle
     ): Rectangle {
-        return calculate(projection, entity, visual, visual.texture, result)
+        return calculate(projection, entity.position, visual, visual.texture, result)
     }
 
     fun calculate(
@@ -24,7 +25,22 @@ object IsoEntityBounds {
     ): Rectangle {
         return calculate(
             projection,
-            entity,
+            entity.position,
+            visual.visual,
+            visual.frame.texture,
+            result
+        )
+    }
+
+    fun calculate(
+        projection: IsoProjection,
+        position: EntityPosition,
+        visual: ResolvedEntityVisual,
+        result: Rectangle
+    ): Rectangle {
+        return calculate(
+            projection,
+            position,
             visual.visual,
             visual.frame.texture,
             result
@@ -33,7 +49,7 @@ object IsoEntityBounds {
 
     private fun calculate(
         projection: IsoProjection,
-        entity: WorldEntity,
+        position: EntityPosition,
         visual: EntityVisual,
         texture: com.badlogic.gdx.graphics.g2d.TextureRegion,
         result: Rectangle
@@ -45,8 +61,8 @@ object IsoEntityBounds {
         val width = baseWidth * visual.scale
         val height = baseHeight * visual.scale
         val anchor = projection.tileToWorld(
-            entity.position.x,
-            entity.position.y
+            position.x,
+            position.y
         )
 
         return result.set(

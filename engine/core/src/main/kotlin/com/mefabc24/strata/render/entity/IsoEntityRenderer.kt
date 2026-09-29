@@ -3,6 +3,7 @@ package com.mefabc24.strata.render.entity
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.WorldEntity
 
 /** Draws entity sprites in the order selected by the world renderer. */
@@ -29,9 +30,17 @@ class IsoEntityRenderer(
         entity: WorldEntity,
         visual: ResolvedEntityVisual
     ) {
+        render(batch, entity.position, visual)
+    }
+
+    fun render(
+        batch: SpriteBatch,
+        position: EntityPosition,
+        visual: ResolvedEntityVisual
+    ) {
         IsoEntityBounds.calculate(
             projection = projection,
-            entity = entity,
+            position = position,
             visual = visual,
             result = bounds
         )

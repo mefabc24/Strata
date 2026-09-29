@@ -2,7 +2,10 @@ package com.mefabc24.strata.debug.tools
 
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.iso.PickedTarget
+import com.mefabc24.strata.placement.PlacementEntityPreviewSettings
 import com.mefabc24.strata.placement.PlacementObjectPreviewSettings
+import com.mefabc24.strata.render.preview.EntityPreview
+import com.mefabc24.strata.render.preview.EntityPreviewVisual
 import com.mefabc24.strata.render.preview.PlacementPreview
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.PlacedObject
@@ -18,8 +21,10 @@ internal data class DebugMovePreview(
     val source: TilePosition,
     val target: TilePosition,
     val valid: Boolean,
+    val visible: Boolean = true,
     val rejection: WorldPlacementFailure? = null,
     val objectPreview: PlacementPreview? = null,
+    val entityPreview: EntityPreview? = null,
     val occupiedTiles: Set<TilePosition> = emptySet()
 )
 
@@ -35,9 +40,12 @@ class DebugMoveTool internal constructor(
     private val world: World,
     private val state: DebugWorldState,
     objectPreviewSettings: PlacementObjectPreviewSettings =
-        PlacementObjectPreviewSettings()
+        PlacementObjectPreviewSettings(),
+    entityPreviewSettings: PlacementEntityPreviewSettings =
+        PlacementEntityPreviewSettings()
 ) {
     private val objectPreviewSettings = objectPreviewSettings.copy()
+    private val entityPreviewSettings = entityPreviewSettings.copy()
     private var subject: Subject? = null
 
     internal val active: Boolean get() = subject != null
@@ -96,7 +104,18 @@ class DebugMoveTool internal constructor(
                     source = moving.value.currentTile,
                     target = position,
                     valid = valid,
+                    visible = entityPreviewSettings.enabled,
                     rejection = if (valid) null else WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD,
+                    entityPreview = if (entityPreviewSettings.enabled) {
+                        EntityPreview(
+                            position = EntityPosition.centerOf(position),
+                            visual = EntityPreviewVisual.Existing(moving.value),
+                            valid = valid,
+                            style = entityPreviewSettings.style()
+                        )
+                    } else {
+                        null
+                    },
                     occupiedTiles = setOf(position)
                 )
             }
@@ -114,6 +133,7 @@ class DebugMoveTool internal constructor(
             source = TilePosition(placedObject.x, placedObject.y),
             target = position,
             valid = rejection == null,
+            visible = objectPreviewSettings.enabled,
             rejection = rejection,
             objectPreview = if (objectPreviewSettings.enabled) {
                 PlacementPreview(

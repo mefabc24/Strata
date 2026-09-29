@@ -24,6 +24,8 @@ import com.mefabc24.strata.render.order.WorldRenderPlan
 import com.mefabc24.strata.render.order.StaticWorldRenderPlan
 import com.mefabc24.strata.render.order.WorldRenderPrimitive
 import com.mefabc24.strata.render.preview.PlacementPreview
+import com.mefabc24.strata.render.preview.EntityPreview
+import com.mefabc24.strata.render.preview.EntityPreviewVisual
 import com.mefabc24.strata.render.terrain.IsoTerrainBounds
 import com.mefabc24.strata.render.terrain.IsoTerrainRenderer
 import com.mefabc24.strata.render.terrain.TerrainDepthCulling
@@ -106,6 +108,7 @@ class IsoWorldRenderer(
         objectVisualFor: (PlacedObject) -> ObjectVisual? = { null },
         entityVisualFor: (WorldEntity) -> EntityVisual? = { null },
         previews: List<PlacementPreview> = emptyList(),
+        entityPreviews: List<EntityPreview> = emptyList(),
         animationTime: Float = 0f,
         maxTerrainSpriteHeight: Float = Float.POSITIVE_INFINITY,
         resolvedObjectVisualFor: (
@@ -256,6 +259,18 @@ class IsoWorldRenderer(
             )
         }
 
+        for (preview in entityPreviews) {
+            renderEntityPreview(
+                preview = preview,
+                visual = resolveEntityPreviewVisual(
+                    preview = preview,
+                    animationTime = animationTime,
+                    entityVisualFor = entityVisualFor,
+                    resolvedEntityVisualFor = resolvedEntityVisualFor
+                )
+            )
+        }
+
         batch.end()
 
         stats.drawCalls = batch.renderCalls
@@ -387,6 +402,56 @@ class IsoWorldRenderer(
         )
 
         if (recordStats) stats.entitiesDrawn++
+    }
+
+    private fun renderEntityPreview(
+        preview: EntityPreview,
+        visual: ResolvedEntityVisual?,
+        recordStats: Boolean = true
+    ) {
+        if (visual == null) return
+
+        IsoEntityBounds.calculate(
+            projection = projection,
+            position = preview.position,
+            visual = visual,
+            result = entityBounds
+        )
+        if (!entityBounds.overlaps(visibleArea)) return
+
+        batch.color = if (preview.valid) {
+            preview.style.validColor
+        } else {
+            preview.style.invalidColor
+        }
+        entityRenderer.render(batch, preview.position, visual)
+        if (recordStats) stats.previewsDrawn++
+        batch.setColor(1f, 1f, 1f, 1f)
+    }
+
+    private fun resolveEntityPreviewVisual(
+        preview: EntityPreview,
+        animationTime: Float,
+        entityVisualFor: (WorldEntity) -> EntityVisual?,
+        resolvedEntityVisualFor: (
+            (WorldEntity, Float) -> ResolvedEntityVisual?
+        )?
+    ): ResolvedEntityVisual? {
+        return when (val previewVisual = preview.visual) {
+            is EntityPreviewVisual.Representative -> ResolvedEntityVisual(
+                previewVisual.value,
+                animationTime,
+                null
+            )
+            is EntityPreviewVisual.Existing -> {
+                resolvedEntityVisualFor?.invoke(
+                    previewVisual.entity,
+                    animationTime
+                ) ?: entityVisualFor(previewVisual.entity)?.let { visual ->
+                    ResolvedEntityVisual(visual, animationTime, null)
+                }
+            }
+        }
     }
 
     private fun renderTerrain(
@@ -539,6 +604,7 @@ class IsoWorldRenderer(
         objectVisualFor: (PlacedObject) -> ObjectVisual?,
         entityVisualFor: (WorldEntity) -> EntityVisual?,
         previews: List<PlacementPreview>,
+        entityPreviews: List<EntityPreview>,
         animationTime: Float,
         resolvedObjectVisualFor: (
             (PlacedObject, Float) -> ResolvedObjectVisual?
@@ -588,6 +654,18 @@ class IsoWorldRenderer(
                     ResolvedObjectVisual(it, animationTime, null)
                 },
                 preview = preview,
+                recordStats = false
+            )
+        }
+        for (preview in entityPreviews) {
+            renderEntityPreview(
+                preview = preview,
+                visual = resolveEntityPreviewVisual(
+                    preview = preview,
+                    animationTime = animationTime,
+                    entityVisualFor = entityVisualFor,
+                    resolvedEntityVisualFor = resolvedEntityVisualFor
+                ),
                 recordStats = false
             )
         }

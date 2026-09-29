@@ -63,7 +63,9 @@ internal class DebugRuntime(
         world,
         settings.worldState,
         placement?.objectPreviewSettings
-            ?: com.mefabc24.strata.placement.PlacementObjectPreviewSettings()
+            ?: com.mefabc24.strata.placement.PlacementObjectPreviewSettings(),
+        placement?.entityPreviewSettings
+            ?: com.mefabc24.strata.placement.PlacementEntityPreviewSettings()
     )
     private var freeCameraToolActive = false
     private var appliedCameraRestrictionsDisabled: Boolean? = null
@@ -83,6 +85,8 @@ internal class DebugRuntime(
         world = world,
         entries = entities.spawnableEntries,
         isActive = { tools.mode == DebugToolMode.SPAWN },
+        previewSettings = placement?.entityPreviewSettings
+            ?: com.mefabc24.strata.placement.PlacementEntityPreviewSettings(),
         onSpawned = { settings.entitySpawnedCallback?.invoke(it) }
     )
 
@@ -300,6 +304,8 @@ internal class DebugRuntime(
 
     fun update(delta: Float) {
         syncCameraRestrictions()
+        spawner.update(view.hoveredGridPosition)
+        settings.worldState.spawnPreview = spawner.preview
         eventMonitor.enabled = settings.eventBus.enabled
         eventMonitor.paused = !settings.eventBus.captureEnabled
         settings.notifications.update(delta)

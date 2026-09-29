@@ -108,7 +108,7 @@ internal class IsoAdvancedDebugRenderer(
         val drawCameraArea = settings.camera.enabled && settings.camera.showVisibleArea
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
-        val movePreview = state.movePreview
+        val movePreview = state.movePreview?.takeIf { it.visible }
         if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathStart == null &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null
         ) return
@@ -276,7 +276,7 @@ internal class IsoAdvancedDebugRenderer(
         Gdx.gl.glLineWidth(2f)
         drawInspectionLines(inspection, inspectionVisuals, camera, renderSnapshot)
         drawPickingLines(pickingVisuals)
-        state.movePreview?.let { preview ->
+        state.movePreview?.takeIf { it.visible }?.let { preview ->
             shapes.color = if (preview.valid) MOVE_VALID_OUTLINE else MOVE_INVALID_OUTLINE
             preview.occupiedTiles.forEach(::drawTileOutline)
             shapes.color = MOVE_ORIGIN_OUTLINE
