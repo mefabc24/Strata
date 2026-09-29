@@ -110,6 +110,27 @@ class DebugToolControllerTest {
         assertEquals(null, pathfinding.result)
     }
 
+    @Test
+    fun `free camera override follows tool mode`() {
+        val world = World(1, 1) { _, _ -> TestTile }
+        val state = DebugWorldState()
+        var freeCamera = false
+        val tools = DebugToolController(
+            painter = DebugTerrainPainter(world, emptyList()),
+            placement = null,
+            buildDrag = null,
+            inspector = DebugInspector(state),
+            pathfinding = DebugPathfindingTool(world, state),
+            setFreeCamera = { freeCamera = it }
+        )
+
+        tools.select(DebugToolMode.FREE_CAMERA)
+        assertTrue(freeCamera)
+
+        tools.select(DebugToolMode.NONE)
+        assertFalse(freeCamera)
+    }
+
     private fun objectEntryFor(world: World): com.mefabc24.strata.render.`object`.ObjectEntry {
         val registry = com.mefabc24.strata.render.`object`.ObjectRegistry(
             directory = "", queueTexture = {}, regionFor = { TextureRegion() }, loadAlphaMask = { null }
