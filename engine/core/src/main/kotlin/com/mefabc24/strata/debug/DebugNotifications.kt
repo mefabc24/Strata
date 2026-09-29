@@ -1,6 +1,14 @@
 package com.mefabc24.strata.debug
 
 enum class DebugNotificationSeverity { INFO, SUCCESS, WARNING, ERROR }
+enum class DebugNotificationPosition {
+    TOP_LEFT,
+    TOP_CENTER,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_CENTER,
+    BOTTOM_RIGHT
+}
 
 data class DebugNotification(
     val id: Long,
@@ -14,6 +22,7 @@ class DebugNotifications(
     val maxVisible: Int = 4,
     val defaultDurationSeconds: Float = 3f
 ) {
+    var position: DebugNotificationPosition = DebugNotificationPosition.TOP_RIGHT
     init {
         require(maxVisible > 0) { "Maximum visible notifications must be positive." }
         require(defaultDurationSeconds.isFinite() && defaultDurationSeconds > 0f) {

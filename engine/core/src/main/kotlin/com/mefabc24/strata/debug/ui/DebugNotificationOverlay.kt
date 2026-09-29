@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.mefabc24.strata.debug.DebugNotificationSeverity
 import com.mefabc24.strata.debug.DebugNotifications
+import com.mefabc24.strata.debug.DebugNotificationPosition
 import com.mefabc24.strata.ui.StrataUi
 
 /** Renders the debug notification queue independently from game UI. */
@@ -14,25 +15,34 @@ internal class DebugNotificationOverlay(
     private val ui: StrataUi,
     private val notifications: DebugNotifications
 ) {
+    private val stack = Table()
     private val root = Table().apply {
         setFillParent(true)
-        top().right().pad(16f)
+        pad(16f)
         touchable = Touchable.disabled
     }
     private var renderedIds: List<Long> = emptyList()
+    private var appliedPosition: DebugNotificationPosition? = null
 
     init {
         ui.stage.addActor(root)
     }
 
     fun sync() {
-        val visible = notifications.visible.asReversed()
+        applyPosition()
+        root.toFront()
+        val alignment = notificationAlignment(notifications.position)
+        val visible = if (alignment.vertical == DebugOverlayVertical.TOP) {
+            notifications.visible.asReversed()
+        } else {
+            notifications.visible
+        }
         val ids = visible.map { it.id }
         if (ids == renderedIds) return
         renderedIds = ids
-        root.clearChildren()
+        stack.clearChildren()
         visible.forEach { notification ->
-            root.add(Table(ui.skin).apply {
+            stack.add(Table(ui.skin).apply {
                 background = toastBackground(notification.severity)
                 pad(9f, 12f, 9f, 12f)
                 add(Label(notification.message, ui.skin).apply {
@@ -41,6 +51,24 @@ internal class DebugNotificationOverlay(
                 }).width(300f).left()
             }).width(324f).padBottom(6f).row()
         }
+    }
+
+    private fun applyPosition() {
+        val position = notifications.position
+        if (appliedPosition == position) return
+        appliedPosition = position
+        val alignment = notificationAlignment(position)
+        root.clearChildren()
+        when (alignment.vertical) {
+            DebugOverlayVertical.TOP -> root.top()
+            DebugOverlayVertical.BOTTOM -> root.bottom()
+        }
+        when (alignment.horizontal) {
+            DebugOverlayHorizontal.LEFT -> root.left()
+            DebugOverlayHorizontal.CENTER -> root.center()
+            DebugOverlayHorizontal.RIGHT -> root.right()
+        }
+        root.add(stack).width(324f)
     }
 
     private fun toastBackground(severity: DebugNotificationSeverity): Drawable =
@@ -61,4 +89,35 @@ internal class DebugNotificationOverlay(
             DebugNotificationSeverity.WARNING -> Color(1f, 0.91f, 0.65f, 1f)
             DebugNotificationSeverity.ERROR -> Color(1f, 0.78f, 0.78f, 1f)
         }
+}
+
+internal enum class DebugOverlayHorizontal { LEFT, CENTER, RIGHT }
+internal enum class DebugOverlayVertical { TOP, BOTTOM }
+
+internal data class DebugNotificationAlignment(
+    val horizontal: DebugOverlayHorizontal,
+    val vertical: DebugOverlayVertical
+)
+
+internal fun notificationAlignment(
+    position: DebugNotificationPosition
+): DebugNotificationAlignment = when (position) {
+    DebugNotificationPosition.TOP_LEFT -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.LEFT, DebugOverlayVertical.TOP
+    )
+    DebugNotificationPosition.TOP_CENTER -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.CENTER, DebugOverlayVertical.TOP
+    )
+    DebugNotificationPosition.TOP_RIGHT -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.RIGHT, DebugOverlayVertical.TOP
+    )
+    DebugNotificationPosition.BOTTOM_LEFT -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.LEFT, DebugOverlayVertical.BOTTOM
+    )
+    DebugNotificationPosition.BOTTOM_CENTER -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.CENTER, DebugOverlayVertical.BOTTOM
+    )
+    DebugNotificationPosition.BOTTOM_RIGHT -> DebugNotificationAlignment(
+        DebugOverlayHorizontal.RIGHT, DebugOverlayVertical.BOTTOM
+    )
 }
