@@ -55,7 +55,8 @@ internal class DebugRuntime(
         placement = placement,
         buildDrag = buildDrag,
         inspector = inspector,
-        pathfinding = pathfinding
+        pathfinding = pathfinding,
+        setFreeCamera = view::setDebugFreeCamera
     )
     private val spawner = DebugEntitySpawner(
         world = world,
@@ -194,7 +195,7 @@ internal class DebugRuntime(
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.picking = picking
             settings.worldState.pickingSelection.refresh(
-                view::refreshPickedSpriteTarget
+                view::refreshPickedTarget
             )
         } else {
             settings.worldState.cursorWorld = null

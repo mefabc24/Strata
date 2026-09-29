@@ -73,6 +73,7 @@ internal class DebugPanel(
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
+        add(DebugToolMode.FREE_CAMERA)
         if (tools.buildAvailable && buildEntries.isNotEmpty()) add(DebugToolMode.BUILD)
         if (painter.entries.isNotEmpty()) add(DebugToolMode.PAINT)
         if (spawner.entries.isNotEmpty()) add(DebugToolMode.SPAWN)
@@ -290,6 +291,36 @@ internal class DebugPanel(
                 defaults().fillAvailableX()
                 label("Inspector")
                 inspectorRows = diagnosticTable()
+                label("World visualization")
+                toggleGrid(
+                    toggle("Selected tile", { settings.inspect.showTile }) {
+                        settings.inspect.showTile = it
+                    },
+                    toggle("Object footprint", { settings.inspect.showObjectFootprint }) {
+                        settings.inspect.showObjectFootprint = it
+                    },
+                    toggle("Object origin", { settings.inspect.showObjectOrigin }) {
+                        settings.inspect.showObjectOrigin = it
+                    },
+                    toggle("Object sprite bounds", { settings.inspect.showObjectSpriteBounds }) {
+                        settings.inspect.showObjectSpriteBounds = it
+                    },
+                    toggle("Entity tile", { settings.inspect.showEntityTile }) {
+                        settings.inspect.showEntityTile = it
+                    },
+                    toggle("Entity position", { settings.inspect.showEntityPosition }) {
+                        settings.inspect.showEntityPosition = it
+                    },
+                    toggle("Entity path", { settings.inspect.showEntityPath }) {
+                        settings.inspect.showEntityPath = it
+                    },
+                    toggle("Entity direction", { settings.inspect.showEntityDirection }) {
+                        settings.inspect.showEntityDirection = it
+                    },
+                    toggle("Entity sprite bounds", { settings.inspect.showEntitySpriteBounds }) {
+                        settings.inspect.showEntitySpriteBounds = it
+                    }
+                )
                 button("Clear selection") { inspector.clear() }.cell { height(38f) }
             }
             pathControls = column(spacing = 8f) {
@@ -547,8 +578,12 @@ internal class DebugPanel(
         setWrap(true)
     }.cell { fillAvailableX() }
 
-    private fun StrataLayout.diagnosticTable(): DebugDiagnosticTable =
-        actor(DebugDiagnosticTable(ui.skin)).cell { fillAvailableX() }
+    private fun StrataLayout.diagnosticTable(): DebugDiagnosticTable {
+        val table = actor(DebugDiagnosticTable(ui.skin))
+        val cell = requireNotNull(getCell(table)).apply { fillAvailableX() }
+        table.bindLayout(cell)
+        return table
+    }
 
     private fun <A : Actor> A.previewOnHover(
         key: Any,
@@ -636,20 +671,33 @@ internal class DebugPanel(
     private fun formatPicking(): List<DebugDiagnosticRow> {
         val x = Gdx.input.x.toFloat()
         val y = Gdx.input.y.toFloat()
-        val projected = view.screenToWorld(x, y)
         val snapshot = settings.worldState.picking
-        val hover = snapshot?.picked
-        val target = settings.worldState.pickingSelection.displayedTarget(hover)
-        val mode = settings.worldState.pickingSelection.mode(hover)
+        val diagnostics = resolvePickingDiagnostics(
+            selection = settings.worldState.pickingSelection,
+            hoverTarget = snapshot?.picked,
+            cursorScreen = com.badlogic.gdx.math.Vector2(x, y),
+            cursorWorld = view.screenToWorld(x, y),
+            cursorGrid = view.pickGrid(x, y),
+            cursorTile = view.pickTile(x, y),
+            world = world,
+            tileCenterWorld = view::tileCenterWorld,
+            objectOriginWorld = view::objectOriginWorld,
+            entityWorld = view::entityWorld,
+            worldToScreen = view::worldToScreen
+        )
+        val entityNames = diagnostics.entities.map { it.entity::class.displayName() }
         return diagnosticRows(
-            "Screen" to "${x.toInt()}, ${y.toInt()}",
-            "World" to "${projected.x.format()}, ${projected.y.format()}",
-            "Grid" to formatTilePosition(view.pickGrid(x, y)),
-            "Tile" to (view.pickTile(x, y)?.let(::formatTilePosition) ?: "—"),
-            "Selected" to display(pickingTargetName(target)),
-            "Mode" to mode.name.toDisplayName(),
-            "Alpha" to alphaText(target?.alphaAccepted),
-            "Bounds" to display(target?.bounds)
+            "Mode" to diagnostics.mode.name.toDisplayName(),
+            "Screen" to "${diagnostics.screen.x.format()}, ${diagnostics.screen.y.format()}",
+            "World" to "${diagnostics.world.x.format()}, ${diagnostics.world.y.format()}",
+            "Grid" to formatTilePosition(diagnostics.grid),
+            "Tile" to (diagnostics.tile?.let(::formatTilePosition) ?: "—"),
+            "Object" to display(
+                diagnostics.placedObject?.placeable?.javaClass?.simpleName
+            ),
+            "Entity" to display(entityNames.takeIf { it.isNotEmpty() }),
+            "Alpha" to alphaText(diagnostics.alphaAccepted),
+            "Bounds" to display(diagnostics.bounds)
         )
     }
 
@@ -715,15 +763,6 @@ internal class DebugPanel(
             "${formatTilePosition(selected.position)} (Tile)"
         null -> null
     }
-
-    private fun pickingTargetName(target: com.mefabc24.strata.iso.PickedSpriteTarget?): String? =
-        when (target) {
-            is com.mefabc24.strata.iso.PickedSpriteTarget.Object ->
-                target.placedObject.placeable::class.displayName()
-            is com.mefabc24.strata.iso.PickedSpriteTarget.Entity ->
-                target.worldEntity.entity::class.displayName()
-            null -> null
-        }
 
     private fun formatInspection(): List<DebugDiagnosticRow> =
         when (val selected = inspector.selection) {

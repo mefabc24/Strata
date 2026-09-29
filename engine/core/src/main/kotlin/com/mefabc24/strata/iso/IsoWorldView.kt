@@ -148,7 +148,10 @@ class IsoWorldView(
         collectDebugSnapshot = {
             debugSettings?.let { settings ->
                 settings.picking.enabled || settings.renderOrder.enabled ||
-                    settings.culling.enabled
+                    settings.culling.enabled ||
+                    (settings.worldState.inspectionHighlightVisible &&
+                        (settings.inspect.showObjectSpriteBounds ||
+                            settings.inspect.showEntitySpriteBounds))
             } ?: false
         }
     )
@@ -436,6 +439,11 @@ class IsoWorldView(
         cameraController.refreshZoomBounds()
     }
 
+    internal fun setDebugFreeCamera(enabled: Boolean) {
+        viewport.boundsEnabled = !enabled
+        cameraController.unrestricted = enabled
+    }
+
     /** Returns the world tile at the given screen position, or null. */
     fun pickTile(screenX: Float, screenY: Float): TilePosition? {
         return tilePicker.pick(screenX, screenY)
@@ -518,10 +526,13 @@ class IsoWorldView(
     ): PickingDebugSnapshot {
         val objectResult = objectPicker.diagnose(screenX, screenY)
         val entityResult = entityPicker.diagnose(screenX, screenY)
-        val picked = frontmostPickedSprite(
-            worldRenderer.currentRenderPlan(world),
-            objectResult,
-            entityResult
+        val picked = pickingTarget(
+            frontmostPickedSprite(
+                worldRenderer.currentRenderPlan(world),
+                objectResult,
+                entityResult
+            ),
+            tilePicker.pick(screenX, screenY)
         )
         return PickingDebugSnapshot(objectResult, entityResult, picked)
     }
@@ -531,6 +542,21 @@ class IsoWorldView(
         val point = camera.unproject(Vector3(screenX, screenY, 0f))
         return Vector2(point.x, point.y)
     }
+
+    /** Projects a world-plane position into current screen coordinates. */
+    internal fun worldToScreen(world: Vector2): Vector2 {
+        val point = camera.project(Vector3(world.x, world.y, 0f))
+        return Vector2(point.x, point.y)
+    }
+
+    internal fun tileCenterWorld(position: TilePosition): Vector2 =
+        projection.tileToWorld(position.x + 0.5f, position.y + 0.5f)
+
+    internal fun objectOriginWorld(placed: PlacedObject): Vector2 =
+        projection.surfaceAnchor(placed.x, placed.y)
+
+    internal fun entityWorld(entity: WorldEntity): Vector2 =
+        projection.tileToWorld(entity.position.x, entity.position.y)
 
     /** Returns the active object sprite bounds, when a visual is registered. */
     fun objectSpriteBounds(placed: PlacedObject): Rectangle? {
@@ -556,15 +582,16 @@ class IsoWorldView(
     }
 
     /** Refreshes the live bounds for a previously picked object or entity. */
-    internal fun refreshPickedSpriteTarget(
-        target: PickedSpriteTarget
-    ): PickedSpriteTarget = when (target) {
-        is PickedSpriteTarget.Object -> target.copy(
+    internal fun refreshPickedTarget(
+        target: PickedTarget
+    ): PickedTarget = when (target) {
+        is PickedTarget.Object -> target.copy(
             bounds = objectSpriteBounds(target.placedObject)
         )
-        is PickedSpriteTarget.Entity -> target.copy(
+        is PickedTarget.Entity -> target.copy(
             bounds = entitySpriteBounds(target.worldEntity)
         )
+        is PickedTarget.Tile -> target
     }
 
     /** Current camera and authoritative renderer bounds for diagnostics. */
@@ -608,10 +635,10 @@ data class CameraDebugSnapshot(
 data class PickingDebugSnapshot(
     val objectResult: SpritePickDiagnostic<PlacedObject>,
     val entityResult: SpritePickDiagnostic<WorldEntity>,
-    val picked: PickedSpriteTarget? = null
+    val picked: PickedTarget? = null
 )
 
-sealed interface PickedSpriteTarget {
+sealed interface PickedTarget {
     val bounds: Rectangle?
     val alphaAccepted: Boolean?
 
@@ -619,20 +646,30 @@ sealed interface PickedSpriteTarget {
         val placedObject: PlacedObject,
         override val bounds: Rectangle?,
         override val alphaAccepted: Boolean? = null
-    ) : PickedSpriteTarget
+    ) : PickedTarget
 
     data class Entity(
         val worldEntity: WorldEntity,
         override val bounds: Rectangle?,
         override val alphaAccepted: Boolean? = null
-    ) : PickedSpriteTarget
+    ) : PickedTarget
+
+    data class Tile(val position: TilePosition) : PickedTarget {
+        override val bounds: Rectangle? = null
+        override val alphaAccepted: Boolean? = null
+    }
 }
+
+internal fun pickingTarget(
+    spriteTarget: PickedTarget?,
+    tile: TilePosition?
+): PickedTarget? = spriteTarget ?: tile?.let(PickedTarget::Tile)
 
 internal fun frontmostPickedSprite(
     renderPlan: List<WorldRenderPrimitive>,
     objectResult: SpritePickDiagnostic<PlacedObject>,
     entityResult: SpritePickDiagnostic<WorldEntity>
-): PickedSpriteTarget? {
+): PickedTarget? {
     val pickedObject = objectResult.picked
     val pickedEntity = entityResult.picked
     if (pickedObject == null && pickedEntity == null) return null
@@ -640,7 +677,7 @@ internal fun frontmostPickedSprite(
         when {
             primitive is WorldObjectPrimitive &&
                 primitive.placedObject === pickedObject -> {
-                return PickedSpriteTarget.Object(
+                return PickedTarget.Object(
                     primitive.placedObject,
                     objectResult.pickedBounds,
                     objectResult.pickedAlphaAccepted
@@ -648,7 +685,7 @@ internal fun frontmostPickedSprite(
             }
             primitive is WorldEntityPrimitive &&
                 primitive.worldEntity === pickedEntity -> {
-                return PickedSpriteTarget.Entity(
+                return PickedTarget.Entity(
                     primitive.worldEntity,
                     entityResult.pickedBounds,
                     entityResult.pickedAlphaAccepted
