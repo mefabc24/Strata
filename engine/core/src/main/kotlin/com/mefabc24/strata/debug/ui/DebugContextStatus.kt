@@ -29,6 +29,9 @@ internal fun debugContextStatus(
     input: DebugContextInputs
 ): DebugContextStatus? = when (input.mode) {
     DebugToolMode.NONE -> null
+    DebugToolMode.FREE_CAMERA -> DebugContextStatus(
+        diagnosticRows("Camera" to "Unrestricted pan and zoom")
+    )
     DebugToolMode.BUILD -> DebugContextStatus(buildStatusRows(input))
     DebugToolMode.PAINT -> DebugContextStatus(
         diagnosticRows(
