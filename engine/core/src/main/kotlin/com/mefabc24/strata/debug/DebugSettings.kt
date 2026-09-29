@@ -24,6 +24,7 @@ class DebugSettings {
     val culling = DebugCullingSettings()
     val camera = DebugCameraSettings()
     val worldStats = DebugFeatureSettings()
+    val inspect = DebugInspectSettings()
     val pathfinding = DebugPathfindingSettings()
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
@@ -41,6 +42,7 @@ class DebugSettings {
     fun culling(configure: DebugCullingSettings.() -> Unit) = culling.apply(configure)
     fun camera(configure: DebugCameraSettings.() -> Unit) = camera.apply(configure)
     fun worldStats(configure: DebugFeatureSettings.() -> Unit) = worldStats.apply(configure)
+    fun inspect(configure: DebugInspectSettings.() -> Unit) = inspect.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
 
     /** Called after an entity was created by the debug Spawn tool. */
@@ -123,6 +125,19 @@ class DebugCameraSettings : DebugFeatureSettings() {
     var showVisibleArea: Boolean = true
     var showWorldBounds: Boolean = true
     var showClampBounds: Boolean = true
+}
+
+/** Visualization options owned by the Inspect tool. */
+class DebugInspectSettings {
+    var showTile: Boolean = true
+    var showObjectFootprint: Boolean = true
+    var showObjectOrigin: Boolean = true
+    var showObjectSpriteBounds: Boolean = true
+    var showEntityTile: Boolean = true
+    var showEntityPosition: Boolean = true
+    var showEntityPath: Boolean = true
+    var showEntityDirection: Boolean = true
+    var showEntitySpriteBounds: Boolean = true
 }
 
 class DebugPathfindingSettings : DebugFeatureSettings() {
@@ -305,9 +320,22 @@ internal object DebugPresets {
             }
             DebugPreset.EVERYTHING -> {
                 settings.performance.enabled = true
+                settings.simulation.enabled = true
                 settings.grid.enabled = true
+                settings.grid.backgroundColor = Color(1f, 1f, 1f, 0.2f)
+                settings.grid.hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
                 settings.objects.enabled = true
+                settings.objects.showOccupiedTiles = true
+                settings.objects.showOriginTile = true
+                settings.objects.showSpriteBounds = true
+                settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
                 settings.entities.enabled = true
+                settings.entities.showCurrentTile = true
+                settings.entities.showPosition = true
+                settings.entities.showPath = true
+                settings.entities.showDirection = true
+                settings.entities.showSpriteBounds = true
+                settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
                 settings.picking.enabled = true
                 settings.picking.showSpriteBounds = true
                 settings.picking.showCursorHit = true
