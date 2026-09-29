@@ -5,7 +5,6 @@ import com.mefabc24.sandbox.registration.registerSandboxEntities
 import com.mefabc24.sandbox.registration.registerSandboxObjects
 import com.mefabc24.sandbox.registration.registerSandboxSounds
 import com.mefabc24.sandbox.registration.registerSandboxTerrain
-import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
@@ -157,13 +156,13 @@ class SandboxGame : StrataGame() {
                 }
 
                 placement {
-                    previewBoundsPolicy  = PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
-                    previewStyle = PlacementPreviewStyle(
-                        validColor =
-                            Color(0.35f, 0.75f, 0.3f, 0.7f),
-                        invalidColor =
-                            Color(1f, 0.25f, 0.25f, 0.7f)
-                    )
+                    preview {
+                        objects {
+                            boundsPolicy = PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
+                            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+                            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+                        }
+                    }
                 }
 
             }

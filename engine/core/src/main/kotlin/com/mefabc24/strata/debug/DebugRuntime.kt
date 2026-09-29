@@ -62,7 +62,8 @@ internal class DebugRuntime(
     private val move = DebugMoveTool(
         world,
         settings.worldState,
-        placement?.previewStyle ?: com.mefabc24.strata.render.preview.PlacementPreviewStyle.DEFAULT
+        placement?.objectPreviewSettings
+            ?: com.mefabc24.strata.placement.PlacementObjectPreviewSettings()
     )
     private var freeCameraToolActive = false
     private var appliedCameraRestrictionsDisabled: Boolean? = null

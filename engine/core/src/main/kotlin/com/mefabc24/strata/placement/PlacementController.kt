@@ -38,16 +38,24 @@ data class PlacementDiagnostic(
  */
 class PlacementController(
     private val world: World,
-    private val style: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT,
+    private val style: PlacementPreviewStyle = PlacementPreviewStyle(),
     private val previewBoundsPolicy: PlacementPreviewBoundsPolicy =
         PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE,
     private val placementValidator: (
         placeable: Placeable,
         position: TilePosition
-    ) -> Boolean = { _, _ -> true }
+    ) -> Boolean = { _, _ -> true },
+    private val previewEnabled: Boolean = true,
+    entityPreviewSettings: PlacementEntityPreviewSettings =
+        PlacementEntityPreviewSettings()
 ) {
-    internal val previewStyle: PlacementPreviewStyle
-        get() = style
+    internal val objectPreviewSettings = PlacementObjectPreviewSettings().also {
+        it.enabled = previewEnabled
+        it.validColor = style.validColor
+        it.invalidColor = style.invalidColor
+        it.boundsPolicy = previewBoundsPolicy
+    }
+    internal val entityPreviewSettings = entityPreviewSettings.copy()
     /**
      * Controls preview generation and placement operations.
      *
@@ -129,6 +137,12 @@ class PlacementController(
         val diagnostic = diagnose(placeable, hoveredTile)
         currentDiagnostic = diagnostic
 
+        if (!previewEnabled) {
+            previews = emptyList()
+            previewDiagnostics = emptyList()
+            return
+        }
+
         if (!shouldShowPreview(placedObject)) {
             previews = emptyList()
             previewDiagnostics = emptyList()
@@ -196,6 +210,10 @@ class PlacementController(
 
                 if (valid) {
                     reservedTiles += occupiedTiles
+                }
+
+                if (!previewEnabled) {
+                    continue
                 }
 
                 add(

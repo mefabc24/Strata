@@ -15,7 +15,6 @@ import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputTrigger
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.render.preview.PlacementPreview
-import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.render.RenderingSettings
 import com.mefabc24.strata.terrain.TerrainId
@@ -397,22 +396,24 @@ class StrataSceneWorldTest {
 
     @Test
     fun `scene placement supplies the complete preview collection`() {
-        val previewStyle = PlacementPreviewStyle(
-            validColor = Color(0.2f, 0.3f, 0.4f, 0.5f),
-            invalidColor = Color(0.8f, 0.7f, 0.6f, 0.5f)
-        )
+        val validColor = Color(0.2f, 0.3f, 0.4f, 0.5f)
 
         val factory = RecordingViewFactory()
         val scene = sceneWith(factory) {
             placement {
-                this.previewStyle = previewStyle
+                preview {
+                    objects {
+                        this.validColor = validColor
+                        invalidColor = Color(0.8f, 0.7f, 0.6f, 0.5f)
+                    }
+                }
                 validator { _, position ->
                     position.x == 2
                 }
             }
         }
 
-        previewStyle.validColor.set(Color.RED)
+        validColor.set(Color.RED)
         scene.attachWorld(world()) { Terrain.GRASS }
 
         val selectedFactory = ::TestPlaceable

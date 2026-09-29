@@ -2,8 +2,8 @@ package com.mefabc24.strata.debug.tools
 
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.iso.PickedTarget
+import com.mefabc24.strata.placement.PlacementObjectPreviewSettings
 import com.mefabc24.strata.render.preview.PlacementPreview
-import com.mefabc24.strata.render.preview.PlacementPreviewStyle
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
@@ -34,8 +34,10 @@ internal data class DebugMoveOutcome(
 class DebugMoveTool internal constructor(
     private val world: World,
     private val state: DebugWorldState,
-    private val previewStyle: PlacementPreviewStyle = PlacementPreviewStyle.DEFAULT
+    objectPreviewSettings: PlacementObjectPreviewSettings =
+        PlacementObjectPreviewSettings()
 ) {
+    private val objectPreviewSettings = objectPreviewSettings.copy()
     private var subject: Subject? = null
 
     internal val active: Boolean get() = subject != null
@@ -113,7 +115,15 @@ class DebugMoveTool internal constructor(
             target = position,
             valid = rejection == null,
             rejection = rejection,
-            objectPreview = PlacementPreview(previewObject, rejection == null, previewStyle),
+            objectPreview = if (objectPreviewSettings.enabled) {
+                PlacementPreview(
+                    previewObject,
+                    rejection == null,
+                    objectPreviewSettings.style()
+                )
+            } else {
+                null
+            },
             occupiedTiles = previewObject.occupiedTiles()
         )
     }
