@@ -33,7 +33,7 @@ class DebugTerrainPainterTest {
     @Test
     fun `overlay erase follows the stroke and layer changes cancel it`() {
         val world = world().apply { addOverlayLayer("roads") }
-        val painter = painter(world).apply { layerId = "roads" }
+        val painter = painter(world).apply { target = DebugPaintTarget.OVERLAY }
         painter.beginPaint(0, 0)
         painter.dragPaint(3, 0)
         assertTrue(painter.beginErase(0, 0))
@@ -41,8 +41,71 @@ class DebugTerrainPainterTest {
         (0..3).forEach { assertNull(world.getOverlayTile("roads", it, 0)) }
 
         painter.beginPaint(0, 0)
-        painter.layerId = null
+        painter.target = DebugPaintTarget.GROUND
         assertFalse(painter.dragPaint(1, 0))
+    }
+
+    @Test
+    fun `ground and overlay are distinct paint targets`() {
+        val world = world().apply { addOverlayLayer("roads") }
+        val painter = painter(world)
+
+        assertEquals(DebugPaintTarget.GROUND, painter.target)
+        assertNull(painter.activeOverlayLayerId)
+        assertFalse(painter.beginErase(0, 0))
+
+        painter.target = DebugPaintTarget.OVERLAY
+        assertEquals("roads", painter.activeOverlayLayerId)
+        assertTrue(painter.beginErase(0, 0))
+    }
+
+    @Test
+    fun `switching target or overlay cancels active stroke`() {
+        val world = world().apply {
+            addOverlayLayer("roads")
+            addOverlayLayer("details")
+        }
+        val painter = painter(world)
+        assertTrue(painter.beginPaint(0, 0))
+
+        painter.target = DebugPaintTarget.OVERLAY
+        assertFalse(painter.dragPaint(1, 0))
+        assertTrue(painter.beginPaint(0, 0))
+
+        painter.selectedOverlayLayerId = "details"
+        assertFalse(painter.dragPaint(1, 0))
+        assertEquals("details", painter.activeOverlayLayerId)
+    }
+
+    @Test
+    fun `multiple overlay layers can be selected independently`() {
+        val world = world().apply {
+            addOverlayLayer("roads")
+            addOverlayLayer("details")
+        }
+        val painter = painter(world).apply { target = DebugPaintTarget.OVERLAY }
+        painter.beginPaint(0, 0)
+        painter.endPaint()
+
+        painter.selectedOverlayLayerId = "details"
+        painter.beginPaint(1, 0)
+
+        assertEquals(Terrain.GRASS, (world.getOverlayTile("roads", 0, 0) as TestTile).terrain)
+        assertEquals(Terrain.GRASS, (world.getOverlayTile("details", 1, 0) as TestTile).terrain)
+        assertNull(world.getOverlayTile("roads", 1, 0))
+    }
+
+    @Test
+    fun `world without overlays remains ground only`() {
+        val painter = painter(world())
+
+        assertTrue(painter.overlayLayerIds.isEmpty())
+        assertEquals(DebugPaintTarget.GROUND, painter.target)
+        assertNull(painter.selectedOverlayLayerId)
+        assertFalse(painter.beginErase(0, 0))
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            painter.target = DebugPaintTarget.OVERLAY
+        }
     }
 
     @Test
