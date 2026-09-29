@@ -423,11 +423,11 @@ internal class DebugPanel(
         }
         featureExpander(
             "Event Bus",
-            { eventMonitor.enabled },
-            { eventMonitor.enabled = it }
+            { settings.eventBus.enabled },
+            { settings.eventBus.enabled = it }
         ) {
-            simpleToggle("Pause capture", { eventMonitor.paused }) {
-                eventMonitor.paused = it
+            simpleToggle("Pause capture", { settings.eventBus.paused }) {
+                settings.eventBus.paused = it
             }
             button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
             eventRows = diagnosticTable()

@@ -48,7 +48,10 @@ internal class DebugRuntime(
     events: EventBus,
     terrainFor: (Tile) -> TerrainId
 ) {
-    private val eventMonitor = DebugEventMonitor(events)
+    private val eventMonitor = DebugEventMonitor(events).apply {
+        enabled = settings.eventBus.enabled
+        paused = settings.eventBus.paused
+    }
     private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
     private val inspector = DebugInspector(settings.worldState)
     private val pathfinding = DebugPathfindingTool(world, settings.worldState) { position ->
@@ -250,6 +253,8 @@ internal class DebugRuntime(
 
     fun update(delta: Float) {
         syncCameraRestrictions()
+        eventMonitor.enabled = settings.eventBus.enabled
+        eventMonitor.paused = settings.eventBus.paused
         settings.notifications.update(delta)
         notificationOverlay.sync()
 

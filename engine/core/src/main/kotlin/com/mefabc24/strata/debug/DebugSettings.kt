@@ -27,6 +27,7 @@ class DebugSettings {
     val worldStats = DebugFeatureSettings()
     val inspect = DebugInspectSettings()
     val pathfinding = DebugPathfindingSettings()
+    val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
@@ -46,6 +47,7 @@ class DebugSettings {
     fun worldStats(configure: DebugFeatureSettings.() -> Unit) = worldStats.apply(configure)
     fun inspect(configure: DebugInspectSettings.() -> Unit) = inspect.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
+    fun eventBus(configure: DebugEventMonitorSettings.() -> Unit) = eventBus.apply(configure)
 
     /** Returns whether debug controls have frozen engine movement for [entity]. */
     fun isEntityFrozen(entity: WorldEntity): Boolean =
@@ -171,6 +173,19 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
+}
+
+class DebugEventMonitorSettings : DebugFeatureSettings() {
+    var paused: Boolean = false
+    var overlayVisible: Boolean = true
+    var maximumVisibleRecords: Int = 8
+        set(value) {
+            require(value in 1..25) {
+                "Maximum visible Event Bus records must be between 1 and 25."
+            }
+            field = value
+        }
+    var newestFirst: Boolean = true
 }
 
 /** Runtime configuration for placed-object diagnostics. */
@@ -376,6 +391,8 @@ internal object DebugPresets {
                 settings.camera.showWorldBounds = true
                 settings.camera.showClampBounds = true
                 settings.worldStats.enabled = true
+                settings.eventBus.enabled = true
+                settings.camera.disableRestrictions = true
             }
         }
     }
@@ -391,5 +408,6 @@ internal object DebugPresets {
         settings.culling.enabled = false
         settings.camera.enabled = false
         settings.worldStats.enabled = false
+        settings.eventBus.enabled = false
     }
 }
