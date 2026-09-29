@@ -12,7 +12,8 @@ class DebugToolController(
     private val buildDrag: DebugBuildDragController?,
     private val inspector: DebugInspector,
     private val pathfinding: DebugPathfindingTool,
-    private val setFreeCamera: (Boolean) -> Unit = {}
+    private val setFreeCamera: (Boolean) -> Unit = {},
+    private val move: DebugMoveTool? = null
 ) {
     private var savedPlacementEnabled: Boolean? = null
     private var savedPlacementFactory: (() -> com.mefabc24.strata.world.Placeable)? = null
@@ -66,6 +67,7 @@ class DebugToolController(
                 savedPlacementFactory = null
             }
             DebugToolMode.PAINT -> painter.cancel()
+            DebugToolMode.MOVE -> move?.cancel()
             DebugToolMode.PATHFINDING -> pathfinding.clear()
             DebugToolMode.FREE_CAMERA -> setFreeCamera(false)
             else -> Unit

@@ -364,6 +364,12 @@ class IsoWorldView(
      * Renders terrain, world objects, and placement previews.
      */
     fun render(previews: List<PlacementPreview> = emptyList()) {
+        val debugMovePreview = debugSettings?.worldState?.movePreview?.objectPreview
+        val visiblePreviews = if (debugMovePreview == null) {
+            previews
+        } else {
+            previews + debugMovePreview
+        }
         worldRenderer.render(
             world = world,
             camera = camera,
@@ -372,7 +378,7 @@ class IsoWorldView(
             entityVisualFor = entityVisualFor,
             resolvedObjectVisualFor = resolvedObjectVisualFor,
             resolvedEntityVisualFor = resolvedEntityVisualFor,
-            previews = previews,
+            previews = visiblePreviews,
             animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
         )
@@ -395,7 +401,7 @@ class IsoWorldView(
                     camera = camera,
                     objectVisualFor = objectVisualFor,
                     entityVisualFor = entityVisualFor,
-                    previews = previews,
+                    previews = visiblePreviews,
                     animationTime = animationTime,
                     resolvedObjectVisualFor = resolvedObjectVisualFor,
                     resolvedEntityVisualFor = resolvedEntityVisualFor
@@ -420,7 +426,7 @@ class IsoWorldView(
             val active = inspectionActive || pathActive ||
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
-                settings.camera.enabled
+                settings.camera.enabled || state.movePreview != null
             if (active) {
                 advancedDebugRenderer.value.render(
                     camera = camera,

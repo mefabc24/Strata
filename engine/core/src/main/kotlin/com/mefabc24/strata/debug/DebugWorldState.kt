@@ -5,6 +5,7 @@ import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.iso.PickingDebugSnapshot
+import com.mefabc24.strata.debug.tools.DebugMovePreview
 
 /** Mutable runtime-only state consumed by debug world rendering. */
 internal class DebugWorldState {
@@ -15,4 +16,5 @@ internal class DebugWorldState {
     var cursorWorld: Vector2? = null
     var picking: PickingDebugSnapshot? = null
     val pickingSelection = DebugPickingSelection()
+    var movePreview: DebugMovePreview? = null
 }

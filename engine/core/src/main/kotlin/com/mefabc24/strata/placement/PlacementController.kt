@@ -46,6 +46,8 @@ class PlacementController(
         position: TilePosition
     ) -> Boolean = { _, _ -> true }
 ) {
+    internal val previewStyle: PlacementPreviewStyle
+        get() = style
     /**
      * Controls preview generation and placement operations.
      *

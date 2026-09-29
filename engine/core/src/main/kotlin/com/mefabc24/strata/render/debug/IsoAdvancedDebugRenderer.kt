@@ -46,7 +46,8 @@ internal class IsoAdvancedDebugRenderer(
         val drawPath = settings.pathfinding.enabled &&
             (state.pathStart != null || path != null)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
-            settings.picking.enabled || settings.culling.enabled || settings.camera.enabled
+            settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
+            state.movePreview != null
         val drawLabels = settings.renderOrder.enabled && settings.renderOrder.showLabels
         if (!drawShapes && !drawLabels) return
 
@@ -107,10 +108,15 @@ internal class IsoAdvancedDebugRenderer(
         val drawCameraArea = settings.camera.enabled && settings.camera.showVisibleArea
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
+        val movePreview = state.movePreview
         if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathStart == null &&
-            !drawCullingArea && !drawCameraArea && !drawPickingTiles
+            !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null
         ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
+        movePreview?.let { preview ->
+            shapes.color = if (preview.valid) MOVE_VALID_FILL else MOVE_INVALID_FILL
+            preview.occupiedTiles.forEach(::drawTileFill)
+        }
         if (shouldDrawExplored) {
             shapes.color = Color(0.2f, 0.55f, 1f, 0.16f)
             explored.forEach(::drawTileFill)
@@ -270,6 +276,12 @@ internal class IsoAdvancedDebugRenderer(
         Gdx.gl.glLineWidth(2f)
         drawInspectionLines(inspection, inspectionVisuals, camera, renderSnapshot)
         drawPickingLines(pickingVisuals)
+        state.movePreview?.let { preview ->
+            shapes.color = if (preview.valid) MOVE_VALID_OUTLINE else MOVE_INVALID_OUTLINE
+            preview.occupiedTiles.forEach(::drawTileOutline)
+            shapes.color = MOVE_ORIGIN_OUTLINE
+            drawTileOutline(preview.target)
+        }
 
         val result = state.pathfinding
         if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && result?.path != null) {
@@ -381,5 +393,10 @@ internal class IsoAdvancedDebugRenderer(
         val PICKING_HOVER_OUTLINE = Color(1f, 0.3f, 0.9f, 1f)
         val PICKING_LOCKED_FILL = Color(0.2f, 0.9f, 1f, 0.24f)
         val PICKING_LOCKED_OUTLINE = Color(0.2f, 0.9f, 1f, 1f)
+        val MOVE_VALID_FILL = Color(0.25f, 0.85f, 0.35f, 0.22f)
+        val MOVE_VALID_OUTLINE = Color(0.25f, 1f, 0.4f, 1f)
+        val MOVE_INVALID_FILL = Color(1f, 0.2f, 0.2f, 0.24f)
+        val MOVE_INVALID_OUTLINE = Color(1f, 0.25f, 0.25f, 1f)
+        val MOVE_ORIGIN_OUTLINE = Color(0.25f, 0.85f, 1f, 1f)
     }
 }

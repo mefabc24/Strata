@@ -12,6 +12,7 @@ import com.mefabc24.strata.debug.tools.DebugEntitySpawner
 import com.mefabc24.strata.debug.tools.DebugPathfindingTool
 import com.mefabc24.strata.debug.tools.DebugTerrainPainter
 import com.mefabc24.strata.debug.tools.DebugToolController
+import com.mefabc24.strata.debug.tools.DebugMoveTool
 import com.mefabc24.strata.debug.ui.DebugPanel
 import com.mefabc24.strata.debug.ui.DebugNotificationOverlay
 import com.mefabc24.strata.iso.EntityPickingMode
@@ -55,6 +56,11 @@ internal class DebugRuntime(
     }
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
     private val buildDrag = placement?.let(::DebugBuildDragController)
+    private val move = DebugMoveTool(
+        world,
+        settings.worldState,
+        placement?.previewStyle ?: com.mefabc24.strata.render.preview.PlacementPreviewStyle.DEFAULT
+    )
     private var freeCameraToolActive = false
     private var appliedCameraRestrictionsDisabled: Boolean? = null
     private val tools = DebugToolController(
@@ -66,7 +72,8 @@ internal class DebugRuntime(
         setFreeCamera = { enabled ->
             freeCameraToolActive = enabled
             syncCameraRestrictions()
-        }
+        },
+        move = move
     )
     private val spawner = DebugEntitySpawner(
         world = world,
@@ -142,6 +149,15 @@ internal class DebugRuntime(
             EntityPickingMode.SPRITE_ALPHA,
             { tools.mode == DebugToolMode.INSPECT }
         ) { inspector.selectFrontmost(it, null, null) },
+        WorldInputBinding.Pointer(
+            WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.MOVE }
+        ) { screenX, screenY ->
+            move.begin(
+                view.pickingDebugSnapshot(screenX, screenY).picked,
+                view.pickGrid(screenX, screenY)
+            )
+        },
         WorldInputBinding.Object(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             ObjectPickingMode.SPRITE_ALPHA,
@@ -197,6 +213,29 @@ internal class DebugRuntime(
                 if (placed.isNotEmpty()) settings.objectsPlacedCallback?.invoke(placed)
                 true
             }
+        },
+        WorldInputBinding.Grid(
+            WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.MOVE }
+        ) { x, y -> move.dragTo(TilePosition(x, y)) },
+        WorldInputBinding.Grid(
+            WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.MOVE }
+        ) { x, y ->
+            val outcome = move.finish(TilePosition(x, y)) ?: return@Grid false
+            if (outcome.success) {
+                settings.notify(
+                    "${outcome.type.name.lowercase().replaceFirstChar(Char::titlecase)} moved to (${x}, ${y})",
+                    DebugNotificationSeverity.SUCCESS
+                )
+            } else {
+                settings.notify(
+                    "${outcome.type.name.lowercase().replaceFirstChar(Char::titlecase)} move rejected: " +
+                        moveRejectionText(outcome.rejection),
+                    DebugNotificationSeverity.WARNING
+                )
+            }
+            true
         },
         WorldInputBinding.Object(
             WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
@@ -254,6 +293,13 @@ internal class DebugRuntime(
         }
     }
 }
+
+private fun moveRejectionText(failure: com.mefabc24.strata.world.WorldPlacementFailure?): String =
+    when (failure) {
+        com.mefabc24.strata.world.WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD -> "outside world"
+        com.mefabc24.strata.world.WorldPlacementFailure.OCCUPIED_TILE -> "occupied tile"
+        null -> "move could not be committed"
+    }
 
 internal fun cameraRestrictionsDisabled(
     freeCameraToolActive: Boolean,

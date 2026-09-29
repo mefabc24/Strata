@@ -4,6 +4,7 @@ package com.mefabc24.strata.debug
 enum class DebugToolMode(val displayName: String) {
     NONE("None"),
     INSPECT("Inspect"),
+    MOVE("Move"),
     FREE_CAMERA("Free Camera"),
     BUILD("Build"),
     PAINT("Paint"),

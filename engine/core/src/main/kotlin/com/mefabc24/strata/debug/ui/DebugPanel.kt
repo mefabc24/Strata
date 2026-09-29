@@ -74,6 +74,7 @@ internal class DebugPanel(
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
+        add(DebugToolMode.MOVE)
         add(DebugToolMode.FREE_CAMERA)
         if (tools.buildAvailable && buildEntries.isNotEmpty()) add(DebugToolMode.BUILD)
         if (painter.entries.isNotEmpty()) add(DebugToolMode.PAINT)
@@ -791,7 +792,8 @@ internal class DebugPanel(
                 spawnEntity = spawnSelection?.selected?.type?.displayName(),
                 inspection = inspectionSummary(),
                 pathStart = pathfinding.start,
-                pathResult = pathfinding.result
+                pathResult = pathfinding.result,
+                movePreview = settings.worldState.movePreview
             )
         )
         contextRows.show(status?.rows.orEmpty())

@@ -149,6 +149,43 @@ class World(
         return null
     }
 
+    /** Validates relocation while ignoring the object's current footprint. */
+    fun relocationFailure(
+        placedObject: PlacedObject,
+        position: TilePosition
+    ): WorldPlacementFailure? {
+        if (placedObject !in objects) return WorldPlacementFailure.OCCUPIED_TILE
+        val target = PlacedObject(placedObject.placeable, position.x, position.y)
+        if (target.occupiedTiles().any { getTile(it) == null }) {
+            return WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD
+        }
+        if (target.occupiedTiles().any { tile ->
+                getObjectAt(tile)?.let { it !== placedObject } == true
+            }
+        ) {
+            return WorldPlacementFailure.OCCUPIED_TILE
+        }
+        return null
+    }
+
+    /** Atomically relocates an existing placed object. */
+    fun relocate(
+        placedObject: PlacedObject,
+        position: TilePosition
+    ): Boolean {
+        if (relocationFailure(placedObject, position) != null) return false
+        if (placedObject.x == position.x && placedObject.y == position.y) return true
+
+        val previousTiles = placedObject.occupiedTiles()
+        if (previousTiles.any { occupiedTiles[it] !== placedObject }) return false
+        previousTiles.forEach(occupiedTiles::remove)
+        placedObject.x = position.x
+        placedObject.y = position.y
+        placedObject.occupiedTiles().forEach { occupiedTiles[it] = placedObject }
+        objectVersion++
+        return true
+    }
+
     /**
      * Places an object if its footprint is inside the world and unoccupied.
      */
@@ -274,6 +311,13 @@ class World(
         entities.forEach { entity ->
             if (movementEnabled(entity)) entity.updateMovement(delta)
         }
+    }
+
+    /** Teleports an active entity when its target lies inside this world. */
+    fun teleportEntity(entity: WorldEntity, position: EntityPosition): Boolean {
+        if (entities.none { it === entity } || getTile(position.tile) == null) return false
+        entity.teleport(position)
+        return true
     }
 
     /**
