@@ -19,6 +19,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -581,6 +582,56 @@ class StrataWidgetsTest {
 
         val headerTable = expander.header.parent as Table
         assertEquals(36f, requireNotNull(headerTable.getCell(expander.header)).maxHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander applies optional visual treatment only while expanded`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val background = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            expandedStyle = StrataExpanderStyle(background, StrataInsets.all(8f))
+        ) { spacer(height = 20f) }
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
+
+        expander.expanded = true
+
+        assertSame(background, expander.background)
+        assertEquals(8f, expander.padTop)
+        assertEquals(8f, expander.padLeft)
+
+        expander.expanded = false
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
+        assertEquals(0f, expander.padLeft)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander without optional style keeps its existing appearance`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = true,
+            spacing = 6f
+        ) { spacer(height = 20f) }
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
 
         context.dispose()
         skin.dispose()
