@@ -1,7 +1,11 @@
 package com.mefabc24.strata.debug.tools
 
+import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.iso.PickedTarget
+import com.mefabc24.strata.placement.PlacementEntityPreviewSettings
+import com.mefabc24.strata.placement.PlacementObjectPreviewSettings
+import com.mefabc24.strata.render.preview.EntityPreviewVisual
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Footprint
@@ -111,6 +115,65 @@ class DebugMoveToolTest {
 
         assertFalse(requireNotNull(outcome).success)
         assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
+    }
+
+    @Test
+    fun `entity drag previews existing visual at target without teleporting`() {
+        val world = world()
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        val settings = PlacementEntityPreviewSettings().apply {
+            validColor = Color(0.2f, 0.3f, 0.4f, 0.5f)
+            invalidColor = Color(0.7f, 0.6f, 0.5f, 0.4f)
+        }
+        val tool = DebugMoveTool(
+            world,
+            DebugWorldState(),
+            entityPreviewSettings = settings
+        )
+
+        tool.begin(PickedTarget.Entity(entity, null), entity.currentTile)
+        tool.dragTo(TilePosition(3, 2))
+
+        val preview = requireNotNull(tool.preview?.entityPreview)
+        assertEquals(EntityPosition(3.5f, 2.5f), preview.position)
+        assertTrue(preview.valid)
+        assertEquals(settings.validColor, preview.style.validColor)
+        assertSame(entity, (preview.visual as EntityPreviewVisual.Existing).entity)
+        assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
+
+        tool.dragTo(TilePosition(9, 9))
+        val invalidPreview = requireNotNull(tool.preview?.entityPreview)
+        assertFalse(invalidPreview.valid)
+        assertEquals(settings.invalidColor, invalidPreview.style.invalidColor)
+        assertEquals(EntityPosition(0.5f, 0.5f), entity.position)
+    }
+
+    @Test
+    fun `disabled object and entity previews retain move diagnostics`() {
+        val world = world()
+        val placed = requireNotNull(world.place(TestObject(Footprint.square(1)), 1, 1))
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        val tool = DebugMoveTool(
+            world,
+            DebugWorldState(),
+            objectPreviewSettings = PlacementObjectPreviewSettings().apply {
+                enabled = false
+            },
+            entityPreviewSettings = PlacementEntityPreviewSettings().apply {
+                enabled = false
+            }
+        )
+
+        tool.begin(PickedTarget.Object(placed, null), TilePosition(1, 1))
+        assertTrue(requireNotNull(tool.preview).valid)
+        assertFalse(requireNotNull(tool.preview).visible)
+        assertNull(tool.preview?.objectPreview)
+        tool.cancel()
+
+        tool.begin(PickedTarget.Entity(entity, null), entity.currentTile)
+        assertTrue(requireNotNull(tool.preview).valid)
+        assertFalse(requireNotNull(tool.preview).visible)
+        assertNull(tool.preview?.entityPreview)
     }
 
     @Test
