@@ -4,6 +4,8 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.placement.PlacementDiagnostic
@@ -14,6 +16,7 @@ import com.mefabc24.strata.world.TilePosition
 import java.util.Locale
 
 data class DebugDiagnosticRow(val key: String, val value: String)
+internal enum class DebugDiagnosticLayoutState { COLLAPSED, EXPANDED }
 
 /** A compact two-column diagnostic view with distinct key and value styles. */
 internal class DebugDiagnosticTable(
@@ -26,8 +29,20 @@ internal class DebugDiagnosticTable(
 ) : Table(skin) {
     private var keys: List<String> = emptyList()
     private var valueLabels: List<Label> = emptyList()
+    private var layoutCell: Cell<DebugDiagnosticTable>? = null
+    private var visiblePadTop = 0f
+    private var visiblePadLeft = 0f
+    private var visiblePadBottom = 0f
+    private var visiblePadRight = 0f
+    private var visibleSpaceTop = 0f
+    private var visibleSpaceLeft = 0f
+    private var visibleSpaceBottom = 0f
+    private var visibleSpaceRight = 0f
 
     var currentRows: List<DebugDiagnosticRow> = emptyList()
+        private set
+
+    var layoutState: DebugDiagnosticLayoutState = DebugDiagnosticLayoutState.COLLAPSED
         private set
 
     init {
@@ -39,10 +54,53 @@ internal class DebugDiagnosticTable(
     fun show(rows: List<DebugDiagnosticRow>) {
         currentRows = rows
         isVisible = rows.isNotEmpty()
-        if (rows.isEmpty()) return
+        updateLayoutCell()
+        if (rows.isEmpty()) {
+            invalidateHierarchy()
+            return
+        }
         val newKeys = rows.map(DebugDiagnosticRow::key)
         if (newKeys != keys) rebuild(newKeys)
         rows.forEachIndexed { index, row -> valueLabels[index].setText(row.value) }
+        invalidateHierarchy()
+    }
+
+    internal fun bindLayout(cell: Cell<DebugDiagnosticTable>) {
+        layoutCell = cell
+        visiblePadTop = cell.padTop
+        visiblePadLeft = cell.padLeft
+        visiblePadBottom = cell.padBottom
+        visiblePadRight = cell.padRight
+        visibleSpaceTop = cell.spaceTop
+        visibleSpaceLeft = cell.spaceLeft
+        visibleSpaceBottom = cell.spaceBottom
+        visibleSpaceRight = cell.spaceRight
+        updateLayoutCell()
+    }
+
+    private fun updateLayoutCell() {
+        layoutState = if (currentRows.isEmpty()) {
+            DebugDiagnosticLayoutState.COLLAPSED
+        } else {
+            DebugDiagnosticLayoutState.EXPANDED
+        }
+        val cell = layoutCell ?: return
+        if (currentRows.isEmpty()) {
+            cell.minHeight(0f).prefHeight(0f).maxHeight(0f).pad(0f).space(0f)
+        } else {
+            cell
+                .minHeight(Value.minHeight)
+                .prefHeight(Value.prefHeight)
+                .maxHeight(Value.maxHeight)
+                .padTop(visiblePadTop)
+                .padLeft(visiblePadLeft)
+                .padBottom(visiblePadBottom)
+                .padRight(visiblePadRight)
+                .spaceTop(visibleSpaceTop)
+                .spaceLeft(visibleSpaceLeft)
+                .spaceBottom(visibleSpaceBottom)
+                .spaceRight(visibleSpaceRight)
+        }
         invalidateHierarchy()
     }
 

@@ -1,6 +1,8 @@
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -112,8 +114,50 @@ class StrataScrollPane internal constructor(
         setFadeScrollBars(true)
         setFlickScroll(true)
         setClamp(true)
+
         touchable = Touchable.enabled
+
         blockScrollInput()
+
+        addListener(
+            object : InputListener() {
+                override fun enter(
+                    event: InputEvent,
+                    x: Float,
+                    y: Float,
+                    pointer: Int,
+                    fromActor: Actor?
+                ) {
+                    if (
+                        pointer == -1 &&
+                        !containsActor(fromActor)
+                    ) {
+                        stage?.setScrollFocus(this@StrataScrollPane)
+                    }
+                }
+
+                override fun exit(
+                    event: InputEvent,
+                    x: Float,
+                    y: Float,
+                    pointer: Int,
+                    toActor: Actor?
+                ) {
+                    if (
+                        pointer == -1 &&
+                        !containsActor(toActor) &&
+                        stage?.scrollFocus === this@StrataScrollPane
+                    ) {
+                        stage?.setScrollFocus(null)
+                    }
+                }
+            }
+        )
+    }
+
+    private fun containsActor(actor: Actor?): Boolean {
+        return actor === this ||
+                actor?.isDescendantOf(this) == true
     }
 }
 
