@@ -61,5 +61,17 @@ class DebugEventMonitorTest {
         assertTrue(monitor.records.isEmpty())
     }
 
+    @Test
+    fun `monitor preserves original long event value`() {
+        val bus = EventBus()
+        val monitor = DebugEventMonitor(bus).apply { enabled = true }
+        val value = "x".repeat(1_000)
+
+        bus.publish(ValueEvent(value))
+
+        assertEquals(ValueEvent(value).toString(), monitor.records.single().value)
+    }
+
     private data class TestEvent(val value: Int)
+    private data class ValueEvent(val value: String)
 }
