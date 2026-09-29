@@ -30,28 +30,44 @@ class DebugPerformanceOverlayTest {
     }
 
     @Test
-    fun `performance and world sections share visibility independently`() {
+    fun `diagnostic sections retain their top right stack order without gaps`() {
         val state = DebugStatsOverlayState()
-        state.sync(false, false)
+        state.sync(false, false, false)
         assertFalse(state.visible)
         assertEquals(emptyList(), state.visibleSections)
-        state.sync(true, false)
+        state.sync(true, false, false)
         assertTrue(state.visible)
         assertTrue(state.performanceVisible)
         assertFalse(state.worldVisible)
         assertEquals(listOf(DebugStatsSection.PERFORMANCE), state.visibleSections)
-        state.sync(false, true)
+        state.sync(false, true, true)
         assertFalse(state.performanceVisible)
         assertTrue(state.worldVisible)
         assertTrue(state.worldBecameVisible)
-        assertEquals(listOf(DebugStatsSection.WORLD), state.visibleSections)
-        state.sync(true, true)
+        assertTrue(state.eventMonitorVisible)
         assertEquals(
-            listOf(DebugStatsSection.PERFORMANCE, DebugStatsSection.WORLD),
+            listOf(DebugStatsSection.WORLD, DebugStatsSection.EVENT_BUS_MONITOR),
             state.visibleSections
         )
-        state.sync(false, false)
+        state.sync(true, true, true)
+        assertEquals(
+            listOf(
+                DebugStatsSection.PERFORMANCE,
+                DebugStatsSection.WORLD,
+                DebugStatsSection.EVENT_BUS_MONITOR
+            ),
+            state.visibleSections
+        )
+        state.sync(true, false, true)
+        assertEquals(
+            listOf(DebugStatsSection.PERFORMANCE, DebugStatsSection.EVENT_BUS_MONITOR),
+            state.visibleSections
+        )
+        state.sync(false, false, true)
+        assertEquals(listOf(DebugStatsSection.EVENT_BUS_MONITOR), state.visibleSections)
+        state.sync(false, false, false)
         assertFalse(state.visible)
         assertFalse(state.worldVisible)
+        assertFalse(state.eventMonitorVisible)
     }
 }
