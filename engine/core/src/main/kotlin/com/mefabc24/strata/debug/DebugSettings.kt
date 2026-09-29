@@ -154,6 +154,7 @@ class DebugCameraSettings : DebugFeatureSettings() {
 
 /** Visualization options owned by the Inspect tool. */
 class DebugInspectSettings {
+    var freezeEntityAnimation: Boolean = true
     var showTile: Boolean = true
     var showObjectFootprint: Boolean = true
     var showObjectOrigin: Boolean = true

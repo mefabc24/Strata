@@ -185,12 +185,25 @@ class IsoWorldView(
                 }
         }
 
+    private val effectiveEntityVisualFor =
+        { entity: WorldEntity, time: Float ->
+            val resolve = { effectiveTime: Float ->
+                resolvedEntityVisualFor?.invoke(entity, effectiveTime)
+                    ?: entityVisualFor(entity)?.let { visual ->
+                        ResolvedEntityVisual(visual, effectiveTime, null)
+                    }
+            }
+            debugSettings?.entityFreezeState?.resolveAnimation(
+                entity = entity,
+                animationTime = time,
+                freezeAnimation = debugSettings.inspect.freezeEntityAnimation,
+                resolve = resolve
+            ) ?: resolve(time)
+        }
+
     private val debugEntityVisualFor =
         { entity: WorldEntity, time: Float ->
-            resolvedEntityVisualFor?.invoke(entity, time)
-                ?: entityVisualFor(entity)?.let { visual ->
-                    ResolvedEntityVisual(visual, time, null)
-                }
+            effectiveEntityVisualFor(entity, time)
         }
 
     /**
@@ -281,7 +294,7 @@ class IsoWorldView(
                     (primitive as? WorldEntityPrimitive)?.worldEntity
                 }
         },
-        resolvedVisualFor = resolvedEntityVisualFor
+        resolvedVisualFor = effectiveEntityVisualFor
     )
 
     private val worldInputProcessor = WorldInputProcessor(
@@ -377,7 +390,7 @@ class IsoWorldView(
             objectVisualFor = objectVisualFor,
             entityVisualFor = entityVisualFor,
             resolvedObjectVisualFor = resolvedObjectVisualFor,
-            resolvedEntityVisualFor = resolvedEntityVisualFor,
+            resolvedEntityVisualFor = effectiveEntityVisualFor,
             previews = visiblePreviews,
             animationTime = animationTime,
             maxTerrainSpriteHeight = maxTerrainSpriteHeight
@@ -404,7 +417,7 @@ class IsoWorldView(
                     previews = visiblePreviews,
                     animationTime = animationTime,
                     resolvedObjectVisualFor = resolvedObjectVisualFor,
-                    resolvedEntityVisualFor = resolvedEntityVisualFor
+                    resolvedEntityVisualFor = effectiveEntityVisualFor
                 )
             }
         }
@@ -585,6 +598,9 @@ class IsoWorldView(
             result = Rectangle()
         )
     }
+
+    internal fun resolvedEntityVisual(entity: WorldEntity): ResolvedEntityVisual? =
+        effectiveEntityVisualFor(entity, animationTime)
 
     /** Refreshes the live bounds for a previously picked object or entity. */
     internal fun refreshPickedTarget(

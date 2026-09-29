@@ -325,6 +325,10 @@ internal class DebugPanel(
                             )
                         }
                 }
+                simpleToggle(
+                    "Freeze animation",
+                    { settings.inspect.freezeEntityAnimation }
+                ) { settings.inspect.freezeEntityAnimation = it }
                 button("Unfreeze all entities") {
                     val count = settings.unfreezeAllEntities()
                     settings.notify(
@@ -876,7 +880,7 @@ internal class DebugPanel(
         null -> diagnosticRows("Status" to "Click an entity, object, or tile")
         is DebugInspection.EntityTarget -> {
             val entity = selected.entity
-            val visual = entities.resolve(entity, view.animationTime)
+            val visual = view.resolvedEntityVisual(entity)
             diagnosticRows(
                 *(
                         listOf(
@@ -885,6 +889,10 @@ internal class DebugPanel(
                             "Tile" to formatTilePosition(entity.currentTile),
                             "Direction" to entity.direction.toString(),
                             "Frozen" to settings.isEntityFrozen(entity).toString(),
+                            "Animation frozen" to (
+                                settings.isEntityFrozen(entity) &&
+                                    settings.inspect.freezeEntityAnimation
+                                ).toString(),
                             "Moving" to entity.isMoving.toString(),
                             "Waypoints" to entity.remainingWaypoints.size.toString(),
                             "Path" to formatTilePositions(entity.remainingPath),
