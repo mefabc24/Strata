@@ -385,17 +385,6 @@ internal class DebugPanel(
         simpleToggle("Performance overlay", { settings.performance.enabled }) { settings.performance.enabled = it }
         simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
         simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
-        featureExpander(
-            "Event Bus",
-            { eventMonitor.enabled },
-            { eventMonitor.enabled = it }
-        ) {
-            simpleToggle("Pause capture", { eventMonitor.paused }) {
-                eventMonitor.paused = it
-            }
-            button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
-            eventRows = diagnosticTable()
-        }
         simpleToggle(
             "Disable camera restrictions",
             { settings.camera.disableRestrictions }
@@ -408,6 +397,17 @@ internal class DebugPanel(
         ) {
             settings.renderOrder.enabled = it
             if (it) settings.renderOrder.showLabels = true
+        }
+        featureExpander(
+            "Event Bus",
+            { eventMonitor.enabled },
+            { eventMonitor.enabled = it }
+        ) {
+            simpleToggle("Pause capture", { eventMonitor.paused }) {
+                eventMonitor.paused = it
+            }
+            button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
+            eventRows = diagnosticTable()
         }
         featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
         featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
