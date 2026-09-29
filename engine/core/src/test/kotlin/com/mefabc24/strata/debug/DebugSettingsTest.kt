@@ -36,23 +36,19 @@ class DebugSettingsTest {
         assertTrue(settings.inspect.showEntityDirection)
         assertTrue(settings.inspect.showEntitySpriteBounds)
         assertTrue(settings.pathfinding.enabled)
+        assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
     }
 
     @Test
-    fun `presets preserve camera restriction override`() {
-        DebugPreset.entries.forEach { preset ->
-            val settings = DebugSettings().apply {
-                camera.disableRestrictions = true
-            }
-
-            settings.applyPreset(preset)
-
-            assertTrue(
-                settings.camera.disableRestrictions,
-                preset.name
-            )
+    fun `off preset resets camera restriction override`() {
+        val settings = DebugSettings().apply {
+            camera.disableRestrictions = true
         }
+
+        settings.applyPreset(DebugPreset.OFF)
+
+        assertFalse(settings.camera.disableRestrictions)
     }
 
     @Test
@@ -92,6 +88,7 @@ class DebugSettingsTest {
         assertTrue(settings.camera.enabled)
         assertTrue(settings.worldStats.enabled)
         assertTrue(settings.eventBus.enabled)
+        assertTrue(settings.notifications.enabled)
         assertTrue(settings.camera.disableRestrictions)
         assertNotNull(settings.grid.backgroundColor)
         assertNotNull(settings.grid.hoverBackgroundColor)
@@ -143,6 +140,8 @@ class DebugSettingsTest {
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
         assertFalse(settings.eventBus.enabled)
+        assertFalse(settings.notifications.enabled)
+        assertFalse(settings.camera.disableRestrictions)
         assertTrue(settings.pathfinding.enabled)
         assertTrue(settings.pathfinding.showExploredNodes)
         assertTrue(settings.pathfinding.showFinalPath)
@@ -195,7 +194,7 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `only everything explicitly disables camera restrictions`() {
+    fun `only everything disables camera restrictions`() {
         DebugPreset.entries.forEach { preset ->
             val settings = DebugSettings()
 
