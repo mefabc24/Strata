@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import com.mefabc24.strata.iso.PickedTarget
 
 class DebugToolControllerTest {
     private enum class Terrain : TerrainId { GRASS }
@@ -129,6 +130,31 @@ class DebugToolControllerTest {
 
         tools.select(DebugToolMode.NONE)
         assertFalse(freeCamera)
+    }
+
+    @Test
+    fun `leaving move mode cancels drag and clears preview`() {
+        val world = World(2, 2) { _, _ -> TestTile }
+        val state = DebugWorldState()
+        val move = DebugMoveTool(world, state)
+        val placed = requireNotNull(world.place(TestPlaceable(), 0, 0))
+        val tools = DebugToolController(
+            painter = DebugTerrainPainter(world, emptyList()),
+            placement = null,
+            buildDrag = null,
+            inspector = DebugInspector(state),
+            pathfinding = DebugPathfindingTool(world, state),
+            move = move
+        )
+        tools.select(DebugToolMode.MOVE)
+        move.begin(PickedTarget.Object(placed, null), TilePosition(0, 0))
+        move.dragTo(TilePosition(1, 1))
+
+        tools.select(DebugToolMode.NONE)
+
+        assertFalse(move.active)
+        assertEquals(null, state.movePreview)
+        assertSame(placed, world.getObjectAt(0, 0))
     }
 
     private fun objectEntryFor(world: World): com.mefabc24.strata.render.`object`.ObjectEntry {
