@@ -275,6 +275,7 @@ abstract class StrataLayout internal constructor(
         spacing: Float = theme.spacing,
         headerHeight: Float? = null,
         contentGrowY: Boolean = false,
+        expandedStyle: StrataExpanderStyle? = null,
         onExpandedChanged: (Boolean) -> Unit = {},
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
@@ -287,6 +288,7 @@ abstract class StrataLayout internal constructor(
                 spacing = spacing,
                 headerHeight = headerHeight,
                 contentGrowY = contentGrowY,
+                expandedStyle = expandedStyle,
                 onExpandedChanged = onExpandedChanged,
                 headerContent = headerContent,
                 configure = configure
@@ -480,6 +482,7 @@ class StrataExpander internal constructor(
     private val spacing: Float,
     headerHeight: Float? = null,
     private val contentGrowY: Boolean = false,
+    private val expandedStyle: StrataExpanderStyle? = null,
     private val onExpandedChanged: (Boolean) -> Unit = {},
     headerContent: (StrataRow.() -> Unit)? = null,
     configure: StrataColumn.() -> Unit
@@ -558,7 +561,20 @@ class StrataExpander internal constructor(
             contentCell.height(0f).padTop(0f)
         }
 
+        applyExpandedStyle()
+
         invalidateHierarchy()
+    }
+
+    private fun applyExpandedStyle() {
+        val style = expandedStyle.takeIf { expanded }
+        background = style?.background
+        pad(
+            style?.padTop ?: 0f,
+            style?.padLeft ?: 0f,
+            style?.padBottom ?: 0f,
+            style?.padRight ?: 0f
+        )
     }
 }
 

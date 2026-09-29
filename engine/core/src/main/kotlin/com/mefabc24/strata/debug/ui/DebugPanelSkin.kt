@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.mefabc24.strata.ui.StrataInsets
+import com.mefabc24.strata.ui.StrataExpanderStyle
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataSeparatorStyle
 import com.mefabc24.strata.ui.StrataUiTheme
@@ -107,6 +108,14 @@ internal object DebugPanelSkin {
                 padding = StrataInsets.all(8f)
             ),
             StrataPanelStyle::class.java
+        )
+        skin.add(
+            "debug-expander",
+            StrataExpanderStyle(
+                background = drawable.tint(Color(0.11f, 0.11f, 0.14f, 0.9f)),
+                padding = StrataInsets.all(8f)
+            ),
+            StrataExpanderStyle::class.java
         )
         skin.add(
             "debug-separator",

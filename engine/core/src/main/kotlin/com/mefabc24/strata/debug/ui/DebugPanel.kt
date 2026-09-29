@@ -490,7 +490,8 @@ internal class DebugPanel(
             title = "Notifications",
             expanded = false,
             spacing = 8f,
-            headerHeight = 36f
+            headerHeight = 36f,
+            expandedStyle = debugExpanderStyle()
         ) {
             defaults().fillAvailableX()
             label("Position")
@@ -627,6 +628,7 @@ internal class DebugPanel(
             expanded = false,
             spacing = 8f,
             headerHeight = 36f,
+            expandedStyle = debugExpanderStyle(),
             headerContent = {
                 settingToggle(read, write).cell { minWidth(64f); height(36f) }
             }
@@ -635,6 +637,11 @@ internal class DebugPanel(
             configure()
         }.cell { fillAvailableX() }
     }
+
+    private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
+        "debug-expander",
+        StrataExpanderStyle::class.java
+    )
 
     private fun StrataColumn.toggleGrid(vararg controls: ToggleBinding) {
         responsiveGrid(130f, 36f, maximumColumns = 2) {

@@ -200,6 +200,7 @@ class StrataUi internal constructor(
         spacing: Float = theme.spacing,
         headerHeight: Float? = null,
         contentGrowY: Boolean = false,
+        expandedStyle: StrataExpanderStyle? = null,
         onExpandedChanged: (Boolean) -> Unit = {},
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
@@ -209,6 +210,7 @@ class StrataUi internal constructor(
         spacing = spacing,
         headerHeight = headerHeight,
         contentGrowY = contentGrowY,
+        expandedStyle = expandedStyle,
         onExpandedChanged = onExpandedChanged,
         headerContent = headerContent,
         configure = configure

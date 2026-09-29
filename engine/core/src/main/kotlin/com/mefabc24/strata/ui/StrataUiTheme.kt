@@ -134,6 +134,28 @@ class StrataPanelStyle {
     }
 }
 
+/** Optional visual treatment applied only while a [StrataExpander] is open. */
+class StrataExpanderStyle {
+    var background: Drawable? = null
+    var padTop: Float = 0f
+    var padLeft: Float = 0f
+    var padBottom: Float = 0f
+    var padRight: Float = 0f
+
+    constructor()
+
+    constructor(
+        background: Drawable?,
+        padding: StrataInsets = StrataInsets.NONE
+    ) {
+        this.background = background
+        padTop = padding.top
+        padLeft = padding.left
+        padBottom = padding.bottom
+        padRight = padding.right
+    }
+}
+
 /**
  * Skin-managed drawable and thickness for [StrataSeparator].
  */
