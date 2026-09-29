@@ -1,24 +1,24 @@
 package com.mefabc24.strata.debug
 
-import com.mefabc24.strata.iso.PickedSpriteTarget
+import com.mefabc24.strata.iso.PickedTarget
 
-enum class DebugPickingTargetMode { NONE, HOVER, LOCKED }
+enum class DebugPickingTargetMode { HOVER, LOCKED }
 
 /** Keeps a click-locked picking target separate from transient hover state. */
 internal class DebugPickingSelection {
-    var lockedTarget: PickedSpriteTarget? = null
+    var lockedTarget: PickedTarget? = null
         private set
 
     val isLocked: Boolean
         get() = lockedTarget != null
 
-    fun selectFromClick(target: PickedSpriteTarget?): Boolean {
+    fun selectFromClick(target: PickedTarget?): Boolean {
         if (target == null) return false
         lockedTarget = target
         return true
     }
 
-    fun refresh(transform: (PickedSpriteTarget) -> PickedSpriteTarget) {
+    fun refresh(transform: (PickedTarget) -> PickedTarget) {
         lockedTarget = lockedTarget?.let(transform)
     }
 
@@ -32,12 +32,11 @@ internal class DebugPickingSelection {
         if (!enabled) clear()
     }
 
-    fun displayedTarget(hoverTarget: PickedSpriteTarget?): PickedSpriteTarget? =
+    fun displayedTarget(hoverTarget: PickedTarget?): PickedTarget? =
         lockedTarget ?: hoverTarget
 
-    fun mode(hoverTarget: PickedSpriteTarget?): DebugPickingTargetMode = when {
+    fun mode(): DebugPickingTargetMode = when {
         lockedTarget != null -> DebugPickingTargetMode.LOCKED
-        hoverTarget != null -> DebugPickingTargetMode.HOVER
-        else -> DebugPickingTargetMode.NONE
+        else -> DebugPickingTargetMode.HOVER
     }
 }
