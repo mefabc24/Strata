@@ -13,6 +13,7 @@ import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.iso.CameraDebugSnapshot
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.iso.PickedTarget
 import com.mefabc24.strata.render.RenderDebugSnapshot
 import com.mefabc24.strata.world.TilePosition
 
@@ -30,11 +31,21 @@ internal class IsoAdvancedDebugRenderer(
         cameraSnapshot: CameraDebugSnapshot,
         renderSnapshot: RenderDebugSnapshot?
     ) {
-        val inspection = state.inspection.takeIf { state.inspectionHighlightVisible }
+        val inspection = state.inspection
+        val inspectionVisuals = inspectionVisuals(
+            inspection,
+            state.inspectionHighlightVisible,
+            settings.inspect
+        )
+        val pickingVisuals = pickingVisualTargets(
+            settings.picking.enabled,
+            state.picking?.picked,
+            state.pickingSelection.lockedTarget
+        )
         val path = state.pathfinding
         val drawPath = settings.pathfinding.enabled &&
             (state.pathStart != null || path != null)
-        val drawShapes = inspection != null || drawPath ||
+        val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled
         val drawLabels = settings.renderOrder.enabled && settings.renderOrder.showLabels
         if (!drawShapes && !drawLabels) return
@@ -43,8 +54,22 @@ internal class IsoAdvancedDebugRenderer(
             shapes.projectionMatrix = camera.combined
             Gdx.gl.glEnable(GL20.GL_BLEND)
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-            drawFills(inspection, if (settings.pathfinding.enabled) path else null)
-            drawLines(inspection, cameraSnapshot, renderSnapshot)
+            drawFills(
+                inspection,
+                inspectionVisuals,
+                if (settings.pathfinding.enabled) path else null,
+                camera,
+                cameraSnapshot,
+                renderSnapshot,
+                pickingVisuals
+            )
+            drawLines(
+                inspection,
+                inspectionVisuals,
+                cameraSnapshot,
+                renderSnapshot,
+                pickingVisuals
+            )
             Gdx.gl.glLineWidth(1f)
             Gdx.gl.glDisable(GL20.GL_BLEND)
         }
@@ -67,12 +92,24 @@ internal class IsoAdvancedDebugRenderer(
 
     private fun drawFills(
         inspection: DebugInspection?,
-        path: com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult?
+        inspectionVisuals: Set<DebugInspectionVisual>,
+        path: com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult?,
+        camera: OrthographicCamera,
+        cameraSnapshot: CameraDebugSnapshot,
+        renderSnapshot: RenderDebugSnapshot?,
+        pickingVisuals: DebugPickingVisualTargets
     ) {
         val explored = path?.explored.orEmpty()
         val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
         val pathStart = state.pathStart.takeIf { settings.pathfinding.enabled }
-        if (!shouldDrawExplored && inspection == null && pathStart == null) return
+        val drawCullingArea = settings.culling.enabled &&
+            settings.culling.showVisibleArea && renderSnapshot != null
+        val drawCameraArea = settings.camera.enabled && settings.camera.showVisibleArea
+        val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
+            pickingVisuals.locked is PickedTarget.Tile
+        if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathStart == null &&
+            !drawCullingArea && !drawCameraArea && !drawPickingTiles
+        ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         if (shouldDrawExplored) {
             shapes.color = Color(0.2f, 0.55f, 1f, 0.16f)
@@ -80,29 +117,159 @@ internal class IsoAdvancedDebugRenderer(
         }
         shapes.color = Color(1f, 0.75f, 0.15f, 0.22f)
         pathStart?.let(::drawTileFill)
-        when (inspection) {
-            is DebugInspection.EntityTarget -> drawTileFill(inspection.entity.currentTile)
-            is DebugInspection.ObjectTarget -> inspection.placedObject.occupiedTiles().forEach(::drawTileFill)
-            is DebugInspection.TileTarget -> drawTileFill(inspection.position)
-            null -> Unit
+        when {
+            inspection is DebugInspection.EntityTarget &&
+                DebugInspectionVisual.ENTITY_TILE in inspectionVisuals -> {
+                shapes.color = settings.entities.currentTileFillColor
+                    ?: settings.entities.currentTileColor.cpy().apply { a = 0.16f }
+                drawTileFill(inspection.entity.currentTile)
+            }
+            inspection is DebugInspection.ObjectTarget &&
+                DebugInspectionVisual.OBJECT_FOOTPRINT in inspectionVisuals -> {
+                shapes.color = settings.objects.occupiedTileFillColor
+                    ?: settings.objects.occupiedTileColor.cpy().apply { a = 0.18f }
+                inspection.placedObject.occupiedTiles().forEach(::drawTileFill)
+            }
+            inspection is DebugInspection.TileTarget &&
+                DebugInspectionVisual.TILE in inspectionVisuals -> {
+                shapes.color = Color(1f, 0.75f, 0.15f, 0.22f)
+                drawTileFill(inspection.position)
+            }
+        }
+        if (inspection is DebugInspection.EntityTarget &&
+            DebugInspectionVisual.ENTITY_POSITION in inspectionVisuals
+        ) {
+            shapes.color = settings.entities.positionColor
+            val point = projection.tileToWorld(
+                inspection.entity.position.x,
+                inspection.entity.position.y
+            )
+            shapes.circle(point.x, point.y, 3f * camera.zoom, 12)
+        }
+        (pickingVisuals.hover as? PickedTarget.Tile)?.let { target ->
+            shapes.color = PICKING_HOVER_FILL
+            drawTileFill(target.position)
+        }
+        (pickingVisuals.locked as? PickedTarget.Tile)?.let { target ->
+            shapes.color = PICKING_LOCKED_FILL
+            drawTileFill(target.position)
+        }
+        if (drawCullingArea) {
+            shapes.color = settings.culling.visibleAreaColor
+            drawPixelRectOutline(
+                requireNotNull(renderSnapshot).visibleArea,
+                camera.zoom,
+                pixelThickness = 8f
+            )
+        }
+        if (drawCameraArea) {
+            shapes.color = Color.CYAN
+            drawPixelRectOutline(
+                cameraSnapshot.visibleArea,
+                camera.zoom,
+                pixelThickness = 4f
+            )
         }
         shapes.end()
     }
 
-    private fun drawLines(
+    private fun drawInspectionLines(
         inspection: DebugInspection?,
+        visuals: Set<DebugInspectionVisual>,
         camera: CameraDebugSnapshot,
         renderSnapshot: RenderDebugSnapshot?
     ) {
-        shapes.begin(ShapeRenderer.ShapeType.Line)
-        Gdx.gl.glLineWidth(2f)
-        shapes.color = Color(1f, 0.75f, 0.15f, 1f)
         when (inspection) {
-            is DebugInspection.EntityTarget -> drawTileOutline(inspection.entity.currentTile)
-            is DebugInspection.ObjectTarget -> inspection.placedObject.occupiedTiles().forEach(::drawTileOutline)
-            is DebugInspection.TileTarget -> drawTileOutline(inspection.position)
+            is DebugInspection.TileTarget -> {
+                if (DebugInspectionVisual.TILE in visuals) {
+                    shapes.color = Color(1f, 0.75f, 0.15f, 1f)
+                    drawTileOutline(inspection.position)
+                }
+            }
+            is DebugInspection.ObjectTarget -> {
+                val placed = inspection.placedObject
+                if (DebugInspectionVisual.OBJECT_FOOTPRINT in visuals) {
+                    shapes.color = settings.objects.occupiedTileColor
+                    placed.occupiedTiles().forEach(::drawTileOutline)
+                }
+                if (DebugInspectionVisual.OBJECT_ORIGIN in visuals) {
+                    shapes.color = settings.objects.originTileColor
+                    drawTileOutline(objectDebugOrigin(placed))
+                }
+                if (DebugInspectionVisual.OBJECT_SPRITE_BOUNDS in visuals) {
+                    shapes.color = settings.objects.spriteBoundsColor
+                    renderSnapshot?.items
+                        ?.firstOrNull { it.placedObject === placed }
+                        ?.bounds
+                        ?.let(::drawRect)
+                }
+            }
+            is DebugInspection.EntityTarget -> {
+                val entity = inspection.entity
+                if (DebugInspectionVisual.ENTITY_TILE in visuals) {
+                    shapes.color = settings.entities.currentTileColor
+                    drawTileOutline(entity.currentTile)
+                }
+                if (DebugInspectionVisual.ENTITY_PATH in visuals) {
+                    shapes.color = settings.entities.pathColor
+                    val markerRadius = 2f * camera.zoom
+                    forEachEntityDebugPathSegment(entity) { from, to ->
+                        val fromWorld = projection.tileToWorld(from.x, from.y)
+                        val toWorld = projection.tileToWorld(to.x, to.y)
+                        shapes.line(fromWorld.x, fromWorld.y, toWorld.x, toWorld.y)
+                        shapes.circle(toWorld.x, toWorld.y, markerRadius, 12)
+                    }
+                }
+                if (DebugInspectionVisual.ENTITY_DIRECTION in visuals) {
+                    shapes.color = settings.entities.directionColor
+                    val target = entityDebugDirectionTarget(entity)
+                    val start = projection.tileToWorld(entity.position.x, entity.position.y)
+                    val end = projection.tileToWorld(target.x, target.y)
+                    shapes.line(start.x, start.y, end.x, end.y)
+                }
+                if (DebugInspectionVisual.ENTITY_SPRITE_BOUNDS in visuals) {
+                    shapes.color = settings.entities.spriteBoundsColor
+                    renderSnapshot?.items
+                        ?.firstOrNull { it.entity === entity }
+                        ?.bounds
+                        ?.let(::drawRect)
+                }
+            }
             null -> Unit
         }
+    }
+
+    private fun drawPickingLines(targets: DebugPickingVisualTargets) {
+        (targets.hover as? PickedTarget.Tile)?.let { target ->
+            shapes.color = PICKING_HOVER_OUTLINE
+            drawTileOutline(target.position)
+        }
+        (targets.locked as? PickedTarget.Tile)?.let { target ->
+            shapes.color = PICKING_LOCKED_OUTLINE
+            drawTileOutline(target.position)
+        }
+        if (!settings.picking.showSpriteBounds) return
+        targets.hover?.takeUnless { it is PickedTarget.Tile }?.bounds?.let { bounds ->
+            shapes.color = PICKING_HOVER_OUTLINE
+            drawRect(bounds)
+        }
+        targets.locked?.takeUnless { it is PickedTarget.Tile }?.bounds?.let { bounds ->
+            shapes.color = PICKING_LOCKED_OUTLINE
+            drawRect(bounds)
+        }
+    }
+
+    private fun drawLines(
+        inspection: DebugInspection?,
+        inspectionVisuals: Set<DebugInspectionVisual>,
+        camera: CameraDebugSnapshot,
+        renderSnapshot: RenderDebugSnapshot?,
+        pickingVisuals: DebugPickingVisualTargets
+    ) {
+        shapes.begin(ShapeRenderer.ShapeType.Line)
+        Gdx.gl.glLineWidth(2f)
+        drawInspectionLines(inspection, inspectionVisuals, camera, renderSnapshot)
+        drawPickingLines(pickingVisuals)
 
         val result = state.pathfinding
         if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && result?.path != null) {
@@ -123,26 +290,9 @@ internal class IsoAdvancedDebugRenderer(
                     shapes.line(cursor.x, cursor.y - radius, cursor.x, cursor.y + radius)
                 }
             }
-            if (settings.picking.showSpriteBounds) {
-                val target = state.pickingSelection.displayedTarget(
-                    state.picking?.picked
-                )
-                target?.bounds?.let { bounds ->
-                    shapes.color = if (state.pickingSelection.isLocked) {
-                        Color(0.2f, 0.9f, 1f, 1f)
-                    } else {
-                        Color(1f, 0.3f, 0.9f, 1f)
-                    }
-                    shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
-                }
-            }
         }
 
         if (settings.culling.enabled && renderSnapshot != null) {
-            if (settings.culling.showVisibleArea) {
-                shapes.color = settings.culling.visibleAreaColor
-                drawRect(renderSnapshot.visibleArea)
-            }
             val objectDrawnColor = settings.culling.objectDrawnColor
             val objectCulledColor = settings.culling.objectCulledColor
             val entityDrawnColor = settings.culling.entityDrawnColor
@@ -168,10 +318,6 @@ internal class IsoAdvancedDebugRenderer(
         }
 
         if (settings.camera.enabled) {
-            if (settings.camera.showVisibleArea) {
-                shapes.color = Color.CYAN
-                drawRect(camera.visibleArea)
-            }
             if (settings.camera.showWorldBounds) {
                 shapes.color = Color(0.3f, 1f, 0.3f, 1f)
                 drawRect(camera.worldBounds)
@@ -198,9 +344,42 @@ internal class IsoAdvancedDebugRenderer(
         shapes.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
     }
 
+    private fun drawPixelRectOutline(
+        rectangle: Rectangle,
+        cameraZoom: Float,
+        pixelThickness: Float
+    ) {
+        val thickness = (pixelThickness * cameraZoom).coerceAtMost(
+            minOf(rectangle.width, rectangle.height) / 2f
+        )
+        if (thickness <= 0f) return
+        val innerHeight = (rectangle.height - thickness * 2f).coerceAtLeast(0f)
+        shapes.rect(rectangle.x, rectangle.y, rectangle.width, thickness)
+        shapes.rect(
+            rectangle.x,
+            rectangle.y + rectangle.height - thickness,
+            rectangle.width,
+            thickness
+        )
+        shapes.rect(rectangle.x, rectangle.y + thickness, thickness, innerHeight)
+        shapes.rect(
+            rectangle.x + rectangle.width - thickness,
+            rectangle.y + thickness,
+            thickness,
+            innerHeight
+        )
+    }
+
     fun dispose() {
         shapes.dispose()
         labels.dispose()
         font.dispose()
+    }
+
+    private companion object {
+        val PICKING_HOVER_FILL = Color(1f, 0.3f, 0.9f, 0.18f)
+        val PICKING_HOVER_OUTLINE = Color(1f, 0.3f, 0.9f, 1f)
+        val PICKING_LOCKED_FILL = Color(0.2f, 0.9f, 1f, 0.24f)
+        val PICKING_LOCKED_OUTLINE = Color(0.2f, 0.9f, 1f, 1f)
     }
 }
