@@ -29,6 +29,10 @@ internal class DebugNotificationOverlay(
     }
 
     fun sync() {
+        root.isVisible = notifications.enabled
+
+        if (!notifications.enabled) return
+
         applyPosition()
         root.toFront()
         val alignment = notificationAlignment(notifications.position)
@@ -102,22 +106,15 @@ internal data class DebugNotificationAlignment(
 internal fun notificationAlignment(
     position: DebugNotificationPosition
 ): DebugNotificationAlignment = when (position) {
-    DebugNotificationPosition.TOP_LEFT -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.LEFT, DebugOverlayVertical.TOP
-    )
-    DebugNotificationPosition.TOP_CENTER -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.CENTER, DebugOverlayVertical.TOP
-    )
-    DebugNotificationPosition.TOP_RIGHT -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.RIGHT, DebugOverlayVertical.TOP
-    )
-    DebugNotificationPosition.BOTTOM_LEFT -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.LEFT, DebugOverlayVertical.BOTTOM
-    )
-    DebugNotificationPosition.BOTTOM_CENTER -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.CENTER, DebugOverlayVertical.BOTTOM
-    )
-    DebugNotificationPosition.BOTTOM_RIGHT -> DebugNotificationAlignment(
-        DebugOverlayHorizontal.RIGHT, DebugOverlayVertical.BOTTOM
-    )
+    DebugNotificationPosition.TOP_CENTER ->
+        DebugNotificationAlignment(
+            DebugOverlayHorizontal.CENTER,
+            DebugOverlayVertical.TOP
+        )
+
+    DebugNotificationPosition.BOTTOM_RIGHT ->
+        DebugNotificationAlignment(
+            DebugOverlayHorizontal.RIGHT,
+            DebugOverlayVertical.BOTTOM
+        )
 }

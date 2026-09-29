@@ -331,6 +331,7 @@ internal object DebugPresets {
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
+                settings.notifications.enabled = true
             }
             DebugPreset.ENTITIES -> {
                 settings.entities.enabled = true
@@ -340,6 +341,7 @@ internal object DebugPresets {
                 settings.entities.showDirection = true
                 settings.entities.showSpriteBounds = true
                 settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
+                settings.notifications.enabled = true
             }
             DebugPreset.RENDERING -> {
                 settings.performance.enabled = true
@@ -357,6 +359,7 @@ internal object DebugPresets {
                 settings.camera.showVisibleArea = true
                 settings.camera.showWorldBounds = true
                 settings.camera.showClampBounds = true
+                settings.notifications.enabled = true
             }
             DebugPreset.EVERYTHING -> {
                 settings.performance.enabled = true
@@ -392,6 +395,7 @@ internal object DebugPresets {
                 settings.worldStats.enabled = true
                 settings.eventBus.enabled = true
                 settings.camera.disableRestrictions = true
+                settings.notifications.enabled = true
             }
         }
     }

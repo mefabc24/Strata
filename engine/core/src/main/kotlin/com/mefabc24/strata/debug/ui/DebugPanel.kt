@@ -494,26 +494,41 @@ internal class DebugPanel(
             )
             cameraRows = diagnosticTable()
         }
-        expander(
-            title = "Notifications",
-            expanded = false,
-            spacing = 8f,
-            headerHeight = 36f,
-            expandedStyle = debugExpanderStyle()
+        featureExpander(
+            "Notifications",
+            { settings.notifications.enabled },
+            { settings.notifications.enabled = it }
         ) {
-            defaults().fillAvailableX()
             label("Position")
+
             val positions = ui.selectionGroup(
                 DebugNotificationPosition.entries,
                 settings.notifications.position
-            ) { settings.notifications.position = it }
-            synchronizers += { positions.select(settings.notifications.position) }
-            responsiveGrid(130f, maximumColumns = 2) {
-                DebugNotificationPosition.entries.forEach { position ->
-                    selectableButton(position.name.toDisplayName(), position, positions)
-                }
+            ) {
+                settings.notifications.position = it
+            }
+
+            synchronizers += {
+                positions.select(settings.notifications.position)
+            }
+
+            responsiveGrid(
+                minimumItemWidth = 130f,
+                maximumColumns = 2
+            ) {
+                selectableButton(
+                    "Center top",
+                    DebugNotificationPosition.TOP_CENTER,
+                    positions
+                )
+
+                selectableButton(
+                    "Bottom right",
+                    DebugNotificationPosition.BOTTOM_RIGHT,
+                    positions
+                )
             }.cell { fillAvailableX() }
-        }.cell { fillAvailableX() }
+        }
     }
 
     private fun StrataColumn.buildGridSettings() {
