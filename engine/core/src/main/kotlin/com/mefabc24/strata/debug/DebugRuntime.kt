@@ -44,7 +44,7 @@ internal class DebugRuntime(
     terrain: TerrainRegistry,
     objects: ObjectRegistry,
     entities: EntityRegistry,
-    placement: PlacementController?,
+    private val placement: PlacementController?,
     simulation: SimulationController,
     events: EventBus,
     terrainFor: (Tile) -> TerrainId
@@ -175,7 +175,22 @@ internal class DebugRuntime(
         WorldInputBinding.Tile(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.SPAWN }
-        ) { x, y -> spawner.spawn(TilePosition(x, y)) != null },
+        ) { x, y ->
+            val spawned = spawner.spawn(TilePosition(x, y))
+            if (spawned != null) {
+                settings.notify(
+                    DebugActionMessages.spawned(
+                        spawned.entity::class.simpleName ?: "Entity",
+                        TilePosition(x, y)
+                    ),
+                    DebugNotificationSeverity.SUCCESS
+                )
+                true
+            } else {
+                settings.notify("Entity spawn failed", DebugNotificationSeverity.WARNING)
+                false
+            }
+        },
         WorldInputBinding.Tile(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.PAINT }
@@ -214,8 +229,20 @@ internal class DebugRuntime(
         ) { x, y ->
             val drag = buildDrag ?: return@Grid false
             if (!drag.active) false else {
+                val diagnostic = placement?.currentDiagnostic
                 val placed = drag.finish(TilePosition(x, y))
-                if (placed.isNotEmpty()) settings.objectsPlacedCallback?.invoke(placed)
+                if (placed.isNotEmpty()) {
+                    settings.objectsPlacedCallback?.invoke(placed)
+                    settings.notify(
+                        DebugActionMessages.placedObjects(placed.size),
+                        DebugNotificationSeverity.SUCCESS
+                    )
+                } else {
+                    settings.notify(
+                        DebugActionMessages.placementRejected(diagnostic?.reason),
+                        DebugNotificationSeverity.WARNING
+                    )
+                }
                 true
             }
         },
@@ -246,11 +273,30 @@ internal class DebugRuntime(
             WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
             ObjectPickingMode.SPRITE_OR_FOOTPRINT,
             { tools.mode == DebugToolMode.BUILD }
-        ) { world.remove(it); true },
+        ) {
+            val removed = world.remove(it)
+            if (removed) {
+                settings.notify("Object removed", DebugNotificationSeverity.SUCCESS)
+            }
+            removed
+        },
         WorldInputBinding.Tile(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.PATHFINDING }
-        ) { x, y -> pathfinding.click(TilePosition(x, y)) }
+        ) { x, y ->
+            val handled = pathfinding.click(TilePosition(x, y))
+            pathfinding.result?.let { result ->
+                if (result.success) {
+                    settings.notify(
+                        DebugActionMessages.pathFound(result.path?.size ?: 0),
+                        DebugNotificationSeverity.SUCCESS
+                    )
+                } else {
+                    settings.notify("Pathfinding failed", DebugNotificationSeverity.WARNING)
+                }
+            }
+            handled
+        }
     )
 
     fun update(delta: Float) {
@@ -308,6 +354,7 @@ private fun moveRejectionText(failure: com.mefabc24.strata.world.WorldPlacementF
         com.mefabc24.strata.world.WorldPlacementFailure.OCCUPIED_TILE -> "occupied tile"
         null -> "move could not be committed"
     }
+
 
 internal fun cameraRestrictionsDisabled(
     freeCameraToolActive: Boolean,

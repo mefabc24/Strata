@@ -389,7 +389,11 @@ internal class DebugPanel(
                         settings.pathfinding.showFinalPath = it
                     }
                 )
-                button("Clear path") { pathfinding.clear() }.cell { height(38f) }
+                button("Clear path") {
+                    if (pathfinding.clear()) {
+                        settings.notify("Path cleared", DebugNotificationSeverity.INFO)
+                    }
+                }.cell { height(38f) }
             }
         }.cell { fillAvailableX() }
     }
@@ -412,6 +416,10 @@ internal class DebugPanel(
             { settings.camera.disableRestrictions }
         ) {
             settings.camera.disableRestrictions = it
+            settings.notify(
+                if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
+                DebugNotificationSeverity.INFO
+            )
         }
         simpleToggle(
             "Render order",
@@ -452,7 +460,12 @@ internal class DebugPanel(
                     selectableButton(position.name.toDisplayName(), position, positions)
                 }
             }.cell { fillAvailableX() }
-            button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
+            button("Clear history") {
+                if (eventMonitor.records.isNotEmpty()) {
+                    eventMonitor.clear()
+                    settings.notify("Event history cleared", DebugNotificationSeverity.INFO)
+                }
+            }.cell { height(38f) }
         }
         featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
         featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
