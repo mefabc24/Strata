@@ -635,6 +635,7 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
+            separator()
         }.cell { fillAvailableX() }
     }
 
