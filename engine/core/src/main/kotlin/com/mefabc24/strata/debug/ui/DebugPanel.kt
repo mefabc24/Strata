@@ -770,6 +770,41 @@ internal class DebugPanel(
         null -> null
     }
 
+    private fun renderInspectionRows(
+        placedObject: com.mefabc24.strata.world.PlacedObject? = null,
+        entity: com.mefabc24.strata.world.WorldEntity? = null
+    ): List<Pair<String, String>> {
+        val item = view.renderDebugSnapshot
+            ?.items
+            ?.firstOrNull { snapshot ->
+                when {
+                    placedObject != null ->
+                        snapshot.placedObject === placedObject
+
+                    entity != null ->
+                        snapshot.entity === entity
+
+                    else -> false
+                }
+            }
+            ?: return emptyList()
+
+        val sort = item.sort
+
+        return listOf(
+            "Render index" to item.index.toString(),
+            "Drawn" to item.drawn.toString(),
+            "Sort volume" to if (sort != null) {
+                "[${sort.minX.format()}, ${sort.maxX.format()}] x " +
+                        "[${sort.minY.format()}, ${sort.maxY.format()}]"
+            } else {
+                "unavailable"
+            },
+            "Front Y" to (sort?.projectedFrontY?.format() ?: "unavailable"),
+            "Render bounds" to display(item.bounds)
+        )
+    }
+
     private fun formatInspection(): List<DebugDiagnosticRow> =
         when (val selected = inspector.selection) {
         null -> diagnosticRows("Status" to "Click an entity, object, or tile")
@@ -777,31 +812,43 @@ internal class DebugPanel(
             val entity = selected.entity
             val visual = entities.resolve(entity, view.animationTime)
             diagnosticRows(
-                "Entity" to entity.entity::class.displayName(),
-                "Position" to formatEntityPosition(entity.position),
-                "Tile" to formatTilePosition(entity.currentTile),
-                "Direction" to entity.direction.toString(),
-                "Moving" to entity.isMoving.toString(),
-                "Waypoints" to entity.remainingWaypoints.size.toString(),
-                "Path" to formatTilePositions(entity.remainingPath),
-                "Animation" to animationText(
-                    visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
-                ),
-                "Bounds" to display(view.entitySpriteBounds(entity))
+                *(
+                        listOf(
+                            "Entity" to entity.entity::class.displayName(),
+                            "Position" to formatEntityPosition(entity.position),
+                            "Tile" to formatTilePosition(entity.currentTile),
+                            "Direction" to entity.direction.toString(),
+                            "Moving" to entity.isMoving.toString(),
+                            "Waypoints" to entity.remainingWaypoints.size.toString(),
+                            "Path" to formatTilePositions(entity.remainingPath),
+                            "Animation" to animationText(
+                                visual?.state?.toString(),
+                                visual?.stateTime,
+                                visual?.visual?.sprite
+                            ),
+                            "Bounds" to display(view.entitySpriteBounds(entity))
+                        ) + renderInspectionRows(entity = entity)
+                        ).toTypedArray()
             )
         }
         is DebugInspection.ObjectTarget -> {
             val placed = selected.placedObject
             val visual = objects.resolve(placed, view.animationTime)
             diagnosticRows(
-                "Object" to placed.placeable::class.displayName(),
-                "Origin" to "(${placed.x}, ${placed.y})",
-                "Footprint" to formatFootprint(placed.placeable.footprint),
-                "Occupied" to formatTilePositions(placed.occupiedTiles()),
-                "Animation" to animationText(
-                    visual?.state?.toString(), visual?.stateTime, visual?.visual?.sprite
-                ),
-                "Bounds" to display(view.objectSpriteBounds(placed))
+                *(
+                        listOf(
+                            "Object" to placed.placeable::class.displayName(),
+                            "Origin" to "(${placed.x}, ${placed.y})",
+                            "Footprint" to formatFootprint(placed.placeable.footprint),
+                            "Occupied" to formatTilePositions(placed.occupiedTiles()),
+                            "Animation" to animationText(
+                                visual?.state?.toString(),
+                                visual?.stateTime,
+                                visual?.visual?.sprite
+                            ),
+                            "Bounds" to display(view.objectSpriteBounds(placed))
+                        ) + renderInspectionRows(placedObject = placed)
+                        ).toTypedArray()
             )
         }
         is DebugInspection.TileTarget -> {

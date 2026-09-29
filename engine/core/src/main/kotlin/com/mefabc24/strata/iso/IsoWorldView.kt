@@ -147,11 +147,10 @@ class IsoWorldView(
         lighting = lighting,
         collectDebugSnapshot = {
             debugSettings?.let { settings ->
-                settings.picking.enabled || settings.renderOrder.enabled ||
-                    settings.culling.enabled ||
-                    (settings.worldState.inspectionHighlightVisible &&
-                        (settings.inspect.showObjectSpriteBounds ||
-                            settings.inspect.showEntitySpriteBounds))
+                settings.picking.enabled ||
+                        settings.renderOrder.enabled ||
+                        settings.culling.enabled ||
+                        settings.worldState.inspectionHighlightVisible
             } ?: false
         }
     )

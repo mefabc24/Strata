@@ -43,7 +43,16 @@ data class RenderItemDebugSnapshot(
     val placedObject: PlacedObject? = null,
     val entity: WorldEntity? = null,
     val bounds: Rectangle? = null,
-    val drawn: Boolean
+    val drawn: Boolean,
+    val sort: RenderSortDebugSnapshot? = null
+)
+
+data class RenderSortDebugSnapshot(
+    val minX: Float,
+    val maxX: Float,
+    val minY: Float,
+    val maxY: Float,
+    val projectedFrontY: Float
 )
 
 /**
@@ -188,7 +197,16 @@ class IsoWorldRenderer(
                         },
                         preview = null,
                         renderIndex = renderIndex,
-                        debugItems = debugItems
+                        debugItems = debugItems,
+                        sort = item.sortVolume.let { volume ->
+                            RenderSortDebugSnapshot(
+                                minX = volume.minX,
+                                maxX = volume.maxX,
+                                minY = volume.minY,
+                                maxY = volume.maxY,
+                                projectedFrontY = volume.projectedFrontY(projection)
+                            )
+                        }
                     )
                 }
 
@@ -206,7 +224,16 @@ class IsoWorldRenderer(
                             )
                         },
                         renderIndex = renderIndex,
-                        debugItems = debugItems
+                        debugItems = debugItems,
+                        sort = item.sortVolume.let { volume ->
+                            RenderSortDebugSnapshot(
+                                minX = volume.minX,
+                                maxX = volume.maxX,
+                                minY = volume.minY,
+                                maxY = volume.maxY,
+                                projectedFrontY = volume.projectedFrontY(projection)
+                            )
+                        }
                     )
                 }
             }
@@ -311,13 +338,20 @@ class IsoWorldRenderer(
         visual: ResolvedEntityVisual?,
         recordStats: Boolean = true,
         renderIndex: Int? = null,
-        debugItems: MutableList<RenderItemDebugSnapshot>? = null
+        debugItems: MutableList<RenderItemDebugSnapshot>? = null,
+        sort: RenderSortDebugSnapshot? = null
     ) {
         if (recordStats) stats.entitiesChecked++
+
         if (visual == null) {
             if (renderIndex != null) {
                 debugItems?.add(
-                    RenderItemDebugSnapshot(renderIndex, entity = entity, drawn = false)
+                    RenderItemDebugSnapshot(
+                        index = renderIndex,
+                        entity = entity,
+                        drawn = false,
+                        sort = sort
+                    )
                 )
             }
             return
@@ -329,17 +363,21 @@ class IsoWorldRenderer(
             visual = visual,
             result = entityBounds
         )
+
         val drawn = entityBounds.overlaps(visibleArea)
+
         if (renderIndex != null) {
             debugItems?.add(
                 RenderItemDebugSnapshot(
                     index = renderIndex,
                     entity = entity,
                     bounds = Rectangle(entityBounds),
-                    drawn = drawn
+                    drawn = drawn,
+                    sort = sort
                 )
             )
         }
+
         if (!drawn) return
 
         entityRenderer.render(
@@ -347,6 +385,7 @@ class IsoWorldRenderer(
             entity = entity,
             visual = visual
         )
+
         if (recordStats) stats.entitiesDrawn++
     }
 
@@ -425,7 +464,8 @@ class IsoWorldRenderer(
         preview: PlacementPreview?,
         recordStats: Boolean = true,
         renderIndex: Int? = null,
-        debugItems: MutableList<RenderItemDebugSnapshot>? = null
+        debugItems: MutableList<RenderItemDebugSnapshot>? = null,
+        sort: RenderSortDebugSnapshot? = null
     ) {
         if (preview == null && recordStats) {
             stats.objectsChecked++
@@ -434,7 +474,12 @@ class IsoWorldRenderer(
         if (visual == null) {
             if (renderIndex != null) {
                 debugItems?.add(
-                    RenderItemDebugSnapshot(renderIndex, placedObject = placed, drawn = false)
+                    RenderItemDebugSnapshot(
+                        index = renderIndex,
+                        placedObject = placed,
+                        drawn = false,
+                        sort = sort
+                    )
                 )
             }
             return
@@ -455,7 +500,8 @@ class IsoWorldRenderer(
                     index = renderIndex,
                     placedObject = placed,
                     bounds = Rectangle(objectBounds),
-                    drawn = drawn
+                    drawn = drawn,
+                    sort = sort
                 )
             )
         }
