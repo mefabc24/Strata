@@ -93,4 +93,26 @@ class DebugContextStatusTest {
         assertEquals("Success", complete.rows.first { it.key == "Result" }.value)
         assertEquals("2", complete.rows.first { it.key == "Length" }.value)
     }
+
+    @Test
+    fun `status footer reserves one footprint for changing tool diagnostics`() {
+        val singleRow = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.INSPECT,
+            inspection = "A very long selected entity name that wraps in the footer"
+        )))
+        val fourRows = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.PATHFINDING,
+            pathResult = PathfindingDiagnosticResult(
+                TilePosition(1, 1),
+                TilePosition(12, 8),
+                listOf(TilePosition(1, 1), TilePosition(12, 8)),
+                emptyList(),
+                0L
+            )
+        )))
+
+        assertEquals(1, singleRow.rows.size)
+        assertEquals(4, fourRows.rows.size)
+        assertTrue(DebugContextFooterLayout.reservedHeight > 0f)
+    }
 }
