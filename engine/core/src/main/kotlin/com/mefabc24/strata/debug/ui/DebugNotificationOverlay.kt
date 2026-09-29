@@ -9,6 +9,7 @@ import com.mefabc24.strata.debug.DebugNotificationSeverity
 import com.mefabc24.strata.debug.DebugNotifications
 import com.mefabc24.strata.debug.DebugNotificationPosition
 import com.mefabc24.strata.ui.StrataUi
+import com.badlogic.gdx.utils.Align
 
 /** Renders the debug notification queue independently from game UI. */
 internal class DebugNotificationOverlay(
@@ -60,18 +61,18 @@ internal class DebugNotificationOverlay(
     private fun applyPosition() {
         val position = notifications.position
         if (appliedPosition == position) return
+
         appliedPosition = position
-        val alignment = notificationAlignment(position)
         root.clearChildren()
-        when (alignment.vertical) {
-            DebugOverlayVertical.TOP -> root.top()
-            DebugOverlayVertical.BOTTOM -> root.bottom()
+
+        when (position) {
+            DebugNotificationPosition.TOP_CENTER ->
+                root.align(Align.top)
+
+            DebugNotificationPosition.BOTTOM_RIGHT ->
+                root.align(Align.bottom or Align.right)
         }
-        when (alignment.horizontal) {
-            DebugOverlayHorizontal.LEFT -> root.left()
-            DebugOverlayHorizontal.CENTER -> root.center()
-            DebugOverlayHorizontal.RIGHT -> root.right()
-        }
+
         root.add(stack).width(324f)
     }
 
