@@ -24,7 +24,7 @@ class DebugNotifications(
             }
         }
 
-    var position: DebugNotificationPosition = DebugNotificationPosition.BOTTOM_RIGHT
+    var position: DebugNotificationPosition = DebugNotificationPosition.TOP_CENTER
     init {
         require(maxVisible > 0) { "Maximum visible notifications must be positive." }
         require(defaultDurationSeconds.isFinite() && defaultDurationSeconds > 0f) {
