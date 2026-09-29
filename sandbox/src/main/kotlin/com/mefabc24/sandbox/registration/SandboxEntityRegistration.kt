@@ -42,6 +42,8 @@ internal fun EntityRegistry.registerSandboxEntities() {
                 directionRows = DIRECTION_ROWS
             )
         }
+
+        representativeState(WolfState.IDLE)
     }
 
     registerStateful<Boar>(
@@ -78,6 +80,8 @@ internal fun EntityRegistry.registerSandboxEntities() {
                 directionRows = DIRECTION_ROWS
             )
         }
+
+        representativeState(BoarState.IDLE)
     }
 }
 
