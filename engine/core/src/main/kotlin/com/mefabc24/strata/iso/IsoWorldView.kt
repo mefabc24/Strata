@@ -439,9 +439,9 @@ class IsoWorldView(
         cameraController.refreshZoomBounds()
     }
 
-    internal fun setDebugFreeCamera(enabled: Boolean) {
-        viewport.boundsEnabled = !enabled
-        cameraController.unrestricted = enabled
+    internal fun setDebugCameraRestrictionsDisabled(disabled: Boolean) {
+        viewport.boundsEnabled = !disabled
+        cameraController.unrestricted = disabled
     }
 
     /** Returns the world tile at the given screen position, or null. */

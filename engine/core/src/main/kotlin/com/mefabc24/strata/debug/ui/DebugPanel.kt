@@ -357,6 +357,12 @@ internal class DebugPanel(
         simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
         simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
         simpleToggle(
+            "Disable camera restrictions",
+            { settings.camera.disableRestrictions }
+        ) {
+            settings.camera.disableRestrictions = it
+        }
+        simpleToggle(
             "Render order",
             { settings.renderOrder.enabled && settings.renderOrder.showLabels }
         ) {

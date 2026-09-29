@@ -125,6 +125,8 @@ class DebugCameraSettings : DebugFeatureSettings() {
     var showVisibleArea: Boolean = true
     var showWorldBounds: Boolean = true
     var showClampBounds: Boolean = true
+
+    var disableRestrictions: Boolean = false
 }
 
 /** Visualization options owned by the Inspect tool. */

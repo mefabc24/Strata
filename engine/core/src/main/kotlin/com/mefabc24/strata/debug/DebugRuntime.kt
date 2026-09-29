@@ -50,13 +50,18 @@ internal class DebugRuntime(
     }
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
     private val buildDrag = placement?.let(::DebugBuildDragController)
+    private var freeCameraToolActive = false
+    private var appliedCameraRestrictionsDisabled: Boolean? = null
     private val tools = DebugToolController(
         painter = painter,
         placement = placement,
         buildDrag = buildDrag,
         inspector = inspector,
         pathfinding = pathfinding,
-        setFreeCamera = view::setDebugFreeCamera
+        setFreeCamera = { enabled ->
+            freeCameraToolActive = enabled
+            syncCameraRestrictions()
+        }
     )
     private val spawner = DebugEntitySpawner(
         world = world,
@@ -103,6 +108,23 @@ internal class DebugRuntime(
         pickObject = view::pickObject,
         pickEntity = view::pickEntity
     )
+
+    private fun syncCameraRestrictions() {
+        val disabled = cameraRestrictionsDisabled(
+            freeCameraToolActive = freeCameraToolActive,
+            persistentOverride = settings.camera.disableRestrictions
+        )
+
+        if (appliedCameraRestrictionsDisabled == disabled) return
+
+        appliedCameraRestrictionsDisabled = disabled
+        view.setDebugCameraRestrictionsDisabled(disabled)
+    }
+
+    internal fun cameraRestrictionsDisabled(
+        freeCameraToolActive: Boolean,
+        persistentOverride: Boolean
+    ): Boolean = freeCameraToolActive || persistentOverride
 
     private fun bindings(world: World, view: IsoWorldView): List<WorldInputBinding> = listOf(
         WorldInputBinding.Pointer(
@@ -187,7 +209,10 @@ internal class DebugRuntime(
     )
 
     fun update(delta: Float) {
+        syncCameraRestrictions()
+
         settings.worldState.pickingSelection.syncEnabled(settings.picking.enabled)
+
         if (settings.picking.enabled) {
             val screenX = Gdx.input.x.toFloat()
             val screenY = Gdx.input.y.toFloat()
