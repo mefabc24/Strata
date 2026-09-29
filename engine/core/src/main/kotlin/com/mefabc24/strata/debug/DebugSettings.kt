@@ -324,6 +324,7 @@ internal object DebugPresets {
             DebugPreset.MINIMAL -> {
                 settings.performance.enabled = true
                 settings.grid.enabled = true
+                settings.notifications.enabled = true
             }
             DebugPreset.PLACEMENT -> {
                 settings.grid.enabled = true
@@ -412,5 +413,7 @@ internal object DebugPresets {
         settings.camera.enabled = false
         settings.worldStats.enabled = false
         settings.eventBus.enabled = false
+        settings.camera.disableRestrictions = false
+        settings.notifications.enabled = false
     }
 }
