@@ -52,6 +52,7 @@ internal class DebugPanel(
     private val inspector: DebugInspector,
     private val pathfinding: DebugPathfindingTool,
     simulation: SimulationController,
+    private val eventMonitor: DebugEventMonitor,
     private val world: World,
     private val view: IsoWorldView,
     private val terrainFor: (Tile) -> TerrainId,
@@ -111,6 +112,7 @@ internal class DebugPanel(
     private lateinit var pickingRows: DebugDiagnosticTable
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
+    private lateinit var eventRows: DebugDiagnosticTable
     private lateinit var contextFooter: StrataColumn
     private lateinit var contextFooterCell: Cell<StrataColumn>
     private lateinit var contextRows: DebugDiagnosticTable
@@ -372,6 +374,17 @@ internal class DebugPanel(
         simpleToggle("Performance overlay", { settings.performance.enabled }) { settings.performance.enabled = it }
         simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
         simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
+        featureExpander(
+            "Event Bus",
+            { eventMonitor.enabled },
+            { eventMonitor.enabled = it }
+        ) {
+            simpleToggle("Pause capture", { eventMonitor.paused }) {
+                eventMonitor.paused = it
+            }
+            button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
+            eventRows = diagnosticTable()
+        }
         simpleToggle(
             "Disable camera restrictions",
             { settings.camera.disableRestrictions }
@@ -687,6 +700,14 @@ internal class DebugPanel(
         pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
         cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
         cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
+        eventRows.show(
+            eventMonitor.records.asReversed().map { record ->
+                DebugDiagnosticRow(
+                    "#${record.sequence} ${record.eventType}",
+                    record.value
+                )
+            }
+        )
         syncContextFooter()
     }
 

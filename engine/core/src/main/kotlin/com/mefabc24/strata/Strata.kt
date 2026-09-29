@@ -19,6 +19,7 @@ import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.event.EventBus
 
 /**
  * Main facade for configuring and operating a Strata runtime.
@@ -63,6 +64,10 @@ class Strata : Disposable {
 
     val debug: DebugSettings
         get() = scene.debug
+
+    /** Scene-owned synchronous event bus. */
+    val events: EventBus
+        get() = scene.events
 
     /** Runtime ambient and point lighting for the active scene. */
     val lighting: Lighting

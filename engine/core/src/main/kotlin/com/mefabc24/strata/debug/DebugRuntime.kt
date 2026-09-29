@@ -29,6 +29,7 @@ import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.event.EventBus
 
 /** Runtime owner for built-in debug tools, UI, and input processors. */
 internal class DebugRuntime(
@@ -42,8 +43,10 @@ internal class DebugRuntime(
     entities: EntityRegistry,
     placement: PlacementController?,
     simulation: SimulationController,
+    events: EventBus,
     terrainFor: (Tile) -> TerrainId
 ) {
+    private val eventMonitor = DebugEventMonitor(events)
     private val inspector = DebugInspector(settings.worldState)
     private val pathfinding = DebugPathfindingTool(world, settings.worldState) { position ->
         settings.pathTraversal?.invoke(world, position) ?: true
@@ -81,6 +84,7 @@ internal class DebugRuntime(
         inspector = inspector,
         pathfinding = pathfinding,
         simulation = simulation,
+        eventMonitor = eventMonitor,
         world = world,
         view = view,
         terrainFor = terrainFor,
@@ -237,7 +241,11 @@ internal class DebugRuntime(
             try {
                 ui.dispose()
             } finally {
-                skin.dispose()
+                try {
+                    eventMonitor.dispose()
+                } finally {
+                    skin.dispose()
+                }
             }
         }
     }

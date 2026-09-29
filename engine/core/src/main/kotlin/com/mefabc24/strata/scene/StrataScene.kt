@@ -26,6 +26,7 @@ import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugRuntime
 import com.mefabc24.strata.debug.ui.DebugPanelSkin
 import com.mefabc24.strata.simulation.SimulationController
+import com.mefabc24.strata.event.EventBus
 
 internal fun interface StrataUiFactory {
     fun create(
@@ -128,6 +129,9 @@ class StrataScene private constructor(
      * Provides access to scene debugging facilities.
      */
     val debug = DebugSettings()
+
+    /** Scene-owned synchronous event bus for game and diagnostic events. */
+    val events = EventBus()
 
     /** Scene-owned runtime ambient and point lighting. */
     val lighting = Lighting()
@@ -385,6 +389,7 @@ class StrataScene private constructor(
                 entities = entities,
                 placement = attachedPlacement,
                 simulation = simulation,
+                events = events,
                 terrainFor = terrainFor
             )
         } catch (failure: Throwable) {
