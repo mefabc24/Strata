@@ -14,7 +14,7 @@ import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
 
 class SandboxGame : StrataGame() {
 
-    override val strata =
+    override val strata: Strata =
         Strata().configure {
             engine {
                 backgroundColor =
@@ -114,11 +114,29 @@ class SandboxGame : StrataGame() {
 
                     onEntitySpawned { entity ->
                         roaming.control(entity)
+                        strata.events.publish(
+                            SandboxDebugEntitySpawned(
+                                entityType = entity.entity::class.simpleName ?: "Entity",
+                                position = entity.currentTile
+                            )
+                        )
                     }
 
                     onObjectsPlaced { placed ->
                         if (placed.isNotEmpty()) {
                             playBuildingSound()
+                        }
+                        placed.forEach { objectInWorld ->
+                            strata.events.publish(
+                                SandboxDebugObjectPlaced(
+                                    objectType = objectInWorld.placeable::class.simpleName
+                                        ?: "Object",
+                                    position = com.mefabc24.strata.world.TilePosition(
+                                        objectInWorld.x,
+                                        objectInWorld.y
+                                    )
+                                )
+                            )
                         }
                     }
                 }
