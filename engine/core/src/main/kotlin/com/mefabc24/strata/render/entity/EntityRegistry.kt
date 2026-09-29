@@ -50,7 +50,8 @@ class EntityEntry internal constructor(
     val type: KClass<out Entity>,
     internal val definition: VisualDefinition<WorldEntity, EntitySpriteDefinition>,
     private val factory: (() -> Entity)?,
-    internal val settings: EntitySpriteSettings
+    internal val settings: EntitySpriteSettings,
+    private val representativeState: VisualStateId? = null
 ) {
     internal val sources = definition.sources().flatMap(EntitySpriteDefinition::sources)
     private var preparedDefinition:
@@ -72,8 +73,25 @@ class EntityEntry internal constructor(
 
     /** Stable representative visual for menus and debug selection previews. */
     val selectionVisual: EntityVisual
-        get() = preparedSprites.firstOrNull()?.representativeVisual()
-            ?: error("Entity type $type is not prepared.")
+        get() {
+            val sprites = when (val definition = definition) {
+                is VisualDefinition.Single ->
+                    preparedSprites.firstOrNull()
+
+                is VisualDefinition.Stateful -> {
+                    val state = representativeState
+                        ?: definition.states.keys.firstOrNull()
+                        ?: error("Entity type $type has no visual states.")
+
+                    val index = definition.states.keys.indexOf(state)
+
+                    preparedSprites.getOrNull(index)
+                }
+            }
+
+            return sprites?.representativeVisual()
+                ?: error("Entity type $type is not prepared.")
+        }
 
     val isPrepared: Boolean
         get() = preparedDefinition != null
@@ -388,20 +406,23 @@ class EntityRegistry internal constructor(
         check(registrationOpen) {
             "Entity registry registration is already closed."
         }
-        val definitions = EntityStatefulVisualBuilder(
+
+        val built = EntityStatefulVisualBuilder(
             ::resolvePath,
             VisualPlayback.LOCAL
         ).apply(states).build()
+
         registerDefinition(
             type = type,
             definition = VisualDefinition.Stateful(
-                states = definitions,
+                states = built.states,
                 stateFor = { runtime ->
                     stateFor(runtime, type.java.cast(runtime.entity))
                 }
             ),
             factory = factory,
-            configure = configure
+            configure = configure,
+            representativeState = built.representativeState
         )
     }
 
@@ -486,7 +507,8 @@ class EntityRegistry internal constructor(
         type: KClass<T>,
         definition: VisualDefinition<WorldEntity, EntitySpriteDefinition>,
         factory: (() -> T)?,
-        configure: EntitySpriteSettings.() -> Unit
+        configure: EntitySpriteSettings.() -> Unit,
+        representativeState: VisualStateId? = null
     ) {
         check(registrationOpen) {
             "Entity registry registration is already closed."
@@ -500,7 +522,13 @@ class EntityRegistry internal constructor(
         val sources = definition.sources().flatMap(EntitySpriteDefinition::sources)
         sources.flatMap(SpriteSource::texturePaths).distinct().forEach(queueTexture)
         sources.flatMap(SpriteSource::atlasPaths).distinct().forEach(queueAtlas)
-        registrations[type] = EntityEntry(type, definition, factory, settings)
+        registrations[type] = EntityEntry(
+            type = type,
+            definition = definition,
+            factory = factory,
+            settings = settings,
+            representativeState = representativeState
+        )
     }
 
     private fun resolvePath(path: String): String {

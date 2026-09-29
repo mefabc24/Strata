@@ -132,6 +132,14 @@ class EntitySpriteDefinitionBuilder internal constructor(
     }
 }
 
+internal data class BuiltEntityStatefulVisual(
+    val states: Map<
+            VisualStateId,
+            VisualStateDefinition<EntitySpriteDefinition>
+            >,
+    val representativeState: VisualStateId
+)
+
 /** Defines game states whose direction is selected separately at runtime. */
 class EntityStatefulVisualBuilder internal constructor(
     private val resolvePath: (String) -> String,
@@ -139,6 +147,8 @@ class EntityStatefulVisualBuilder internal constructor(
 ) {
     private val states =
         linkedMapOf<VisualStateId, VisualStateDefinition<EntitySpriteDefinition>>()
+
+    private var representativeState: VisualStateId? = null
 
     /** Defines one game-owned state and its optional directional visuals. */
     fun state(
@@ -153,10 +163,29 @@ class EntityStatefulVisualBuilder internal constructor(
         )
     }
 
-    internal fun build(): Map<VisualStateId, VisualStateDefinition<EntitySpriteDefinition>> {
+    /**
+     * Selects the state used for representative visuals such as spawn previews.
+     *
+     * When omitted, the first registered state is used.
+     */
+    fun representativeState(id: VisualStateId) {
+        representativeState = id
+    }
+
+    internal fun build(): BuiltEntityStatefulVisual {
         require(states.isNotEmpty()) {
             "A stateful visual must register at least one visual state."
         }
-        return states.toMap()
+
+        val representative = representativeState ?: states.keys.first()
+
+        require(representative in states) {
+            "Representative visual state $representative is not registered."
+        }
+
+        return BuiltEntityStatefulVisual(
+            states = states.toMap(),
+            representativeState = representative
+        )
     }
 }
