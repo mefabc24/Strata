@@ -8,6 +8,7 @@ import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,7 +51,7 @@ class PickingDebugSnapshotTest {
             entityResult = entityResult
         )
 
-        val pickedEntity = assertIs<PickedSpriteTarget.Entity>(picked)
+        val pickedEntity = assertIs<PickedTarget.Entity>(picked)
         assertSame(entity, pickedEntity.worldEntity)
         assertEquals(entityBounds, pickedEntity.bounds)
         assertEquals(true, pickedEntity.alphaAccepted)
@@ -69,8 +70,19 @@ class PickingDebugSnapshotTest {
             entityResult = SpritePickDiagnostic(entity, entity, Rectangle(), true, Rectangle())
         )
 
-        val pickedObject = assertIs<PickedSpriteTarget.Object>(picked)
+        val pickedObject = assertIs<PickedTarget.Object>(picked)
         assertSame(placed, pickedObject.placedObject)
         assertEquals(objectBounds, pickedObject.bounds)
+    }
+
+    @Test
+    fun `sprite target has priority and tile is the fallback`() {
+        val world = World(1, 1) { _, _ -> TestTile }
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        val spriteTarget = PickedTarget.Entity(entity, Rectangle())
+        val tile = TilePosition(0, 0)
+
+        assertSame(spriteTarget, pickingTarget(spriteTarget, tile))
+        assertEquals(PickedTarget.Tile(tile), pickingTarget(null, tile))
     }
 }

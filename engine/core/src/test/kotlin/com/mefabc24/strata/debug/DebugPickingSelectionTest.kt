@@ -1,12 +1,13 @@
 package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.math.Rectangle
-import com.mefabc24.strata.iso.PickedSpriteTarget
+import com.mefabc24.strata.iso.PickedTarget
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -24,22 +25,28 @@ class DebugPickingSelectionTest {
     }
 
     @Test
-    fun `clicks lock objects and entities and replace the previous target`() {
+    fun `clicks lock objects entities and tiles and replace the previous target`() {
         val world = World(1, 1) { _, _ -> TestTile }
         val placed = requireNotNull(world.place(TestObject(), 0, 0))
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
         val selection = DebugPickingSelection()
 
-        assertTrue(selection.selectFromClick(PickedSpriteTarget.Object(placed, Rectangle())))
+        assertTrue(selection.selectFromClick(PickedTarget.Object(placed, Rectangle())))
         assertSame(
             placed,
-            assertIs<PickedSpriteTarget.Object>(selection.lockedTarget).placedObject
+            assertIs<PickedTarget.Object>(selection.lockedTarget).placedObject
         )
 
-        assertTrue(selection.selectFromClick(PickedSpriteTarget.Entity(entity, Rectangle())))
+        assertTrue(selection.selectFromClick(PickedTarget.Entity(entity, Rectangle())))
         assertSame(
             entity,
-            assertIs<PickedSpriteTarget.Entity>(selection.lockedTarget).worldEntity
+            assertIs<PickedTarget.Entity>(selection.lockedTarget).worldEntity
+        )
+
+        assertTrue(selection.selectFromClick(PickedTarget.Tile(TilePosition(0, 0))))
+        assertEquals(
+            TilePosition(0, 0),
+            assertIs<PickedTarget.Tile>(selection.lockedTarget).position
         )
     }
 
@@ -48,26 +55,26 @@ class DebugPickingSelectionTest {
         val world = World(1, 1) { _, _ -> TestTile }
         val placed = requireNotNull(world.place(TestObject(), 0, 0))
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
-        val locked = PickedSpriteTarget.Object(placed, Rectangle())
-        val hover = PickedSpriteTarget.Entity(entity, Rectangle())
+        val locked = PickedTarget.Object(placed, Rectangle())
+        val hover = PickedTarget.Entity(entity, Rectangle())
         val selection = DebugPickingSelection()
         selection.selectFromClick(locked)
 
         assertFalse(selection.selectFromClick(null))
         assertSame(locked, selection.lockedTarget)
         assertSame(locked, selection.displayedTarget(hover))
-        assertSame(DebugPickingTargetMode.LOCKED, selection.mode(hover))
+        assertSame(DebugPickingTargetMode.LOCKED, selection.mode())
     }
 
     @Test
     fun `hover remains the displayed target until a click locks one`() {
         val world = World(1, 1) { _, _ -> TestTile }
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
-        val hover = PickedSpriteTarget.Entity(entity, Rectangle())
+        val hover = PickedTarget.Entity(entity, Rectangle())
         val selection = DebugPickingSelection()
 
         assertSame(hover, selection.displayedTarget(hover))
-        assertSame(DebugPickingTargetMode.HOVER, selection.mode(hover))
+        assertSame(DebugPickingTargetMode.HOVER, selection.mode())
         assertNull(selection.lockedTarget)
     }
 
@@ -76,12 +83,12 @@ class DebugPickingSelectionTest {
         val world = World(1, 1) { _, _ -> TestTile }
         val placed = requireNotNull(world.place(TestObject(), 0, 0))
         val selection = DebugPickingSelection()
-        selection.selectFromClick(PickedSpriteTarget.Object(placed, Rectangle()))
+        selection.selectFromClick(PickedTarget.Object(placed, Rectangle()))
 
         selection.syncEnabled(false)
 
         assertNull(selection.lockedTarget)
-        assertSame(DebugPickingTargetMode.NONE, selection.mode(null))
+        assertSame(DebugPickingTargetMode.HOVER, selection.mode())
     }
 
     @Test
@@ -89,16 +96,16 @@ class DebugPickingSelectionTest {
         val world = World(1, 1) { _, _ -> TestTile }
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
         val selection = DebugPickingSelection()
-        selection.selectFromClick(PickedSpriteTarget.Entity(entity, Rectangle()))
+        selection.selectFromClick(PickedTarget.Entity(entity, Rectangle()))
         val movedBounds = Rectangle(10f, 20f, 8f, 12f)
 
         selection.refresh { target ->
-            (target as PickedSpriteTarget.Entity).copy(bounds = movedBounds)
+            (target as PickedTarget.Entity).copy(bounds = movedBounds)
         }
 
         assertSame(
             entity,
-            assertIs<PickedSpriteTarget.Entity>(selection.lockedTarget).worldEntity
+            assertIs<PickedTarget.Entity>(selection.lockedTarget).worldEntity
         )
         assertEquals(movedBounds, selection.lockedTarget?.bounds)
     }
