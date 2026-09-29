@@ -27,6 +27,7 @@ class DebugSettings {
     val worldStats = DebugFeatureSettings()
     val inspect = DebugInspectSettings()
     val pathfinding = DebugPathfindingSettings()
+    val notifications = DebugNotifications()
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
@@ -56,8 +57,15 @@ class DebugSettings {
     }
 
     /** Unfreezes every entity currently held by the debug runtime. */
-    fun unfreezeAllEntities() {
-        entityFreezeState.clear()
+    fun unfreezeAllEntities(): Int = entityFreezeState.clear()
+
+    /** Emits a short developer-facing notification. */
+    fun notify(
+        message: String,
+        severity: DebugNotificationSeverity = DebugNotificationSeverity.INFO,
+        durationSeconds: Float = notifications.defaultDurationSeconds
+    ) {
+        notifications.emit(message, severity, durationSeconds)
     }
 
     /** Called after an entity was created by the debug Spawn tool. */

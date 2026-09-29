@@ -13,6 +13,7 @@ import com.mefabc24.strata.debug.tools.DebugPathfindingTool
 import com.mefabc24.strata.debug.tools.DebugTerrainPainter
 import com.mefabc24.strata.debug.tools.DebugToolController
 import com.mefabc24.strata.debug.ui.DebugPanel
+import com.mefabc24.strata.debug.ui.DebugNotificationOverlay
 import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.iso.ObjectPickingMode
@@ -47,6 +48,7 @@ internal class DebugRuntime(
     terrainFor: (Tile) -> TerrainId
 ) {
     private val eventMonitor = DebugEventMonitor(events)
+    private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
     private val inspector = DebugInspector(settings.worldState)
     private val pathfinding = DebugPathfindingTool(world, settings.worldState) { position ->
         settings.pathTraversal?.invoke(world, position) ?: true
@@ -209,6 +211,8 @@ internal class DebugRuntime(
 
     fun update(delta: Float) {
         syncCameraRestrictions()
+        settings.notifications.update(delta)
+        notificationOverlay.sync()
 
         settings.worldState.pickingSelection.syncEnabled(settings.picking.enabled)
 

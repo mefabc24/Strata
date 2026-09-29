@@ -304,10 +304,20 @@ internal class DebugPanel(
                 ) { frozen ->
                     (inspector.selection as? DebugInspection.EntityTarget)
                         ?.entity
-                        ?.let { settings.setEntityFrozen(it, frozen) }
+                        ?.let {
+                            settings.setEntityFrozen(it, frozen)
+                            settings.notify(
+                                if (frozen) "Entity frozen" else "Entity unfrozen",
+                                DebugNotificationSeverity.SUCCESS
+                            )
+                        }
                 }
                 button("Unfreeze all entities") {
-                    settings.unfreezeAllEntities()
+                    val count = settings.unfreezeAllEntities()
+                    settings.notify(
+                        if (count == 0) "No frozen entities" else "Unfroze $count entities",
+                        if (count == 0) DebugNotificationSeverity.INFO else DebugNotificationSeverity.SUCCESS
+                    )
                 }.cell { height(38f) }
                 label("World visualization")
                 toggleGrid(
