@@ -291,6 +291,22 @@ internal class DebugPanel(
                 defaults().fillAvailableX()
                 label("Inspector")
                 inspectorRows = diagnosticTable()
+                simpleToggle(
+                    "Frozen",
+                    {
+                        (inspector.selection as? DebugInspection.EntityTarget)
+                            ?.entity
+                            ?.let(settings::isEntityFrozen)
+                            ?: false
+                    }
+                ) { frozen ->
+                    (inspector.selection as? DebugInspection.EntityTarget)
+                        ?.entity
+                        ?.let { settings.setEntityFrozen(it, frozen) }
+                }
+                button("Unfreeze all entities") {
+                    settings.unfreezeAllEntities()
+                }.cell { height(38f) }
                 label("World visualization")
                 toggleGrid(
                     toggle("Selected tile", { settings.inspect.showTile }) {
@@ -818,6 +834,7 @@ internal class DebugPanel(
                             "Position" to formatEntityPosition(entity.position),
                             "Tile" to formatTilePosition(entity.currentTile),
                             "Direction" to entity.direction.toString(),
+                            "Frozen" to settings.isEntityFrozen(entity).toString(),
                             "Moving" to entity.isMoving.toString(),
                             "Waypoints" to entity.remainingWaypoints.size.toString(),
                             "Path" to formatTilePositions(entity.remainingPath),

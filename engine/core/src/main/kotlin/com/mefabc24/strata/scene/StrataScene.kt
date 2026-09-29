@@ -523,7 +523,12 @@ class StrataScene private constructor(
             "Simulation delta must be finite and non-negative."
         }
 
-        attachedWorld?.updateEntities(simulationDelta)
+        attachedWorld?.let { world ->
+            debug.entityFreezeState.retain(world.getEntities())
+            world.updateEntities(simulationDelta) { entity ->
+                !debug.isEntityFrozen(entity)
+            }
+        }
 
         attachedView?.let { view ->
             view.update(

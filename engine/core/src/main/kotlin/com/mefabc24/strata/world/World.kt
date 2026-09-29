@@ -267,8 +267,13 @@ class World(
     }
 
     /** Advances active entity routes using the supplied frame delta. */
-    internal fun updateEntities(delta: Float) {
-        entities.forEach { it.updateMovement(delta) }
+    internal fun updateEntities(
+        delta: Float,
+        movementEnabled: (WorldEntity) -> Boolean = { true }
+    ) {
+        entities.forEach { entity ->
+            if (movementEnabled(entity)) entity.updateMovement(delta)
+        }
     }
 
     /**

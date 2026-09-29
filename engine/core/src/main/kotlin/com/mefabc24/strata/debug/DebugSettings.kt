@@ -13,6 +13,7 @@ enum class DebugGridExtent { WORLD, VISIBLE }
 /** Built-in debug panel and world diagnostic configuration. */
 class DebugSettings {
     internal val worldState = DebugWorldState()
+    internal val entityFreezeState = DebugEntityFreezeState()
     val panel = DebugPanelSettings()
     val performance = DebugPerformanceLogger()
     val simulation = DebugFeatureSettings()
@@ -44,6 +45,20 @@ class DebugSettings {
     fun worldStats(configure: DebugFeatureSettings.() -> Unit) = worldStats.apply(configure)
     fun inspect(configure: DebugInspectSettings.() -> Unit) = inspect.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
+
+    /** Returns whether debug controls have frozen engine movement for [entity]. */
+    fun isEntityFrozen(entity: WorldEntity): Boolean =
+        entityFreezeState.isFrozen(entity)
+
+    /** Freezes or unfreezes engine-owned movement for [entity]. */
+    fun setEntityFrozen(entity: WorldEntity, frozen: Boolean) {
+        entityFreezeState.setFrozen(entity, frozen)
+    }
+
+    /** Unfreezes every entity currently held by the debug runtime. */
+    fun unfreezeAllEntities() {
+        entityFreezeState.clear()
+    }
 
     /** Called after an entity was created by the debug Spawn tool. */
     fun onEntitySpawned(callback: (WorldEntity) -> Unit) {
