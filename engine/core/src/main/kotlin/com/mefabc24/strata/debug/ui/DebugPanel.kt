@@ -826,7 +826,7 @@ internal class DebugPanel(
                                 visual?.stateTime,
                                 visual?.visual?.sprite
                             ),
-                            "Bounds" to display(view.entitySpriteBounds(entity))
+                            "Sprite bounds" to display(view.entitySpriteBounds(entity))
                         ) + renderInspectionRows(entity = entity)
                         ).toTypedArray()
             )
@@ -846,7 +846,7 @@ internal class DebugPanel(
                                 visual?.stateTime,
                                 visual?.visual?.sprite
                             ),
-                            "Bounds" to display(view.objectSpriteBounds(placed))
+                            "Sprite Bounds" to display(view.objectSpriteBounds(placed))
                         ) + renderInspectionRows(placedObject = placed)
                         ).toTypedArray()
             )
