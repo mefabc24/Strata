@@ -186,7 +186,10 @@ class DebugEventMonitorSettings : DebugFeatureSettings() {
             field = value
         }
     var newestFirst: Boolean = true
+    var overlayPosition: DebugEventOverlayPosition = DebugEventOverlayPosition.TOP_LEFT
 }
+
+enum class DebugEventOverlayPosition { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
 /** Runtime configuration for placed-object diagnostics. */
 class DebugObjectSettings : DebugFeatureSettings() {

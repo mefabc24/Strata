@@ -45,12 +45,8 @@ class DebugEventMonitor(
             DebugEventRecord(
                 sequence = nextSequence++,
                 eventType = event::class.simpleName ?: event::class.toString(),
-                value = event.toString().take(MAX_VALUE_LENGTH)
+                value = event.toString()
             )
         )
-    }
-
-    private companion object {
-        const val MAX_VALUE_LENGTH = 200
     }
 }

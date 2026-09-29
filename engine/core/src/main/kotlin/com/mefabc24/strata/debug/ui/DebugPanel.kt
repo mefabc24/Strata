@@ -113,7 +113,6 @@ internal class DebugPanel(
     private lateinit var pickingRows: DebugDiagnosticTable
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
-    private lateinit var eventRows: DebugDiagnosticTable
     private lateinit var contextFooter: StrataColumn
     private lateinit var contextFooterCell: Cell<StrataColumn>
     private lateinit var contextRows: DebugDiagnosticTable
@@ -426,11 +425,34 @@ internal class DebugPanel(
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it }
         ) {
+            simpleToggle("Show overlay", { settings.eventBus.overlayVisible }) {
+                settings.eventBus.overlayVisible = it
+            }
             simpleToggle("Pause capture", { settings.eventBus.paused }) {
                 settings.eventBus.paused = it
             }
+            simpleToggle("Newest first", { settings.eventBus.newestFirst }) {
+                settings.eventBus.newestFirst = it
+            }
+            boundStepper(
+                "Visible records",
+                { settings.eventBus.maximumVisibleRecords.toFloat() },
+                1f,
+                25f,
+                1f
+            ) { settings.eventBus.maximumVisibleRecords = it.toInt() }
+            label("Overlay position")
+            val positions = ui.selectionGroup(
+                DebugEventOverlayPosition.entries,
+                settings.eventBus.overlayPosition
+            ) { settings.eventBus.overlayPosition = it }
+            synchronizers += { positions.select(settings.eventBus.overlayPosition) }
+            responsiveGrid(130f, maximumColumns = 2) {
+                DebugEventOverlayPosition.entries.forEach { position ->
+                    selectableButton(position.name.toDisplayName(), position, positions)
+                }
+            }.cell { fillAvailableX() }
             button("Clear history") { eventMonitor.clear() }.cell { height(38f) }
-            eventRows = diagnosticTable()
         }
         featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
         featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
@@ -736,14 +758,6 @@ internal class DebugPanel(
         pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
         cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
         cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
-        eventRows.show(
-            eventMonitor.records.asReversed().map { record ->
-                DebugDiagnosticRow(
-                    "#${record.sequence} ${record.eventType}",
-                    record.value
-                )
-            }
-        )
         syncContextFooter()
     }
 
