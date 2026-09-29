@@ -24,6 +24,7 @@ class DebugSettingsTest {
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
+        assertFalse(settings.camera.disableRestrictions)
         assertTrue(settings.inspect.showTile)
         assertTrue(settings.inspect.showObjectFootprint)
         assertTrue(settings.inspect.showObjectOrigin)
@@ -35,6 +36,22 @@ class DebugSettingsTest {
         assertTrue(settings.inspect.showEntitySpriteBounds)
         assertTrue(settings.pathfinding.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
+    }
+
+    @Test
+    fun `presets preserve camera restriction override`() {
+        DebugPreset.entries.forEach { preset ->
+            val settings = DebugSettings().apply {
+                camera.disableRestrictions = true
+            }
+
+            settings.applyPreset(preset)
+
+            assertTrue(
+                settings.camera.disableRestrictions,
+                preset.name
+            )
+        }
     }
 
     @Test

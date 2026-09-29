@@ -121,11 +121,6 @@ internal class DebugRuntime(
         view.setDebugCameraRestrictionsDisabled(disabled)
     }
 
-    internal fun cameraRestrictionsDisabled(
-        freeCameraToolActive: Boolean,
-        persistentOverride: Boolean
-    ): Boolean = freeCameraToolActive || persistentOverride
-
     private fun bindings(world: World, view: IsoWorldView): List<WorldInputBinding> = listOf(
         WorldInputBinding.Pointer(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
@@ -247,3 +242,8 @@ internal class DebugRuntime(
         }
     }
 }
+
+internal fun cameraRestrictionsDisabled(
+    freeCameraToolActive: Boolean,
+    persistentOverride: Boolean
+): Boolean = freeCameraToolActive || persistentOverride
