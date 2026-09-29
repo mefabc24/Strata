@@ -11,6 +11,27 @@ internal data class DebugContextStatus(
     val rows: List<DebugDiagnosticRow>
 )
 
+/**
+ * The fixed layout footprint for the non-scrolling Tools status footer.
+ *
+ * Tool statuses currently use at most four rows. Reserving two lines for each
+ * value keeps the scrollable controls stable when a diagnostic wraps.
+ */
+internal object DebugContextFooterLayout {
+    private const val separatorHeight = 1f
+    private const val sectionSpacing = 6f
+    private const val headingHeight = 24f
+    private const val maximumStatusRows = 4
+    private const val linesPerStatusValue = 2
+    private const val statusLineHeight = 16f
+
+    val reservedHeight: Float = separatorHeight +
+        sectionSpacing +
+        headingHeight +
+        sectionSpacing +
+        maximumStatusRows * linesPerStatusValue * statusLineHeight
+}
+
 internal data class DebugContextInputs(
     val mode: DebugToolMode,
     val buildObject: String? = null,

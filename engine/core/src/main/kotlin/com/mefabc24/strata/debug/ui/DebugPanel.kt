@@ -122,7 +122,6 @@ internal class DebugPanel(
     private var previewAnchor: Actor? = null
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
-    private var contextFooterVisible = false
     private var lastPanelExpanded: Boolean? = null
 
     init {
@@ -216,10 +215,9 @@ internal class DebugPanel(
                     contextRows = diagnosticTable()
                 }
                 contextFooterCell = getCell(contextFooter).apply {
-                    height(0f)
-                    padTop(0f)
+                    height(DebugContextFooterLayout.reservedHeight)
+                    padTop(4f)
                 }
-                contextFooter.isVisible = false
             }.cell { grow(); fill() }
         }.cell {
             minWidth(260f)
@@ -871,16 +869,6 @@ internal class DebugPanel(
             )
         )
         contextRows.show(status?.rows.orEmpty())
-        val visible = status != null && status.rows.isNotEmpty()
-        if (visible == contextFooterVisible) return
-        contextFooterVisible = visible
-        contextFooter.isVisible = visible
-        if (visible) {
-            contextFooterCell.height(Value.prefHeight).padTop(4f)
-        } else {
-            contextFooterCell.height(0f).padTop(0f)
-        }
-        panelActor.invalidateHierarchy()
     }
 
     private fun inspectionSummary(): String? = when (val selected = inspector.selection) {
