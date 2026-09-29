@@ -273,6 +273,7 @@ abstract class StrataLayout internal constructor(
         title: String,
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
+        headerHeight: Float? = null,
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
@@ -282,6 +283,7 @@ abstract class StrataLayout internal constructor(
                 title = title,
                 expanded = expanded,
                 spacing = spacing,
+                headerHeight = headerHeight,
                 headerContent = headerContent,
                 configure = configure
             )
@@ -472,6 +474,7 @@ class StrataExpander internal constructor(
     val title: String,
     expanded: Boolean,
     private val spacing: Float,
+    headerHeight: Float? = null,
     headerContent: (StrataRow.() -> Unit)? = null,
     configure: StrataColumn.() -> Unit
 ) : Table(context.skin) {
@@ -504,12 +507,18 @@ class StrataExpander internal constructor(
         require(spacing.isFinite() && spacing >= 0f) {
             "Expander spacing must be finite and non-negative."
         }
+        require(headerHeight == null || headerHeight.isFinite() && headerHeight > 0f) {
+            "Expander header height must be finite and positive."
+        }
 
         top().left()
         val headerRow = StrataRow(
             context, context.theme.spacing, StrataInsets.NONE, Align.left
         )
-        headerRow.actor(header).cell { growX().fillX() }
+        headerRow.actor(header).cell {
+            growX().fillX()
+            headerHeight?.let(::height)
+        }
         headerContent?.let(headerRow::apply)
         add(headerRow).growX().fillX()
         row()

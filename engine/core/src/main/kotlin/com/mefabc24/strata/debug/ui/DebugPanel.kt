@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Value
@@ -24,6 +25,7 @@ import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
 import com.mefabc24.strata.render.entity.EntityEntry
 import com.mefabc24.strata.render.entity.EntityRegistry
+import com.mefabc24.strata.render.debug.cullingDebugCounts
 import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.terrain.TerrainId
@@ -102,17 +104,19 @@ internal class DebugPanel(
     private lateinit var inspectControls: StrataColumn
     private lateinit var pathControls: StrataColumn
     private lateinit var inspectorRows: DebugDiagnosticTable
-    private lateinit var pathRows: DebugDiagnosticTable
     private lateinit var pickingRows: DebugDiagnosticTable
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
-    private lateinit var placementRows: DebugDiagnosticTable
+    private lateinit var contextFooter: StrataColumn
+    private lateinit var contextFooterCell: Cell<StrataColumn>
+    private lateinit var contextRows: DebugDiagnosticTable
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
     private var previewAnchor: Actor? = null
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
+    private var contextFooterVisible = false
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
@@ -183,6 +187,17 @@ internal class DebugPanel(
                     }
                 }.cell { fillAvailableX() }
             }.cell { grow(); fill(); minHeight(0f) }
+            contextFooter = column(spacing = 6f) {
+                defaults().fillAvailableX()
+                separator()
+                label("STATUS").cell { height(24f); left() }
+                contextRows = diagnosticTable()
+            }
+            contextFooterCell = getCell(contextFooter).apply {
+                height(0f)
+                padTop(0f)
+            }
+            contextFooter.isVisible = false
         }.cell {
             minWidth(260f)
             prefWidth(Value.percentWidth(0.34f, ui.root))
@@ -227,7 +242,6 @@ internal class DebugPanel(
                     "Show placement reasons",
                     { settings.placement.enabled }
                 ) { settings.placement.enabled = it }
-                placementRows = diagnosticTable()
             }
             paintControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
@@ -276,7 +290,6 @@ internal class DebugPanel(
                         settings.pathfinding.showFinalPath = it
                     }
                 )
-                pathRows = diagnosticTable()
                 button("Clear path") { pathfinding.clear() }.cell { height(38f) }
             }
         }.cell { fillAvailableX() }
@@ -311,17 +324,27 @@ internal class DebugPanel(
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
             )
             pickingRows = diagnosticTable()
+            button("Clear locked target") {
+                settings.worldState.pickingSelection.clear()
+            }.cell { height(38f) }
         }
         featureExpander("Culling", { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleGrid(
-                toggle("Object bounds", { settings.culling.showObjectBounds }) { settings.culling.showObjectBounds = it },
-                toggle("Entity bounds", { settings.culling.showEntityBounds }) { settings.culling.showEntityBounds = it }
+                toggle("Render check area", { settings.culling.showVisibleArea }) {
+                    settings.culling.showVisibleArea = it
+                },
+                toggle("Object culling bounds", { settings.culling.showObjectBounds }) {
+                    settings.culling.showObjectBounds = it
+                },
+                toggle("Entity culling bounds", { settings.culling.showEntityBounds }) {
+                    settings.culling.showEntityBounds = it
+                }
             )
             cullingRows = diagnosticTable()
         }
         featureExpander("Camera", { settings.camera.enabled }, { settings.camera.enabled = it }) {
             toggleGrid(
-                toggle("Camera view rectangle", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
+                toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
                 toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
             )
@@ -448,6 +471,7 @@ internal class DebugPanel(
             title = title,
             expanded = false,
             spacing = 8f,
+            headerHeight = 36f,
             headerContent = {
                 settingToggle(read, write).cell { minWidth(64f); height(36f) }
             }
@@ -563,21 +587,10 @@ internal class DebugPanel(
 
     private fun syncDiagnostics() {
         inspectorRows.show(formatInspection())
-        pathRows.show(pathfindingDiagnosticRows(pathfinding.start, pathfinding.result))
-        val showPlacement = settings.placement.enabled && tools.mode == DebugToolMode.BUILD
-        placementRows.show(
-            if (showPlacement) {
-                placementDiagnosticRows(
-                    placementAvailable = placement != null,
-                    diagnostics = placement?.currentDiagnostic?.let(::listOf).orEmpty()
-                )
-            } else {
-                emptyList()
-            }
-        )
         pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
         cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
         cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
+        syncContextFooter()
     }
 
     private fun formatPicking(): List<DebugDiagnosticRow> {
@@ -585,15 +598,18 @@ internal class DebugPanel(
         val y = Gdx.input.y.toFloat()
         val projected = view.screenToWorld(x, y)
         val snapshot = settings.worldState.picking
+        val hover = snapshot?.picked
+        val target = settings.worldState.pickingSelection.displayedTarget(hover)
+        val mode = settings.worldState.pickingSelection.mode(hover)
         return diagnosticRows(
             "Screen" to "${x.toInt()}, ${y.toInt()}",
             "World" to "${projected.x.format()}, ${projected.y.format()}",
             "Grid" to formatTilePosition(view.pickGrid(x, y)),
             "Tile" to (view.pickTile(x, y)?.let(::formatTilePosition) ?: "—"),
-            "Object" to display(settings.worldState.pickedObject?.placeable?.javaClass?.simpleName),
-            "Entity" to display(settings.worldState.pickedEntity?.entity?.javaClass?.simpleName),
-            "Object alpha" to alphaText(snapshot?.objectResult?.alphaAccepted),
-            "Entity alpha" to alphaText(snapshot?.entityResult?.alphaAccepted)
+            "Selected" to display(pickingTargetName(target)),
+            "Mode" to mode.name.toDisplayName(),
+            "Alpha" to alphaText(target?.alphaAccepted),
+            "Bounds" to display(target?.bounds)
         )
     }
 
@@ -610,14 +626,65 @@ internal class DebugPanel(
     }
 
     private fun formatCulling(): List<DebugDiagnosticRow> {
-        val stats = view.renderStats
+        val counts = cullingDebugCounts(view.renderDebugSnapshot)
         return diagnosticRows(
-            "Objects" to "${stats.objectsDrawn} drawn, " +
-                "${(stats.objectsChecked - stats.objectsDrawn).coerceAtLeast(0)} culled",
-            "Entities" to "${stats.entitiesDrawn} drawn, " +
-                "${(stats.entitiesChecked - stats.entitiesDrawn).coerceAtLeast(0)} culled"
+            "Objects" to "${counts.objectsDrawn} drawn, ${counts.objectsCulled} culled",
+            "Entities" to "${counts.entitiesDrawn} drawn, ${counts.entitiesCulled} culled",
+            "Object color" to "Cyan; dimmed when culled",
+            "Entity color" to "Orange; dimmed when culled",
+            "Area" to "Renderer bounds-overlap check"
         )
     }
+
+    private fun syncContextFooter() {
+        val status = debugContextStatus(
+            DebugContextInputs(
+                mode = tools.mode,
+                buildObject = buildSelection?.selected?.displayName(),
+                placementAvailable = placement != null,
+                placementStatusEnabled = settings.placement.enabled,
+                placementDiagnostic = placement?.currentDiagnostic,
+                buildDragging = tools.buildDragging,
+                buildPreviewCount = tools.buildPreviewCount,
+                paintTerrain = terrainSelection?.selected?.type?.toString()?.toDisplayName(),
+                paintLayer = layerSelection.selected?.label,
+                spawnEntity = spawnSelection?.selected?.type?.displayName(),
+                inspection = inspectionSummary(),
+                pathStart = pathfinding.start,
+                pathResult = pathfinding.result
+            )
+        )
+        contextRows.show(status?.rows.orEmpty())
+        val visible = status != null && status.rows.isNotEmpty()
+        if (visible == contextFooterVisible) return
+        contextFooterVisible = visible
+        contextFooter.isVisible = visible
+        if (visible) {
+            contextFooterCell.height(Value.prefHeight).padTop(4f)
+        } else {
+            contextFooterCell.height(0f).padTop(0f)
+        }
+        panelActor.invalidateHierarchy()
+    }
+
+    private fun inspectionSummary(): String? = when (val selected = inspector.selection) {
+        is DebugInspection.EntityTarget ->
+            "${selected.entity.entity::class.displayName()} (Entity)"
+        is DebugInspection.ObjectTarget ->
+            "${selected.placedObject.placeable::class.displayName()} (Object)"
+        is DebugInspection.TileTarget ->
+            "${formatTilePosition(selected.position)} (Tile)"
+        null -> null
+    }
+
+    private fun pickingTargetName(target: com.mefabc24.strata.iso.PickedSpriteTarget?): String? =
+        when (target) {
+            is com.mefabc24.strata.iso.PickedSpriteTarget.Object ->
+                target.placedObject.placeable::class.displayName()
+            is com.mefabc24.strata.iso.PickedSpriteTarget.Entity ->
+                target.worldEntity.entity::class.displayName()
+            null -> null
+        }
 
     private fun formatInspection(): List<DebugDiagnosticRow> =
         when (val selected = inspector.selection) {

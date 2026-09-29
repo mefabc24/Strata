@@ -76,6 +76,13 @@ sealed interface WorldInputBinding {
         val action: (WorldEntity) -> Boolean
     ) : WorldInputBinding
 
+    /** Observes an input event at its screen position without performing a pick. */
+    class Pointer(
+        override val trigger: WorldInputTrigger,
+        override val enabled: () -> Boolean = { true },
+        val action: (screenX: Float, screenY: Float) -> Boolean
+    ) : WorldInputBinding
+
     /**
      * Invokes an action without performing any picking.
      */

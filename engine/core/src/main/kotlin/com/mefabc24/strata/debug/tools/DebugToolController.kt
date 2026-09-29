@@ -21,6 +21,8 @@ class DebugToolController(
         private set
 
     val buildAvailable: Boolean get() = placement != null && buildDrag != null
+    val buildDragging: Boolean get() = buildDrag?.active == true
+    val buildPreviewCount: Int get() = buildDrag?.previewCount ?: 0
 
     fun selectBuildEntry(entry: ObjectEntry?) {
         require(entry == null || entry.isConstructible) {

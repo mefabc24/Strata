@@ -19,7 +19,10 @@ data class DebugDiagnosticRow(val key: String, val value: String)
 internal class DebugDiagnosticTable(
     private val skin: Skin,
     private val keyStyle: String = "debug-key",
-    private val valueStyle: String = "default"
+    private val valueStyle: String = "default",
+    private val wrapValues: Boolean = true,
+    private val keyMinimumWidth: Float = 0f,
+    private val valueMinimumWidth: Float = 0f
 ) : Table(skin) {
     private var keys: List<String> = emptyList()
     private var valueLabels: List<Label> = emptyList()
@@ -48,12 +51,12 @@ internal class DebugDiagnosticTable(
         keys = newKeys
         valueLabels = newKeys.map { key ->
             add(Label(key, skin, keyStyle).apply { setAlignment(Align.topLeft) })
-                .top().left().padRight(10f)
+                .top().left().padRight(10f).minWidth(keyMinimumWidth)
             val value = Label("", skin, valueStyle).apply {
                 setAlignment(Align.topLeft)
-                setWrap(true)
+                setWrap(wrapValues)
             }
-            add(value).growX().fillX().top().left()
+            add(value).growX().fillX().top().left().minWidth(valueMinimumWidth)
             row()
             value
         }
@@ -114,7 +117,7 @@ internal fun pathfindingDiagnosticRows(
     )
 }
 
-private fun placementReasonText(reason: PlacementFailureReason?): String = when (reason) {
+internal fun placementReasonText(reason: PlacementFailureReason?): String = when (reason) {
     PlacementFailureReason.FOOTPRINT_OUTSIDE_WORLD -> "Footprint outside world"
     PlacementFailureReason.OCCUPIED_TILE -> "Occupied tile"
     PlacementFailureReason.RESERVED_TILE_CONFLICT -> "Reserved by another preview"

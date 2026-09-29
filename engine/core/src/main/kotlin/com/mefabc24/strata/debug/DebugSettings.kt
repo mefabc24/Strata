@@ -90,8 +90,34 @@ class DebugRenderOrderSettings : DebugFeatureSettings() {
 }
 
 class DebugCullingSettings : DebugFeatureSettings() {
+    var showVisibleArea: Boolean = true
     var showObjectBounds: Boolean = true
     var showEntityBounds: Boolean = true
+
+    private var storedVisibleAreaColor = Color(0.72f, 0.35f, 1f, 1f)
+    var visibleAreaColor: Color
+        get() = storedVisibleAreaColor.cpy()
+        set(value) { storedVisibleAreaColor = value.cpy() }
+
+    private var storedObjectDrawnColor = Color(0.15f, 0.85f, 1f, 1f)
+    var objectDrawnColor: Color
+        get() = storedObjectDrawnColor.cpy()
+        set(value) { storedObjectDrawnColor = value.cpy() }
+
+    private var storedObjectCulledColor = Color(0.08f, 0.32f, 0.42f, 0.8f)
+    var objectCulledColor: Color
+        get() = storedObjectCulledColor.cpy()
+        set(value) { storedObjectCulledColor = value.cpy() }
+
+    private var storedEntityDrawnColor = Color(1f, 0.68f, 0.15f, 1f)
+    var entityDrawnColor: Color
+        get() = storedEntityDrawnColor.cpy()
+        set(value) { storedEntityDrawnColor = value.cpy() }
+
+    private var storedEntityCulledColor = Color(0.48f, 0.28f, 0.06f, 0.8f)
+    var entityCulledColor: Color
+        get() = storedEntityCulledColor.cpy()
+        set(value) { storedEntityCulledColor = value.cpy() }
 }
 
 class DebugCameraSettings : DebugFeatureSettings() {
@@ -101,11 +127,15 @@ class DebugCameraSettings : DebugFeatureSettings() {
 }
 
 class DebugPathfindingSettings : DebugFeatureSettings() {
+    init { enabled = true }
+
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
 }
 
-class DebugPlacementSettings : DebugFeatureSettings()
+class DebugPlacementSettings : DebugFeatureSettings() {
+    init { enabled = true }
+}
 
 /** Runtime configuration for placed-object diagnostics. */
 class DebugObjectSettings : DebugFeatureSettings() {
@@ -271,6 +301,7 @@ internal object DebugPresets {
                 settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
+                settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
                 settings.camera.enabled = true
@@ -289,6 +320,7 @@ internal object DebugPresets {
                 settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
                 settings.culling.enabled = true
+                settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
                 settings.camera.enabled = true

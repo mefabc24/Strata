@@ -3,8 +3,10 @@ package com.mefabc24.strata.debug.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Value
+import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -23,26 +25,10 @@ internal class DebugStatsOverlay(
 ) {
     private val performanceState = DebugPerformanceOverlayState()
     private val state = DebugStatsOverlayState()
-    private val performanceRows = DebugDiagnosticTable(ui.skin)
-    private val worldRows = DebugDiagnosticTable(ui.skin)
-    private val performancePanel = Table(ui.skin).apply {
-        background = ui.skin.get(
-            requireNotNull(ui.theme.panelStyle),
-            StrataPanelStyle::class.java
-        ).background
-        pad(8f)
-        touchable = Touchable.disabled
-        add(performanceRows).growX().fillX().left()
-    }
-    private val worldPanel = Table(ui.skin).apply {
-        background = ui.skin.get(
-            requireNotNull(ui.theme.panelStyle),
-            StrataPanelStyle::class.java
-        ).background
-        pad(8f)
-        touchable = Touchable.disabled
-        add(worldRows).growX().fillX().left()
-    }
+    private val performanceRows = statsRows(ui)
+    private val worldRows = statsRows(ui)
+    private val performancePanel = statsPanel("PERFORMANCE", performanceRows, ui)
+    private val worldPanel = statsPanel("WORLD", worldRows, ui)
     private val performanceCell: Cell<Table>
     private val worldCell: Cell<Table>
     private var worldElapsed = 0f
@@ -55,9 +41,13 @@ internal class DebugStatsOverlay(
             pad(16f)
             touchable = Touchable.disabled
             isVisible = false
-            performanceCell = add(performancePanel).right()
+            performanceCell = add(performancePanel)
+                .minWidth(250f).prefWidth(290f).maxWidth(320f)
+                .fillX().right()
             row()
-            worldCell = add(worldPanel).right()
+            worldCell = add(worldPanel)
+                .minWidth(250f).prefWidth(290f).maxWidth(320f)
+                .fillX().right()
         }
         ui.stage.addActor(root)
     }
@@ -97,6 +87,32 @@ internal class DebugStatsOverlay(
             }
         }
     }
+}
+
+private fun statsRows(ui: StrataUi): DebugDiagnosticTable = DebugDiagnosticTable(
+    skin = ui.skin,
+    wrapValues = false,
+    keyMinimumWidth = 112f,
+    valueMinimumWidth = 96f
+)
+
+private fun statsPanel(
+    title: String,
+    rows: DebugDiagnosticTable,
+    ui: StrataUi
+): Table = Table(ui.skin).apply {
+    background = ui.skin.get(
+        requireNotNull(ui.theme.panelStyle),
+        StrataPanelStyle::class.java
+    ).background
+    pad(10f)
+    touchable = Touchable.disabled
+    add(Label(title, ui.skin, "title").apply {
+        setAlignment(Align.left)
+        touchable = Touchable.disabled
+    }).growX().fillX().left().padBottom(6f)
+    row()
+    add(rows).growX().fillX().left()
 }
 
 /** Visibility model for independently enabled sections in the shared overlay. */

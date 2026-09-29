@@ -161,6 +161,10 @@ class WorldInputProcessor(
                     entity != null && binding.action(entity)
                 }
 
+                is WorldInputBinding.Pointer -> {
+                    binding.action(screenX, screenY)
+                }
+
                 is WorldInputBinding.NoPicking -> {
                     binding.action()
                 }

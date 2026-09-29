@@ -16,7 +16,6 @@ import com.mefabc24.strata.debug.ui.DebugPanel
 import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.iso.PickedSpriteTarget
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.mefabc24.strata.input.WorldInputTrigger
@@ -105,6 +104,15 @@ internal class DebugRuntime(
     )
 
     private fun bindings(world: World, view: IsoWorldView): List<WorldInputBinding> = listOf(
+        WorldInputBinding.Pointer(
+            WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+            { settings.picking.enabled }
+        ) { screenX, screenY ->
+            settings.worldState.pickingSelection.selectFromClick(
+                view.pickingDebugSnapshot(screenX, screenY).picked
+            )
+            false
+        },
         WorldInputBinding.Entity(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             EntityPickingMode.SPRITE_ALPHA,
@@ -178,22 +186,18 @@ internal class DebugRuntime(
     )
 
     fun update(delta: Float) {
+        settings.worldState.pickingSelection.syncEnabled(settings.picking.enabled)
         if (settings.picking.enabled) {
             val screenX = Gdx.input.x.toFloat()
             val screenY = Gdx.input.y.toFloat()
             settings.worldState.cursorWorld = view.screenToWorld(screenX, screenY)
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.picking = picking
-            settings.worldState.pickedObject =
-                (picking.picked as? PickedSpriteTarget.Object)
-                    ?.placedObject
-            settings.worldState.pickedEntity =
-                (picking.picked as? PickedSpriteTarget.Entity)
-                    ?.worldEntity
+            settings.worldState.pickingSelection.refresh(
+                view::refreshPickedSpriteTarget
+            )
         } else {
             settings.worldState.cursorWorld = null
-            settings.worldState.pickedObject = null
-            settings.worldState.pickedEntity = null
             settings.worldState.picking = null
         }
         panel.update(delta)

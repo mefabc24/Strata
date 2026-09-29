@@ -555,6 +555,18 @@ class IsoWorldView(
         )
     }
 
+    /** Refreshes the live bounds for a previously picked object or entity. */
+    internal fun refreshPickedSpriteTarget(
+        target: PickedSpriteTarget
+    ): PickedSpriteTarget = when (target) {
+        is PickedSpriteTarget.Object -> target.copy(
+            bounds = objectSpriteBounds(target.placedObject)
+        )
+        is PickedSpriteTarget.Entity -> target.copy(
+            bounds = entitySpriteBounds(target.worldEntity)
+        )
+    }
+
     /** Current camera and authoritative renderer bounds for diagnostics. */
     fun cameraDebugSnapshot(): CameraDebugSnapshot {
         val width = camera.viewportWidth * camera.zoom
@@ -601,15 +613,18 @@ data class PickingDebugSnapshot(
 
 sealed interface PickedSpriteTarget {
     val bounds: Rectangle?
+    val alphaAccepted: Boolean?
 
     data class Object(
         val placedObject: PlacedObject,
-        override val bounds: Rectangle?
+        override val bounds: Rectangle?,
+        override val alphaAccepted: Boolean? = null
     ) : PickedSpriteTarget
 
     data class Entity(
         val worldEntity: WorldEntity,
-        override val bounds: Rectangle?
+        override val bounds: Rectangle?,
+        override val alphaAccepted: Boolean? = null
     ) : PickedSpriteTarget
 }
 
@@ -627,14 +642,16 @@ internal fun frontmostPickedSprite(
                 primitive.placedObject === pickedObject -> {
                 return PickedSpriteTarget.Object(
                     primitive.placedObject,
-                    objectResult.pickedBounds
+                    objectResult.pickedBounds,
+                    objectResult.pickedAlphaAccepted
                 )
             }
             primitive is WorldEntityPrimitive &&
                 primitive.worldEntity === pickedEntity -> {
                 return PickedSpriteTarget.Entity(
                     primitive.worldEntity,
-                    entityResult.pickedBounds
+                    entityResult.pickedBounds,
+                    entityResult.pickedAlphaAccepted
                 )
             }
         }

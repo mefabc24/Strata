@@ -14,6 +14,7 @@ class DebugBuildDragController(
     private var previewOrigins: List<TilePosition> = emptyList()
 
     val active: Boolean get() = start != null
+    val previewCount: Int get() = previewOrigins.size
 
     fun begin(position: TilePosition): Boolean {
         if (!placement.enabled || placement.selectedFactory == null) {

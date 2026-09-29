@@ -124,19 +124,44 @@ internal class IsoAdvancedDebugRenderer(
                 }
             }
             if (settings.picking.showSpriteBounds) {
-                state.picking?.picked?.bounds?.let { bounds ->
-                    shapes.color = Color(1f, 0.3f, 0.9f, 1f)
+                val target = state.pickingSelection.displayedTarget(
+                    state.picking?.picked
+                )
+                target?.bounds?.let { bounds ->
+                    shapes.color = if (state.pickingSelection.isLocked) {
+                        Color(0.2f, 0.9f, 1f, 1f)
+                    } else {
+                        Color(1f, 0.3f, 0.9f, 1f)
+                    }
                     shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
                 }
             }
         }
 
         if (settings.culling.enabled && renderSnapshot != null) {
+            if (settings.culling.showVisibleArea) {
+                shapes.color = settings.culling.visibleAreaColor
+                drawRect(renderSnapshot.visibleArea)
+            }
+            val objectDrawnColor = settings.culling.objectDrawnColor
+            val objectCulledColor = settings.culling.objectCulledColor
+            val entityDrawnColor = settings.culling.entityDrawnColor
+            val entityCulledColor = settings.culling.entityCulledColor
             renderSnapshot.items.forEach { item ->
-                val show = item.placedObject != null && settings.culling.showObjectBounds ||
-                    item.entity != null && settings.culling.showEntityBounds
+                val classification = classifyCullingItem(item) ?: return@forEach
+                val show = when (classification.kind) {
+                    CullingDebugItemKind.OBJECT -> settings.culling.showObjectBounds
+                    CullingDebugItemKind.ENTITY -> settings.culling.showEntityBounds
+                }
                 if (show) item.bounds?.let { bounds ->
-                    shapes.color = if (item.drawn) Color.GREEN else Color.RED
+                    shapes.color = when (classification.kind) {
+                        CullingDebugItemKind.OBJECT -> {
+                            if (classification.drawn) objectDrawnColor else objectCulledColor
+                        }
+                        CullingDebugItemKind.ENTITY -> {
+                            if (classification.drawn) entityDrawnColor else entityCulledColor
+                        }
+                    }
                     drawRect(bounds)
                 }
             }

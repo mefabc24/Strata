@@ -39,16 +39,21 @@ class EntityPicker(
         var testedBounds: Rectangle? = null
         var alphaAccepted: Boolean? = null
         var pickedBounds: Rectangle? = null
+        var pickedAlphaAccepted: Boolean? = null
         val picked = pickWorld(cursor.x, cursor.y) { item, itemBounds, accepted ->
             if (tested == null) {
                 tested = item
                 testedBounds = Rectangle(itemBounds)
                 alphaAccepted = accepted
             }
-            if (accepted != false) pickedBounds = Rectangle(itemBounds)
+            if (accepted != false) {
+                pickedBounds = Rectangle(itemBounds)
+                pickedAlphaAccepted = accepted
+            }
         }
         return SpritePickDiagnostic(
-            picked, tested, testedBounds, alphaAccepted, pickedBounds
+            picked, tested, testedBounds, alphaAccepted,
+            pickedBounds, pickedAlphaAccepted
         )
     }
 

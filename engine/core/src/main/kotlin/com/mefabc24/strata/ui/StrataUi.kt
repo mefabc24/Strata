@@ -198,12 +198,14 @@ class StrataUi internal constructor(
         title: String,
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
+        headerHeight: Float? = null,
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander = root.expander(
         title = title,
         expanded = expanded,
         spacing = spacing,
+        headerHeight = headerHeight,
         headerContent = headerContent,
         configure = configure
     )
