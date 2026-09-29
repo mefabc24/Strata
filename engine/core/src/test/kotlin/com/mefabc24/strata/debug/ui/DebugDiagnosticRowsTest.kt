@@ -1,5 +1,11 @@
 package com.mefabc24.strata.debug.ui
 
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.utils.Array
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.placement.PlacementDiagnostic
 import com.mefabc24.strata.placement.PlacementFailureReason
@@ -51,5 +57,45 @@ class DebugDiagnosticRowsTest {
         assertEquals("3", rows.first { it.key == "Path length" }.value)
         assertEquals("2", rows.first { it.key == "Explored" }.value)
         assertEquals("1.50 ms", rows.first { it.key == "Search time" }.value)
+    }
+
+    @Test
+    fun `hidden diagnostic table collapses its layout cell`() {
+        val skin = diagnosticSkin()
+        val table = DebugDiagnosticTable(skin)
+        val parent = Table(skin)
+        val cell = parent.add(table).pad(3f).space(8f)
+        table.bindLayout(cell)
+
+        table.show(diagnosticRows("Mode" to "Hover"))
+        assertEquals(DebugDiagnosticLayoutState.EXPANDED, table.layoutState)
+
+        table.show(emptyList())
+
+        assertEquals(DebugDiagnosticLayoutState.COLLAPSED, table.layoutState)
+        assertEquals(0f, cell.minHeight)
+        assertEquals(0f, cell.prefHeight)
+        assertEquals(0f, cell.maxHeight)
+        assertEquals(0f, cell.padTop)
+        assertEquals(0f, cell.spaceTop)
+
+        table.show(diagnosticRows("Mode" to "Locked"))
+        assertEquals(DebugDiagnosticLayoutState.EXPANDED, table.layoutState)
+        assertEquals(3f, cell.padTop)
+        assertEquals(8f, cell.spaceTop)
+        skin.dispose()
+    }
+
+    private fun diagnosticSkin(): Skin {
+        val font = BitmapFont(
+            BitmapFont.BitmapFontData(),
+            Array<TextureRegion>().apply { add(TextureRegion()) },
+            false
+        )
+        return Skin().apply {
+            add("font", font)
+            add("default", Label.LabelStyle(font, null))
+            add("debug-key", Label.LabelStyle(font, null))
+        }
     }
 }
