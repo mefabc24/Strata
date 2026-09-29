@@ -15,6 +15,13 @@ internal class DebugSimulationOverlay(
     private val pauseButton = StrataButton(
         state.pauseButtonText, ui.skin, ui.theme.buttonStyle
     ) { state.togglePause(); sync() }
+    private val stepButton = StrataButton(
+        "Step",
+        ui.skin,
+        ui.theme.buttonStyle
+    ) {
+        state.step()
+    }
     private val speedButtons = DebugSimulationOverlayState.TIME_SCALES.associateWith { scale ->
         StrataButton(speedLabel(scale), ui.skin, ui.theme.buttonStyle) {
             state.selectTimeScale(scale)
@@ -33,6 +40,7 @@ internal class DebugSimulationOverlay(
             pad(8f)
             touchable = Touchable.childrenOnly
             add(pauseButton).minWidth(78f).height(34f).padRight(4f)
+            add(stepButton).minWidth(64f).height(34f).padRight(4f)
             DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
                 add(speedButtons.getValue(scale)).minWidth(52f).height(34f)
                     .padRight(if (index == DebugSimulationOverlayState.TIME_SCALES.lastIndex) 0f else 4f)
@@ -45,8 +53,12 @@ internal class DebugSimulationOverlay(
     fun setVisible(visible: Boolean) { state.setVisible(visible); sync() }
     fun sync() {
         root.isVisible = state.visible
+
         pauseButton.setText(state.pauseButtonText)
         pauseButton.isChecked = state.paused
+
+        stepButton.isDisabled = !state.paused
+
         speedButtons.forEach { (scale, button) ->
             button.isChecked = scale == state.selectedTimeScale
         }
@@ -69,6 +81,9 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
     fun selectTimeScale(timeScale: Float) {
         require(timeScale in TIME_SCALES) { "Unsupported debug simulation speed: $timeScale" }
         simulation.timeScale = timeScale
+    }
+    fun step() {
+        simulation.step()
     }
     companion object { val TIME_SCALES = listOf(0.25f, 0.5f, 1f, 2f, 4f) }
 }

@@ -24,6 +24,8 @@ class SimulationController {
     var paused: Boolean = false
         private set
 
+    private var stepRequested: Boolean = false
+
     /** Pauses simulation progression without changing [timeScale]. */
     fun pause() {
         paused = true
@@ -31,12 +33,25 @@ class SimulationController {
 
     /** Resumes simulation progression at the current [timeScale]. */
     fun resume() {
+        stepRequested = false
         paused = false
     }
 
     /** Switches between paused and running simulation states. */
     fun togglePause() {
         paused = !paused
+
+        if (!paused) {
+            stepRequested = false
+        }
+    }
+
+    /**
+     * Advances a paused simulation by one fixed simulation step.
+     */
+    fun step() {
+        if (!paused) return
+        stepRequested = true
     }
 
     internal fun simulationDelta(realDelta: Float): Float {
@@ -44,12 +59,25 @@ class SimulationController {
             "Real frame delta must be finite and non-negative."
         }
 
-        if (paused) return 0f
+        if (paused) {
+            if (!stepRequested) return 0f
+
+            stepRequested = false
+            return FIXED_STEP
+        }
 
         val simulationDelta = realDelta * timeScale
+
         require(simulationDelta.isFinite()) {
             "Scaled simulation delta must remain finite."
         }
+
         return simulationDelta
     }
+
+    private companion object {
+        const val FIXED_STEP = 1f / 60f
+    }
 }
+
+
