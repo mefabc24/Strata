@@ -59,9 +59,9 @@ internal object DebugPanelSkin {
         skin.add("debug-selection", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color(0.82f, 0.84f, 0.88f, 1f)
-            up = drawable.tint(Color(0.13f, 0.14f, 0.17f, 1f))
-            over = drawable.tint(Color(0.20f, 0.25f, 0.31f, 1f))
-            down = drawable.tint(Color(0.10f, 0.20f, 0.29f, 1f))
+            up = drawable.tint(Color(0.18f, 0.18f, 0.20f, 1f))
+            over = drawable.tint(Color(0.25f, 0.25f, 0.28f, 1f))
+            down = drawable.tint(Color(0.12f, 0.12f, 0.14f, 1f))
             checked = drawable.tint(Color(0.12f, 0.39f, 0.63f, 1f))
             checkedOver = drawable.tint(Color(0.16f, 0.48f, 0.73f, 1f))
             checkedFontColor = Color.WHITE
@@ -71,9 +71,9 @@ internal object DebugPanelSkin {
         skin.add("debug-toggle", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color(0.88f, 0.88f, 0.90f, 1f)
-            up = drawable.tint(Color(0.25f, 0.22f, 0.22f, 1f))
-            over = drawable.tint(Color(0.34f, 0.28f, 0.27f, 1f))
-            down = drawable.tint(Color(0.14f, 0.26f, 0.20f, 1f))
+            up = drawable.tint(Color(0.27f, 0.14f, 0.16f, 1f))
+            over = drawable.tint(Color(0.36f, 0.19f, 0.21f, 1f))
+            down = drawable.tint(Color(0.18f, 0.09f, 0.11f, 1f))
             checked = drawable.tint(Color(0.16f, 0.48f, 0.29f, 1f))
             checkedOver = drawable.tint(Color(0.20f, 0.58f, 0.35f, 1f))
             checkedFontColor = Color.WHITE
