@@ -12,6 +12,7 @@ class DebugSettingsTest {
         val settings = DebugSettings()
         assertFalse(settings.panel.enabled)
         assertTrue(settings.panel.visible)
+        assertFalse(settings.panel.expanded)
         assertFalse(settings.performance.enabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
@@ -23,7 +24,6 @@ class DebugSettingsTest {
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
         assertTrue(settings.pathfinding.enabled)
-        assertTrue(settings.placement.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
     }
 
@@ -40,11 +40,14 @@ class DebugSettingsTest {
 
     @Test
     fun `presets only change diagnostic settings`() {
-        val settings = DebugSettings()
+        val settings = DebugSettings().apply {
+            pathfinding.enabled = false
+            pathfinding.showExploredNodes = false
+            pathfinding.showFinalPath = true
+        }
         settings.applyPreset(DebugPreset.PLACEMENT)
         assertTrue(settings.grid.enabled)
         assertTrue(settings.objects.enabled)
-        assertTrue(settings.placement.enabled)
         assertFalse(settings.entities.enabled)
 
         settings.applyPreset(DebugPreset.EVERYTHING)
@@ -53,6 +56,9 @@ class DebugSettingsTest {
         assertTrue(settings.culling.enabled)
         assertTrue(settings.camera.enabled)
         assertEquals(true, settings.worldStats.enabled)
+        assertFalse(settings.pathfinding.enabled)
+        assertFalse(settings.pathfinding.showExploredNodes)
+        assertTrue(settings.pathfinding.showFinalPath)
     }
 
     @Test
@@ -76,10 +82,28 @@ class DebugSettingsTest {
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
-        assertFalse(settings.pathfinding.enabled)
-        assertFalse(settings.placement.enabled)
+        assertTrue(settings.pathfinding.enabled)
+        assertTrue(settings.pathfinding.showExploredNodes)
+        assertTrue(settings.pathfinding.showFinalPath)
         assertTrue(settings.panel.enabled)
         assertTrue(settings.panel.visible)
+    }
+
+    @Test
+    fun `every preset preserves pathfinding tool visualization`() {
+        DebugPreset.entries.forEach { preset ->
+            val settings = DebugSettings().apply {
+                pathfinding.enabled = false
+                pathfinding.showExploredNodes = false
+                pathfinding.showFinalPath = true
+            }
+
+            settings.applyPreset(preset)
+
+            assertFalse(settings.pathfinding.enabled, preset.name)
+            assertFalse(settings.pathfinding.showExploredNodes, preset.name)
+            assertTrue(settings.pathfinding.showFinalPath, preset.name)
+        }
     }
 
     @Test

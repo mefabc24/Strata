@@ -34,7 +34,6 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import java.util.Locale
 
-private enum class DebugPanelTab(val label: String) { TOOLS("Tools"), DEBUG("Debug") }
 private sealed interface PaintLayer {
     val id: String?
     data object Ground : PaintLayer { override val id: String? = null }
@@ -66,7 +65,9 @@ internal class DebugPanel(
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
     private val previewState = DebugContentPreviewState()
-    private val tabs = ui.selectionGroup(DebugPanelTab.entries, DebugPanelTab.TOOLS) {
+    private val navigation = DebugPanelNavigation()
+    private val tabs = ui.selectionGroup(DebugPanelTab.entries, DebugPanelTab.TOOLS) { tab ->
+        navigation.select(tab) { modeSelection.select(DebugToolMode.NONE) }
         hidePreview(); syncVisibility()
     }
     private val modes = buildList {
@@ -95,6 +96,8 @@ internal class DebugPanel(
     }
 
     private lateinit var panelActor: StrataPanel
+    private lateinit var panelCell: Cell<StrataPanel>
+    private lateinit var panelExpander: StrataExpander
     private lateinit var bodyScroll: StrataScrollPane
     private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
@@ -117,6 +120,7 @@ internal class DebugPanel(
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
     private var contextFooterVisible = false
+    private var lastPanelExpanded: Boolean? = null
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
@@ -136,6 +140,7 @@ internal class DebugPanel(
         }
         setPanelVisible(settings.panel.visible)
         syncControls()
+        syncPanelExpansion()
         syncVisibility()
     }
 
@@ -154,6 +159,7 @@ internal class DebugPanel(
             if (!settings.panel.visible) hidePreview()
         }
         syncControls()
+        syncPanelExpansion()
         syncVisibility()
         syncDiagnostics()
     }
@@ -170,40 +176,55 @@ internal class DebugPanel(
             padding = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
         ) {
             defaults().fillAvailableX()
-            label("STRATA DEBUG").cell { height(28f); left() }
-            row(spacing = 6f) {
-                defaults().fillAvailableX().uniformX().height(40f)
-                DebugPanelTab.entries.forEach { selectableButton(it.label, it, tabs) }
-            }
-            separator()
-            bodyScroll = scrollColumn(spacing = 8f) {
+            panelExpander = expander(
+                title = "STRATA DEBUG",
+                expanded = settings.panel.expanded,
+                spacing = 8f,
+                headerHeight = 40f,
+                contentGrowY = true,
+                onExpandedChanged = { expanded ->
+                    settings.panel.expanded = expanded
+                    syncPanelCell(expanded)
+                    if (!expanded) hidePreview()
+                }
+            ) {
                 defaults().fillAvailableX()
-                stack {
-                    toolsTab = column(spacing = 10f) {
-                        defaults().fillAvailableX(); buildTools()
-                    }
-                    debugTab = column(spacing = 10f) {
-                        defaults().fillAvailableX(); buildDebug()
-                    }
-                }.cell { fillAvailableX() }
-            }.cell { grow(); fill(); minHeight(0f) }
-            contextFooter = column(spacing = 6f) {
-                defaults().fillAvailableX()
+                row(spacing = 6f) {
+                    defaults().fillAvailableX().uniformX().height(40f)
+                    DebugPanelTab.entries.forEach { selectableButton(it.label, it, tabs) }
+                }
                 separator()
-                label("STATUS").cell { height(24f); left() }
-                contextRows = diagnosticTable()
-            }
-            contextFooterCell = getCell(contextFooter).apply {
-                height(0f)
-                padTop(0f)
-            }
-            contextFooter.isVisible = false
+                bodyScroll = scrollColumn(spacing = 8f) {
+                    defaults().fillAvailableX()
+                    stack {
+                        toolsTab = column(spacing = 10f) {
+                            defaults().fillAvailableX(); buildTools()
+                        }
+                        debugTab = column(spacing = 10f) {
+                            defaults().fillAvailableX(); buildDebug()
+                        }
+                    }.cell { fillAvailableX() }
+                }.cell { grow(); fill(); minHeight(0f) }
+                contextFooter = column(spacing = 6f) {
+                    defaults().fillAvailableX()
+                    separator()
+                    label("STATUS").cell { height(24f); left() }
+                    contextRows = diagnosticTable()
+                }
+                contextFooterCell = getCell(contextFooter).apply {
+                    height(0f)
+                    padTop(0f)
+                }
+                contextFooter.isVisible = false
+            }.cell { grow(); fill() }
         }.cell {
             minWidth(260f)
             prefWidth(Value.percentWidth(0.34f, ui.root))
             maxWidth(460f)
             growY(); fillY(); top(); left()
         }
+        panelCell = requireNotNull(ui.root.getCell(panelActor))
+        syncPanelCell(settings.panel.expanded)
     }
 
     private fun buildPreview() {
@@ -238,10 +259,6 @@ internal class DebugPanel(
                             .previewOnHover(entry, DebugContentKind.OBJECT, entry.displayName(), entry.selectionVisual.texture)
                     }
                 }.cell { fillAvailableX() }
-                simpleToggle(
-                    "Show placement reasons",
-                    { settings.placement.enabled }
-                ) { settings.placement.enabled = it }
             }
             paintControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
@@ -566,6 +583,29 @@ internal class DebugPanel(
         synchronizers.sync()
     }
 
+    private fun syncPanelExpansion() {
+        if (panelExpander.expanded != settings.panel.expanded) {
+            panelExpander.expanded = settings.panel.expanded
+        }
+        syncPanelCell(settings.panel.expanded)
+    }
+
+    private fun syncPanelCell(expanded: Boolean) {
+        if (!::panelCell.isInitialized || lastPanelExpanded == expanded) return
+        lastPanelExpanded = expanded
+        if (expanded) {
+            panelCell
+                .minHeight(0f)
+                .prefHeight(Value.prefHeight)
+                .maxHeight(Value.maxHeight)
+                .growY()
+                .fillY()
+        } else {
+            panelCell.height(Value.prefHeight)
+        }
+        panelActor.invalidateHierarchy()
+    }
+
     private fun syncVisibility() {
         if (!::toolsTab.isInitialized) return
         val tab = requireNotNull(tabs.selected)
@@ -642,7 +682,6 @@ internal class DebugPanel(
                 mode = tools.mode,
                 buildObject = buildSelection?.selected?.displayName(),
                 placementAvailable = placement != null,
-                placementStatusEnabled = settings.placement.enabled,
                 placementDiagnostic = placement?.currentDiagnostic,
                 buildDragging = tools.buildDragging,
                 buildPreviewCount = tools.buildPreviewCount,

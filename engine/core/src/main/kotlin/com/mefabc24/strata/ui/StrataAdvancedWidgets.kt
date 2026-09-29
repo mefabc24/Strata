@@ -58,7 +58,7 @@ class StrataResponsiveGrid internal constructor(
         group: StrataSelectionGroup<T>
     ): StrataSelectableButton<T> {
         val button = StrataSelectableButton(
-            text, value, group, context.skin, context.theme.toggleButtonStyle
+            text, value, group, context.skin, context.theme.selectableButtonStyle
         )
         context.own(button)
         return actor(button)

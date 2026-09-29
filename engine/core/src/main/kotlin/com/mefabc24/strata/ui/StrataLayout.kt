@@ -126,7 +126,7 @@ abstract class StrataLayout internal constructor(
         text: String,
         value: T,
         group: StrataSelectionGroup<T>,
-        styleName: String = theme.toggleButtonStyle
+        styleName: String = theme.selectableButtonStyle
     ): StrataSelectableButton<T> {
         val button = StrataSelectableButton(
             text = text,
@@ -274,6 +274,8 @@ abstract class StrataLayout internal constructor(
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
         headerHeight: Float? = null,
+        contentGrowY: Boolean = false,
+        onExpandedChanged: (Boolean) -> Unit = {},
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
@@ -284,6 +286,8 @@ abstract class StrataLayout internal constructor(
                 expanded = expanded,
                 spacing = spacing,
                 headerHeight = headerHeight,
+                contentGrowY = contentGrowY,
+                onExpandedChanged = onExpandedChanged,
                 headerContent = headerContent,
                 configure = configure
             )
@@ -475,6 +479,8 @@ class StrataExpander internal constructor(
     expanded: Boolean,
     private val spacing: Float,
     headerHeight: Float? = null,
+    private val contentGrowY: Boolean = false,
+    private val onExpandedChanged: (Boolean) -> Unit = {},
     headerContent: (StrataRow.() -> Unit)? = null,
     configure: StrataColumn.() -> Unit
 ) : Table(context.skin) {
@@ -501,6 +507,7 @@ class StrataExpander internal constructor(
 
             field = value
             updateExpansion()
+            onExpandedChanged(value)
         }
 
     init {
@@ -536,7 +543,17 @@ class StrataExpander internal constructor(
         content.isVisible = expanded
 
         if (expanded) {
-            contentCell.height(Value.prefHeight).padTop(spacing)
+            if (contentGrowY) {
+                contentCell
+                    .minHeight(0f)
+                    .prefHeight(Value.prefHeight)
+                    .maxHeight(Value.maxHeight)
+                    .expandY()
+                    .fillY()
+                    .padTop(spacing)
+            } else {
+                contentCell.height(Value.prefHeight).padTop(spacing)
+            }
         } else {
             contentCell.height(0f).padTop(0f)
         }

@@ -25,7 +25,6 @@ class DebugSettings {
     val camera = DebugCameraSettings()
     val worldStats = DebugFeatureSettings()
     val pathfinding = DebugPathfindingSettings()
-    val placement = DebugPlacementSettings()
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
@@ -43,7 +42,6 @@ class DebugSettings {
     fun camera(configure: DebugCameraSettings.() -> Unit) = camera.apply(configure)
     fun worldStats(configure: DebugFeatureSettings.() -> Unit) = worldStats.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
-    fun placement(configure: DebugPlacementSettings.() -> Unit) = placement.apply(configure)
 
     /** Called after an entity was created by the debug Spawn tool. */
     fun onEntitySpawned(callback: (WorldEntity) -> Unit) {
@@ -69,6 +67,7 @@ class DebugSettings {
 class DebugPanelSettings {
     var enabled: Boolean = false
     var visible: Boolean = true
+    var expanded: Boolean = false
     var toggleKey: Int = Input.Keys.F3
         set(value) {
             require(value >= 0) { "Debug panel toggle key must be non-negative." }
@@ -131,10 +130,6 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
-}
-
-class DebugPlacementSettings : DebugFeatureSettings() {
-    init { enabled = true }
 }
 
 /** Runtime configuration for placed-object diagnostics. */
@@ -281,7 +276,6 @@ internal object DebugPresets {
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
-                settings.placement.enabled = true
             }
             DebugPreset.ENTITIES -> {
                 settings.entities.enabled = true
@@ -328,10 +322,6 @@ internal object DebugPresets {
                 settings.camera.showWorldBounds = true
                 settings.camera.showClampBounds = true
                 settings.worldStats.enabled = true
-                settings.pathfinding.enabled = true
-                settings.pathfinding.showExploredNodes = true
-                settings.pathfinding.showFinalPath = true
-                settings.placement.enabled = true
             }
         }
     }
@@ -347,7 +337,5 @@ internal object DebugPresets {
         settings.culling.enabled = false
         settings.camera.enabled = false
         settings.worldStats.enabled = false
-        settings.pathfinding.enabled = false
-        settings.placement.enabled = false
     }
 }

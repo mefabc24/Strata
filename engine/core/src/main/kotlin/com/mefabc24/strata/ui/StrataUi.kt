@@ -94,7 +94,7 @@ class StrataUi internal constructor(
         text: String,
         value: T,
         group: StrataSelectionGroup<T>,
-        styleName: String = theme.toggleButtonStyle
+        styleName: String = theme.selectableButtonStyle
     ): StrataSelectableButton<T> = root.selectableButton(
         text = text,
         value = value,
@@ -199,6 +199,8 @@ class StrataUi internal constructor(
         expanded: Boolean = true,
         spacing: Float = theme.spacing,
         headerHeight: Float? = null,
+        contentGrowY: Boolean = false,
+        onExpandedChanged: (Boolean) -> Unit = {},
         headerContent: (StrataRow.() -> Unit)? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander = root.expander(
@@ -206,6 +208,8 @@ class StrataUi internal constructor(
         expanded = expanded,
         spacing = spacing,
         headerHeight = headerHeight,
+        contentGrowY = contentGrowY,
+        onExpandedChanged = onExpandedChanged,
         headerContent = headerContent,
         configure = configure
     )

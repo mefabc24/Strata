@@ -14,7 +14,6 @@ internal data class DebugContextInputs(
     val mode: DebugToolMode,
     val buildObject: String? = null,
     val placementAvailable: Boolean = true,
-    val placementStatusEnabled: Boolean = true,
     val placementDiagnostic: PlacementDiagnostic? = null,
     val buildDragging: Boolean = false,
     val buildPreviewCount: Int = 0,
@@ -50,7 +49,6 @@ private fun buildStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow>
     val rows = mutableListOf(
         DebugDiagnosticRow("Object", input.buildObject ?: "No object selected")
     )
-    if (!input.placementStatusEnabled) return rows
     val status = when {
         !input.placementAvailable -> "Placement unavailable"
         input.buildDragging -> {

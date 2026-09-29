@@ -21,7 +21,8 @@ internal object DebugPanelSkin {
     fun theme() = StrataUiTheme(
         labelStyle = "default",
         buttonStyle = "default",
-        toggleButtonStyle = "default",
+        toggleButtonStyle = "debug-toggle",
+        selectableButtonStyle = "debug-selection",
         imageButtonStyle = "default",
         selectableImageButtonStyle = "default",
         panelStyle = "debug-panel",
@@ -52,6 +53,30 @@ internal object DebugPanelSkin {
             down = drawable.tint(Color(0.12f, 0.12f, 0.14f, 1f))
             checked = drawable.tint(Color(0.16f, 0.45f, 0.68f, 1f))
             checkedOver = drawable.tint(Color(0.20f, 0.55f, 0.78f, 1f))
+            disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
+            disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
+        })
+        skin.add("debug-selection", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color(0.82f, 0.84f, 0.88f, 1f)
+            up = drawable.tint(Color(0.13f, 0.14f, 0.17f, 1f))
+            over = drawable.tint(Color(0.20f, 0.25f, 0.31f, 1f))
+            down = drawable.tint(Color(0.10f, 0.20f, 0.29f, 1f))
+            checked = drawable.tint(Color(0.12f, 0.39f, 0.63f, 1f))
+            checkedOver = drawable.tint(Color(0.16f, 0.48f, 0.73f, 1f))
+            checkedFontColor = Color.WHITE
+            disabled = drawable.tint(Color(0.10f, 0.10f, 0.12f, 1f))
+            disabledFontColor = Color(0.45f, 0.46f, 0.49f, 1f)
+        })
+        skin.add("debug-toggle", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color(0.88f, 0.88f, 0.90f, 1f)
+            up = drawable.tint(Color(0.25f, 0.22f, 0.22f, 1f))
+            over = drawable.tint(Color(0.34f, 0.28f, 0.27f, 1f))
+            down = drawable.tint(Color(0.14f, 0.26f, 0.20f, 1f))
+            checked = drawable.tint(Color(0.16f, 0.48f, 0.29f, 1f))
+            checkedOver = drawable.tint(Color(0.20f, 0.58f, 0.35f, 1f))
+            checkedFontColor = Color.WHITE
             disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
             disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
         })

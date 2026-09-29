@@ -14,6 +14,7 @@ class StrataUiThemeTest {
         assertEquals("default", theme.labelStyle)
         assertEquals("default", theme.buttonStyle)
         assertEquals("default", theme.toggleButtonStyle)
+        assertEquals("default", theme.selectableButtonStyle)
         assertEquals("default", theme.imageButtonStyle)
         assertEquals("default", theme.selectableImageButtonStyle)
         assertNull(theme.panelStyle)
@@ -33,6 +34,10 @@ class StrataUiThemeTest {
 
         assertFailsWith<IllegalArgumentException> {
             StrataUiTheme(imageButtonStyle = " ")
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataUiTheme(selectableButtonStyle = " ")
         }
 
         for (

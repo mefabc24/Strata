@@ -12,6 +12,7 @@ data class StrataUiTheme(
     val labelStyle: String = "default",
     val buttonStyle: String = "default",
     val toggleButtonStyle: String = buttonStyle,
+    val selectableButtonStyle: String = toggleButtonStyle,
     val imageButtonStyle: String = buttonStyle,
     val selectableImageButtonStyle: String = imageButtonStyle,
     val panelStyle: String? = null,
@@ -30,6 +31,10 @@ data class StrataUiTheme(
 
         require(toggleButtonStyle.isNotBlank()) {
             "The toggle button style name must not be blank."
+        }
+
+        require(selectableButtonStyle.isNotBlank()) {
+            "The selectable button style name must not be blank."
         }
 
         require(imageButtonStyle.isNotBlank()) {

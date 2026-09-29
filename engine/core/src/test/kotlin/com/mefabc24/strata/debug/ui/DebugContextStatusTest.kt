@@ -39,6 +39,13 @@ class DebugContextStatusTest {
             "Dragging 3 placements — invalid: occupied tile",
             invalidDrag.rows.first { it.key == "Status" }.value
         )
+
+        val valid = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.BUILD,
+            buildObject = "House",
+            placementDiagnostic = PlacementDiagnostic(true)
+        )))
+        assertEquals("Placement valid", valid.rows.first { it.key == "Status" }.value)
     }
 
     @Test

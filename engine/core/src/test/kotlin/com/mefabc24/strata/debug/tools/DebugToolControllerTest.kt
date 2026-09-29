@@ -86,6 +86,30 @@ class DebugToolControllerTest {
         assertEquals(selected, (inspector.selection as DebugInspection.TileTarget).position)
     }
 
+    @Test
+    fun `switching pathfinding to none cancels its active interaction`() {
+        val world = World(2, 2) { _, _ -> TestTile }
+        val state = DebugWorldState()
+        val pathfinding = DebugPathfindingTool(world, state)
+        val tools = DebugToolController(
+            painter = DebugTerrainPainter(world, emptyList()),
+            placement = null,
+            buildDrag = null,
+            inspector = DebugInspector(state),
+            pathfinding = pathfinding
+        )
+
+        tools.select(DebugToolMode.PATHFINDING)
+        assertTrue(pathfinding.click(TilePosition(0, 0)))
+        assertEquals(TilePosition(0, 0), pathfinding.start)
+
+        tools.select(DebugToolMode.NONE)
+
+        assertEquals(DebugToolMode.NONE, tools.mode)
+        assertEquals(null, pathfinding.start)
+        assertEquals(null, pathfinding.result)
+    }
+
     private fun objectEntryFor(world: World): com.mefabc24.strata.render.`object`.ObjectEntry {
         val registry = com.mefabc24.strata.render.`object`.ObjectRegistry(
             directory = "", queueTexture = {}, regionFor = { TextureRegion() }, loadAlphaMask = { null }
