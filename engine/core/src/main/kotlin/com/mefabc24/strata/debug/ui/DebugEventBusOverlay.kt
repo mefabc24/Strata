@@ -7,48 +7,34 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.debug.DebugEventMonitor
 import com.mefabc24.strata.debug.DebugEventMonitorSettings
-import com.mefabc24.strata.debug.DebugEventOverlayPosition
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataUi
 
-/** Dedicated bounded Event Bus diagnostics window. */
-internal class DebugEventBusOverlay(
+/** Bounded Event Bus Monitor content for the shared diagnostic overlay stack. */
+internal class DebugEventMonitorOverlay(
     private val ui: StrataUi,
     private val monitor: DebugEventMonitor,
     private val settings: DebugEventMonitorSettings
 ) {
     private val records = Table(ui.skin).apply { top().left() }
-    private val panel = Table(ui.skin).apply {
+    val panel = Table(ui.skin).apply {
         background = ui.skin.get(
             requireNotNull(ui.theme.panelStyle),
             StrataPanelStyle::class.java
         ).background
         pad(10f)
-        add(Label("EVENT BUS", ui.skin, "title").apply {
+        add(Label("EVENT BUS MONITOR", ui.skin, "title").apply {
             setAlignment(Align.left)
         }).growX().fillX().left().padBottom(6f)
         row()
         add(ScrollPane(records, ui.skin).apply {
             setFadeScrollBars(false)
             touchable = Touchable.enabled
-        }).width(380f).height(480f).grow().fill()
-    }
-    private val root = Table().apply {
-        setFillParent(true)
-        pad(16f)
-        touchable = Touchable.childrenOnly
-        add(panel).width(400f).maxHeight(520f)
+        }).height(260f).growX().fillX()
     }
     private var renderedKey: Any? = null
 
-    init {
-        ui.stage.addActor(root)
-    }
-
     fun sync() {
-        root.isVisible = settings.enabled && settings.overlayVisible
-        applyPosition()
-        if (!root.isVisible) return
         val ordered = if (settings.newestFirst) {
             monitor.records.asReversed()
         } else {
@@ -69,6 +55,8 @@ internal class DebugEventBusOverlay(
         ordered.forEach { record ->
             val presentation = presentDebugEvent(record)
             records.add(Table(ui.skin).apply {
+                background = ui.skin.get("debug-event-card", StrataPanelStyle::class.java).background
+                pad(8f)
                 top().left()
                 add(Label("#${presentation.sequence}  ${presentation.eventType}", ui.skin, "title").apply {
                     setWrap(true)
@@ -77,19 +65,8 @@ internal class DebugEventBusOverlay(
                 add(DebugDiagnosticTable(ui.skin, wrapValues = true).apply {
                     show(presentation.fields)
                 }).growX().fillX().left()
-            }).growX().fillX().left().padBottom(10f)
+            }).growX().fillX().left().padBottom(6f)
             records.row()
         }
-    }
-
-    private fun applyPosition() {
-        root.clearChildren()
-        when (settings.overlayPosition) {
-            DebugEventOverlayPosition.TOP_LEFT -> root.top().left()
-            DebugEventOverlayPosition.TOP_RIGHT -> root.top().right()
-            DebugEventOverlayPosition.BOTTOM_LEFT -> root.bottom().left()
-            DebugEventOverlayPosition.BOTTOM_RIGHT -> root.bottom().right()
-        }
-        root.add(panel).width(400f).maxHeight(520f)
     }
 }

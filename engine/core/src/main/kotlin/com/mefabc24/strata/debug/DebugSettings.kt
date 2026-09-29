@@ -177,19 +177,15 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
 class DebugEventMonitorSettings : DebugFeatureSettings() {
     var paused: Boolean = false
-    var overlayVisible: Boolean = true
     var maximumVisibleRecords: Int = 8
         set(value) {
             require(value in 1..25) {
-                "Maximum visible Event Bus records must be between 1 and 25."
+                "Maximum visible Event Bus Monitor records must be between 1 and 25."
             }
             field = value
         }
     var newestFirst: Boolean = true
-    var overlayPosition: DebugEventOverlayPosition = DebugEventOverlayPosition.TOP_LEFT
 }
-
-enum class DebugEventOverlayPosition { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
 /** Runtime configuration for placed-object diagnostics. */
 class DebugObjectSettings : DebugFeatureSettings() {

@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
+import com.mefabc24.strata.debug.DebugEventMonitor
+import com.mefabc24.strata.debug.DebugEventMonitorSettings
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -21,6 +23,8 @@ internal class DebugStatsOverlay(
     private val worldStatsEnabled: () -> Boolean,
     private val world: World,
     private val placement: PlacementController?,
+    private val eventMonitor: DebugEventMonitor,
+    private val eventSettings: DebugEventMonitorSettings,
     private val framesPerSecond: () -> Int = { Gdx.graphics.framesPerSecond }
 ) {
     private val performanceState = DebugPerformanceOverlayState()
@@ -29,8 +33,10 @@ internal class DebugStatsOverlay(
     private val worldRows = statsRows(ui)
     private val performancePanel = statsPanel("PERFORMANCE", performanceRows, ui)
     private val worldPanel = statsPanel("WORLD", worldRows, ui)
+    private val eventMonitorPanel = DebugEventMonitorOverlay(ui, eventMonitor, eventSettings)
     private val performanceCell: Cell<Table>
     private val worldCell: Cell<Table>
+    private val eventMonitorCell: Cell<Table>
     private var worldElapsed = 0f
     private val root = Table()
 
@@ -39,13 +45,17 @@ internal class DebugStatsOverlay(
             setFillParent(true)
             top().right()
             pad(16f)
-            touchable = Touchable.disabled
+            touchable = Touchable.childrenOnly
             isVisible = false
             performanceCell = add(performancePanel)
                 .minWidth(250f).prefWidth(290f).maxWidth(320f)
                 .fillX().right()
             row()
             worldCell = add(worldPanel)
+                .minWidth(250f).prefWidth(290f).maxWidth(320f)
+                .fillX().right()
+            row()
+            eventMonitorCell = add(eventMonitorPanel.panel)
                 .minWidth(250f).prefWidth(290f).maxWidth(320f)
                 .fillX().right()
         }
@@ -55,15 +65,20 @@ internal class DebugStatsOverlay(
     fun update(delta: Float) {
         val performance = performanceEnabled()
         val worldStats = worldStatsEnabled()
-        state.sync(performance, worldStats)
+        val eventMonitor = eventSettings.enabled
+        state.sync(performance, worldStats, eventMonitor)
         root.isVisible = state.visible
         performancePanel.isVisible = state.performanceVisible
         worldPanel.isVisible = state.worldVisible
+        eventMonitorPanel.panel.isVisible = state.eventMonitorVisible
         if (performance) performanceCell.height(Value.prefHeight)
         else performanceCell.height(0f)
         if (worldStats) worldCell.height(Value.prefHeight)
         else worldCell.height(0f)
+        if (eventMonitor) eventMonitorCell.height(Value.prefHeight)
+        else eventMonitorCell.height(0f)
         worldCell.padTop(if (performance && worldStats) 8f else 0f)
+        eventMonitorCell.padTop(if (eventMonitor && (performance || worldStats)) 8f else 0f)
         root.invalidateHierarchy()
 
         val average = performanceState.update(performance, delta)
@@ -86,6 +101,7 @@ internal class DebugStatsOverlay(
                 )
             }
         }
+        if (eventMonitor) eventMonitorPanel.sync()
     }
 }
 
@@ -123,21 +139,33 @@ class DebugStatsOverlayState {
         private set
     var worldBecameVisible: Boolean = false
         private set
-    val visible: Boolean get() = performanceVisible || worldVisible
+    var eventMonitorVisible: Boolean = false
+        private set
+    val visible: Boolean get() = performanceVisible || worldVisible || eventMonitorVisible
     val visibleSections: List<DebugStatsSection>
         get() = buildList {
             if (performanceVisible) add(DebugStatsSection.PERFORMANCE)
             if (worldVisible) add(DebugStatsSection.WORLD)
+            if (eventMonitorVisible) add(DebugStatsSection.EVENT_BUS_MONITOR)
         }
 
-    fun sync(performanceEnabled: Boolean, worldEnabled: Boolean) {
+    fun sync(
+        performanceEnabled: Boolean,
+        worldEnabled: Boolean,
+        eventMonitorEnabled: Boolean
+    ) {
         worldBecameVisible = worldEnabled && !worldVisible
         performanceVisible = performanceEnabled
         worldVisible = worldEnabled
+        eventMonitorVisible = eventMonitorEnabled
+    }
+
+    fun sync(performanceEnabled: Boolean, worldEnabled: Boolean) {
+        sync(performanceEnabled, worldEnabled, eventMonitorEnabled = false)
     }
 }
 
-enum class DebugStatsSection { PERFORMANCE, WORLD }
+enum class DebugStatsSection { PERFORMANCE, WORLD, EVENT_BUS_MONITOR }
 
 data class DebugWorldStatsSnapshot(
     val width: Int,

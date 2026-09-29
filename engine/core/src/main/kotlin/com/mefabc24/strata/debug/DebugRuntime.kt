@@ -15,7 +15,6 @@ import com.mefabc24.strata.debug.tools.DebugToolController
 import com.mefabc24.strata.debug.tools.DebugMoveTool
 import com.mefabc24.strata.debug.ui.DebugPanel
 import com.mefabc24.strata.debug.ui.DebugNotificationOverlay
-import com.mefabc24.strata.debug.ui.DebugEventBusOverlay
 import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.iso.IsoWorldView
 import com.mefabc24.strata.iso.ObjectPickingMode
@@ -54,7 +53,6 @@ internal class DebugRuntime(
         paused = settings.eventBus.paused
     }
     private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
-    private val eventBusOverlay = DebugEventBusOverlay(ui, eventMonitor, settings.eventBus)
     private val inspector = DebugInspector(settings.worldState)
     private val pathfinding = DebugPathfindingTool(world, settings.worldState) { position ->
         settings.pathTraversal?.invoke(world, position) ?: true
@@ -303,7 +301,6 @@ internal class DebugRuntime(
         syncCameraRestrictions()
         eventMonitor.enabled = settings.eventBus.enabled
         eventMonitor.paused = settings.eventBus.paused
-        eventBusOverlay.sync()
         settings.notifications.update(delta)
         notificationOverlay.sync()
 

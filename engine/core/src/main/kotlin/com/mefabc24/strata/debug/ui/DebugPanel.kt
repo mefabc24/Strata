@@ -54,7 +54,7 @@ internal class DebugPanel(
 ) {
     private val statsOverlay = DebugStatsOverlay(
         ui, { view.renderStats }, { settings.performance.enabled },
-        { settings.worldStats.enabled }, world, placement
+        { settings.worldStats.enabled }, world, placement, eventMonitor, settings.eventBus
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
@@ -427,13 +427,10 @@ internal class DebugPanel(
             if (it) settings.renderOrder.showLabels = true
         }
         featureExpander(
-            "Event Bus",
+            "Event Bus Monitor",
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it }
         ) {
-            simpleToggle("Show overlay", { settings.eventBus.overlayVisible }) {
-                settings.eventBus.overlayVisible = it
-            }
             simpleToggle("Pause capture", { settings.eventBus.paused }) {
                 settings.eventBus.paused = it
             }
@@ -447,17 +444,6 @@ internal class DebugPanel(
                 25f,
                 1f
             ) { settings.eventBus.maximumVisibleRecords = it.toInt() }
-            label("Overlay position")
-            val positions = ui.selectionGroup(
-                DebugEventOverlayPosition.entries,
-                settings.eventBus.overlayPosition
-            ) { settings.eventBus.overlayPosition = it }
-            synchronizers += { positions.select(settings.eventBus.overlayPosition) }
-            responsiveGrid(130f, maximumColumns = 2) {
-                DebugEventOverlayPosition.entries.forEach { position ->
-                    selectableButton(position.name.toDisplayName(), position, positions)
-                }
-            }.cell { fillAvailableX() }
             button("Clear history") {
                 if (eventMonitor.records.isNotEmpty()) {
                     eventMonitor.clear()

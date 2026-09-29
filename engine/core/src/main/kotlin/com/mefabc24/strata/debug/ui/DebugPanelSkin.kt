@@ -101,6 +101,14 @@ internal object DebugPanelSkin {
             StrataPanelStyle::class.java
         )
         skin.add(
+            "debug-event-card",
+            StrataPanelStyle(
+                background = drawable.tint(Color(0.13f, 0.13f, 0.16f, 0.96f)),
+                padding = StrataInsets.all(8f)
+            ),
+            StrataPanelStyle::class.java
+        )
+        skin.add(
             "debug-separator",
             StrataSeparatorStyle(
                 drawable = drawable.tint(Color(0.35f, 0.35f, 0.38f, 1f)),
