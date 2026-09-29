@@ -4,8 +4,51 @@ import com.mefabc24.strata.simulation.SimulationController
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import com.mefabc24.strata.debug.ui.DebugOverlayHorizontal
+import com.mefabc24.strata.debug.ui.DebugOverlayVertical
+import com.mefabc24.strata.debug.ui.notificationAlignment
 
 class DebugNotificationsTest {
+    @Test
+    fun `notification position defaults to top right`() {
+        assertEquals(DebugNotificationPosition.TOP_RIGHT, DebugNotifications().position)
+    }
+
+    @Test
+    fun `every notification position maps to expected overlay alignment`() {
+        val expected = mapOf(
+            DebugNotificationPosition.TOP_LEFT to
+                (DebugOverlayHorizontal.LEFT to DebugOverlayVertical.TOP),
+            DebugNotificationPosition.TOP_CENTER to
+                (DebugOverlayHorizontal.CENTER to DebugOverlayVertical.TOP),
+            DebugNotificationPosition.TOP_RIGHT to
+                (DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.TOP),
+            DebugNotificationPosition.BOTTOM_LEFT to
+                (DebugOverlayHorizontal.LEFT to DebugOverlayVertical.BOTTOM),
+            DebugNotificationPosition.BOTTOM_CENTER to
+                (DebugOverlayHorizontal.CENTER to DebugOverlayVertical.BOTTOM),
+            DebugNotificationPosition.BOTTOM_RIGHT to
+                (DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.BOTTOM)
+        )
+
+        expected.forEach { (position, alignment) ->
+            val actual = notificationAlignment(position)
+            assertEquals(alignment.first, actual.horizontal, position.name)
+            assertEquals(alignment.second, actual.vertical, position.name)
+        }
+    }
+
+    @Test
+    fun `runtime position changes update alignment state`() {
+        val notifications = DebugNotifications()
+        notifications.position = DebugNotificationPosition.BOTTOM_CENTER
+
+        val alignment = notificationAlignment(notifications.position)
+
+        assertEquals(DebugOverlayHorizontal.CENTER, alignment.horizontal)
+        assertEquals(DebugOverlayVertical.BOTTOM, alignment.vertical)
+    }
+
     @Test
     fun `toast queue is bounded to newest notifications`() {
         val notifications = DebugNotifications(maxVisible = 2)
