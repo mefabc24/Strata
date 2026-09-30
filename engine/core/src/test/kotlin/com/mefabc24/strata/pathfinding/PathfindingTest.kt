@@ -301,4 +301,178 @@ class PathfindingTest {
         assertEquals(listOf(point), world.findPath(listOf(point)))
         assertEquals(0f, world.findPathDiagnostic(emptyList()).totalCost)
     }
+
+    @Test
+    fun `empty waypoint list returns empty path`() {
+        val world = createWorld()
+
+        val path = world.findPath(
+            waypoints = emptyList()
+        )
+
+        assertEquals(
+            emptyList(),
+            path
+        )
+    }
+
+    @Test
+    fun `single waypoint returns that waypoint`() {
+        val world = createWorld()
+        val waypoint = TilePosition(2, 2)
+
+        val path = world.findPath(
+            waypoints = listOf(waypoint)
+        )
+
+        assertEquals(
+            listOf(waypoint),
+            path
+        )
+    }
+
+    @Test
+    fun `consecutive duplicate waypoints do not duplicate path tiles`() {
+        val world = createWorld(
+            width = 5,
+            height = 1
+        )
+
+        val path = world.findPath(
+            waypoints = listOf(
+                TilePosition(0, 0),
+                TilePosition(0, 0),
+                TilePosition(2, 0),
+                TilePosition(2, 0),
+                TilePosition(4, 0)
+            )
+        )
+
+        assertEquals(
+            listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(2, 0),
+                TilePosition(3, 0),
+                TilePosition(4, 0)
+            ),
+            path
+        )
+    }
+
+    @Test
+    fun `multi waypoint path may revisit an earlier waypoint`() {
+        val world = createWorld(
+            width = 3,
+            height = 1
+        )
+
+        val start = TilePosition(0, 0)
+        val end = TilePosition(2, 0)
+
+        val path = world.findPath(
+            waypoints = listOf(
+                start,
+                end,
+                start
+            )
+        )
+
+        assertEquals(
+            listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(2, 0),
+                TilePosition(1, 0),
+                TilePosition(0, 0)
+            ),
+            path
+        )
+    }
+
+    @Test
+    fun `movement costs may differ by traversal direction`() {
+        val world = createWorld(
+            width = 3,
+            height = 2
+        )
+
+        val left = TilePosition(0, 0)
+        val right = TilePosition(2, 0)
+        val expensiveFrom = TilePosition(0, 0)
+        val expensiveTo = TilePosition(1, 0)
+
+        val movementCost = { from: TilePosition, to: TilePosition ->
+            if (from == expensiveFrom && to == expensiveTo) {
+                10f
+            } else {
+                1f
+            }
+        }
+
+        val forward = requireNotNull(
+            world.findPath(
+                start = left,
+                goal = right,
+                movementCost = movementCost
+            )
+        )
+
+        val backward = requireNotNull(
+            world.findPath(
+                start = right,
+                goal = left,
+                movementCost = movementCost
+            )
+        )
+
+        assertEquals(left, forward.first())
+        assertEquals(right, forward.last())
+
+        assertTrue(
+            forward.zipWithNext().none { (from, to) ->
+                from == expensiveFrom && to == expensiveTo
+            }
+        )
+
+        assertEquals(
+            listOf(
+                TilePosition(2, 0),
+                TilePosition(1, 0),
+                TilePosition(0, 0)
+            ),
+            backward
+        )
+    }
+
+    @Test
+    fun `movement cost is not evaluated for blocked neighbors`() {
+        val world = createWorld(
+            width = 3,
+            height = 3
+        )
+
+        val blocked = TilePosition(1, 1)
+
+        val path = world.findPath(
+            start = TilePosition(0, 1),
+            goal = TilePosition(2, 1),
+            canEnter = { position ->
+                position != blocked
+            },
+            movementCost = { _, to ->
+                check(to != blocked) {
+                    "Movement cost must not be evaluated for blocked tiles."
+                }
+
+                1f
+            }
+        )
+
+        requireNotNull(path)
+
+        assertTrue(
+            blocked !in path
+        )
+    }
 }
