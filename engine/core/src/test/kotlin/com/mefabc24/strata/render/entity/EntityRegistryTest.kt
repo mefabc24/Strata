@@ -259,6 +259,45 @@ class EntityRegistryTest {
     }
 
     @Test
+    fun `directional entity can define representative direction`() {
+        val textures = EntityDirection.entries.associateWith { direction ->
+            region(16, 24)
+        }
+
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = { path ->
+                val direction = EntityDirection.valueOf(
+                    path.substringAfterLast("/")
+                        .substringBefore(".png")
+                )
+                textures.getValue(direction)
+            },
+            loadAlphaMask = { null }
+        )
+
+        registry.registerDirectional<Wolf>(
+            configure = {
+                representativeDirection = EntityDirection.NORTH_EAST
+            }
+        ) {
+            EntityDirection.entries.forEach { direction ->
+                direction(direction) {
+                    sprite("${direction.name}.png")
+                }
+            }
+        }
+
+        registry.prepare()
+
+        assertSame(
+            textures.getValue(EntityDirection.NORTH_EAST),
+            registry.entries.single().selectionVisual.texture
+        )
+    }
+
+    @Test
     fun `stateful entity can define representative visual state`() {
         val textures = mapOf(
             "entities/rest.png" to region(16, 24),
