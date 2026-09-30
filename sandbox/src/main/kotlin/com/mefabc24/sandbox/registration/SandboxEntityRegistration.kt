@@ -19,6 +19,7 @@ internal fun EntityRegistry.registerSandboxEntities() {
         },
         configure = {
             offsetY = -24f
+            representativeDirection = EntityDirection.SOUTH_EAST
         }
     ) {
         state(WolfState.IDLE) {
@@ -57,6 +58,7 @@ internal fun EntityRegistry.registerSandboxEntities() {
         },
         configure = {
             offsetY = -6f
+            representativeDirection = EntityDirection.SOUTH_EAST
         }
     ) {
         state(BoarState.IDLE) {

@@ -19,6 +19,7 @@ import com.mefabc24.strata.render.sprite.alphaMasksFromAtlasClasspath
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.WorldEntity
 import kotlin.reflect.KClass
+import com.mefabc24.strata.world.EntityDirection
 
 /** Configures one entity type's bottom-center anchored sprite. */
 class EntitySpriteSettings {
@@ -27,6 +28,7 @@ class EntitySpriteSettings {
     var width: Float? = null
     var height: Float? = null
     var scale: Float = 1f
+    var representativeDirection: EntityDirection? = null
 
     internal fun validate() {
         require(offsetX.isFinite() && offsetY.isFinite()) {
@@ -89,8 +91,9 @@ class EntityEntry internal constructor(
                 }
             }
 
-            return sprites?.representativeVisual()
-                ?: error("Entity type $type is not prepared.")
+            return sprites?.representativeVisual(
+                settings.representativeDirection
+            ) ?: error("Entity type $type is not prepared.")
         }
 
     val isPrepared: Boolean

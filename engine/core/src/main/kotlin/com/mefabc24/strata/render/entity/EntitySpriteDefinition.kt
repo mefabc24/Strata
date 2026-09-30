@@ -32,11 +32,16 @@ internal sealed interface EntitySpriteDefinition {
 
 internal sealed interface PreparedEntitySprites {
     fun resolve(direction: EntityDirection): EntityVisual
-    fun representativeVisual(): EntityVisual
+
+    fun representativeVisual(
+        direction: EntityDirection? = null
+    ): EntityVisual
 
     class Single(val visual: EntityVisual) : PreparedEntitySprites {
         override fun resolve(direction: EntityDirection): EntityVisual = visual
-        override fun representativeVisual(): EntityVisual = visual
+        override fun representativeVisual(
+            direction: EntityDirection?
+        ): EntityVisual = visual
     }
 
     class Directional(
@@ -48,9 +53,18 @@ internal sealed interface PreparedEntitySprites {
             }
         }
 
-        override fun representativeVisual(): EntityVisual =
-            visuals.values.firstOrNull()
+        override fun representativeVisual(
+            direction: EntityDirection?
+        ): EntityVisual {
+            if (direction != null) {
+                return checkNotNull(visuals[direction]) {
+                    "Representative entity direction $direction is not registered."
+                }
+            }
+
+            return visuals.values.firstOrNull()
                 ?: error("A directional entity visual has no registered directions.")
+        }
     }
 
 }
