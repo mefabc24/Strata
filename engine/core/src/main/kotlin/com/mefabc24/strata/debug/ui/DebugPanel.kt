@@ -388,12 +388,12 @@ internal class DebugPanel(
                     }
                 )
                 boundStepper(
-                    "Idle entity speed",
-                    { settings.pathfinding.idleEntitySpeed },
+                    "Entity speed multiplier",
+                    { settings.pathfinding.entitySpeedMultiplier },
                     0.25f,
                     10f,
                     0.25f
-                ) { settings.pathfinding.idleEntitySpeed = it }
+                ) { settings.pathfinding.entitySpeedMultiplier = it }
                 button("Clear path") {
                     if (pathfinding.clear()) {
                         settings.notify("Path cleared", DebugNotificationSeverity.INFO)

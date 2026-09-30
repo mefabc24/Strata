@@ -179,10 +179,12 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
-    var idleEntitySpeed: Float = 1f
+
+    /** Multiplier for the debug tool's fallback speed when assigning an idle entity. */
+    var entitySpeedMultiplier: Float = 1f
         set(value) {
             require(value.isFinite() && value > 0f) {
-                "Debug pathfinding entity speed must be finite and positive."
+                "Debug pathfinding entity speed multiplier must be finite and positive."
             }
             field = value
         }

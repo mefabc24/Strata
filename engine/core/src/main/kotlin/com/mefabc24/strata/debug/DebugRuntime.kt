@@ -63,7 +63,7 @@ internal class DebugRuntime(
         movementCost = { from, to ->
             settings.pathCost?.invoke(world, from, to) ?: 1f
         },
-        idleEntitySpeed = { settings.pathfinding.idleEntitySpeed }
+        entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier }
     )
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
     private val buildDrag = placement?.let(::DebugBuildDragController)
@@ -320,6 +320,7 @@ internal class DebugRuntime(
 
     fun update(delta: Float) {
         syncCameraRestrictions()
+        pathfinding.update()
         spawner.update(view.hoveredGridPosition)
         settings.worldState.spawnPreview = spawner.preview
         eventMonitor.enabled = settings.eventBus.enabled

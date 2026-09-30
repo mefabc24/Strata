@@ -7,13 +7,15 @@ import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
 
+internal const val DEFAULT_DEBUG_ENTITY_SPEED = 2f
+
 /** Persistent standalone and entity-route pathfinding state for debug tooling. */
 class DebugPathfindingTool internal constructor(
     private val world: World,
     private val state: DebugWorldState,
     private val canEnter: (TilePosition) -> Boolean = { true },
     private val movementCost: (TilePosition, TilePosition) -> Float = { _, _ -> 1f },
-    private val idleEntitySpeed: () -> Float = { 1f }
+    private val entitySpeedMultiplier: () -> Float = { 1f }
 ) {
     constructor(
         world: World,
@@ -47,8 +49,14 @@ class DebugPathfindingTool internal constructor(
         return true
     }
 
+    /** Keeps an uncommitted entity route start aligned with the entity's live tile. */
+    fun update() {
+        syncPendingEntityStart()
+    }
+
     fun click(position: TilePosition): Boolean {
         if (world.getTile(position) == null) return false
+        syncPendingEntityStart()
         val entity = selectedEntity
         if (entity != null) {
             appendEntityDestination(entity, position)
@@ -69,11 +77,7 @@ class DebugPathfindingTool internal constructor(
     }
 
     private fun appendEntityDestination(entity: WorldEntity, position: TilePosition) {
-        var committedWaypoints = waypoints
-        if (committedEntityResult == null && committedWaypoints.single() != entity.currentTile) {
-            committedWaypoints = listOf(entity.currentTile)
-            state.pathfindingWaypoints = committedWaypoints
-        }
+        val committedWaypoints = waypoints
         val segment = world.findPathDiagnostic(
             start = committedWaypoints.last(),
             goal = position,
@@ -89,7 +93,8 @@ class DebugPathfindingTool internal constructor(
             return
         }
 
-        val speed = entity.movementSpeed ?: idleEntitySpeed()
+        val speed = entity.movementSpeed
+            ?: DEFAULT_DEBUG_ENTITY_SPEED * entitySpeedMultiplier()
         val segmentPath = requireNotNull(segment.path)
         val assignment = if (committedWaypoints.size == 1) {
             segmentPath
@@ -106,6 +111,15 @@ class DebugPathfindingTool internal constructor(
         state.pathfindingWaypoints = combined.waypoints
         state.pathfinding = combined
         committedEntityResult = combined
+    }
+
+    private fun syncPendingEntityStart() {
+        val entity = selectedEntity ?: return
+        if (committedEntityResult != null) return
+        val liveStart = entity.currentTile
+        if (waypoints.single() == liveStart) return
+        state.pathfindingWaypoints = listOf(liveStart)
+        state.pathfinding = null
     }
 
     fun clear(): Boolean {
