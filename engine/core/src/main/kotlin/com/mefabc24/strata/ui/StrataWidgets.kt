@@ -3,9 +3,11 @@ package com.mefabc24.strata.ui
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
@@ -402,6 +404,52 @@ internal fun Actor.blockScrollInput() {
             ): Boolean = true
         }
     )
+}
+
+internal fun ScrollPane.useHoverScrollFocus() {
+    touchable = Touchable.enabled
+
+    blockScrollInput()
+
+    addListener(
+        object : InputListener() {
+            override fun enter(
+                event: InputEvent,
+                x: Float,
+                y: Float,
+                pointer: Int,
+                fromActor: Actor?
+            ) {
+                if (
+                    pointer == -1 &&
+                    !containsActor(fromActor)
+                ) {
+                    stage?.setScrollFocus(this@useHoverScrollFocus)
+                }
+            }
+
+            override fun exit(
+                event: InputEvent,
+                x: Float,
+                y: Float,
+                pointer: Int,
+                toActor: Actor?
+            ) {
+                if (
+                    pointer == -1 &&
+                    !containsActor(toActor) &&
+                    stage?.scrollFocus === this@useHoverScrollFocus
+                ) {
+                    stage?.setScrollFocus(null)
+                }
+            }
+        }
+    )
+}
+
+private fun ScrollPane.containsActor(actor: Actor?): Boolean {
+    return actor === this ||
+            actor?.isDescendantOf(this) == true
 }
 
 /** Invokes callbacks when the pointer enters or leaves this actor. */

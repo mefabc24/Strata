@@ -115,49 +115,7 @@ class StrataScrollPane internal constructor(
         setFlickScroll(true)
         setClamp(true)
 
-        touchable = Touchable.enabled
-
-        blockScrollInput()
-
-        addListener(
-            object : InputListener() {
-                override fun enter(
-                    event: InputEvent,
-                    x: Float,
-                    y: Float,
-                    pointer: Int,
-                    fromActor: Actor?
-                ) {
-                    if (
-                        pointer == -1 &&
-                        !containsActor(fromActor)
-                    ) {
-                        stage?.setScrollFocus(this@StrataScrollPane)
-                    }
-                }
-
-                override fun exit(
-                    event: InputEvent,
-                    x: Float,
-                    y: Float,
-                    pointer: Int,
-                    toActor: Actor?
-                ) {
-                    if (
-                        pointer == -1 &&
-                        !containsActor(toActor) &&
-                        stage?.scrollFocus === this@StrataScrollPane
-                    ) {
-                        stage?.setScrollFocus(null)
-                    }
-                }
-            }
-        )
-    }
-
-    private fun containsActor(actor: Actor?): Boolean {
-        return actor === this ||
-                actor?.isDescendantOf(this) == true
+        useHoverScrollFocus()
     }
 }
 

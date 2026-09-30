@@ -9,6 +9,7 @@ import com.mefabc24.strata.debug.DebugEventMonitor
 import com.mefabc24.strata.debug.DebugEventMonitorSettings
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataUi
+import com.mefabc24.strata.ui.useHoverScrollFocus
 
 /** Bounded Event Bus Monitor content for the shared diagnostic overlay stack. */
 internal class DebugEventMonitorOverlay(
@@ -28,8 +29,12 @@ internal class DebugEventMonitorOverlay(
         }).growX().fillX().left().padBottom(6f)
         row()
         add(ScrollPane(records, ui.skin).apply {
+            setScrollingDisabled(true, false)
+            setOverscroll(false, false)
             setFadeScrollBars(false)
-            touchable = Touchable.enabled
+            setClamp(true)
+
+            useHoverScrollFocus()
         }).height(260f).growX().fillX()
     }
     private var renderedKey: Any? = null
