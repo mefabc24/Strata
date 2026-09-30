@@ -6,6 +6,7 @@ import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.placement.PlacementDiagnostic
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.debug.tools.DebugMovePreview
+import java.util.Locale
 
 internal data class DebugContextStatus(
     val rows: List<DebugDiagnosticRow>
@@ -43,7 +44,8 @@ internal data class DebugContextInputs(
     val paintLayer: String? = null,
     val spawnEntity: String? = null,
     val inspection: String? = null,
-    val pathStart: TilePosition? = null,
+    val pathWaypoints: List<TilePosition> = emptyList(),
+    val pathEntity: String? = null,
     val pathResult: PathfindingDiagnosticResult? = null,
     val movePreview: DebugMovePreview? = null
 )
@@ -108,19 +110,22 @@ private fun buildStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow>
 
 private fun pathStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow> {
     val result = input.pathResult
-    return when {
-        input.pathStart != null -> diagnosticRows(
-            "Start" to formatTilePosition(input.pathStart),
-            "Status" to "Click a goal tile"
-        )
-        result == null -> diagnosticRows(
-            "Status" to "Click a start tile, then a goal tile"
-        )
-        else -> diagnosticRows(
-            "Start" to formatTilePosition(result.start),
-            "Goal" to formatTilePosition(result.goal),
-            "Result" to if (result.success) "Success" else "No path",
-            "Length" to (result.path?.size ?: 0).toString()
-        )
+    val mode = input.pathEntity?.let { "Entity: $it" } ?: "Standalone"
+    val status = when {
+        result != null -> if (result.success) "Success" else "No path"
+        input.pathEntity != null -> "Click a destination tile"
+        input.pathWaypoints.isNotEmpty() -> "Click the next waypoint"
+        else -> "Click an entity or start tile"
     }
+    val rows = mutableListOf(
+        DebugDiagnosticRow("Mode", mode),
+        DebugDiagnosticRow("Waypoints", input.pathWaypoints.size.toString()),
+        DebugDiagnosticRow("Status", status)
+    )
+    if (result != null) {
+        val length = result.path?.size ?: 0
+        val cost = result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) } ?: "—"
+        rows += DebugDiagnosticRow("Path", "$length tiles, cost $cost")
+    }
+    return rows
 }

@@ -387,6 +387,13 @@ internal class DebugPanel(
                         settings.pathfinding.showFinalPath = it
                     }
                 )
+                boundStepper(
+                    "Idle entity speed",
+                    { settings.pathfinding.idleEntitySpeed },
+                    0.25f,
+                    10f,
+                    0.25f
+                ) { settings.pathfinding.idleEntitySpeed = it }
                 button("Clear path") {
                     if (pathfinding.clear()) {
                         settings.notify("Path cleared", DebugNotificationSeverity.INFO)
@@ -880,7 +887,10 @@ internal class DebugPanel(
                 },
                 spawnEntity = spawnSelection?.selected?.type?.displayName(),
                 inspection = inspectionSummary(),
-                pathStart = pathfinding.start,
+                pathWaypoints = pathfinding.waypoints,
+                pathEntity = pathfinding.selectedEntity?.entity?.let {
+                    it::class.displayName()
+                },
                 pathResult = pathfinding.result,
                 movePreview = settings.worldState.movePreview
             )

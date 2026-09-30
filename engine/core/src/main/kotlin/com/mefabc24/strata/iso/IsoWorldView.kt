@@ -445,7 +445,7 @@ class IsoWorldView(
             val inspectionActive = state.inspectionHighlightVisible &&
                 state.inspection != null
             val pathActive = settings.pathfinding.enabled &&
-                (state.pathStart != null || state.pathfinding != null)
+                (state.pathfindingWaypoints.isNotEmpty() || state.pathfinding != null)
             val active = inspectionActive || pathActive ||
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||

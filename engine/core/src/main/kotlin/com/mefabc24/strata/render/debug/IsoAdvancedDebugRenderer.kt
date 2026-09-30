@@ -44,7 +44,7 @@ internal class IsoAdvancedDebugRenderer(
         )
         val path = state.pathfinding
         val drawPath = settings.pathfinding.enabled &&
-            (state.pathStart != null || path != null)
+            (state.pathfindingWaypoints.isNotEmpty() || path != null)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
             state.movePreview != null
@@ -102,14 +102,16 @@ internal class IsoAdvancedDebugRenderer(
     ) {
         val explored = path?.explored.orEmpty()
         val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
-        val pathStart = state.pathStart.takeIf { settings.pathfinding.enabled }
+        val pathWaypoints = state.pathfindingWaypoints.takeIf {
+            settings.pathfinding.enabled
+        }.orEmpty()
         val drawCullingArea = settings.culling.enabled &&
             settings.culling.showVisibleArea && renderSnapshot != null
         val drawCameraArea = settings.camera.enabled && settings.camera.showVisibleArea
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
         val movePreview = state.movePreview?.takeIf { it.visible }
-        if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathStart == null &&
+        if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null
         ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
@@ -122,7 +124,7 @@ internal class IsoAdvancedDebugRenderer(
             explored.forEach(::drawTileFill)
         }
         shapes.color = Color(1f, 0.75f, 0.15f, 0.22f)
-        pathStart?.let(::drawTileFill)
+        pathWaypoints.forEach(::drawTileFill)
         when {
             inspection is DebugInspection.EntityTarget &&
                 DebugInspectionVisual.ENTITY_TILE in inspectionVisuals -> {
@@ -284,12 +286,24 @@ internal class IsoAdvancedDebugRenderer(
         }
 
         val result = state.pathfinding
-        if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && result?.path != null) {
+        val visiblePath = result?.path ?: state.pathfindingEntity?.let { entity ->
+            listOf(entity.currentTile) + entity.remainingPath
+        }
+        if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && visiblePath != null) {
             shapes.color = Color(0.2f, 1f, 0.35f, 1f)
-            result.path.zipWithNext().forEach { (from, to) ->
+            visiblePath.zipWithNext().forEach { (from, to) ->
                 val a = projection.tileToWorld(from.x + 0.5f, from.y + 0.5f)
                 val b = projection.tileToWorld(to.x + 0.5f, to.y + 0.5f)
                 shapes.line(a.x, a.y, b.x, b.y)
+            }
+        }
+        if (settings.pathfinding.enabled && state.pathfindingWaypoints.isNotEmpty()) {
+            shapes.color = Color(1f, 0.75f, 0.15f, 1f)
+            val markerRadius = 4f * camera.zoom
+            state.pathfindingWaypoints.forEach { waypoint ->
+                drawTileOutline(waypoint)
+                val center = projection.tileToWorld(waypoint.x + 0.5f, waypoint.y + 0.5f)
+                shapes.circle(center.x, center.y, markerRadius, 16)
             }
         }
 

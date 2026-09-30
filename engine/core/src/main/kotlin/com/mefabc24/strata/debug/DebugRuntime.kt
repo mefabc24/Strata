@@ -54,9 +54,17 @@ internal class DebugRuntime(
     }
     private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
     private val inspector = DebugInspector(settings.worldState)
-    private val pathfinding = DebugPathfindingTool(world, settings.worldState) { position ->
-        settings.pathTraversal?.invoke(world, position) ?: true
-    }
+    private val pathfinding = DebugPathfindingTool(
+        world = world,
+        state = settings.worldState,
+        canEnter = { position ->
+            settings.pathTraversal?.invoke(world, position) ?: true
+        },
+        movementCost = { from, to ->
+            settings.pathCost?.invoke(world, from, to) ?: 1f
+        },
+        idleEntitySpeed = { settings.pathfinding.idleEntitySpeed }
+    )
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
     private val buildDrag = placement?.let(::DebugBuildDragController)
     private val move = DebugMoveTool(
@@ -283,6 +291,14 @@ internal class DebugRuntime(
             }
             removed
         },
+        WorldInputBinding.Entity(
+            WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+            EntityPickingMode.SPRITE_ALPHA,
+            {
+                tools.mode == DebugToolMode.PATHFINDING &&
+                    pathfinding.acceptsEntitySelection
+            }
+        ) { pathfinding.selectEntity(it) },
         WorldInputBinding.Tile(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.PATHFINDING }

@@ -33,6 +33,7 @@ class DebugSettings {
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
     internal var pathTraversal: ((World, TilePosition) -> Boolean)? = null
+    internal var pathCost: ((World, TilePosition, TilePosition) -> Float)? = null
 
     fun panel(configure: DebugPanelSettings.() -> Unit) = panel.apply(configure)
     fun performance(configure: DebugPerformanceLogger.() -> Unit) = performance.apply(configure)
@@ -83,6 +84,11 @@ class DebugSettings {
     /** Supplies optional game traversal rules for debug path searches. */
     fun pathTraversal(canEnter: (World, TilePosition) -> Boolean) {
         pathTraversal = canEnter
+    }
+
+    /** Supplies optional game movement costs for debug path searches. */
+    fun pathCost(cost: (World, from: TilePosition, to: TilePosition) -> Float) {
+        pathCost = cost
     }
 
     /** Applies a visual-only settings preset. */
@@ -173,6 +179,13 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
+    var idleEntitySpeed: Float = 1f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Debug pathfinding entity speed must be finite and positive."
+            }
+            field = value
+        }
 }
 
 class DebugEventMonitorSettings : DebugFeatureSettings() {

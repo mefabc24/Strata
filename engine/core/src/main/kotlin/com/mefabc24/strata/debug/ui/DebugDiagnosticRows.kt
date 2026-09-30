@@ -151,21 +151,29 @@ internal fun placementDiagnosticRows(
 }
 
 internal fun pathfindingDiagnosticRows(
-    start: TilePosition?,
+    waypoints: List<TilePosition>,
+    selectedEntity: String?,
     result: PathfindingDiagnosticResult?
 ): List<DebugDiagnosticRow> = when {
-    start != null -> listOf(
-        DebugDiagnosticRow("Start", formatTilePosition(start)),
-        DebugDiagnosticRow("Next", "Click a goal tile")
+    result == null && waypoints.isNotEmpty() -> listOf(
+        DebugDiagnosticRow("Mode", selectedEntity?.let { "Entity: $it" } ?: "Standalone"),
+        DebugDiagnosticRow("Waypoints", waypoints.size.toString()),
+        DebugDiagnosticRow("Next", "Click the next waypoint")
     )
     result == null -> listOf(
-        DebugDiagnosticRow("Status", "Click a start tile, then a goal tile")
+        DebugDiagnosticRow("Status", "Click an entity or start tile")
     )
     else -> listOf(
-        DebugDiagnosticRow("Start", formatTilePosition(result.start)),
-        DebugDiagnosticRow("Goal", formatTilePosition(result.goal)),
+        DebugDiagnosticRow("Mode", selectedEntity?.let { "Entity: $it" } ?: "Standalone"),
+        DebugDiagnosticRow("Waypoints", result.waypoints.size.toString()),
+        DebugDiagnosticRow("Start", result.start?.let(::formatTilePosition) ?: "—"),
+        DebugDiagnosticRow("Goal", result.goal?.let(::formatTilePosition) ?: "—"),
         DebugDiagnosticRow("Result", if (result.success) "Success" else "No path"),
         DebugDiagnosticRow("Path length", (result.path?.size ?: 0).toString()),
+        DebugDiagnosticRow(
+            "Total cost",
+            result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) } ?: "—"
+        ),
         DebugDiagnosticRow("Explored", result.explored.size.toString()),
         DebugDiagnosticRow(
             "Search time",
