@@ -10,6 +10,7 @@ import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.placement.PlacementDiagnostic
 import com.mefabc24.strata.placement.PlacementFailureReason
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -41,8 +42,8 @@ class DebugDiagnosticRowsTest {
     @Test
     fun `pathfinding rows describe the tool workflow and result`() {
         val start = TilePosition(1, 2)
-        val waiting = pathfindingDiagnosticRows(start, null)
-        assertEquals("Click a goal tile", waiting.first { it.key == "Next" }.value)
+        val waiting = pathfindingDiagnosticRows(listOf(start), null, null)
+        assertEquals("Click the next waypoint", waiting.first { it.key == "Next" }.value)
 
         val result = PathfindingDiagnosticResult(
             start = start,
@@ -51,10 +52,11 @@ class DebugDiagnosticRowsTest {
             explored = listOf(start, TilePosition(2, 2)),
             durationNanos = 1_500_000
         )
-        val rows = pathfindingDiagnosticRows(null, result)
+        val rows = pathfindingDiagnosticRows(result.waypoints, null, result)
 
         assertEquals("Success", rows.first { it.key == "Result" }.value)
         assertEquals("3", rows.first { it.key == "Path length" }.value)
+        assertEquals("2.00", rows.first { it.key == "Total cost" }.value)
         assertEquals("2", rows.first { it.key == "Explored" }.value)
         assertEquals("1.50 ms", rows.first { it.key == "Search time" }.value)
     }
@@ -87,6 +89,7 @@ class DebugDiagnosticRowsTest {
     }
 
     private fun diagnosticSkin(): Skin {
+        TestGdxEnvironment.install()
         val font = BitmapFont(
             BitmapFont.BitmapFontData(),
             Array<TextureRegion>().apply { add(TextureRegion()) },

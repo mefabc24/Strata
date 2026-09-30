@@ -1,7 +1,11 @@
 package com.mefabc24.strata.debug
 
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -36,6 +40,7 @@ class DebugSettingsTest {
         assertTrue(settings.inspect.showEntityDirection)
         assertTrue(settings.inspect.showEntitySpriteBounds)
         assertTrue(settings.pathfinding.enabled)
+        assertEquals(1f, settings.pathfinding.idleEntitySpeed)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
     }
@@ -207,4 +212,33 @@ class DebugSettingsTest {
             )
         }
     }
+
+    @Test
+    fun `path cost callback receives world and directed edge`() {
+        val settings = DebugSettings()
+        val world = World(2, 1) { _, _ -> TestTile }
+        val from = TilePosition(0, 0)
+        val to = TilePosition(1, 0)
+        settings.pathCost { suppliedWorld, suppliedFrom, suppliedTo ->
+            assertTrue(suppliedWorld === world)
+            assertEquals(from, suppliedFrom)
+            assertEquals(to, suppliedTo)
+            2.5f
+        }
+
+        assertEquals(2.5f, settings.pathCost?.invoke(world, from, to))
+    }
+
+    @Test
+    fun `debug entity path speed must be finite and positive`() {
+        val settings = DebugSettings()
+
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.pathfinding.idleEntitySpeed = invalid
+            }
+        }
+    }
+
+    private data object TestTile : Tile
 }

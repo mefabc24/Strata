@@ -75,9 +75,9 @@ class DebugContextStatusTest {
         val start = TilePosition(1, 1)
         val waiting = requireNotNull(debugContextStatus(DebugContextInputs(
             DebugToolMode.PATHFINDING,
-            pathStart = start
+            pathWaypoints = listOf(start)
         )))
-        assertTrue(waiting.rows.any { it.value == "Click a goal tile" })
+        assertTrue(waiting.rows.any { it.value == "Click the next waypoint" })
 
         val result = PathfindingDiagnosticResult(
             start,
@@ -88,10 +88,11 @@ class DebugContextStatusTest {
         )
         val complete = requireNotNull(debugContextStatus(DebugContextInputs(
             DebugToolMode.PATHFINDING,
+            pathWaypoints = result.waypoints,
             pathResult = result
         )))
-        assertEquals("Success", complete.rows.first { it.key == "Result" }.value)
-        assertEquals("2", complete.rows.first { it.key == "Length" }.value)
+        assertEquals("Success", complete.rows.first { it.key == "Status" }.value)
+        assertEquals("2 tiles, cost 1.00", complete.rows.first { it.key == "Path" }.value)
     }
 
     @Test
@@ -102,6 +103,7 @@ class DebugContextStatusTest {
         )))
         val fourRows = requireNotNull(debugContextStatus(DebugContextInputs(
             mode = DebugToolMode.PATHFINDING,
+            pathWaypoints = listOf(TilePosition(1, 1), TilePosition(12, 8)),
             pathResult = PathfindingDiagnosticResult(
                 TilePosition(1, 1),
                 TilePosition(12, 8),
