@@ -159,4 +159,146 @@ class PathfindingTest {
             )
         }
     }
+
+    @Test
+    fun `weighted path prefers a cheaper longer route`() {
+        val world = createWorld(width = 5, height = 3)
+        val start = TilePosition(0, 1)
+        val goal = TilePosition(4, 1)
+
+        val path = world.findPath(
+            start = start,
+            goal = goal,
+            canEnter = { true },
+            movementCost = { _, to ->
+                if (to.y == 1 && to.x in 1..3) 3f else 1f
+            }
+        )
+
+        requireNotNull(path)
+        assertTrue(path.size > 5)
+        assertTrue(path.none { it.y == 1 && it.x in 1..3 })
+    }
+
+    @Test
+    fun `default movement cost remains one`() {
+        val result = createWorld().findPathDiagnostic(
+            start = TilePosition(0, 0),
+            goal = TilePosition(3, 0)
+        )
+
+        assertEquals(3f, result.totalCost)
+        assertEquals(4, result.path?.size)
+    }
+
+    @Test
+    fun `invalid movement costs are rejected`() {
+        val world = createWorld()
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                world.findPath(
+                    start = TilePosition(0, 0),
+                    goal = TilePosition(1, 0),
+                    canEnter = { true },
+                    movementCost = { _, _ -> invalid }
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `multi-waypoint path is continuous without duplicate boundaries`() {
+        val waypoints = listOf(
+            TilePosition(0, 0),
+            TilePosition(2, 0),
+            TilePosition(2, 2)
+        )
+
+        val path = requireNotNull(createWorld().findPath(waypoints))
+
+        assertEquals(
+            listOf(
+                TilePosition(0, 0),
+                TilePosition(1, 0),
+                TilePosition(2, 0),
+                TilePosition(2, 1),
+                TilePosition(2, 2)
+            ),
+            path
+        )
+        assertEquals(1, path.count { it == waypoints[1] })
+    }
+
+    @Test
+    fun `multi-waypoint path visits mandatory waypoints in order`() {
+        val waypoints = listOf(
+            TilePosition(0, 1),
+            TilePosition(3, 1),
+            TilePosition(1, 1)
+        )
+
+        val path = requireNotNull(createWorld().findPath(waypoints))
+        var previousIndex = -1
+        val indices = waypoints.map { waypoint ->
+            path.withIndex().first {
+                it.index > previousIndex && it.value == waypoint
+            }.index.also { previousIndex = it }
+        }
+
+        assertTrue(indices.zipWithNext().all { (first, second) -> first < second })
+    }
+
+    @Test
+    fun `multi-waypoint path fails when one segment is blocked`() {
+        val world = createWorld()
+        val blocked = setOf(
+            TilePosition(2, 0),
+            TilePosition(2, 1),
+            TilePosition(2, 2),
+            TilePosition(2, 3),
+            TilePosition(2, 4)
+        )
+
+        assertNull(
+            world.findPath(
+                waypoints = listOf(
+                    TilePosition(0, 0),
+                    TilePosition(1, 0),
+                    TilePosition(4, 0)
+                ),
+                canEnter = { it !in blocked }
+            )
+        )
+    }
+
+    @Test
+    fun `multi-waypoint diagnostics combine path and cost`() {
+        val waypoints = listOf(
+            TilePosition(0, 0),
+            TilePosition(2, 0),
+            TilePosition(2, 2)
+        )
+
+        val result = createWorld().findPathDiagnostic(
+            waypoints = waypoints,
+            canEnter = { true },
+            movementCost = { _, _ -> 2f }
+        )
+
+        assertTrue(result.success)
+        assertEquals(waypoints, result.waypoints)
+        assertEquals(5, result.path?.size)
+        assertEquals(8f, result.totalCost)
+        assertTrue(result.explored.isNotEmpty())
+    }
+
+    @Test
+    fun `empty and single waypoint searches are handled cleanly`() {
+        val world = createWorld()
+        val point = TilePosition(1, 1)
+
+        assertEquals(emptyList(), world.findPath(emptyList()))
+        assertEquals(listOf(point), world.findPath(listOf(point)))
+        assertEquals(0f, world.findPathDiagnostic(emptyList()).totalCost)
+    }
 }
