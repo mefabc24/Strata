@@ -104,7 +104,7 @@ internal object DebugPanelSkin {
         skin.add(
             "debug-event-card",
             StrataPanelStyle(
-                background = drawable.tint(Color(0.13f, 0.13f, 0.16f, 0.96f)),
+                background = drawable.tint(Color(0.18f, 0.18f, 0.22f, 0.98f)),
                 padding = StrataInsets.all(8f)
             ),
             StrataPanelStyle::class.java
