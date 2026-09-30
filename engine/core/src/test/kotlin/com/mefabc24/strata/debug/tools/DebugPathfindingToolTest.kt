@@ -75,6 +75,77 @@ class DebugPathfindingToolTest {
     }
 
     @Test
+    fun `entity speed multiplier scales the debug fallback speed`() {
+        listOf(
+            0.5f to 1f,
+            1f to 2f,
+            2f to 4f
+        ).forEach { (multiplier, expectedSpeed) ->
+            val world = world()
+            val tool = DebugPathfindingTool(
+                world = world,
+                state = DebugWorldState(),
+                entitySpeedMultiplier = { multiplier }
+            )
+            val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+
+            tool.selectEntity(entity)
+            tool.click(TilePosition(2, 0))
+
+            assertEquals(expectedSpeed, entity.movementSpeed, "${multiplier}x")
+        }
+    }
+
+    @Test
+    fun `pending entity start follows its live tile and starts the first search there`() {
+        val world = world()
+        val tool = DebugPathfindingTool(world)
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        entity.followPath(listOf(TilePosition(4, 0)), speed = 2f)
+        tool.selectEntity(entity)
+        assertEquals(listOf(TilePosition(0, 0)), tool.waypoints)
+        world.updateEntities(0.5f)
+
+        tool.update()
+
+        assertEquals(listOf(TilePosition(1, 0)), tool.waypoints)
+        tool.click(TilePosition(1, 2))
+        assertEquals(TilePosition(1, 0), tool.result?.start)
+        assertEquals(TilePosition(1, 0), tool.result?.path?.first())
+    }
+
+    @Test
+    fun `committed entity waypoint history does not follow later movement`() {
+        val world = world()
+        val tool = DebugPathfindingTool(world)
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        tool.selectEntity(entity)
+        tool.click(TilePosition(4, 0))
+        val committedWaypoints = tool.waypoints
+
+        world.updateEntities(0.5f)
+        tool.update()
+
+        assertEquals(TilePosition(1, 0), entity.currentTile)
+        assertEquals(committedWaypoints, tool.waypoints)
+    }
+
+    @Test
+    fun `standalone waypoint state remains static during synchronization`() {
+        val world = world()
+        val tool = DebugPathfindingTool(world)
+        val movingEntity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        movingEntity.followPath(listOf(TilePosition(4, 0)), speed = 2f)
+        tool.click(TilePosition(2, 2))
+
+        world.updateEntities(0.5f)
+        tool.update()
+
+        assertEquals(listOf(TilePosition(2, 2)), tool.waypoints)
+        assertNull(tool.selectedEntity)
+    }
+
+    @Test
     fun `first entity destination replaces its route and preserves movement speed`() {
         val world = world()
         val tool = DebugPathfindingTool(world)
@@ -105,7 +176,6 @@ class DebugPathfindingToolTest {
 
         assertEquals(
             listOf(
-                TilePosition(1, 0),
                 TilePosition(2, 0),
                 TilePosition(2, 1),
                 TilePosition(2, 2)
@@ -116,7 +186,7 @@ class DebugPathfindingToolTest {
             listOf(TilePosition(0, 0), TilePosition(2, 0), TilePosition(2, 2)),
             tool.waypoints
         )
-        assertEquals(1f, entity.movementSpeed)
+        assertEquals(2f, entity.movementSpeed)
     }
 
     @Test

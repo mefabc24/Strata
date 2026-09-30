@@ -40,7 +40,7 @@ class DebugSettingsTest {
         assertTrue(settings.inspect.showEntityDirection)
         assertTrue(settings.inspect.showEntitySpriteBounds)
         assertTrue(settings.pathfinding.enabled)
-        assertEquals(1f, settings.pathfinding.idleEntitySpeed)
+        assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
     }
@@ -230,12 +230,12 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `debug entity path speed must be finite and positive`() {
+    fun `debug entity speed multiplier must be finite and positive`() {
         val settings = DebugSettings()
 
         listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
             assertFailsWith<IllegalArgumentException> {
-                settings.pathfinding.idleEntitySpeed = invalid
+                settings.pathfinding.entitySpeedMultiplier = invalid
             }
         }
     }
