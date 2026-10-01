@@ -58,8 +58,8 @@ class SandboxGame : StrataGame() {
                 debug {
                     panel {
                         enabled = true
-                        visibleOnStartup = false
-                        toggleKey = Input.Keys.F3
+                        visibleOnStartup = true
+                        toggleKey = Input.Keys.ESCAPE
                     }
 
                     performance {
