@@ -122,9 +122,9 @@ class StrataSceneUiTest {
             terrainFor = { Terrain.GRASS }
         )
         assertTrue(inputState.inputProcessor === scene.input.processor)
-        assertTrue(scene.debug.panel.visible)
-        assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
         assertFalse(scene.debug.panel.visible)
+        assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
+        assertTrue(scene.debug.panel.visible)
 
         scene.update(0.1f)
         scene.render()
