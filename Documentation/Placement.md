@@ -21,7 +21,7 @@ placement {
 }
 ```
 
-The block is optional. It snapshots `PlacementSettings`; the controller is created only after `attachWorld`. The custom validator supplements geometric `World.canPlace` rules.
+The block is optional. It snapshots `PlacementSettings`; a controller is created for each registered world. The custom validator supplements geometric `World.canPlace` rules.
 
 ## Select and place
 

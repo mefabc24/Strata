@@ -1,40 +1,27 @@
 # UI
 
-Strata's UI layer is a small Kotlin construction API over libGDX Scene2D. It supplies lifecycle integration, common layouts and controls, theme-to-skin style mapping, selection helpers, and input priority. The game still owns the interface design and the `Skin` resources.
+Strata's UI layer is a Kotlin construction API over libGDX Scene2D. It supplies lifecycle integration, common layouts and controls, theme mapping, selection helpers, and input priority. Screen UI uses engine-owned default resources, so ordinary game UI requires no libGDX imports. Scene2D remains available as an advanced escape hatch.
 
 ## Lifecycle and ownership
 
-Create UI after Strata scene creation, normally in `onReady()`:
+Define UI as part of a registered screen, normally in `onReady()`:
 
 ```kotlin
-private lateinit var skin: Skin
-
 override fun onReady() {
-    skin = createGameSkin()
-
-    strata.createUi(
-        skin = skin,
-        theme = StrataUiTheme(
-            panelStyle = "toolbar",
-            separatorStyle = "toolbar",
-            spacing = 8f
-        )
-    ) {
-        panel {
-            label("Tools")
-            button("Build") { selectBuildTool() }
+    strata.screens.register("menu") {
+        ui {
+            panel {
+                label("My Game")
+                button("Play") { navigate("gameplay") }
+            }
         }
     }
 }
-
-override fun disposeGame() {
-    skin.dispose()
-}
 ```
 
-The scene creates at most one UI. It owns and disposes the `Stage`, updates it, draws it after the world, and resizes its `ScreenViewport`. The caller owns the supplied `Skin`, fonts, textures, and drawables.
+Each screen may own one UI. Strata creates and disposes its `Stage`, updates it while the screen is visible, draws visible screen UIs in stack order, and resizes its `ScreenViewport`. UI is created on first activation and retained across navigation.
 
-The `createUi` lambda runs before the stage is attached to scene input. `strata.ui` is available after creation returns. UI can exist with or without an attached world.
+The default screen UI skin and resource-path image textures are engine-owned. Advanced code may call `ui(customSkin, theme) { ... }`; the caller then owns that skin. The compatibility `strata.createUi(customSkin) { ... }` API remains available for a single persistent UI outside screen navigation.
 
 ## Root and layouts
 
@@ -57,6 +44,8 @@ column(padding = StrataInsets.all(12f)) {
     }
 }
 ```
+
+Use `StrataAlignment` to align layouts without libGDX constants. `image("ui/icon.png")` and the resource-path `imageButton` overload load classpath images whose textures are disposed with the UI. Raw Scene2D alignment integers, `Drawable` overloads, `actor`, `cell`, `skin`, and `stage` remain available for advanced customization.
 
 Available containers are vertical `column`, horizontal `row`, fixed-column `grid`, overlaid `stack`, collapsible `expander`, and vertical `panel`. `actor(customActor)` adds any Scene2D actor.
 

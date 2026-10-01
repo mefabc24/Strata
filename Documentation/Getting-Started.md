@@ -82,8 +82,10 @@ package example
 import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.terrain.TerrainId
+import com.mefabc24.strata.screen.ScreenId
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldId
 
 enum class Ground : TerrainId {
     GRASS
@@ -120,12 +122,20 @@ class MinimalGame : StrataGame() {
             GroundTile(Ground.GRASS)
         }
 
-        strata.attachWorld(
+        val worldId = WorldId("main")
+        val screenId = ScreenId("gameplay")
+
+        strata.worlds.register(
+            id = worldId,
             world = world,
             terrainFor = { tile ->
                 (tile as GroundTile).terrain
             }
         )
+        strata.screens.register(screenId) {
+            world(worldId)
+        }
+        strata.screens.navigate(screenId)
     }
 }
 ```
@@ -154,8 +164,8 @@ fun main() {
 
 ## What happens at startup
 
-Construction configures the game, `DesktopLauncher` creates `StrataEngine`, and libGDX calls the lifecycle. `StrataGame.create()` creates the scene before calling `onReady()`. Scene creation performs registrations, loads assets synchronously, and prepares visuals. This is why world attachment belongs in `onReady()`, not inside the scene configuration block.
+Construction configures the game, `DesktopLauncher` creates `StrataEngine`, and libGDX calls the lifecycle. `StrataGame.create()` creates the shared scene before calling `onReady()`. Scene creation performs content registrations, loads assets synchronously, and prepares visuals. This is why world and screen registration belongs in `onReady()`, not inside the scene configuration block.
 
-Strata updates entity movement, the view, placement previews, and UI before calling the game hooks. Override `updateGame(simulationDelta)` for game progression and `updateRealTime(realDelta)` for game-owned UI or other work that must continue while paused. It renders the world before the UI. Resize and disposal are forwarded automatically. Game resources that Strata does not own, such as a supplied UI `Skin`, belong in `disposeGame()`.
+Strata updates active entity movement, the selected view, placement previews, and visible UI before calling the game hooks. Override `updateGame(simulationDelta)` for game progression and `updateRealTime(realDelta)` for other work that must continue while paused. Resize and disposal are forwarded automatically. Custom resources that Strata does not own, such as a supplied UI `Skin`, belong in `disposeGame()`.
 
-Continue with [Architecture](Architecture.md) for ownership and lifecycle, then [Configuration](Configuration.md) for all setup blocks.
+Continue with [Architecture](Architecture.md) for ownership and lifecycle, [Screens and multiple worlds](Screens-and-Worlds.md) for navigation, then [Configuration](Configuration.md) for all setup blocks.

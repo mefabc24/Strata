@@ -1,6 +1,6 @@
 # Camera
 
-Strata creates an orthographic camera and controller when a world is attached. Scene configuration establishes a snapshot; the attached view exposes runtime control through `strata.view.camera`, `strata.view.cameraController`, and `cameraController.controls`.
+Strata creates an orthographic camera and controller for every registered world. Scene configuration establishes a snapshot; the active view exposes runtime control through `strata.view.camera`, `strata.view.cameraController`, and `cameraController.controls`. Switching worlds retains each view's camera state.
 
 ## Scene configuration
 

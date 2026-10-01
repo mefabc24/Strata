@@ -1,10 +1,12 @@
 # Strata engine guide
 
-Strata is a Kotlin/libGDX engine layer for finite isometric worlds. It provides world storage, terrain and sprite rendering, object placement, movable entities, pathfinding, input and picking, camera control, audio, debugging, and a small Scene2D UI layer. A game supplies its own tile data, object and entity types, visual state identifiers, rules, and controllers.
+Strata is a Kotlin/libGDX engine layer for finite isometric worlds. It provides multi-world management, screen navigation, world rendering, object placement, movable entities, pathfinding, input and picking, camera control, audio, debugging, and a high-level Kotlin UI layer. A game supplies its own worlds, content, rules, and controllers.
 
 This guide is for developers building a game on the current `dev` implementation. It explains workflows and boundaries; KDoc remains the exact API reference. The Sandbox module is the working example used throughout.
 
 ## Start here
+
+The screen and world lifecycle is covered in [Screens and multiple worlds](Screens-and-Worlds.md).
 
 1. [Getting Started](Getting-Started.md) — dependencies, resources, a minimal world, and desktop launch
 2. [Architecture](Architecture.md) — engine/game responsibilities, registration, lifecycle, and ownership

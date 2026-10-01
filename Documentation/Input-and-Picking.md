@@ -53,7 +53,7 @@ WorldInputBinding.Tile(
 
 ### Grid
 
-`Grid` always supplies a logical grid coordinate, including positions outside the attached world:
+`Grid` always supplies a logical grid coordinate, including positions outside the active world:
 
 ```kotlin
 WorldInputBinding.Grid(

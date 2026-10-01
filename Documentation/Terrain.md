@@ -68,12 +68,12 @@ registerStateful(
 
 The state identifiers and transition policy belong to the game. The resolver must return a registered state.
 
-## Attach the game's tile model
+## Register the game's tile model
 
 Registration does not change world data. `terrainFor` bridges a runtime tile to its visual ID:
 
 ```kotlin
-strata.attachWorld(world) { tile ->
+strata.worlds.register("surface", world) { tile ->
     (tile as GameTile).terrain
 }
 ```

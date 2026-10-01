@@ -119,7 +119,7 @@ With width `32f`, the diamond top face is `16f` high, so the full logical height
 
 ## Placement
 
-Including `placement {}` enables creation of a scene-owned `PlacementController` when a world is attached. Omitting the block means `strata.placement` is unavailable.
+Including `placement {}` creates a scene-owned `PlacementController` for every registered world. Omitting the block means `strata.placement` is unavailable.
 
 ```kotlin
 placement {

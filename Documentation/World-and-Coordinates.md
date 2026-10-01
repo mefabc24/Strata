@@ -1,6 +1,6 @@
 # World and coordinates
 
-`World` is a finite rectangular container for ground tiles, terrain overlays, placed objects, and movable entities. The game creates and owns it; Strata attaches one world to a scene and renders it.
+`World` is a finite rectangular container for ground tiles, terrain overlays, placed objects, and movable entities. The game creates and owns it; Strata can register multiple worlds and render one active view.
 
 ## Create a world
 
@@ -17,18 +17,21 @@ val world = World(width = 50, height = 50) { x, y ->
 
 Width and height must be positive. The tile factory is called once for every coordinate, in row-major construction order. Ground cells always contain a `Tile`; `getTile` returns `null` only when a coordinate is outside the finite world.
 
-Attach the world after scene creation:
+Register the world after scene creation:
 
 ```kotlin
-strata.attachWorld(
+val worldId = WorldId("surface")
+strata.worlds.register(
+    id = worldId,
     world = world,
     terrainFor = { tile ->
         (tile as SandboxTile).terrain
     }
 )
+strata.worlds.activate(worldId)
 ```
 
-A scene accepts one world attachment. Attaching creates the isometric view, world input, and the placement controller if `placement {}` was configured.
+Registration creates a retained isometric view, world input, and placement controller if `placement {}` was configured. Activating another registered world switches presentation without resetting either logical world or its camera. Inactive worlds pause entity simulation by default; see [Screens and multiple worlds](Screens-and-Worlds.md) for lifecycle and ownership rules.
 
 ## Discrete and continuous positions
 

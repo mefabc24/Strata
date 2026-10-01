@@ -54,23 +54,23 @@
 
 **Likely cause:** The scene block runs during `Strata.create`, before runtime layers are available, and the facade cannot expose a scene before creation.
 
-**Fix:** Use the scene block receiver only for setup. Attach the world, select placement factories, create UI, and read runtime state in `onReady()` or later. Capture providers in input bindings instead of evaluating `lateinit` controllers during setup.
+**Fix:** Use the scene block receiver only for setup. Register worlds and screens, navigate, select placement factories, and read runtime state in `onReady()` or later. Capture providers in input bindings instead of evaluating `lateinit` controllers during setup.
 
 ## No world or view is attached
 
 **Symptom:** `strata.world` or `strata.view` access fails, or nothing is rendered.
 
-**Likely cause:** `attachWorld` was not called after scene creation.
+**Likely cause:** No registered world is active, or the current screen is UI-only.
 
-**Fix:** Create the game-owned `World` in `onReady()` and call `strata.attachWorld(world, terrainFor)`. A scene accepts only one world attachment.
+**Fix:** Register the game-owned `World` in `onReady()` and activate it directly or navigate to a screen that declares it with `world(id)`.
 
 ## UI access fails
 
 **Symptom:** `strata.ui` access fails or no UI appears.
 
-**Likely cause:** `createUi` was not called, was called during scene setup, or failed because a required skin style is missing.
+**Likely cause:** `strata.ui` refers only to the compatibility UI, or no screen with UI is visible.
 
-**Fix:** Call `strata.createUi` once after scene creation. Ensure the `Skin` contains the theme's typed styles, and retain/dispose the skin in game code.
+**Fix:** Define `ui {}` on a registered screen and navigate to it. Screen UI is managed through `strata.screens`; use `strata.ui` only after calling the compatibility `createUi` API.
 
 ## A stateful visual fails through a single-visual property
 

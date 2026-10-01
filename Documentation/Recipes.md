@@ -131,7 +131,7 @@ placement {
     }
 }
 
-// onReady, after attachWorld
+// onReady, after registering and activating a world
 strata.placement.selectedFactory = ::House
 strata.placement.enabled = true
 ```

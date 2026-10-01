@@ -81,7 +81,7 @@ Defaults are current tile `true`, position `true`, path `true`, direction `false
 
 ## Runtime behavior
 
-All four setting objects are shared with the attached renderers rather than copied, so every property described above can change at runtime. Debug shapes render after the normal world and grid. Settings may be configured before a world is attached; they take effect when a view exists.
+All four setting objects are shared with registered renderers rather than copied, so every property described above can change at runtime. Debug shapes render after the normal world and grid. Settings may be configured before worlds are registered; they take effect on the active view.
 
 Debug output diagnoses engine spatial/render state. It does not display game-specific AI, economy, or semantic visual state unless the game builds that UI/logging itself.
 
