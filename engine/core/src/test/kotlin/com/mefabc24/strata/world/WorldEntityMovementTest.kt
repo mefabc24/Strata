@@ -1,5 +1,6 @@
 package com.mefabc24.strata.world
 
+import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -232,6 +233,46 @@ class WorldEntityMovementTest {
             EntityDirection.NORTH_EAST,
             entity.direction
         )
+    }
+
+    @Test
+    fun `movement vectors resolve all eight screen directions`() {
+        val origin = EntityPosition(2.5f, 2.5f)
+        val expectedDirections = mapOf(
+            TilePosition(1, 1) to EntityDirection.NORTH,
+            TilePosition(2, 1) to EntityDirection.NORTH_EAST,
+            TilePosition(3, 1) to EntityDirection.EAST,
+            TilePosition(3, 2) to EntityDirection.SOUTH_EAST,
+            TilePosition(3, 3) to EntityDirection.SOUTH,
+            TilePosition(2, 3) to EntityDirection.SOUTH_WEST,
+            TilePosition(1, 3) to EntityDirection.WEST,
+            TilePosition(1, 2) to EntityDirection.NORTH_WEST
+        )
+        val entity = entityAt(origin.x, origin.y)
+
+        expectedDirections.forEach { (target, direction) ->
+            entity.teleport(origin)
+            entity.followPath(listOf(target), speed = 1f)
+            assertEquals(direction, entity.direction, target.toString())
+        }
+    }
+
+    @Test
+    fun `diagonal movement uses the full segment distance`() {
+        val entity = entityAt(0.5f, 0.5f)
+        entity.followPath(listOf(TilePosition(1, 1)), speed = 1f)
+
+        entity.updateMovement(1f)
+
+        val component = 0.5f + 1f / sqrt(2f)
+        assertEquals(component, entity.position.x, absoluteTolerance = 0.00001f)
+        assertEquals(component, entity.position.y, absoluteTolerance = 0.00001f)
+        assertTrue(entity.isMoving)
+
+        entity.updateMovement(sqrt(2f) - 1f)
+
+        assertEquals(EntityPosition(1.5f, 1.5f), entity.position)
+        assertFalse(entity.isMoving)
     }
 
     @Test

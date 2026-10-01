@@ -295,6 +295,117 @@ class EntityRegistryTest {
             textures.getValue(EntityDirection.NORTH_EAST),
             registry.entries.single().selectionVisual.texture
         )
+
+        val runtime = WorldEntity(
+            Wolf(WolfState.RESTING),
+            EntityPosition(0.5f, 0.5f)
+        )
+        EntityDirection.entries.forEach { direction ->
+            runtime.face(direction)
+            assertSame(
+                textures.getValue(direction),
+                registry.resolve(runtime, 0f)?.frame?.texture,
+                direction.name
+            )
+        }
+    }
+
+    @Test
+    fun `four direction registration uses deterministic optional direction fallbacks`() {
+        val baseDirections = listOf(
+            EntityDirection.NORTH_EAST,
+            EntityDirection.SOUTH_EAST,
+            EntityDirection.SOUTH_WEST,
+            EntityDirection.NORTH_WEST
+        )
+        val textures = baseDirections.associateWith { region(16, 24) }
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = { path ->
+                textures.getValue(
+                    EntityDirection.valueOf(path.substringAfterLast("/").substringBefore(".png"))
+                )
+            },
+            loadAlphaMask = { null }
+        )
+        registry.registerDirectional<Wolf>(
+            configure = { representativeDirection = EntityDirection.NORTH }
+        ) {
+            baseDirections.forEach { direction ->
+                direction(direction) { sprite("${direction.name}.png") }
+            }
+        }
+        registry.prepare()
+        val runtime = WorldEntity(
+            Wolf(WolfState.RESTING),
+            EntityPosition(0.5f, 0.5f)
+        )
+        val fallbacks = mapOf(
+            EntityDirection.NORTH to EntityDirection.NORTH_EAST,
+            EntityDirection.EAST to EntityDirection.SOUTH_EAST,
+            EntityDirection.SOUTH to EntityDirection.SOUTH_WEST,
+            EntityDirection.WEST to EntityDirection.NORTH_WEST
+        )
+
+        fallbacks.forEach { (direction, fallback) ->
+            runtime.face(direction)
+            assertSame(
+                textures.getValue(fallback),
+                registry.resolve(runtime, 0f)?.frame?.texture,
+                direction.name
+            )
+        }
+        assertSame(
+            textures.getValue(EntityDirection.NORTH_EAST),
+            registry.entries.single().selectionVisual.texture
+        )
+    }
+
+    @Test
+    fun `stateful four direction registration applies fallback to runtime and representative visuals`() {
+        val baseDirections = listOf(
+            EntityDirection.NORTH_EAST,
+            EntityDirection.SOUTH_EAST,
+            EntityDirection.SOUTH_WEST,
+            EntityDirection.NORTH_WEST
+        )
+        val textures = baseDirections.associateWith { region(16, 24) }
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = { path ->
+                textures.getValue(
+                    EntityDirection.valueOf(path.substringAfterLast("/").substringBefore(".png"))
+                )
+            },
+            loadAlphaMask = { null }
+        )
+        registry.registerStateful<Wolf>(
+            stateFor = { _: WorldEntity -> WolfState.RESTING },
+            configure = { representativeDirection = EntityDirection.EAST }
+        ) {
+            state(WolfState.RESTING) {
+                baseDirections.forEach { direction ->
+                    direction(direction) { sprite("${direction.name}.png") }
+                }
+            }
+        }
+        registry.prepare()
+        val runtime = WorldEntity(
+            Wolf(WolfState.RESTING),
+            EntityPosition(0.5f, 0.5f)
+        )
+        runtime.face(EntityDirection.SOUTH)
+
+        assertSame(
+            textures.getValue(EntityDirection.SOUTH_WEST),
+            registry.resolve(runtime, 0f)?.frame?.texture
+        )
+        assertSame(
+            textures.getValue(EntityDirection.SOUTH_EAST),
+            registry.entries.single().selectionVisual.texture
+        )
     }
 
     @Test
