@@ -1,5 +1,6 @@
 package com.mefabc24.strata.debug
 
+import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
@@ -25,6 +26,8 @@ class DebugSettingsTest {
         assertFalse(settings.entities.enabled)
         assertFalse(settings.picking.enabled)
         assertFalse(settings.renderOrder.enabled)
+        assertFalse(settings.renderOrder.showTerrainIndices)
+        assertFalse(settings.renderOrder.showTerrainHeatmap)
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)
@@ -43,6 +46,23 @@ class DebugSettingsTest {
         assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
+    }
+
+    @Test
+    fun `render order heatmap colors are copied on assignment and access`() {
+        val settings = DebugRenderOrderSettings()
+        val start = Color(0.1f, 0.2f, 0.3f, 0.4f)
+        val end = Color(0.6f, 0.7f, 0.8f, 0.5f)
+        settings.terrainHeatmapStartColor = start
+        settings.terrainHeatmapEndColor = end
+
+        start.set(Color.RED)
+        end.set(Color.BLUE)
+        settings.terrainHeatmapStartColor.set(Color.GREEN)
+        settings.terrainHeatmapEndColor.set(Color.YELLOW)
+
+        assertEquals(Color(0.1f, 0.2f, 0.3f, 0.4f), settings.terrainHeatmapStartColor)
+        assertEquals(Color(0.6f, 0.7f, 0.8f, 0.5f), settings.terrainHeatmapEndColor)
     }
 
     @Test
