@@ -3,6 +3,7 @@ package com.mefabc24.strata.pathfinding
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -474,5 +475,114 @@ class PathfindingTest {
         assertTrue(
             blocked !in path
         )
+    }
+
+    @Test
+    fun `four way movement remains the default`() {
+        val world = createWorld(width = 3, height = 3)
+        val start = TilePosition(0, 0)
+        val goal = TilePosition(2, 2)
+
+        val defaultPath = world.findPath(start, goal)
+        val fourWayPath = world.findPath(start, goal, PathMovementMode.FOUR_WAY)
+
+        assertEquals(fourWayPath, defaultPath)
+        assertEquals(5, defaultPath?.size)
+    }
+
+    @Test
+    fun `eight way movement finds a shorter open diagonal route`() {
+        val path = createWorld(width = 3, height = 3).findPath(
+            start = TilePosition(0, 0),
+            goal = TilePosition(2, 2),
+            movementMode = PathMovementMode.EIGHT_WAY
+        )
+
+        assertEquals(
+            listOf(TilePosition(0, 0), TilePosition(1, 1), TilePosition(2, 2)),
+            path
+        )
+    }
+
+    @Test
+    fun `eight way movement respects world boundaries`() {
+        val world = createWorld(width = 2, height = 3)
+        val path = requireNotNull(
+            world.findPath(
+                start = TilePosition(0, 0),
+                goal = TilePosition(1, 2),
+                movementMode = PathMovementMode.EIGHT_WAY
+            )
+        )
+
+        assertTrue(path.all { it.x in 0 until world.width && it.y in 0 until world.height })
+        assertEquals(3, path.size)
+    }
+
+    @Test
+    fun `eight way movement cannot cut through a blocked corner`() {
+        val blocked = TilePosition(1, 0)
+        val path = createWorld(width = 2, height = 2).findPath(
+            start = TilePosition(0, 0),
+            goal = TilePosition(1, 1),
+            movementMode = PathMovementMode.EIGHT_WAY,
+            canEnter = { it != blocked }
+        )
+
+        assertEquals(
+            listOf(TilePosition(0, 0), TilePosition(0, 1), TilePosition(1, 1)),
+            path
+        )
+    }
+
+    @Test
+    fun `default diagonal movement cost is square root of two`() {
+        val result = createWorld(width = 2, height = 2).findPathDiagnostic(
+            start = TilePosition(0, 0),
+            goal = TilePosition(1, 1),
+            movementMode = PathMovementMode.EIGHT_WAY
+        )
+
+        assertEquals(sqrt(2f), result.totalCost)
+    }
+
+    @Test
+    fun `weighted eight way movement remains optimal for arbitrary costs`() {
+        val result = createWorld(width = 3, height = 3).findPathDiagnostic(
+            start = TilePosition(0, 0),
+            goal = TilePosition(2, 2),
+            movementMode = PathMovementMode.EIGHT_WAY,
+            movementCost = { from, to ->
+                if (from.x != to.x && from.y != to.y) 10f else 1f
+            }
+        )
+
+        assertEquals(4f, result.totalCost)
+        assertTrue(
+            requireNotNull(result.path).zipWithNext().all { (from, to) ->
+                from.x == to.x || from.y == to.y
+            }
+        )
+    }
+
+    @Test
+    fun `multi waypoint and diagnostic searches respect eight way movement`() {
+        val waypoints = listOf(
+            TilePosition(0, 0),
+            TilePosition(1, 1),
+            TilePosition(2, 0)
+        )
+        val world = createWorld(width = 3, height = 2)
+
+        val path = world.findPath(waypoints, PathMovementMode.EIGHT_WAY)
+        val diagnostic = world.findPathDiagnostic(
+            waypoints,
+            PathMovementMode.EIGHT_WAY
+        )
+
+        assertEquals(waypoints, path)
+        assertEquals(waypoints, diagnostic.path)
+        assertEquals(2f * sqrt(2f), diagnostic.totalCost)
+        assertTrue(diagnostic.explored.isNotEmpty())
     }
 }
