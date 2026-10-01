@@ -109,12 +109,17 @@ class DebugSettings {
 }
 
 class DebugPanelSettings {
+    /** Whether the debug panel is enabled. */
     var enabled: Boolean = false
-    var visible: Boolean = true
-    var expanded: Boolean = false
+
+    /** Initial panel visibility. Can also be changed at runtime. */
+    var visible: Boolean = false
+
     var toggleKey: Int = Input.Keys.F3
         set(value) {
-            require(value >= 0) { "Debug panel toggle key must be non-negative." }
+            require(value >= 0) {
+                "Debug panel toggle key must be non-negative."
+            }
             field = value
         }
 }
