@@ -261,7 +261,8 @@ class ScreenManager internal constructor(
         ensureCreated(item)
         visible += item
         activate(item)
-        refreshPresentation()
+        refreshInput()
+        entry.definition.worldId?.let(worlds::activate)
     }
 
     fun showOverlay(
@@ -275,7 +276,10 @@ class ScreenManager internal constructor(
         val item = visible.lastOrNull()?.takeIf { it.overlay } ?: return false
         visible.removeAt(visible.lastIndex)
         deactivate(item)
-        refreshPresentation()
+        refreshInput()
+        if (item.entry.definition.worldId != null) {
+            restoreDeclaredWorld()
+        }
         return true
     }
 
@@ -290,7 +294,12 @@ class ScreenManager internal constructor(
         backStack.removeAll { it == id }
         entries.remove(id)
         disposeEntry(entry)
-        refreshPresentation()
+        refreshInput()
+        if (visible.isEmpty()) {
+            worlds.deactivate()
+        } else if (affected.any { it.entry.definition.worldId != null }) {
+            restoreDeclaredWorld()
+        }
         return true
     }
 
@@ -329,7 +338,8 @@ class ScreenManager internal constructor(
         ensureCreated(item)
         visible += item
         activate(item)
-        refreshPresentation()
+        refreshInput()
+        target.definition.worldId?.let(worlds::activate) ?: worlds.deactivate()
     }
 
     private fun ensureCreated(item: VisibleScreen) {
@@ -376,7 +386,7 @@ class ScreenManager internal constructor(
         entry.managedUi = null
     }
 
-    private fun refreshPresentation() {
+    private fun refreshInput() {
         val processors = mutableListOf<InputProcessor>()
         for (item in visible.asReversed()) {
             item.entry.managedUi?.ui?.inputProcessor?.let(processors::add)
@@ -386,7 +396,9 @@ class ScreenManager internal constructor(
             }
         }
         input.setScreenUiProcessors(processors)
+    }
 
+    private fun restoreDeclaredWorld() {
         val worldId = visible.asReversed()
             .firstNotNullOfOrNull { it.entry.definition.worldId }
         if (worldId == null) worlds.deactivate() else worlds.activate(worldId)
