@@ -57,6 +57,7 @@ class SandboxGame : StrataGame() {
                 debug {
                     panel {
                         enabled = true
+                        visible = true
                     }
 
                     performance {
