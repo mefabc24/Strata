@@ -19,6 +19,11 @@ class DebugPathfindingToolTest {
     private data object TestEntity : Entity
 
     @Test
+    fun `consume reached waypoints defaults to enabled`() {
+        assertTrue(DebugSettings().pathfinding.consumeReachedWaypoints)
+    }
+
+    @Test
     fun `standalone clicks append waypoints and update the combined path`() {
         val tool = DebugPathfindingTool(world())
         val a = TilePosition(0, 0)
@@ -244,6 +249,127 @@ class DebugPathfindingToolTest {
         assertEquals(listOf(TilePosition(3, 3)), tool.waypoints)
         assertNull(tool.result)
         assertTrue(first.isMoving)
+    }
+
+    @Test
+    fun `entity route consumes completed sections and retains the current node`() {
+        val world = world()
+        val tool = DebugPathfindingTool(world)
+        val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(0, 0)))
+        val a = TilePosition(0, 0)
+        val b = TilePosition(2, 0)
+        val c = TilePosition(2, 2)
+        tool.selectEntity(entity)
+        tool.click(b)
+        tool.click(c)
+
+        assertEquals(listOf(a, b, c), tool.waypoints)
+        assertEquals(a, tool.result?.path?.first())
+
+        world.updateEntities(1f)
+        tool.update()
+
+        assertEquals(listOf(b, c), tool.waypoints)
+        assertEquals(b, tool.result?.path?.first())
+        assertEquals(c, tool.result?.path?.last())
+
+        world.updateEntities(1f)
+        tool.update()
+
+        assertEquals(listOf(c), tool.waypoints)
+        assertEquals(listOf(c), tool.result?.path)
+    }
+
+    @Test
+    fun `disabled consumption preserves the complete assigned route`() {
+        val world = world()
+        val tool = DebugPathfindingTool(
+            world = world,
+            state = DebugWorldState(),
+            consumeReachedWaypoints = { false }
+        )
+        val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(0, 0)))
+        val route = listOf(TilePosition(0, 0), TilePosition(2, 0), TilePosition(2, 2))
+        tool.selectEntity(entity)
+        tool.click(route[1])
+        tool.click(route[2])
+
+        world.updateEntities(2f)
+        tool.update()
+
+        assertEquals(route, tool.waypoints)
+        assertEquals(route.first(), tool.result?.path?.first())
+        assertEquals(route.last(), tool.result?.path?.last())
+    }
+
+    @Test
+    fun `standalone routes do not consume while entities move`() {
+        val world = world()
+        val tool = DebugPathfindingTool(world)
+        val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(0, 0)))
+        entity.followPath(listOf(TilePosition(0, 0), TilePosition(2, 0)), 2f)
+        val route = listOf(TilePosition(0, 1), TilePosition(2, 1), TilePosition(2, 2))
+        route.forEach(tool::click)
+
+        world.updateEntities(1f)
+        tool.update()
+
+        assertEquals(route, tool.waypoints)
+        assertEquals(route.first(), tool.result?.path?.first())
+    }
+
+    @Test
+    fun `selected entity stays held at its destination and accepts another goal`() {
+        val world = world()
+        val settings = DebugSettings()
+        val tool = DebugPathfindingTool(
+            world = world,
+            state = settings.worldState,
+            entityFreezeState = settings.entityFreezeState
+        )
+        val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(0, 0)))
+        tool.selectEntity(entity)
+        tool.click(TilePosition(2, 0))
+
+        world.updateEntities(1f)
+        tool.update()
+
+        assertFalse(entity.isMoving)
+        assertTrue(settings.isEntityHeld(entity))
+        assertTrue(settings.worldState.pathfindingEntityWaiting)
+
+        tool.click(TilePosition(2, 2))
+
+        assertTrue(entity.isMoving)
+        assertFalse(settings.worldState.pathfindingEntityWaiting)
+        assertEquals(TilePosition(2, 1), entity.remainingPath.first())
+    }
+
+    @Test
+    fun `clear and entity replacement release only pathfinding-owned holds`() {
+        val world = world()
+        val settings = DebugSettings()
+        val tool = DebugPathfindingTool(
+            world = world,
+            state = settings.worldState,
+            entityFreezeState = settings.entityFreezeState
+        )
+        val first = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(0, 0)))
+        val second = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(3, 3)))
+        settings.setEntityFrozen(first, true)
+
+        tool.selectEntity(first)
+        assertTrue(settings.isEntityHeld(first))
+        tool.selectEntity(second)
+
+        assertTrue(settings.isEntityFrozen(first))
+        assertTrue(settings.isEntityHeld(first))
+        assertTrue(settings.isEntityHeld(second))
+
+        tool.clear()
+
+        assertFalse(settings.isEntityHeld(second))
+        assertTrue(settings.isEntityFrozen(first))
     }
 
     private fun world() = World(5, 5) { _, _ -> TestTile }

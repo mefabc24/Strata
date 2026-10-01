@@ -93,6 +93,20 @@ class DebugContextStatusTest {
         )))
         assertEquals("Success", complete.rows.first { it.key == "Status" }.value)
         assertEquals("2 tiles, cost 1.00", complete.rows.first { it.key == "Path" }.value)
+
+        val held = requireNotNull(debugContextStatus(DebugContextInputs(
+            DebugToolMode.PATHFINDING,
+            pathEntity = "Wolf",
+            pathEntityWaiting = true,
+            pathWaypoints = listOf(TilePosition(2, 1)),
+            pathResult = result.copy(
+                start = TilePosition(2, 1),
+                path = listOf(TilePosition(2, 1)),
+                waypoints = listOf(TilePosition(2, 1)),
+                totalCost = 0f
+            )
+        )))
+        assertEquals("Waiting at destination", held.rows.first { it.key == "Status" }.value)
     }
 
     @Test

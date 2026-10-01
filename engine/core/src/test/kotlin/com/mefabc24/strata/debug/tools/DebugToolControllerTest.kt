@@ -3,12 +3,15 @@ package com.mefabc24.strata.debug.tools
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.debug.DebugToolMode
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.inspector.DebugInspector
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.terrain.TerrainRegistry
 import com.mefabc24.strata.world.Footprint
+import com.mefabc24.strata.world.Entity
+import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
@@ -24,6 +27,7 @@ class DebugToolControllerTest {
     private enum class Terrain : TerrainId { GRASS }
     private data object TestTile : Tile
     private class TestPlaceable : Placeable { override val footprint = Footprint.square(1) }
+    private data object TestEntity : Entity
 
     @Test
     fun `switching tools cancels interactions and restores placement state`() {
@@ -109,6 +113,32 @@ class DebugToolControllerTest {
         assertEquals(DebugToolMode.NONE, tools.mode)
         assertEquals(null, pathfinding.start)
         assertEquals(null, pathfinding.result)
+    }
+
+    @Test
+    fun `switching away from pathfinding releases its entity hold`() {
+        val world = World(2, 2) { _, _ -> TestTile }
+        val settings = DebugSettings()
+        val pathfinding = DebugPathfindingTool(
+            world = world,
+            state = settings.worldState,
+            entityFreezeState = settings.entityFreezeState
+        )
+        val tools = DebugToolController(
+            painter = DebugTerrainPainter(world, emptyList()),
+            placement = null,
+            buildDrag = null,
+            inspector = DebugInspector(settings.worldState),
+            pathfinding = pathfinding
+        )
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        tools.select(DebugToolMode.PATHFINDING)
+        pathfinding.selectEntity(entity)
+        assertTrue(settings.isEntityHeld(entity))
+
+        tools.select(DebugToolMode.INSPECT)
+
+        assertFalse(settings.isEntityHeld(entity))
     }
 
     @Test

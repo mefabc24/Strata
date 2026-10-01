@@ -334,6 +334,57 @@ class EntityRegistryTest {
     }
 
     @Test
+    fun `representative resolution uses registered state and direction generically`() {
+        val textures = EntityDirection.entries.flatMap { direction ->
+            listOf(
+                "entities/rest-$direction.png" to region(16, 24),
+                "entities/move-$direction.png" to region(16, 24)
+            )
+        }.toMap()
+        val registry = EntityRegistry(
+            directory = "entities",
+            queueTexture = {},
+            regionFor = textures::getValue,
+            loadAlphaMask = { null }
+        )
+        registry.registerStateful<Wolf>(
+            stateFor = { _, wolf -> wolf.state },
+            configure = { representativeDirection = EntityDirection.NORTH_EAST }
+        ) {
+            state(WolfState.RESTING) {
+                EntityDirection.entries.forEach { direction ->
+                    direction(direction) { sprite("rest-$direction.png") }
+                }
+            }
+            state(WolfState.MOVING) {
+                EntityDirection.entries.forEach { direction ->
+                    direction(direction) { sprite("move-$direction.png") }
+                }
+            }
+            representativeState(WolfState.MOVING)
+        }
+        registry.prepare()
+        val runtime = WorldEntity(
+            Wolf(WolfState.RESTING),
+            EntityPosition(0.5f, 0.5f)
+        )
+        runtime.face(EntityDirection.SOUTH_WEST)
+
+        val representative = requireNotNull(registry.resolveRepresentative(runtime, 3f))
+
+        assertEquals(WolfState.MOVING, representative.state)
+        assertEquals(3f, representative.stateTime)
+        assertSame(
+            textures.getValue("entities/move-NORTH_EAST.png"),
+            representative.frame.texture
+        )
+        assertSame(
+            textures.getValue("entities/rest-SOUTH_WEST.png"),
+            registry.resolve(runtime, 3f)?.frame?.texture
+        )
+    }
+
+    @Test
     fun `directional sheet uses arbitrary game-defined row order`() {
         val pixmap = Pixmap(32, 40, Pixmap.Format.RGBA8888)
         val texture = Texture(pixmap)
