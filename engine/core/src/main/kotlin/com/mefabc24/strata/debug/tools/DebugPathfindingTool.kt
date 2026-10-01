@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug.tools
 
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.debug.DebugEntityFreezeState
+import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.pathfinding.findPathDiagnostic
 import com.mefabc24.strata.world.TilePosition
@@ -15,7 +16,8 @@ class DebugPathfindingTool internal constructor(
     private val world: World,
     private val state: DebugWorldState,
     private val canEnter: (TilePosition) -> Boolean = { true },
-    private val movementCost: (TilePosition, TilePosition) -> Float = { _, _ -> 1f },
+    private val movementCost: ((TilePosition, TilePosition) -> Float)? = null,
+    private val movementMode: () -> PathMovementMode = { PathMovementMode.FOUR_WAY },
     private val entitySpeedMultiplier: () -> Float = { 1f },
     private val consumeReachedWaypoints: () -> Boolean = { true },
     private val entityFreezeState: DebugEntityFreezeState = DebugEntityFreezeState()
@@ -84,18 +86,13 @@ class DebugPathfindingTool internal constructor(
         state.pathfinding = if (requested.size == 1) {
             null
         } else {
-            world.findPathDiagnostic(requested, canEnter, movementCost)
+            findPathDiagnostic(requested)
         }
     }
 
     private fun appendEntityDestination(entity: WorldEntity, position: TilePosition) {
         val committedWaypoints = committedEntityResult?.waypoints ?: waypoints
-        val segment = world.findPathDiagnostic(
-            start = committedWaypoints.last(),
-            goal = position,
-            canEnter = canEnter,
-            movementCost = movementCost
-        )
+        val segment = findPathDiagnostic(committedWaypoints.last(), position)
         if (!segment.success) {
             state.pathfinding = failedCombinedResult(
                 committedEntityResult,
@@ -246,4 +243,27 @@ class DebugPathfindingTool internal constructor(
         waypoints = requestedWaypoints,
         totalCost = null
     )
+
+    private fun findPathDiagnostic(
+        waypoints: List<TilePosition>
+    ): PathfindingDiagnosticResult {
+        val cost = movementCost
+        return if (cost == null) {
+            world.findPathDiagnostic(waypoints, movementMode(), canEnter)
+        } else {
+            world.findPathDiagnostic(waypoints, movementMode(), canEnter, cost)
+        }
+    }
+
+    private fun findPathDiagnostic(
+        start: TilePosition,
+        goal: TilePosition
+    ): PathfindingDiagnosticResult {
+        val cost = movementCost
+        return if (cost == null) {
+            world.findPathDiagnostic(start, goal, movementMode(), canEnter)
+        } else {
+            world.findPathDiagnostic(start, goal, movementMode(), canEnter, cost)
+        }
+    }
 }

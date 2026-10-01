@@ -60,9 +60,10 @@ internal class DebugRuntime(
         canEnter = { position ->
             settings.pathTraversal?.invoke(world, position) ?: true
         },
-        movementCost = { from, to ->
-            settings.pathCost?.invoke(world, from, to) ?: 1f
+        movementCost = settings.pathCost?.let { cost ->
+            { from, to -> cost(world, from, to) }
         },
+        movementMode = { settings.pathfinding.movementMode },
         entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier },
         consumeReachedWaypoints = { settings.pathfinding.consumeReachedWaypoints },
         entityFreezeState = settings.entityFreezeState

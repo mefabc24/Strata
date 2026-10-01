@@ -20,6 +20,7 @@ import com.mefabc24.strata.debug.inspector.formatTilePosition
 import com.mefabc24.strata.debug.inspector.formatTilePositions
 import com.mefabc24.strata.debug.tools.*
 import com.mefabc24.strata.iso.IsoWorldView
+import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.render.`object`.ObjectEntry
 import com.mefabc24.strata.render.`object`.ObjectRegistry
@@ -398,6 +399,20 @@ internal class DebugPanel(
                     "World visualization",
                     { settings.pathfinding.enabled }
                 ) { settings.pathfinding.enabled = it }
+                label("Movement")
+                val movementModes = ui.selectionGroup(
+                    PathMovementMode.entries,
+                    settings.pathfinding.movementMode
+                ) {
+                    settings.pathfinding.movementMode = it
+                }
+                synchronizers += {
+                    movementModes.select(settings.pathfinding.movementMode)
+                }
+                responsiveGrid(105f, 36f, maximumColumns = 2) {
+                    selectableButton("4-way", PathMovementMode.FOUR_WAY, movementModes)
+                    selectableButton("8-way", PathMovementMode.EIGHT_WAY, movementModes)
+                }.cell { fillAvailableX() }
                 toggleGrid(
                     toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) {
                         settings.pathfinding.showExploredNodes = it

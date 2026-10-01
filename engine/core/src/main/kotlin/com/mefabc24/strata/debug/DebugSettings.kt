@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
+import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
@@ -210,6 +211,9 @@ class DebugInspectSettings {
 
 class DebugPathfindingSettings : DebugFeatureSettings() {
     init { enabled = true }
+
+    /** Tile transitions used by the pathfinding debug tool. */
+    var movementMode: PathMovementMode = PathMovementMode.FOUR_WAY
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
