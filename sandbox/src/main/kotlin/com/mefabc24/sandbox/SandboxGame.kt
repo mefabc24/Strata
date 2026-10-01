@@ -11,6 +11,11 @@ import com.mefabc24.strata.Strata
 import com.mefabc24.strata.StrataGame
 import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
+import com.mefabc24.strata.screen.ScreenId
+import com.mefabc24.strata.ui.StrataAlignment
+import com.mefabc24.strata.ui.cell
+import com.mefabc24.strata.ui.fillAvailable
+import com.mefabc24.strata.world.WorldId
 
 class SandboxGame : StrataGame() {
 
@@ -59,7 +64,7 @@ class SandboxGame : StrataGame() {
                     panel {
                         enabled = true
                         visibleOnStartup = true
-                        toggleKey = Input.Keys.ESCAPE
+                        toggleKey = Input.Keys.F3
                     }
 
                     performance {
@@ -173,30 +178,96 @@ class SandboxGame : StrataGame() {
 
     private lateinit var roaming: SandboxRoamingController
     private lateinit var sandboxWorld: World
+    private lateinit var undergroundWorld: World
 
     override fun onReady() {
-        sandboxWorld = createSandboxWorld()
+        sandboxWorld = createSandboxWorld(underground = false)
+        undergroundWorld = createSandboxWorld(underground = true)
 
-        strata.attachWorld(
-            world = sandboxWorld,
-            terrainFor = { tile ->
-                (tile as SandboxTile).terrain
-            }
-        )
+        strata.worlds.register(SURFACE_WORLD, sandboxWorld, ::terrainFor)
+        strata.worlds.register(UNDERGROUND_WORLD, undergroundWorld, ::terrainFor)
 
         roaming = SandboxRoamingController(
             world = sandboxWorld,
             isHeld = strata.debug::isEntityHeld
         )
+
+        registerScreens()
+        strata.screens.navigate(MAIN_MENU)
     }
 
     override fun updateGame(simulationDelta: Float) {
-        roaming.update(simulationDelta)
+        if (strata.worlds.activeWorld === sandboxWorld) {
+            roaming.update(simulationDelta)
+        }
     }
 
-    private fun createSandboxWorld(): World {
+    private fun registerScreens() {
+        strata.screens {
+            register(MAIN_MENU) {
+                ui {
+                    column(alignment = StrataAlignment.CENTER) {
+                        panel {
+                            label("STRATA SANDBOX")
+                            button("Play") { navigate(GAMEPLAY) }
+                            button("Settings") { navigate(SETTINGS) }
+                        }
+                    }.cell { fillAvailable() }
+                }
+            }
+
+            register(SETTINGS) {
+                ui {
+                    column(alignment = StrataAlignment.CENTER) {
+                        panel {
+                            label("Settings")
+                            label("F3 toggles the engine debug panel during gameplay.")
+                            button("Back") { back() }
+                        }
+                    }.cell { fillAvailable() }
+                }
+            }
+
+            register(GAMEPLAY) {
+                world(SURFACE_WORLD)
+                ui {
+                    row {
+                        panel {
+                            label("Worlds")
+                            button("Surface") {
+                                strata.worlds.activate(SURFACE_WORLD)
+                            }
+                            button("Underground") {
+                                strata.worlds.activate(UNDERGROUND_WORLD)
+                            }
+                        }
+                        panel {
+                            button("Pause") { showOverlay(PAUSE_MENU) }
+                            button("Main menu") { navigate(MAIN_MENU) }
+                        }
+                    }
+                }
+            }
+
+            register(PAUSE_MENU) {
+                ui {
+                    column(alignment = StrataAlignment.CENTER) {
+                        panel {
+                            label("Paused")
+                            button("Resume") { dismissOverlay() }
+                            button("Main menu") { navigate(MAIN_MENU) }
+                        }
+                    }.cell { fillAvailable() }
+                }
+            }
+        }
+    }
+
+    private fun createSandboxWorld(underground: Boolean): World {
         val world = World(WORLD_SIZE, WORLD_SIZE) { x, y ->
-            val terrain = if (x in 12..18 && y in 12..18) {
+            val terrain = if (underground) {
+                if ((x + y) % 7 == 0) TerrainType.ROCK else TerrainType.DIRT
+            } else if (x in 12..18 && y in 12..18) {
                 TerrainType.WATER
             } else {
                 TerrainType.LOW_GRASS
@@ -205,25 +276,27 @@ class SandboxGame : StrataGame() {
             SandboxTile(terrain)
         }
 
-        // Create a temporary overlay to verify layered rendering.
-        world.addOverlayLayer("demo")
+        if (!underground) {
+            // Create a temporary overlay to verify layered rendering.
+            world.addOverlayLayer("demo")
 
-        for (x in 23..25) {
-            for (y in 23..25) {
-                world.setOverlayTile(
-                    layerId = "demo",
-                    x = x,
-                    y = y,
-                    tile = SandboxTile(TerrainType.BUSH)
-                )
+            for (x in 23..25) {
+                for (y in 23..25) {
+                    world.setOverlayTile(
+                        layerId = "demo",
+                        x = x,
+                        y = y,
+                        tile = SandboxTile(TerrainType.BUSH)
+                    )
+                }
             }
         }
 
         check(
             world.place(
                 placeable = House(),
-                x = 5,
-                y = 5
+                x = if (underground) 9 else 5,
+                y = if (underground) 9 else 5
             ) != null
         ) {
             "Failed to place test house."
@@ -231,6 +304,9 @@ class SandboxGame : StrataGame() {
 
         return world
     }
+
+    private fun terrainFor(tile: com.mefabc24.strata.world.Tile) =
+        (tile as SandboxTile).terrain
 
     private fun playBuildingSound() {
         strata.audio.playSound(BuildingSound.PLACE)
@@ -243,5 +319,12 @@ class SandboxGame : StrataGame() {
         )
 
         private const val WORLD_SIZE = 50
+
+        private val SURFACE_WORLD = WorldId("surface")
+        private val UNDERGROUND_WORLD = WorldId("underground")
+        private val MAIN_MENU = ScreenId("main-menu")
+        private val SETTINGS = ScreenId("settings")
+        private val GAMEPLAY = ScreenId("gameplay")
+        private val PAUSE_MENU = ScreenId("pause")
     }
 }
