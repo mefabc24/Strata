@@ -108,13 +108,15 @@ class ScreenManagerTest {
         assertEquals(listOf("world"), worldInputCalls)
         worldInputCalls.clear()
 
+        fixture.worlds.activate("underground")
+
         fixture.screens.showOverlay("pause")
 
         assertEquals(
             listOf(ScreenId("gameplay"), ScreenId("pause")),
             fixture.screens.activeScreenIds
         )
-        assertEquals(WorldId("city"), fixture.worlds.activeId)
+        assertEquals(WorldId("underground"), fixture.worlds.activeId)
         assertTrue(fixture.input.processor.touchDown(0, 0, 0, 0))
         assertTrue(worldInputCalls.isEmpty())
 
@@ -154,6 +156,9 @@ class ScreenManagerTest {
             }
         )
         worlds.register("city", World(3, 3) { _, _ -> TestTile() }) {
+            error("Terrain resolution is not used by this test.")
+        }
+        worlds.register("underground", World(3, 3) { _, _ -> TestTile() }) {
             error("Terrain resolution is not used by this test.")
         }
 
