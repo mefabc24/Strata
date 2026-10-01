@@ -9,6 +9,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 
 internal class StrataUiContext(
     val skin: Skin,
@@ -16,6 +20,7 @@ internal class StrataUiContext(
 ) {
     private val selectionControls = mutableListOf<StrataSelectionControl>()
     private val subscriptions = mutableListOf<StrataSelectionSubscription>()
+    private val resourceTextures = linkedMapOf<String, Texture>()
 
     fun own(control: StrataSelectionControl) {
         selectionControls += control
@@ -23,6 +28,14 @@ internal class StrataUiContext(
 
     fun own(subscription: StrataSelectionSubscription) {
         subscriptions += subscription
+    }
+
+    fun resourceDrawable(path: String): Drawable {
+        require(path.isNotBlank()) { "UI image path must not be blank." }
+        val texture = resourceTextures.getOrPut(path) {
+            Texture(Gdx.files.internal(path))
+        }
+        return TextureRegionDrawable(TextureRegion(texture))
     }
 
     fun dispose() {
@@ -36,6 +49,8 @@ internal class StrataUiContext(
 
         selectionControls.clear()
         subscriptions.clear()
+        resourceTextures.values.forEach(Texture::dispose)
+        resourceTextures.clear()
     }
 }
 
@@ -155,6 +170,22 @@ abstract class StrataLayout internal constructor(
         )
     }
 
+    /** Creates an image button from a classpath resource owned by this UI. */
+    fun imageButton(
+        resourcePath: String,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton = imageButton(
+        drawable = context.resourceDrawable(resourcePath),
+        styleName = styleName,
+        onClick = onClick
+    )
+
+    /** Displays a classpath image whose texture is owned by this UI. */
+    fun image(resourcePath: String): StrataImage = actor(
+        StrataImage(context.resourceDrawable(resourcePath))
+    )
+
     fun <T> selectableImageButton(
         drawable: Drawable,
         value: T,
@@ -173,6 +204,18 @@ abstract class StrataLayout internal constructor(
         return actor(button)
     }
 
+    fun <T> selectableImageButton(
+        resourcePath: String,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> = selectableImageButton(
+        drawable = context.resourceDrawable(resourcePath),
+        value = value,
+        group = group,
+        styleName = styleName
+    )
+
     fun row(
         spacing: Float = theme.spacing,
         padding: StrataInsets = StrataInsets.NONE,
@@ -189,6 +232,13 @@ abstract class StrataLayout internal constructor(
         return actor(row)
     }
 
+    fun row(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataRow.() -> Unit
+    ): StrataRow = row(spacing, padding, alignment.scene2dValue, configure)
+
     fun column(
         spacing: Float = theme.spacing,
         padding: StrataInsets = StrataInsets.NONE,
@@ -204,6 +254,13 @@ abstract class StrataLayout internal constructor(
 
         return actor(column)
     }
+
+    fun column(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn = column(spacing, padding, alignment.scene2dValue, configure)
 
     fun grid(
         columns: Int,
@@ -222,6 +279,14 @@ abstract class StrataLayout internal constructor(
 
         return actor(grid)
     }
+
+    fun grid(
+        columns: Int,
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid = grid(columns, spacing, padding, alignment.scene2dValue, configure)
 
     fun responsiveGrid(
         minimumItemWidth: Float = 120f,

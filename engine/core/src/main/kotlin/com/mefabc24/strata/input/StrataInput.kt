@@ -11,6 +11,7 @@ class StrataInput(
     worldProcessor: InputProcessor? = null
 ) {
     private val debugUiProcessors = mutableListOf<InputProcessor>()
+    private val screenUiProcessors = mutableListOf<InputProcessor>()
     private val uiProcessors = mutableListOf<InputProcessor>()
     private var debugWorldProcessor: InputProcessor? = null
     private var worldProcessor: InputProcessor? = null
@@ -53,6 +54,21 @@ class StrataInput(
         uiProcessors.removeAt(index)
         rebuild()
         return true
+    }
+
+    /**
+     * Replaces the processors owned by the active screen stack.
+     *
+     * The list must already be ordered from the topmost screen down. It is
+     * routed after the debug UI and before compatibility UI and world input.
+     */
+    internal fun setScreenUiProcessors(processors: List<InputProcessor>) {
+        check(processors.distinctBy { System.identityHashCode(it) }.size == processors.size) {
+            "A screen UI input processor was supplied more than once."
+        }
+        screenUiProcessors.clear()
+        screenUiProcessors += processors
+        rebuild()
     }
 
     /** Adds a debug UI processor at the highest input priority. */
@@ -110,9 +126,16 @@ class StrataInput(
         return true
     }
 
+    /** Replaces the active world processor during a world switch. */
+    internal fun replaceWorldProcessor(processor: InputProcessor?) {
+        worldProcessor = processor
+        rebuild()
+    }
+
     private fun rebuild() {
         processor.clear()
         debugUiProcessors.forEach(processor::addProcessor)
+        screenUiProcessors.forEach(processor::addProcessor)
         uiProcessors.forEach(processor::addProcessor)
         debugWorldProcessor?.let(processor::addProcessor)
         worldProcessor?.let(processor::addProcessor)

@@ -447,6 +447,9 @@ internal fun ScrollPane.useHoverScrollFocus() {
     )
 }
 
+/** Image created by Strata's resource-path UI API. */
+class StrataImage internal constructor(drawable: Drawable) : Image(drawable)
+
 private fun ScrollPane.containsActor(actor: Actor?): Boolean {
     return actor === this ||
             actor?.isDescendantOf(this) == true

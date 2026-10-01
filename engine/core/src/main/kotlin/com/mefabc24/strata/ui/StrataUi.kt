@@ -9,6 +9,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.mefabc24.strata.screen.ScreenId
+
+internal interface StrataUiNavigation {
+    fun navigate(id: ScreenId, parameters: Any?)
+    fun back(): Boolean
+    fun showOverlay(id: ScreenId, parameters: Any?, blocksInput: Boolean)
+    fun dismissOverlay(): Boolean
+}
 
 /**
  * Provides a Scene2D UI layer and a small Kotlin construction API.
@@ -40,6 +48,8 @@ class StrataUi internal constructor(
 
     private var disposed = false
 
+    internal var navigation: StrataUiNavigation? = null
+
     /**
      * Root vertical layout for game-specific UI.
      *
@@ -64,6 +74,35 @@ class StrataUi internal constructor(
     init {
         stage.addActor(root)
     }
+
+    /** Navigates from a screen-owned UI without exposing libGDX. */
+    fun navigate(id: ScreenId, parameters: Any? = null) {
+        requireNavigation().navigate(id, parameters)
+    }
+
+    fun navigate(id: String, parameters: Any? = null) =
+        navigate(ScreenId(id), parameters)
+
+    /** Returns to the previous screen or dismisses the top overlay. */
+    fun back(): Boolean = requireNavigation().back()
+
+    /** Displays a registered screen above the current presentation. */
+    fun showOverlay(
+        id: ScreenId,
+        parameters: Any? = null,
+        blocksInput: Boolean = true
+    ) {
+        requireNavigation().showOverlay(id, parameters, blocksInput)
+    }
+
+    fun showOverlay(
+        id: String,
+        parameters: Any? = null,
+        blocksInput: Boolean = true
+    ) = showOverlay(ScreenId(id), parameters, blocksInput)
+
+    /** Dismisses the top overlay, if present. */
+    fun dismissOverlay(): Boolean = requireNavigation().dismissOverlay()
 
     fun <A : Actor> actor(actor: A): A = root.actor(actor)
 
@@ -112,6 +151,15 @@ class StrataUi internal constructor(
         onClick = onClick
     )
 
+    fun imageButton(
+        resourcePath: String,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton = root.imageButton(resourcePath, styleName, onClick)
+
+    /** Displays a classpath image without exposing Scene2D drawables. */
+    fun image(resourcePath: String): StrataImage = root.image(resourcePath)
+
     fun <T> selectableImageButton(
         drawable: Drawable,
         value: T,
@@ -122,6 +170,15 @@ class StrataUi internal constructor(
         value = value,
         group = group,
         styleName = styleName
+    )
+
+    fun <T> selectableImageButton(
+        resourcePath: String,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> = root.selectableImageButton(
+        resourcePath, value, group, styleName
     )
 
     fun row(
@@ -136,6 +193,13 @@ class StrataUi internal constructor(
         configure = configure
     )
 
+    fun row(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataRow.() -> Unit
+    ): StrataRow = root.row(alignment, spacing, padding, configure)
+
     fun column(
         spacing: Float = theme.spacing,
         padding: StrataInsets = StrataInsets.NONE,
@@ -147,6 +211,13 @@ class StrataUi internal constructor(
         alignment = alignment,
         configure = configure
     )
+
+    fun column(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn = root.column(alignment, spacing, padding, configure)
 
     fun grid(
         columns: Int,
@@ -161,6 +232,14 @@ class StrataUi internal constructor(
         alignment = alignment,
         configure = configure
     )
+
+    fun grid(
+        columns: Int,
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid = root.grid(columns, alignment, spacing, padding, configure)
 
     fun responsiveGrid(
         minimumItemWidth: Float = 120f,
@@ -381,5 +460,12 @@ class StrataUi internal constructor(
         check(!disposed) {
             "StrataUi has already been disposed."
         }
+    }
+
+    private fun requireNavigation(): StrataUiNavigation {
+        checkActive()
+        return navigation ?: error(
+            "Navigation is available only to UI owned by a registered screen."
+        )
     }
 }

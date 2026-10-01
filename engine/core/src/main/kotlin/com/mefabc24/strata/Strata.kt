@@ -20,12 +20,14 @@ import com.mefabc24.strata.ui.StrataUiTheme
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.event.EventBus
+import com.mefabc24.strata.screen.ScreenManager
+import com.mefabc24.strata.world.WorldManager
 
 /**
  * Main facade for configuring and operating a Strata runtime.
  *
- * Strata owns one scene runtime while keeping game-owned world state outside
- * the engine configuration.
+ * Strata owns one shared runtime with screen navigation and registered,
+ * game-owned worlds.
  */
 @Suppress("unused")
 class Strata : Disposable {
@@ -87,6 +89,14 @@ class Strata : Disposable {
 
     val ui: StrataUi
         get() = scene.ui
+
+    /** Registered logical worlds and the currently displayed world. */
+    val worlds: WorldManager
+        get() = scene.worlds
+
+    /** Registered screens, navigation history, and visible overlays. */
+    val screens: ScreenManager
+        get() = scene.screens
 
     /**
      * Configures this Strata runtime.
@@ -186,6 +196,11 @@ class Strata : Disposable {
             simulationDelta = simulationDelta
         )
         return simulationDelta
+    }
+
+    /** Registers screens through the navigation DSL after [create]. */
+    fun screens(configure: ScreenManager.() -> Unit): ScreenManager {
+        return screens.apply(configure)
     }
 
     fun render() {

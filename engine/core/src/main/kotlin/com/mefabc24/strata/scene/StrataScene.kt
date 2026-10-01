@@ -27,6 +27,14 @@ import com.mefabc24.strata.debug.DebugRuntime
 import com.mefabc24.strata.debug.ui.DebugPanelSkin
 import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.event.EventBus
+import com.mefabc24.strata.screen.ManagedUi
+import com.mefabc24.strata.screen.ManagedUiFactory
+import com.mefabc24.strata.screen.ScreenManager
+import com.mefabc24.strata.screen.ScreenUiSpec
+import com.mefabc24.strata.ui.DefaultStrataUiSkin
+import com.mefabc24.strata.world.WorldId
+import com.mefabc24.strata.world.WorldManager
+import com.mefabc24.strata.world.WorldRuntime
 
 internal fun interface StrataUiFactory {
     fun create(
@@ -147,11 +155,11 @@ class StrataScene private constructor(
 
     private var configurationOpen = true
 
-    private var attachedWorld: World? = null
-    private var attachedView: SceneWorldView? = null
-    private var attachedPlacement: PlacementController? = null
     private var attachedUi: StrataUi? = null
     private var attachedDebug: DebugRuntime? = null
+
+    private lateinit var worldManager: WorldManager
+    private lateinit var screenManager: ScreenManager
 
     private val sceneInput = StrataInput()
     private var inputInstalled = false
@@ -162,14 +170,14 @@ class StrataScene private constructor(
      * Returns the attached world view.
      */
     val view: IsoWorldView
-        get() = attachedView?.publicView
+        get() = worldManager.activeView
             ?: error("No world view is attached to this scene.")
 
     /**
      * Returns the game-created world attached to this scene.
      */
     val world: World
-        get() = attachedWorld
+        get() = worldManager.activeWorld
             ?: error("No world is attached to this scene.")
 
     /**
@@ -179,8 +187,16 @@ class StrataScene private constructor(
      * world has subsequently been attached.
      */
     val placement: PlacementController
-        get() = attachedPlacement
+        get() = worldManager.activePlacement
             ?: error("No placement controller is attached to this scene.")
+
+    /** Logical world registry and active-world selection. */
+    val worlds: WorldManager
+        get() = worldManager
+
+    /** Logical screen registry, history, and overlay navigation. */
+    val screens: ScreenManager
+        get() = screenManager
 
     /**
      * Runtime input routing for the optional UI and world layers.
@@ -218,6 +234,16 @@ class StrataScene private constructor(
             terrain.prepare()
             objects.prepare()
             entities.prepare()
+
+            worldManager = WorldManager(
+                createRuntime = ::createWorldRuntime,
+                activationChanged = ::worldActivationChanged
+            )
+            screenManager = ScreenManager(
+                worlds = worldManager,
+                input = sceneInput,
+                uiFactory = ManagedUiFactory(::createScreenUi)
+            )
         } catch (failure: Throwable) {
             try {
                 dispose()
@@ -298,12 +324,8 @@ class StrataScene private constructor(
     }
 
     /**
-     * Attaches a game-created world and creates its isometric view.
-     *
-     * The frozen camera, rendering, control, and optional placement settings
-     * are applied to the new runtime components. Terrain and object visuals
-     * are resolved through this scene's registries. A world can be attached
-     * only once.
+     * Compatibility shortcut that registers and activates one default world.
+     * New games should use [worlds] with an explicit [WorldId].
      */
     fun attachWorld(
         world: World,
@@ -311,19 +333,25 @@ class StrataScene private constructor(
     ) {
         checkActive()
         checkConfigurationComplete()
-
-        check(attachedView == null) {
-            "A world is already attached to this scene."
+        val id = WorldId("default")
+        check(!worldManager.contains(id)) {
+            "The default world is already attached. Use scene.worlds for multiple worlds."
         }
+        worldManager.register(id, world, terrainFor)
+        worldManager.activate(id)
+    }
 
+    private fun createWorldRuntime(
+        id: WorldId,
+        world: World,
+        terrainFor: (Tile) -> TerrainId
+    ): WorldRuntime {
         val renderingSnapshot = this.renderingSnapshot.copy().apply {
             validate()
-
             if (maxTerrainSpriteHeight == null) {
                 maxTerrainSpriteHeight = terrain.maxSpriteHeight(tileGeometry.width)
             }
         }
-
         val view = worldViewFactory.create(
             SceneWorldViewSpec(
                 world = world,
@@ -345,32 +373,33 @@ class StrataScene private constructor(
                 debugSettings = debug
             )
         )
-
-        val placement = placementSettings?.createController(world)
-
-        attachView(
+        return WorldRuntime(
+            id = id,
             world = world,
+            terrainFor = terrainFor,
             view = view,
-            placement = placement
+            placement = placementSettings?.createController(world)
         )
+    }
 
-        if (debug.panel.enabled) {
-            attachDebugRuntime(
-                world = world,
-                view = checkNotNull(view.publicView) {
-                    "The built-in debug panel requires an IsoWorldView."
-                },
-                terrainFor = terrainFor
-            )
+    private fun worldActivationChanged(
+        previous: WorldRuntime?,
+        next: WorldRuntime?
+    ) {
+        detachDebugRuntime()
+        sceneInput.replaceWorldProcessor(next?.view?.inputProcessor)
+        if (next != null) installInputIfNeeded()
+
+        if (next != null && debug.panel.enabled) {
+            attachDebugRuntime(next)
         }
     }
 
-    private fun attachDebugRuntime(
-        world: World,
-        view: IsoWorldView,
-        terrainFor: (Tile) -> TerrainId
-    ) {
+    private fun attachDebugRuntime(worldRuntime: WorldRuntime) {
         check(attachedDebug == null) { "A debug runtime is already attached." }
+        val view = checkNotNull(worldRuntime.view.publicView) {
+            "The built-in debug panel requires an IsoWorldView."
+        }
         val skin = DebugPanelSkin.create()
         val ui = try {
             uiFactory.create(skin, DebugPanelSkin.theme())
@@ -383,15 +412,15 @@ class StrataScene private constructor(
                 settings = debug,
                 ui = ui,
                 skin = skin,
-                world = world,
+                world = worldRuntime.world,
                 view = view,
                 terrain = terrain,
                 objects = objects,
                 entities = entities,
-                placement = attachedPlacement,
+                placement = worldRuntime.placement,
                 simulation = simulation,
                 events = events,
-                terrainFor = terrainFor
+                terrainFor = worldRuntime.terrainFor
             )
         } catch (failure: Throwable) {
             try { ui.dispose() } finally { skin.dispose() }
@@ -409,6 +438,14 @@ class StrataScene private constructor(
             throw failure
         }
         attachedDebug = runtime
+    }
+
+    private fun detachDebugRuntime() {
+        val runtime = attachedDebug ?: return
+        attachedDebug = null
+        sceneInput.removeDebugUiProcessor(runtime.uiInputProcessor)
+        sceneInput.removeDebugWorldProcessor(runtime.worldInputProcessor)
+        runtime.dispose()
     }
 
     /**
@@ -463,45 +500,37 @@ class StrataScene private constructor(
         return ui
     }
 
-    /**
-     * Attaches a world view and installs its input processor.
-     *
-     * A scene can own one world view.
-     */
-    private fun attachView(
-        world: World,
-        view: SceneWorldView,
-        placement: PlacementController?
-    ) {
-        checkActive()
-
-        check(attachedView == null) {
-            "A world view is already attached to this scene."
-        }
-
-        var processorAttached = false
-
-        try {
-            sceneInput.setWorldProcessor(view.inputProcessor)
-            processorAttached = true
-            installInputIfNeeded()
+    private fun createScreenUi(spec: ScreenUiSpec): ManagedUi {
+        val ownsSkin = spec.skin == null
+        val skin = spec.skin ?: DefaultStrataUiSkin.create()
+        val ui = try {
+            uiFactory.create(skin, spec.theme).also(spec.configure)
         } catch (failure: Throwable) {
-            if (processorAttached) {
-                sceneInput.removeWorldProcessor(view.inputProcessor)
-            }
-
-            try {
-                view.dispose()
-            } catch (cleanupFailure: Throwable) {
-                failure.addSuppressed(cleanupFailure)
-            }
-
+            if (ownsSkin) skin.dispose()
             throw failure
         }
 
-        attachedWorld = world
-        attachedView = view
-        attachedPlacement = placement
+        try {
+            installInputIfNeeded()
+        } catch (failure: Throwable) {
+            try {
+                ui.dispose()
+            } finally {
+                if (ownsSkin) skin.dispose()
+            }
+            throw failure
+        }
+
+        return ManagedUi(
+            ui = ui,
+            dispose = {
+                try {
+                    ui.dispose()
+                } finally {
+                    if (ownsSkin) skin.dispose()
+                }
+            }
+        )
     }
 
     private fun installInputIfNeeded() {
@@ -529,21 +558,16 @@ class StrataScene private constructor(
             "Simulation delta must be finite and non-negative."
         }
 
-        attachedWorld?.let { world ->
-            debug.entityFreezeState.retain(world.getEntities())
-            world.updateEntities(simulationDelta) { entity ->
-                !debug.isEntityFrozen(entity)
+        worldManager.update(realDelta, simulationDelta) { world, delta, active ->
+            if (active) {
+                debug.entityFreezeState.retain(world.getEntities())
+            }
+            world.updateEntities(delta) { entity ->
+                !active || !debug.isEntityFrozen(entity)
             }
         }
 
-        attachedView?.let { view ->
-            view.update(
-                realDelta = realDelta,
-                simulationDelta = simulationDelta
-            )
-            attachedPlacement?.update(view.hoveredTile)
-        }
-
+        screenManager.update(realDelta)
         attachedUi?.update(realDelta)
         attachedDebug?.update(realDelta)
     }
@@ -555,15 +579,15 @@ class StrataScene private constructor(
         checkActive()
         checkConfigurationComplete()
 
-        attachedView?.let { view ->
-            view.render(attachedPlacement?.previews.orEmpty())
-
+        worldManager.render()
+        worldManager.activeRuntime?.view?.let { view ->
             debug.performance.record(
                 stats = view.renderStats,
                 delta = Gdx.graphics.deltaTime
             )
         }
 
+        screenManager.render()
         attachedUi?.render()
         attachedDebug?.render()
     }
@@ -576,11 +600,8 @@ class StrataScene private constructor(
         checkActive()
         checkConfigurationComplete()
 
-        attachedView?.resize(
-            width,
-            height
-        )
-
+        worldManager.resize(width, height)
+        screenManager.resize(width, height)
         attachedUi?.resize(
             width,
             height
@@ -619,18 +640,22 @@ class StrataScene private constructor(
             sceneInput.uninstall()
         } finally {
             try {
-                attachedDebug?.dispose()
+                if (this::screenManager.isInitialized) screenManager.dispose()
             } finally {
                 try {
-                    attachedUi?.dispose()
+                    detachDebugRuntime()
                 } finally {
                     try {
-                        attachedView?.dispose()
+                        attachedUi?.dispose()
                     } finally {
                         try {
-                            audio.dispose()
+                            if (this::worldManager.isInitialized) worldManager.dispose()
                         } finally {
-                            assets.dispose()
+                            try {
+                                audio.dispose()
+                            } finally {
+                                assets.dispose()
+                            }
                         }
                     }
                 }

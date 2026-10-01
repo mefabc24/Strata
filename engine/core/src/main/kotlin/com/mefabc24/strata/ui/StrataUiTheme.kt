@@ -1,6 +1,20 @@
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.utils.Align
+
+/** High-level layout alignment without Scene2D constants. */
+enum class StrataAlignment(internal val scene2dValue: Int) {
+    CENTER(Align.center),
+    LEFT(Align.left),
+    RIGHT(Align.right),
+    TOP(Align.top),
+    BOTTOM(Align.bottom),
+    TOP_LEFT(Align.topLeft),
+    TOP_RIGHT(Align.topRight),
+    BOTTOM_LEFT(Align.bottomLeft),
+    BOTTOM_RIGHT(Align.bottomRight)
+}
 
 /**
  * Maps Strata's semantic UI roles to styles in a game-owned Scene2D skin.
@@ -19,6 +33,16 @@ data class StrataUiTheme(
     val separatorStyle: String? = null,
     val spacing: Float = 8f
 ) {
+
+    companion object {
+        /** Theme roles provided by Strata's engine-owned default screen skin. */
+        fun default() = StrataUiTheme(
+            toggleButtonStyle = "toggle",
+            selectableButtonStyle = "toggle",
+            panelStyle = "panel",
+            separatorStyle = "separator"
+        )
+    }
 
     init {
         require(labelStyle.isNotBlank()) {
