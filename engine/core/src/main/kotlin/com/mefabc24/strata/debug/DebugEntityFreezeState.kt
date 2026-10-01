@@ -9,9 +9,18 @@ internal class DebugEntityFreezeState {
     private val frozen = Collections.newSetFromMap(
         IdentityHashMap<WorldEntity, Boolean>()
     )
+    private val pathfindingHeld = Collections.newSetFromMap(
+        IdentityHashMap<WorldEntity, Boolean>()
+    )
     private val playback = IdentityHashMap<WorldEntity, PlaybackState>()
 
     fun isFrozen(entity: WorldEntity): Boolean = entity in frozen
+
+    fun isHeld(entity: WorldEntity): Boolean =
+        isFrozen(entity) || entity in pathfindingHeld
+
+    fun setPathfindingHeld(entity: WorldEntity, held: Boolean): Boolean =
+        if (held) pathfindingHeld.add(entity) else pathfindingHeld.remove(entity)
 
     fun setFrozen(entity: WorldEntity, frozen: Boolean): Boolean {
         return if (frozen) this.frozen.add(entity) else this.frozen.remove(entity)
@@ -25,6 +34,7 @@ internal class DebugEntityFreezeState {
 
     fun retain(activeEntities: Set<WorldEntity>) {
         frozen.removeIf { entity -> activeEntities.none { it === entity } }
+        pathfindingHeld.removeIf { entity -> activeEntities.none { it === entity } }
         playback.keys.removeIf { entity -> activeEntities.none { it === entity } }
     }
 

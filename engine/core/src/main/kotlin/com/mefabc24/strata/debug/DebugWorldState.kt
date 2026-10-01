@@ -16,6 +16,7 @@ internal class DebugWorldState {
     var pathfinding: PathfindingDiagnosticResult? = null
     var pathfindingWaypoints: List<TilePosition> = emptyList()
     var pathfindingEntity: WorldEntity? = null
+    var pathfindingEntityWaiting: Boolean = false
     var cursorWorld: Vector2? = null
     var picking: PickingDebugSnapshot? = null
     val pickingSelection = DebugPickingSelection()

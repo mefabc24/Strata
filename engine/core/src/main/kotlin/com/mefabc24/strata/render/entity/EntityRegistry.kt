@@ -75,26 +75,42 @@ class EntityEntry internal constructor(
 
     /** Stable representative visual for menus and debug selection previews. */
     val selectionVisual: EntityVisual
-        get() {
-            val sprites = when (val definition = definition) {
-                is VisualDefinition.Single ->
+        get() = representativeSprites().first.representativeVisual(
+            settings.representativeDirection
+        )
+
+    private fun representativeSprites(): Pair<PreparedEntitySprites, VisualStateId?> {
+        return when (val definition = definition) {
+            is VisualDefinition.Single ->
+                Pair(
                     preparedSprites.firstOrNull()
+                        ?: error("Entity type $type is not prepared."),
+                    null
+                )
 
-                is VisualDefinition.Stateful -> {
-                    val state = representativeState
-                        ?: definition.states.keys.firstOrNull()
-                        ?: error("Entity type $type has no visual states.")
+            is VisualDefinition.Stateful -> {
+                val state = representativeState
+                    ?: definition.states.keys.firstOrNull()
+                    ?: error("Entity type $type has no visual states.")
 
-                    val index = definition.states.keys.indexOf(state)
-
+                val index = definition.states.keys.indexOf(state)
+                Pair(
                     preparedSprites.getOrNull(index)
-                }
+                        ?: error("Entity type $type is not prepared."),
+                    state
+                )
             }
-
-            return sprites?.representativeVisual(
-                settings.representativeDirection
-            ) ?: error("Entity type $type is not prepared.")
         }
+    }
+
+    internal fun resolveRepresentative(animationTime: Float): ResolvedEntityVisual {
+        val (sprites, state) = representativeSprites()
+        return ResolvedEntityVisual(
+            visual = sprites.representativeVisual(settings.representativeDirection),
+            stateTime = animationTime,
+            state = state
+        )
+    }
 
     val isPrepared: Boolean
         get() = preparedDefinition != null
@@ -505,6 +521,13 @@ class EntityRegistry internal constructor(
             state = resolved.state
         )
     }
+
+    /** Resolves the configured representative visual for [entity]. */
+    internal fun resolveRepresentative(
+        entity: WorldEntity,
+        animationTime: Float
+    ): ResolvedEntityVisual? = registrations[entity.entity::class]
+        ?.resolveRepresentative(animationTime)
 
     private fun <T : Entity> registerDefinition(
         type: KClass<T>,

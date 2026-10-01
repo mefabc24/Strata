@@ -46,6 +46,7 @@ internal data class DebugContextInputs(
     val inspection: String? = null,
     val pathWaypoints: List<TilePosition> = emptyList(),
     val pathEntity: String? = null,
+    val pathEntityWaiting: Boolean = false,
     val pathResult: PathfindingDiagnosticResult? = null,
     val movePreview: DebugMovePreview? = null
 )
@@ -112,6 +113,7 @@ private fun pathStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow> 
     val result = input.pathResult
     val mode = input.pathEntity?.let { "Entity: $it" } ?: "Standalone"
     val status = when {
+        input.pathEntityWaiting -> "Waiting at destination"
         result != null -> if (result.success) "Success" else "No path"
         input.pathEntity != null -> "Click a destination tile"
         input.pathWaypoints.isNotEmpty() -> "Click the next waypoint"

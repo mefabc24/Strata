@@ -54,6 +54,10 @@ class DebugSettings {
     fun isEntityFrozen(entity: WorldEntity): Boolean =
         entityFreezeState.isFrozen(entity)
 
+    /** Returns whether any debug tool currently holds [entity]. */
+    fun isEntityHeld(entity: WorldEntity): Boolean =
+        entityFreezeState.isHeld(entity)
+
     /** Freezes or unfreezes engine-owned movement for [entity]. */
     fun setEntityFrozen(entity: WorldEntity, frozen: Boolean) {
         entityFreezeState.setFrozen(entity, frozen)
@@ -179,6 +183,9 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
+
+    /** Removes completed sections from debug-assigned entity route diagnostics. */
+    var consumeReachedWaypoints: Boolean = true
 
     /** Multiplier for the debug tool's fallback speed when assigning an idle entity. */
     var entitySpeedMultiplier: Float = 1f

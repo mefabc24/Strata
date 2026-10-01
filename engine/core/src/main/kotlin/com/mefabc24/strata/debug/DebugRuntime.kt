@@ -63,7 +63,9 @@ internal class DebugRuntime(
         movementCost = { from, to ->
             settings.pathCost?.invoke(world, from, to) ?: 1f
         },
-        entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier }
+        entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier },
+        consumeReachedWaypoints = { settings.pathfinding.consumeReachedWaypoints },
+        entityFreezeState = settings.entityFreezeState
     )
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
     private val buildDrag = placement?.let(::DebugBuildDragController)

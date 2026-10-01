@@ -334,6 +334,7 @@ class StrataScene private constructor(
                 entityVisualFor = entities::get,
                 resolvedObjectVisualFor = objects::resolve,
                 resolvedEntityVisualFor = entities::resolve,
+                resolvedRepresentativeEntityVisualFor = entities::resolveRepresentative,
                 cameraSettings = cameraSnapshot.copy(),
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,

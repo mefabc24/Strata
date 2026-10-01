@@ -98,6 +98,9 @@ class IsoWorldView(
     private val resolvedEntityVisualFor: (
         (WorldEntity, Float) -> ResolvedEntityVisual?
     )? = null,
+    private val resolvedRepresentativeEntityVisualFor: (
+        (WorldEntity, Float) -> ResolvedEntityVisual?
+    )? = null,
     debugObjectSettings: DebugObjectSettings = DebugObjectSettings(),
     debugEntitySettings: DebugEntitySettings = DebugEntitySettings(),
     private val debugSettings: DebugSettings? = null
@@ -190,7 +193,14 @@ class IsoWorldView(
     private val effectiveEntityVisualFor =
         { entity: WorldEntity, time: Float ->
             val resolve = { effectiveTime: Float ->
-                resolvedEntityVisualFor?.invoke(entity, effectiveTime)
+                val waitingForDebugPath = debugSettings?.worldState?.let { state ->
+                    state.pathfindingEntityWaiting && state.pathfindingEntity === entity
+                } == true
+                if (waitingForDebugPath) {
+                    resolvedRepresentativeEntityVisualFor?.invoke(entity, effectiveTime)
+                } else {
+                    null
+                } ?: resolvedEntityVisualFor?.invoke(entity, effectiveTime)
                     ?: entityVisualFor(entity)?.let { visual ->
                         ResolvedEntityVisual(visual, effectiveTime, null)
                     }

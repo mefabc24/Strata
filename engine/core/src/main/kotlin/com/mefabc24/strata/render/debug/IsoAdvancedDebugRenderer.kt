@@ -285,10 +285,7 @@ internal class IsoAdvancedDebugRenderer(
             drawTileOutline(preview.target)
         }
 
-        val result = state.pathfinding
-        val visiblePath = result?.path ?: state.pathfindingEntity?.let { entity ->
-            listOf(entity.currentTile) + entity.remainingPath
-        }
+        val visiblePath = state.pathfinding?.path
         if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && visiblePath != null) {
             shapes.color = Color(0.2f, 1f, 0.35f, 1f)
             visiblePath.zipWithNext().forEach { (from, to) ->

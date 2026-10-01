@@ -387,6 +387,10 @@ internal class DebugPanel(
                         settings.pathfinding.showFinalPath = it
                     }
                 )
+                simpleToggle(
+                    "Consume reached nodes",
+                    { settings.pathfinding.consumeReachedWaypoints }
+                ) { settings.pathfinding.consumeReachedWaypoints = it }
                 boundStepper(
                     "Entity speed multiplier",
                     { settings.pathfinding.entitySpeedMultiplier },
@@ -891,6 +895,7 @@ internal class DebugPanel(
                 pathEntity = pathfinding.selectedEntity?.entity?.let {
                     it::class.displayName()
                 },
+                pathEntityWaiting = settings.worldState.pathfindingEntityWaiting,
                 pathResult = pathfinding.result,
                 movePreview = settings.worldState.movePreview
             )
