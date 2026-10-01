@@ -144,6 +144,146 @@ class RenderDebugSnapshotTest {
         }
     }
 
+    @Test
+    fun `actual order records terrain overlays before world objects and entities`() {
+        val pixmap = Pixmap(8, 12, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val renderer = IsoWorldRenderer(
+            projection = IsoProjection(TileGeometry(32f, 24f)),
+            collectDebugSnapshot = { true }
+        )
+        try {
+            val world = World(3, 1) { _, _ -> TestTile }
+            world.addOverlayLayer("detail")
+            world.setOverlayTile("detail", 1, 0, TestTile)
+            val placed = requireNotNull(world.place(TestObject(), 1, 0))
+            val entity = world.addEntity(TestEntity, EntityPosition(1.5f, 0.5f))
+            val region = TextureRegion(texture)
+            val camera = OrthographicCamera(1000f, 1000f).apply {
+                position.set(0f, 0f, 0f)
+                update()
+            }
+
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                objectVisualFor = { ObjectVisual(region) },
+                entityVisualFor = { EntityVisual(region) }
+            )
+            val snapshot = requireNotNull(renderer.debugSnapshot)
+            val terrain = snapshot.items
+                .filter { it.terrain != null }
+                .sortedBy { requireNotNull(it.terrain).position.x }
+
+            assertEquals(3, snapshot.actualTerrainCount)
+            assertEquals(listOf(0, 1, 3), terrain.map { it.actualIndex })
+            assertEquals(
+                listOf(0, 1, 2),
+                terrain.map { requireNotNull(it.terrain).actualRank }
+            )
+
+            val objectItem = snapshot.items.single { it.placedObject === placed }
+            val entityItem = snapshot.items.single { it.entity === entity }
+            assertEquals(setOf(4, 5), setOf(objectItem.actualIndex, entityItem.actualIndex))
+            assertTrue(terrain.all { requireNotNull(it.actualIndex) < 4 })
+
+            val plan = renderer.currentRenderPlan(world)
+            snapshot.items.forEach { item ->
+                assertEquals(plan.indexOfFirst { primitive ->
+                    when {
+                        item.terrain != null -> primitive is TerrainCell &&
+                            primitive.x == item.terrain.position.x &&
+                            primitive.y == item.terrain.position.y
+                        item.placedObject != null ->
+                            (primitive as? com.mefabc24.strata.render.order.WorldObjectPrimitive)
+                                ?.placedObject === item.placedObject
+                        item.entity != null ->
+                            (primitive as? com.mefabc24.strata.render.order.WorldEntityPrimitive)
+                                ?.worldEntity === item.entity
+                        else -> false
+                    }
+                }, item.index)
+            }
+        } finally {
+            renderer.dispose()
+            texture.dispose()
+        }
+    }
+
+    @Test
+    fun `actual indices omit culled items while calculated indices remain stable`() {
+        val pixmap = Pixmap(8, 12, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val renderer = IsoWorldRenderer(
+            projection = IsoProjection(TileGeometry(32f, 24f)),
+            collectDebugSnapshot = { true }
+        )
+        try {
+            val world = World(10, 1) { _, _ -> TestTile }
+            val near = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+            val far = world.addEntity(TestEntity, EntityPosition(9.5f, 0.5f))
+            val region = TextureRegion(texture)
+            val visual = EntityVisual(region)
+            val camera = OrthographicCamera(20f, 20f).apply {
+                position.set(0f, -8f, 0f)
+                update()
+            }
+
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                entityVisualFor = { visual },
+                maxTerrainSpriteHeight = 48f
+            )
+            val nearView = requireNotNull(renderer.debugSnapshot)
+            val nearItem = nearView.items.single { it.entity === near }
+            val farCulled = nearView.items.single { it.entity === far }
+            val calculated = nearView.items.associate { debugIdentity(it) to it.index }
+
+            assertTrue(nearItem.drawn)
+            assertEquals(nearView.actualTerrainCount, nearItem.actualIndex)
+            assertFalse(farCulled.drawn)
+            assertNull(farCulled.actualIndex)
+            assertEquals(
+                (0..nearView.actualTerrainCount).toList(),
+                nearView.items.mapNotNull { it.actualIndex }.sorted()
+            )
+
+            camera.position.set(144f, -80f, 0f)
+            camera.update()
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                entityVisualFor = { visual },
+                maxTerrainSpriteHeight = 48f
+            )
+            val farView = requireNotNull(renderer.debugSnapshot)
+            val nearCulled = farView.items.single { it.entity === near }
+            val farItem = farView.items.single { it.entity === far }
+
+            assertFalse(nearCulled.drawn)
+            assertNull(nearCulled.actualIndex)
+            assertTrue(farItem.drawn)
+            assertEquals(farView.actualTerrainCount, farItem.actualIndex)
+            assertEquals(
+                calculated,
+                farView.items.associate { debugIdentity(it) to it.index }
+            )
+            assertEquals(
+                (0..farView.actualTerrainCount).toList(),
+                farView.items.mapNotNull { it.actualIndex }.sorted()
+            )
+        } finally {
+            renderer.dispose()
+            texture.dispose()
+        }
+    }
+
     private fun terrainRanks(snapshot: RenderDebugSnapshot): Map<TilePosition, Int> =
         snapshot.items.mapNotNull { item ->
             item.terrain?.let { it.position to it.rank }
@@ -154,4 +294,7 @@ class RenderDebugSnapshotTest {
     ): Map<TilePosition, Pair<Int, Int>> = snapshot.items.mapNotNull { item ->
         item.terrain?.let { it.position to (item.index to it.rank) }
     }.toMap()
+
+    private fun debugIdentity(item: RenderItemDebugSnapshot): Any =
+        item.terrain?.position ?: item.placedObject ?: requireNotNull(item.entity)
 }

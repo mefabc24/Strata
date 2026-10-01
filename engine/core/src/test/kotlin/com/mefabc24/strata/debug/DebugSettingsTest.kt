@@ -26,8 +26,13 @@ class DebugSettingsTest {
         assertFalse(settings.entities.enabled)
         assertFalse(settings.picking.enabled)
         assertFalse(settings.renderOrder.enabled)
+        assertEquals(RenderOrderDebugMode.CALCULATED, settings.renderOrder.mode)
         assertFalse(settings.renderOrder.showTerrainIndices)
         assertFalse(settings.renderOrder.showTerrainHeatmap)
+        assertEquals(
+            TerrainHeatmapSteps.PER_TILE,
+            settings.renderOrder.terrainHeatmapSteps
+        )
         assertFalse(settings.culling.enabled)
         assertFalse(settings.camera.enabled)
         assertFalse(settings.worldStats.enabled)

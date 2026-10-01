@@ -1,12 +1,28 @@
 package com.mefabc24.strata.render.debug
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.mefabc24.strata.debug.DebugRenderOrderSettings
+import com.mefabc24.strata.debug.RenderOrderDebugMode
+import com.mefabc24.strata.debug.TerrainHeatmapSteps
+import com.mefabc24.strata.render.RenderDebugSnapshot
+import com.mefabc24.strata.render.RenderItemDebugSnapshot
+import com.mefabc24.strata.render.TerrainRenderDebugSnapshot
+import com.mefabc24.strata.testing.TestGdxEnvironment
+import com.mefabc24.strata.world.TilePosition
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TerrainRenderOrderDebugTest {
+    @BeforeTest
+    fun installTestEnvironment() {
+        TestGdxEnvironment.install()
+    }
+
     @Test
     fun `heatmap endpoints and midpoint follow terrain rank`() {
         val start = Color(0f, 0.2f, 0.4f, 0.25f)
@@ -27,6 +43,124 @@ class TerrainRenderOrderDebugTest {
 
         assertEquals(0f, terrainHeatmapProgress(rank = 0, terrainCount = 1))
         assertEquals(start, terrainHeatmapColor(start, end, rank = 0, terrainCount = 1))
+        TerrainHeatmapSteps.entries.forEach { steps ->
+            assertEquals(0f, terrainHeatmapProgress(rank = 0, terrainCount = 0, steps))
+            assertEquals(0f, terrainHeatmapProgress(rank = 0, terrainCount = 1, steps))
+        }
+    }
+
+    @Test
+    fun `per tile heatmap retains unquantized interpolation`() {
+        val progress = (0 until 9).map { rank ->
+            terrainHeatmapProgress(rank, terrainCount = 9, TerrainHeatmapSteps.PER_TILE)
+        }
+
+        assertEquals((0 until 9).map { it / 8f }, progress)
+    }
+
+    @Test
+    fun `fixed heatmap steps produce their configured number of color levels`() {
+        val start = Color(0f, 0f, 0f, 0.25f)
+        val end = Color(1f, 1f, 1f, 0.25f)
+
+        listOf(
+            TerrainHeatmapSteps.STEPS_128 to 128,
+            TerrainHeatmapSteps.STEPS_64 to 64,
+            TerrainHeatmapSteps.STEPS_32 to 32
+        ).forEach { (steps, expectedLevels) ->
+            val colors = (0 until 4097).map { rank ->
+                terrainHeatmapColor(start, end, rank, 4097, steps).toFloatBits()
+            }.toSet()
+
+            assertEquals(expectedLevels, colors.size, steps.name)
+        }
+    }
+
+    @Test
+    fun `every heatmap step mode preserves both color endpoints`() {
+        val start = Color(0.1f, 0.2f, 0.3f, 0.4f)
+        val end = Color(0.9f, 0.8f, 0.7f, 0.6f)
+
+        TerrainHeatmapSteps.entries.forEach { steps ->
+            assertEquals(start, terrainHeatmapColor(start, end, 0, 257, steps))
+            assertEquals(end, terrainHeatmapColor(start, end, 256, 257, steps))
+        }
+    }
+
+    @Test
+    fun `selected mode supplies both label indices and terrain heatmap ranks`() {
+        val terrain = RenderItemDebugSnapshot(
+            index = 7,
+            actualIndex = 2,
+            terrain = TerrainRenderDebugSnapshot(
+                position = TilePosition(1, 2),
+                rank = 5,
+                actualRank = 1
+            ),
+            drawn = true
+        )
+        val objectItem = RenderItemDebugSnapshot(
+            index = 8,
+            actualIndex = 4,
+            drawn = true
+        )
+        val culled = RenderItemDebugSnapshot(index = 9, drawn = false)
+        val snapshot = RenderDebugSnapshot(
+            visibleArea = com.badlogic.gdx.math.Rectangle(),
+            items = listOf(terrain, objectItem, culled),
+            terrainCount = 12,
+            actualTerrainCount = 3
+        )
+
+        assertEquals(
+            RenderOrderDebugMetadata(index = 7, terrainRank = 5, terrainCount = 12),
+            renderOrderDebugMetadata(terrain, snapshot, RenderOrderDebugMode.CALCULATED)
+        )
+        assertEquals(
+            RenderOrderDebugMetadata(index = 2, terrainRank = 1, terrainCount = 3),
+            renderOrderDebugMetadata(terrain, snapshot, RenderOrderDebugMode.ACTUAL)
+        )
+        assertEquals(
+            8,
+            renderOrderDebugMetadata(
+                objectItem,
+                snapshot,
+                RenderOrderDebugMode.CALCULATED
+            )?.index
+        )
+        assertEquals(
+            4,
+            renderOrderDebugMetadata(
+                objectItem,
+                snapshot,
+                RenderOrderDebugMode.ACTUAL
+            )?.index
+        )
+        assertNull(renderOrderDebugMetadata(culled, snapshot, RenderOrderDebugMode.ACTUAL))
+
+        terrainHeatmapProgress(5, 12, TerrainHeatmapSteps.STEPS_32)
+        assertEquals(7, terrain.index)
+        assertEquals(2, terrain.actualIndex)
+        assertEquals(5, terrain.terrain?.rank)
+        assertEquals(1, terrain.terrain?.actualRank)
+    }
+
+    @Test
+    fun `terrain label scaling restores the font used by object labels`() {
+        val font = BitmapFont()
+        try {
+            font.data.setScale(1.25f, 0.8f)
+
+            font.withRelativeScale(0.68f) {
+                assertEquals(0.85f, font.data.scaleX, absoluteTolerance = 0.0001f)
+                assertEquals(0.544f, font.data.scaleY, absoluteTolerance = 0.0001f)
+            }
+
+            assertEquals(1.25f, font.data.scaleX)
+            assertEquals(0.8f, font.data.scaleY)
+        } finally {
+            font.dispose()
+        }
     }
 
     @Test
@@ -44,6 +178,11 @@ class TerrainRenderOrderDebugTest {
             assertEquals(settings.showLabels, layers.objectEntityLabels, "labels mask $mask")
             assertEquals(settings.showTerrainIndices, layers.terrainIndices, "indices mask $mask")
             assertEquals(settings.showTerrainHeatmap, layers.terrainHeatmap, "heatmap mask $mask")
+            assertEquals(
+                settings.showTerrainHeatmap,
+                layers.terrainHeatmapGrid,
+                "heatmap grid mask $mask"
+            )
         }
 
         val disabled = renderOrderDebugLayers(DebugRenderOrderSettings().apply {
@@ -54,5 +193,19 @@ class TerrainRenderOrderDebugTest {
         assertFalse(disabled.objectEntityLabels)
         assertFalse(disabled.terrainIndices)
         assertFalse(disabled.terrainHeatmap)
+        assertFalse(disabled.terrainHeatmapGrid)
+
+        val settings = DebugRenderOrderSettings().apply {
+            mode = RenderOrderDebugMode.ACTUAL
+            terrainHeatmapSteps = TerrainHeatmapSteps.STEPS_32
+            showLabels = false
+            showTerrainIndices = true
+            showTerrainHeatmap = false
+        }
+        assertEquals(RenderOrderDebugMode.ACTUAL, settings.mode)
+        assertEquals(TerrainHeatmapSteps.STEPS_32, settings.terrainHeatmapSteps)
+        assertFalse(settings.showLabels)
+        assertTrue(settings.showTerrainIndices)
+        assertFalse(settings.showTerrainHeatmap)
     }
 }
