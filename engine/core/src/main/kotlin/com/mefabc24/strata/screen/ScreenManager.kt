@@ -214,10 +214,17 @@ class ScreenManager internal constructor(
             visible.single().activation.parameters == parameters
         ) return
 
+        val item = VisibleScreen(
+            target,
+            ScreenActivation(parameters),
+            overlay = false,
+            blocksInput = false
+        )
+        ensureCreated(item)
         visible.firstOrNull()?.takeUnless { it.overlay }?.entry?.id?.let { previous ->
             if (previous != id) backStack += previous
         }
-        replacePresentation(target, ScreenActivation(parameters))
+        replacePresentation(item)
     }
 
     fun navigate(id: String, parameters: Any? = null) =
@@ -228,9 +235,22 @@ class ScreenManager internal constructor(
         if (visible.lastOrNull()?.overlay == true) return dismissOverlay()
 
         while (backStack.isNotEmpty()) {
-            val id = backStack.removeAt(backStack.lastIndex)
-            val target = entries[id] ?: continue
-            replacePresentation(target, ScreenActivation())
+            val index = backStack.lastIndex
+            val id = backStack[index]
+            val target = entries[id]
+            if (target == null) {
+                backStack.removeAt(index)
+                continue
+            }
+            val item = VisibleScreen(
+                target,
+                ScreenActivation(),
+                overlay = false,
+                blocksInput = false
+            )
+            ensureCreated(item)
+            backStack.removeAt(index)
+            replacePresentation(item)
             return true
         }
         return false
@@ -328,25 +348,20 @@ class ScreenManager internal constructor(
         backStack.clear()
     }
 
-    private fun replacePresentation(
-        target: ScreenEntry,
-        activation: ScreenActivation
-    ) {
+    private fun replacePresentation(item: VisibleScreen) {
         visible.asReversed().forEach(::deactivate)
         visible.clear()
-        val item = VisibleScreen(target, activation, overlay = false, blocksInput = false)
-        ensureCreated(item)
         visible += item
         activate(item)
         refreshInput()
-        target.definition.worldId?.let(worlds::activate) ?: worlds.deactivate()
+        item.entry.definition.worldId?.let(worlds::activate) ?: worlds.deactivate()
     }
 
     private fun ensureCreated(item: VisibleScreen) {
         val entry = item.entry
         if (entry.created) return
         entry.context.activation = item.activation
-        entry.managedUi = entry.definition.uiSpec?.let(uiFactory::create)?.also { managed ->
+        val managedUi = entry.definition.uiSpec?.let(uiFactory::create)?.also { managed ->
             managed.ui.navigation = object : StrataUiNavigation {
                 override fun navigate(id: ScreenId, parameters: Any?) {
                     this@ScreenManager.navigate(id, parameters)
@@ -366,8 +381,19 @@ class ScreenManager internal constructor(
                     this@ScreenManager.dismissOverlay()
             }
         }
-        entry.created = true
-        entry.definition.created(entry.context)
+        entry.managedUi = managedUi
+        try {
+            entry.definition.created(entry.context)
+            entry.created = true
+        } catch (failure: Throwable) {
+            entry.managedUi = null
+            try {
+                managedUi?.dispose?.invoke()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+            throw failure
+        }
     }
 
     private fun activate(item: VisibleScreen) {

@@ -511,19 +511,25 @@ class StrataScene private constructor(
         val ownsSkin = spec.skin == null
         val skin = spec.skin ?: DefaultStrataUiSkin.create()
         val ui = try {
-            uiFactory.create(skin, spec.theme).also(spec.configure)
+            uiFactory.create(skin, spec.theme)
         } catch (failure: Throwable) {
             if (ownsSkin) skin.dispose()
             throw failure
         }
 
         try {
+            ui.apply(spec.configure)
             installInputIfNeeded()
         } catch (failure: Throwable) {
             try {
                 ui.dispose()
-            } finally {
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+            try {
                 if (ownsSkin) skin.dispose()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
             }
             throw failure
         }
