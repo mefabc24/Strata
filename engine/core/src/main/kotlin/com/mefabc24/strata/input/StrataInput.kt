@@ -63,7 +63,9 @@ class StrataInput(
      * routed after the debug UI and before compatibility UI and world input.
      */
     internal fun setScreenUiProcessors(processors: List<InputProcessor>) {
-        check(processors.distinctBy { System.identityHashCode(it) }.size == processors.size) {
+        check(processors.indices.none { index ->
+            processors.subList(0, index).any { it === processors[index] }
+        }) {
             "A screen UI input processor was supplied more than once."
         }
         screenUiProcessors.clear()

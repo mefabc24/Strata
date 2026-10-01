@@ -44,14 +44,12 @@ internal fun interface StrataUiFactory {
 }
 
 /**
- * Coordinates assets and the optional world and UI layers of a scene.
+ * Coordinates shared services, registered world views, and screen UI.
  *
- * The scene owns its assets, audio, attached world view, and attached UI. The
- * game creates an optional [World] and attaches it; the world itself currently
- * has no disposal lifecycle. A scene can contain either runtime layer
- * independently or both together. Setup DSL values are frozen after the
- * constructor configuration block completes and are applied when their
- * runtime component is created.
+ * The scene owns assets, audio, views, screen stages, debug integration, and
+ * input routing. The game owns logical [World] instances. Setup DSL values are
+ * frozen after configuration and copied into each subsequently registered
+ * world view.
  */
 class StrataScene private constructor(
     terrainDirectory: String,
@@ -167,14 +165,14 @@ class StrataScene private constructor(
     private var disposed = false
 
     /**
-     * Returns the attached world view.
+     * Returns the active world view.
      */
     val view: IsoWorldView
         get() = worldManager.activeView
             ?: error("No world view is attached to this scene.")
 
     /**
-     * Returns the game-created world attached to this scene.
+     * Returns the active game-owned world.
      */
     val world: World
         get() = worldManager.activeWorld
@@ -284,7 +282,7 @@ class StrataScene private constructor(
     }
 
     /**
-     * Configures the camera snapshot applied when a world is attached.
+     * Configures the camera snapshot applied to every registered world view.
      */
     fun camera(configure: CameraSettings.() -> Unit) {
         checkConfigurationOpen()
@@ -292,7 +290,7 @@ class StrataScene private constructor(
     }
 
     /**
-     * Configures the rendering snapshot applied when a world is attached.
+     * Configures the rendering snapshot applied to every registered world view.
      */
     fun rendering(configure: RenderingSettings.() -> Unit) {
         checkConfigurationOpen()
@@ -300,7 +298,7 @@ class StrataScene private constructor(
     }
 
     /**
-     * Configures the controls snapshot applied when a world is attached.
+     * Configures the controls snapshot applied to every registered world view.
      */
     fun controls(configure: ControlsSettings.() -> Unit) {
         checkConfigurationOpen()
@@ -310,7 +308,7 @@ class StrataScene private constructor(
     /**
      * Enables and configures scene-owned object placement.
      *
-     * The controller is created when a world is attached.
+     * A controller is created for every registered world.
      */
     fun placement(configure: PlacementSettings.() -> Unit = {}) {
         checkConfigurationOpen()
@@ -373,13 +371,22 @@ class StrataScene private constructor(
                 debugSettings = debug
             )
         )
-        return WorldRuntime(
-            id = id,
-            world = world,
-            terrainFor = terrainFor,
-            view = view,
-            placement = placementSettings?.createController(world)
-        )
+        return try {
+            WorldRuntime(
+                id = id,
+                world = world,
+                terrainFor = terrainFor,
+                view = view,
+                placement = placementSettings?.createController(world)
+            )
+        } catch (failure: Throwable) {
+            try {
+                view.dispose()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+            throw failure
+        }
     }
 
     private fun worldActivationChanged(
