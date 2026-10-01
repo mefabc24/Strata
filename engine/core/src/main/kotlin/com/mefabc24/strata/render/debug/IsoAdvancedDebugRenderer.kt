@@ -12,17 +12,22 @@ import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugRenderOrderSettings
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.debug.RenderOrderDebugMode
+import com.mefabc24.strata.debug.TerrainHeatmapSteps
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.iso.CameraDebugSnapshot
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.PickedTarget
 import com.mefabc24.strata.render.RenderDebugSnapshot
+import com.mefabc24.strata.render.RenderItemDebugSnapshot
 import com.mefabc24.strata.world.TilePosition
+import kotlin.math.round
 
 internal data class RenderOrderDebugLayers(
     val objectEntityLabels: Boolean,
     val terrainIndices: Boolean,
-    val terrainHeatmap: Boolean
+    val terrainHeatmap: Boolean,
+    val terrainHeatmapGrid: Boolean
 )
 
 internal fun renderOrderDebugLayers(
@@ -30,23 +35,72 @@ internal fun renderOrderDebugLayers(
 ): RenderOrderDebugLayers = RenderOrderDebugLayers(
     objectEntityLabels = settings.enabled && settings.showLabels,
     terrainIndices = settings.enabled && settings.showTerrainIndices,
-    terrainHeatmap = settings.enabled && settings.showTerrainHeatmap
+    terrainHeatmap = settings.enabled && settings.showTerrainHeatmap,
+    terrainHeatmapGrid = settings.enabled && settings.showTerrainHeatmap
 )
 
-internal fun terrainHeatmapProgress(rank: Int, terrainCount: Int): Float =
-    if (terrainCount <= 1) 0f else
+internal data class RenderOrderDebugMetadata(
+    val index: Int,
+    val terrainRank: Int?,
+    val terrainCount: Int
+)
+
+internal fun renderOrderDebugMetadata(
+    item: RenderItemDebugSnapshot,
+    snapshot: RenderDebugSnapshot,
+    mode: RenderOrderDebugMode
+): RenderOrderDebugMetadata? = when (mode) {
+    RenderOrderDebugMode.CALCULATED -> RenderOrderDebugMetadata(
+        index = item.index,
+        terrainRank = item.terrain?.rank,
+        terrainCount = snapshot.terrainCount
+    )
+    RenderOrderDebugMode.ACTUAL -> item.actualIndex?.let { actualIndex ->
+        RenderOrderDebugMetadata(
+            index = actualIndex,
+            terrainRank = item.terrain?.actualRank,
+            terrainCount = snapshot.actualTerrainCount
+        )
+    }
+}
+
+internal fun terrainHeatmapProgress(
+    rank: Int,
+    terrainCount: Int,
+    steps: TerrainHeatmapSteps = TerrainHeatmapSteps.PER_TILE
+): Float {
+    val progress = if (terrainCount <= 1) 0f else
         (rank.toFloat() / (terrainCount - 1).toFloat()).coerceIn(0f, 1f)
+    val levels = steps.colorLevelCount ?: return progress
+    if (progress <= 0f || progress >= 1f) return progress
+    return round(progress * (levels - 1)) / (levels - 1)
+}
 
 internal fun terrainHeatmapColor(
     start: Color,
     end: Color,
     rank: Int,
     terrainCount: Int,
+    steps: TerrainHeatmapSteps = TerrainHeatmapSteps.PER_TILE,
     result: Color = Color()
 ): Color = result.set(start).lerp(
     end,
-    terrainHeatmapProgress(rank, terrainCount)
+    terrainHeatmapProgress(rank, terrainCount, steps)
 )
+
+internal inline fun <T> BitmapFont.withRelativeScale(
+    relativeScale: Float,
+    block: () -> T
+): T {
+    val previousScaleX = data.scaleX
+    val previousScaleY = data.scaleY
+    data.setScale(previousScaleX * relativeScale, previousScaleY * relativeScale)
+    return try {
+        block()
+    } finally {
+        data.setScale(previousScaleX, previousScaleY)
+    }
+}
 
 /** Draws optional diagnostics sourced from real picker and renderer state. */
 internal class IsoAdvancedDebugRenderer(
@@ -115,16 +169,41 @@ internal class IsoAdvancedDebugRenderer(
             labels.projectionMatrix = camera.combined
             labels.begin()
             font.color = Color.WHITE
-            for (item in renderSnapshot.items) {
-                if (!item.drawn) continue
-                val terrain = item.terrain
-                if (terrain != null) {
-                    if (renderOrderLayers.terrainIndices) {
+            if (renderOrderLayers.objectEntityLabels) {
+                for (item in renderSnapshot.items) {
+                    if (!item.drawn || item.terrain != null) continue
+                    val metadata = renderOrderDebugMetadata(
+                        item,
+                        renderSnapshot,
+                        settings.renderOrder.mode
+                    ) ?: continue
+                    val bounds = item.bounds ?: continue
+                    val name = item.placedObject?.placeable?.javaClass?.simpleName
+                        ?: item.entity?.entity?.javaClass?.simpleName
+                        ?: continue
+                    font.draw(
+                        labels,
+                        "$name  #${metadata.index}",
+                        bounds.x,
+                        bounds.y + bounds.height + 12f * camera.zoom
+                    )
+                }
+            }
+            if (renderOrderLayers.terrainIndices) {
+                font.withRelativeScale(TERRAIN_INDEX_FONT_SCALE) {
+                    for (item in renderSnapshot.items) {
+                        if (!item.drawn) continue
+                        val terrain = item.terrain ?: continue
+                        val metadata = renderOrderDebugMetadata(
+                            item,
+                            renderSnapshot,
+                            settings.renderOrder.mode
+                        ) ?: continue
                         val center = projection.tileToWorld(
                             terrain.position.x + 0.5f,
                             terrain.position.y + 0.5f
                         )
-                        labelLayout.setText(font, item.index.toString())
+                        labelLayout.setText(font, metadata.index.toString())
                         font.draw(
                             labels,
                             labelLayout,
@@ -132,14 +211,7 @@ internal class IsoAdvancedDebugRenderer(
                             center.y + labelLayout.height / 2f
                         )
                     }
-                    continue
                 }
-                if (!renderOrderLayers.objectEntityLabels) continue
-                val bounds = item.bounds ?: continue
-                val name = item.placedObject?.placeable?.javaClass?.simpleName
-                    ?: item.entity?.entity?.javaClass?.simpleName
-                    ?: continue
-                font.draw(labels, "$name  #${item.index}", bounds.x, bounds.y + bounds.height + 12f * camera.zoom)
             }
             labels.end()
         }
@@ -179,11 +251,18 @@ internal class IsoAdvancedDebugRenderer(
             snapshot.items.forEach { item ->
                 val terrain = item.terrain ?: return@forEach
                 if (!item.drawn) return@forEach
+                val metadata = renderOrderDebugMetadata(
+                    item,
+                    snapshot,
+                    settings.renderOrder.mode
+                ) ?: return@forEach
+                val rank = metadata.terrainRank ?: return@forEach
                 shapes.color = terrainHeatmapColor(
                     start = startColor,
                     end = endColor,
-                    rank = terrain.rank,
-                    terrainCount = snapshot.terrainCount,
+                    rank = rank,
+                    terrainCount = metadata.terrainCount,
+                    steps = settings.renderOrder.terrainHeatmapSteps,
                     result = heatmapColor
                 )
                 drawTileFill(terrain.position)
@@ -349,6 +428,23 @@ internal class IsoAdvancedDebugRenderer(
         pickingVisuals: DebugPickingVisualTargets
     ) {
         shapes.begin(ShapeRenderer.ShapeType.Line)
+        val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
+        if (renderOrderLayers.terrainHeatmapGrid && renderSnapshot != null) {
+            Gdx.gl.glLineWidth(1f)
+            shapes.color = TERRAIN_HEATMAP_GRID_COLOR
+            renderSnapshot.items.forEach { item ->
+                val terrain = item.terrain ?: return@forEach
+                if (!item.drawn) return@forEach
+                if (renderOrderDebugMetadata(
+                        item,
+                        renderSnapshot,
+                        settings.renderOrder.mode
+                    ) != null
+                ) {
+                    drawTileOutline(terrain.position)
+                }
+            }
+        }
         Gdx.gl.glLineWidth(2f)
         drawInspectionLines(inspection, inspectionVisuals, camera, renderSnapshot)
         drawPickingLines(pickingVisuals)
@@ -474,6 +570,8 @@ internal class IsoAdvancedDebugRenderer(
     }
 
     private companion object {
+        const val TERRAIN_INDEX_FONT_SCALE = 0.68f
+        val TERRAIN_HEATMAP_GRID_COLOR = Color(0.72f, 0.72f, 0.72f, 0.3f)
         val PICKING_HOVER_FILL = Color(1f, 0.3f, 0.9f, 0.18f)
         val PICKING_HOVER_OUTLINE = Color(1f, 0.3f, 0.9f, 1f)
         val PICKING_LOCKED_FILL = Color(0.2f, 0.9f, 1f, 0.24f)

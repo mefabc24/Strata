@@ -39,11 +39,15 @@ import com.mefabc24.strata.world.WorldEntity
 data class RenderDebugSnapshot(
     val visibleArea: Rectangle,
     val items: List<RenderItemDebugSnapshot>,
-    val terrainCount: Int = 0
+    val terrainCount: Int = 0,
+    val actualTerrainCount: Int = 0
 )
 
 data class RenderItemDebugSnapshot(
+    /** Index in the complete calculated [WorldRenderPlan]. */
     val index: Int,
+    /** Index at which this visible item was submitted by the primary world pass. */
+    val actualIndex: Int? = null,
     val terrain: TerrainRenderDebugSnapshot? = null,
     val placedObject: PlacedObject? = null,
     val entity: WorldEntity? = null,
@@ -54,7 +58,10 @@ data class RenderItemDebugSnapshot(
 
 data class TerrainRenderDebugSnapshot(
     val position: TilePosition,
-    val rank: Int
+    /** Rank among all terrain cells in the calculated plan. */
+    val rank: Int,
+    /** Rank among ground terrain cells actually submitted this frame. */
+    val actualRank: Int? = null
 )
 
 data class RenderSortDebugSnapshot(
@@ -64,6 +71,42 @@ data class RenderSortDebugSnapshot(
     val maxY: Float,
     val projectedFrontY: Float
 )
+
+/** Records the primary world pass at its real sprite submission points. */
+private class ActualRenderOrderRecorder(
+    private val worldWidth: Int,
+    terrainCellCount: Int
+) {
+    private val terrainIndices = IntArray(terrainCellCount) { UNRECORDED }
+    private val terrainRanks = IntArray(terrainCellCount) { UNRECORDED }
+    private var nextIndex = 0
+
+    var terrainCount: Int = 0
+        private set
+
+    fun recordGround(x: Int, y: Int) {
+        val offset = y * worldWidth + x
+        terrainIndices[offset] = nextIndex++
+        terrainRanks[offset] = terrainCount++
+    }
+
+    /** Overlay sprites consume global indices but do not replace the ground-cell label. */
+    fun recordOverlay() {
+        nextIndex++
+    }
+
+    fun recordItem(): Int = nextIndex++
+
+    fun terrainIndex(x: Int, y: Int): Int? =
+        terrainIndices[y * worldWidth + x].takeUnless { it == UNRECORDED }
+
+    fun terrainRank(x: Int, y: Int): Int? =
+        terrainRanks[y * worldWidth + x].takeUnless { it == UNRECORDED }
+
+    private companion object {
+        const val UNRECORDED = -1
+    }
+}
 
 /**
  * Renders flat terrain first, followed by depth-ordered world content.
@@ -178,8 +221,11 @@ class IsoWorldRenderer(
         )
 
         val overlayIds = world.overlayLayerIds
-        val drawnTerrainCells = debugItems?.let {
-            BooleanArray(world.width * world.height)
+        val actualOrder = debugItems?.let {
+            ActualRenderOrderRecorder(
+                worldWidth = world.width,
+                terrainCellCount = world.width * world.height
+            )
         }
 
         beginWorldBatch()
@@ -190,7 +236,7 @@ class IsoWorldRenderer(
             overlayIds = overlayIds,
             textureFor = textureFor,
             animationTime = animationTime,
-            drawnTerrainCells = drawnTerrainCells
+            actualOrder = actualOrder
         )
 
         var terrainRank = 0
@@ -200,13 +246,13 @@ class IsoWorldRenderer(
                     debugItems?.add(
                         RenderItemDebugSnapshot(
                             index = renderIndex,
+                            actualIndex = actualOrder?.terrainIndex(item.x, item.y),
                             terrain = TerrainRenderDebugSnapshot(
                                 position = TilePosition(item.x, item.y),
-                                rank = terrainRank
+                                rank = terrainRank,
+                                actualRank = actualOrder?.terrainRank(item.x, item.y)
                             ),
-                            drawn = drawnTerrainCells?.get(
-                                item.y * world.width + item.x
-                            ) == true
+                            drawn = actualOrder?.terrainIndex(item.x, item.y) != null
                         )
                     )
                     terrainRank++
@@ -228,6 +274,7 @@ class IsoWorldRenderer(
                         preview = null,
                         renderIndex = renderIndex,
                         debugItems = debugItems,
+                        actualOrder = actualOrder,
                         sort = item.sortVolume.let { volume ->
                             RenderSortDebugSnapshot(
                                 minX = volume.minX,
@@ -255,6 +302,7 @@ class IsoWorldRenderer(
                         },
                         renderIndex = renderIndex,
                         debugItems = debugItems,
+                        actualOrder = actualOrder,
                         sort = item.sortVolume.let { volume ->
                             RenderSortDebugSnapshot(
                                 minX = volume.minX,
@@ -309,7 +357,8 @@ class IsoWorldRenderer(
             debugSnapshot = RenderDebugSnapshot(
                 visibleArea = Rectangle(visibleArea),
                 items = debugItems,
-                terrainCount = terrainRank
+                terrainCount = terrainRank,
+                actualTerrainCount = actualOrder?.terrainCount ?: 0
             )
         }
     }
@@ -382,6 +431,7 @@ class IsoWorldRenderer(
         recordStats: Boolean = true,
         renderIndex: Int? = null,
         debugItems: MutableList<RenderItemDebugSnapshot>? = null,
+        actualOrder: ActualRenderOrderRecorder? = null,
         sort: RenderSortDebugSnapshot? = null
     ) {
         if (recordStats) stats.entitiesChecked++
@@ -408,11 +458,13 @@ class IsoWorldRenderer(
         )
 
         val drawn = entityBounds.overlaps(visibleArea)
+        val actualIndex = if (drawn) actualOrder?.recordItem() else null
 
         if (renderIndex != null) {
             debugItems?.add(
                 RenderItemDebugSnapshot(
                     index = renderIndex,
+                    actualIndex = actualIndex,
                     entity = entity,
                     bounds = Rectangle(entityBounds),
                     drawn = drawn,
@@ -488,7 +540,7 @@ class IsoWorldRenderer(
         overlayIds: List<String>,
         textureFor: (Tile, Float) -> TextureRegion?,
         animationTime: Float,
-        drawnTerrainCells: BooleanArray?
+        actualOrder: ActualRenderOrderRecorder?
     ) {
         for (depth in terrainDepths) {
             val minX = maxOf(
@@ -510,7 +562,7 @@ class IsoWorldRenderer(
                     overlayIds = overlayIds,
                     textureFor = textureFor,
                     animationTime = animationTime,
-                    drawnTerrainCells = drawnTerrainCells
+                    actualOrder = actualOrder
                 )
             }
         }
@@ -523,23 +575,21 @@ class IsoWorldRenderer(
         overlayIds: List<String>,
         textureFor: (Tile, Float) -> TextureRegion?,
         animationTime: Float,
-        drawnTerrainCells: BooleanArray?
+        actualOrder: ActualRenderOrderRecorder?
     ) {
         stats.terrainChecked++
 
-        val groundDrawn = world.getTile(x, y)
+        world.getTile(x, y)
             ?.let { textureFor(it, animationTime) }
             ?.let { texture ->
                 renderTerrainSprite(
                     x = x,
                     y = y,
                     texture = texture,
-                    overlay = false
+                    overlay = false,
+                    onSubmitted = { actualOrder?.recordGround(x, y) }
                 )
-            } == true
-        if (groundDrawn) {
-            drawnTerrainCells?.set(y * world.width + x, true)
-        }
+            }
 
         for (layerId in overlayIds) {
             stats.terrainChecked++
@@ -551,7 +601,10 @@ class IsoWorldRenderer(
                         x = x,
                         y = y,
                         texture = texture,
-                        overlay = true
+                        overlay = true,
+                        onSubmitted = actualOrder?.let { recorder ->
+                            { recorder.recordOverlay() }
+                        }
                     )
                 }
         }
@@ -564,6 +617,7 @@ class IsoWorldRenderer(
         recordStats: Boolean = true,
         renderIndex: Int? = null,
         debugItems: MutableList<RenderItemDebugSnapshot>? = null,
+        actualOrder: ActualRenderOrderRecorder? = null,
         sort: RenderSortDebugSnapshot? = null
     ) {
         if (preview == null && recordStats) {
@@ -593,10 +647,12 @@ class IsoWorldRenderer(
         )
 
         val drawn = objectBounds.overlaps(visibleArea)
+        val actualIndex = if (drawn) actualOrder?.recordItem() else null
         if (renderIndex != null) {
             debugItems?.add(
                 RenderItemDebugSnapshot(
                     index = renderIndex,
+                    actualIndex = actualIndex,
                     placedObject = placed,
                     bounds = Rectangle(objectBounds),
                     drawn = drawn,
@@ -711,7 +767,8 @@ class IsoWorldRenderer(
         x: Int,
         y: Int,
         texture: TextureRegion,
-        overlay: Boolean
+        overlay: Boolean,
+        onSubmitted: (() -> Unit)? = null
     ): Boolean {
         IsoTerrainBounds.calculate(
             projection = projection,
@@ -723,6 +780,7 @@ class IsoWorldRenderer(
 
         if (!tileBounds.overlaps(visibleArea)) return false
 
+        onSubmitted?.invoke()
         terrainRenderer.render(
             batch = batch,
             x = x,

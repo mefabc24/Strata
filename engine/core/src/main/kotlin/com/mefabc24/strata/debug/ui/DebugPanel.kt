@@ -435,6 +435,18 @@ internal class DebugPanel(
             { settings.renderOrder.enabled },
             { settings.renderOrder.enabled = it }
         ) {
+            label("Order")
+            val modes = ui.selectionGroup(
+                RenderOrderDebugMode.entries,
+                settings.renderOrder.mode
+            ) {
+                settings.renderOrder.mode = it
+            }
+            synchronizers += { modes.select(settings.renderOrder.mode) }
+            responsiveGrid(130f, 36f, maximumColumns = 2) {
+                selectableButton("Calculated", RenderOrderDebugMode.CALCULATED, modes)
+                selectableButton("Actual", RenderOrderDebugMode.ACTUAL, modes)
+            }.cell { fillAvailableX() }
             toggleGrid(
                 toggle("Object & entity labels", { settings.renderOrder.showLabels }) {
                     settings.renderOrder.showLabels = it
@@ -446,6 +458,46 @@ internal class DebugPanel(
                     settings.renderOrder.showTerrainHeatmap = it
                 }
             )
+            label("Heatmap")
+            label("Color steps")
+            val heatmapSteps = ui.selectionGroup(
+                TerrainHeatmapSteps.entries,
+                settings.renderOrder.terrainHeatmapSteps
+            ) {
+                settings.renderOrder.terrainHeatmapSteps = it
+            }
+            synchronizers += {
+                heatmapSteps.select(settings.renderOrder.terrainHeatmapSteps)
+            }
+            val heatmapStepButtons =
+                mutableListOf<StrataSelectableButton<TerrainHeatmapSteps>>()
+            responsiveGrid(64f, 36f, maximumColumns = 4) {
+                heatmapStepButtons += selectableButton(
+                    "Per tile",
+                    TerrainHeatmapSteps.PER_TILE,
+                    heatmapSteps
+                )
+                heatmapStepButtons += selectableButton(
+                    "128",
+                    TerrainHeatmapSteps.STEPS_128,
+                    heatmapSteps
+                )
+                heatmapStepButtons += selectableButton(
+                    "64",
+                    TerrainHeatmapSteps.STEPS_64,
+                    heatmapSteps
+                )
+                heatmapStepButtons += selectableButton(
+                    "32",
+                    TerrainHeatmapSteps.STEPS_32,
+                    heatmapSteps
+                )
+            }.cell { fillAvailableX() }
+            synchronizers += {
+                heatmapStepButtons.forEach { button ->
+                    button.isDisabled = !settings.renderOrder.showTerrainHeatmap
+                }
+            }
         }
         featureExpander(
             "Event Bus Monitor",
@@ -945,7 +997,10 @@ internal class DebugPanel(
         val sort = item.sort
 
         return listOf(
-            "Render index" to item.index.toString(),
+            "Render index" to when (settings.renderOrder.mode) {
+                RenderOrderDebugMode.CALCULATED -> item.index.toString()
+                RenderOrderDebugMode.ACTUAL -> item.actualIndex?.toString() ?: "not drawn"
+            },
             "Drawn" to item.drawn.toString(),
             "Sort volume" to if (sort != null) {
                 "[${sort.minX.format()}, ${sort.maxX.format()}] x " +

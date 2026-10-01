@@ -9,6 +9,13 @@ import com.mefabc24.strata.world.WorldEntity
 
 enum class DebugGridRenderLayer { BELOW_OBJECTS, ABOVE_OBJECTS }
 enum class DebugGridExtent { WORLD, VISIBLE }
+enum class RenderOrderDebugMode { CALCULATED, ACTUAL }
+enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
+    PER_TILE(null),
+    STEPS_128(128),
+    STEPS_64(64),
+    STEPS_32(32)
+}
 
 /** Built-in debug panel and world diagnostic configuration. */
 class DebugSettings {
@@ -122,9 +129,11 @@ class DebugPickingSettings : DebugFeatureSettings() {
 }
 
 class DebugRenderOrderSettings : DebugFeatureSettings() {
+    var mode: RenderOrderDebugMode = RenderOrderDebugMode.CALCULATED
     var showLabels: Boolean = true
     var showTerrainIndices: Boolean = false
     var showTerrainHeatmap: Boolean = false
+    var terrainHeatmapSteps: TerrainHeatmapSteps = TerrainHeatmapSteps.PER_TILE
 
     private var storedTerrainHeatmapStartColor = Color(0.1f, 0.65f, 1f, 0.28f)
     var terrainHeatmapStartColor: Color
