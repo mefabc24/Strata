@@ -182,7 +182,8 @@ class SandboxGame : StrataGame() {
         )
 
         roaming = SandboxRoamingController(
-            sandboxWorld
+            world = sandboxWorld,
+            isHeld = strata.debug::isEntityHeld
         )
     }
 

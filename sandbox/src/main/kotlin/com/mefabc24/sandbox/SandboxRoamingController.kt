@@ -16,7 +16,8 @@ class SandboxRoamingController(
         goal: TilePosition
     ) -> List<TilePosition>? = { start, goal ->
         world.findPath(start, goal)
-    }
+    },
+    private val isHeld: (WorldEntity) -> Boolean = { false }
 ) {
     private val entities =
         linkedMapOf<WorldEntity, RoamingBehavior>()
@@ -51,6 +52,7 @@ class SandboxRoamingController(
                 iterator.remove()
                 continue
             }
+            if (isHeld(entity)) continue
 
             when {
                 entity.isMoving -> {
