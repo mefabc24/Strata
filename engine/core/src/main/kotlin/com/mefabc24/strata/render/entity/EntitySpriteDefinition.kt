@@ -48,7 +48,7 @@ internal sealed interface PreparedEntitySprites {
         private val visuals: Map<EntityDirection, EntityVisual>
     ) : PreparedEntitySprites {
         override fun resolve(direction: EntityDirection): EntityVisual {
-            return checkNotNull(visuals[direction]) {
+            return checkNotNull(visuals[direction] ?: visuals[direction.baseDirectionFallback()]) {
                 "Entity direction $direction is not registered."
             }
         }
@@ -57,7 +57,9 @@ internal sealed interface PreparedEntitySprites {
             direction: EntityDirection?
         ): EntityVisual {
             if (direction != null) {
-                return checkNotNull(visuals[direction]) {
+                return checkNotNull(
+                    visuals[direction] ?: visuals[direction.baseDirectionFallback()]
+                ) {
                     "Representative entity direction $direction is not registered."
                 }
             }
@@ -69,7 +71,11 @@ internal sealed interface PreparedEntitySprites {
 
 }
 
-/** Defines either one entity sprite or a sprite for every facing direction. */
+/**
+ * Defines either one entity sprite, the four legacy diagonal directions, or all
+ * eight facing directions. Missing screen-cardinal visuals use the documented
+ * [EntityDirection] fallback.
+ */
 class EntitySpriteDefinitionBuilder internal constructor(
     private val resolvePath: (String) -> String
 ) : SpriteDefinitionBuilder(resolvePath) {
@@ -106,9 +112,8 @@ class EntitySpriteDefinitionBuilder internal constructor(
             "A sprite definition must contain exactly one sprite source."
         }
         require(path.isNotBlank()) { "Sprite sheet path must not be blank." }
-        require(directionRows.keys == EntityDirection.entries.toSet()) {
-            val missing = EntityDirection.entries.filterNot(directionRows::containsKey)
-            "Directional sprite sheet must define every entity direction; missing $missing."
+        require(isSupportedDirectionSet(directionRows.keys)) {
+            "Directional sprite sheet must define the four base directions or all eight directions."
         }
         require(directionRows.values.all { it >= 0 }) {
             "Directional sprite sheet row indexes must not be negative."
@@ -138,12 +143,29 @@ class EntitySpriteDefinitionBuilder internal constructor(
         if (directions.isEmpty()) {
             return EntitySpriteDefinition.Single(build())
         }
-        require(directions.keys == EntityDirection.entries.toSet()) {
-            val missing = EntityDirection.entries.filterNot(directions::containsKey)
-            "Directional entity visual must define every direction; missing $missing."
+        require(isSupportedDirectionSet(directions.keys)) {
+            "Directional entity visual must define the four base directions or all eight directions."
         }
         return EntitySpriteDefinition.Directional(directions.toMap())
     }
+}
+
+private val BASE_ENTITY_DIRECTIONS = setOf(
+    EntityDirection.NORTH_EAST,
+    EntityDirection.SOUTH_EAST,
+    EntityDirection.SOUTH_WEST,
+    EntityDirection.NORTH_WEST
+)
+
+private fun isSupportedDirectionSet(directions: Set<EntityDirection>): Boolean =
+    directions == BASE_ENTITY_DIRECTIONS || directions == EntityDirection.entries.toSet()
+
+private fun EntityDirection.baseDirectionFallback(): EntityDirection = when (this) {
+    EntityDirection.NORTH -> EntityDirection.NORTH_EAST
+    EntityDirection.EAST -> EntityDirection.SOUTH_EAST
+    EntityDirection.SOUTH -> EntityDirection.SOUTH_WEST
+    EntityDirection.WEST -> EntityDirection.NORTH_WEST
+    else -> this
 }
 
 internal data class BuiltEntityStatefulVisual(

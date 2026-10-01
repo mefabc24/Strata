@@ -2,7 +2,9 @@
 
 package com.mefabc24.strata.world
 
-import kotlin.math.abs
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.floor
 import kotlin.math.sqrt
 
 /**
@@ -195,18 +197,23 @@ class WorldEntity internal constructor(
         dx: Float,
         dy: Float
     ): EntityDirection {
-        return if (abs(dx) >= abs(dy)) {
-            if (dx > 0f) {
-                EntityDirection.SOUTH_EAST
-            } else {
-                EntityDirection.NORTH_WEST
-            }
-        } else {
-            if (dy > 0f) {
-                EntityDirection.SOUTH_WEST
-            } else {
-                EntityDirection.NORTH_EAST
-            }
+        val screenX = dx - dy
+        val screenDown = dx + dy
+        val angle = atan2(screenDown, screenX)
+        val sector = Math.floorMod(
+            floor((angle + PI.toFloat() / 8f) / (PI.toFloat() / 4f)).toInt(),
+            EntityDirection.entries.size
+        )
+
+        return when (sector) {
+            0 -> EntityDirection.EAST
+            1 -> EntityDirection.SOUTH_EAST
+            2 -> EntityDirection.SOUTH
+            3 -> EntityDirection.SOUTH_WEST
+            4 -> EntityDirection.WEST
+            5 -> EntityDirection.NORTH_WEST
+            6 -> EntityDirection.NORTH
+            else -> EntityDirection.NORTH_EAST
         }
     }
 

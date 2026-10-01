@@ -19,6 +19,7 @@ import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
+import kotlin.math.sqrt
 
 internal class IsoWorldDebugRenderer(
     private val projection: IsoProjection,
@@ -295,9 +296,13 @@ internal fun entityDebugDirectionTarget(
     entity: WorldEntity
 ): EntityPosition {
     val (dx, dy) = when (entity.direction) {
+        EntityDirection.NORTH -> -DIRECTION_DIAGONAL_COMPONENT to -DIRECTION_DIAGONAL_COMPONENT
         EntityDirection.NORTH_EAST -> 0f to -DIRECTION_LENGTH
+        EntityDirection.EAST -> DIRECTION_DIAGONAL_COMPONENT to -DIRECTION_DIAGONAL_COMPONENT
         EntityDirection.SOUTH_EAST -> DIRECTION_LENGTH to 0f
+        EntityDirection.SOUTH -> DIRECTION_DIAGONAL_COMPONENT to DIRECTION_DIAGONAL_COMPONENT
         EntityDirection.SOUTH_WEST -> 0f to DIRECTION_LENGTH
+        EntityDirection.WEST -> -DIRECTION_DIAGONAL_COMPONENT to DIRECTION_DIAGONAL_COMPONENT
         EntityDirection.NORTH_WEST -> -DIRECTION_LENGTH to 0f
     }
     return EntityPosition(
@@ -307,3 +312,4 @@ internal fun entityDebugDirectionTarget(
 }
 
 private const val DIRECTION_LENGTH = 0.45f
+private val DIRECTION_DIAGONAL_COMPONENT = DIRECTION_LENGTH / sqrt(2f)
