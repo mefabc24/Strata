@@ -26,6 +26,7 @@ import com.mefabc24.strata.world.WorldRuntime
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -72,8 +73,8 @@ class ScreenManagerTest {
 
         assertEquals(
             listOf(
-                "menu create", "menu activate", "menu deactivate",
-                "game create", "game activate", "game deactivate",
+                "menu create", "menu activate", "game create",
+                "menu deactivate", "game activate", "game deactivate",
                 "menu activate", "menu deactivate", "game dispose", "menu dispose"
             ),
             events
@@ -137,6 +138,36 @@ class ScreenManagerTest {
         fixture.screens.navigate("loading", parameters = 73)
 
         assertEquals(73, received)
+    }
+
+    @Test
+    fun `failed creation disposes ui and can be retried`() {
+        val fixture = fixture()
+        var fail = true
+        fixture.screens.register("stable") { }
+        fixture.screens.register("unstable") {
+            ui { }
+            onCreate {
+                if (fail) error("creation failed")
+            }
+        }
+        fixture.screens.navigate("stable")
+
+        assertFailsWith<IllegalStateException> {
+            fixture.screens.navigate("unstable")
+        }
+        assertEquals(ScreenId("stable"), fixture.screens.currentId)
+        assertTrue(fixture.screens.history.isEmpty())
+        assertEquals(1, fixture.createdUiCount)
+        assertEquals(1, fixture.disposedUiCount)
+
+        fail = false
+        fixture.screens.navigate("unstable")
+
+        assertEquals(ScreenId("unstable"), fixture.screens.currentId)
+        assertEquals(listOf(ScreenId("stable")), fixture.screens.history)
+        assertEquals(2, fixture.createdUiCount)
+        assertEquals(1, fixture.disposedUiCount)
     }
 
     private fun fixture(

@@ -194,6 +194,27 @@ class StrataSceneUiTest {
     }
 
     @Test
+    fun `failed screen ui configuration disposes its stage`() {
+        val stage = TrackingStage()
+        val scene = sceneWith(stage)
+        val skin = TrackingSkin()
+        scene.screens.register("broken") {
+            ui(skin) {
+                error("configuration failed")
+            }
+        }
+
+        assertFailsWith<IllegalStateException> {
+            scene.screens.navigate("broken")
+        }
+
+        assertTrue(stage.disposed)
+        assertFalse(skin.disposed)
+        assertNull(scene.screens.currentId)
+        scene.dispose()
+    }
+
+    @Test
     fun `ui rejects invalid update deltas`() {
         val stage = TrackingStage()
         val ui = StrataUi(
