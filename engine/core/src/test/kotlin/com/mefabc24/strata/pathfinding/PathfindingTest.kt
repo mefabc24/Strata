@@ -3,7 +3,10 @@ package com.mefabc24.strata.pathfinding
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.neighbors
 import kotlin.math.sqrt
+import java.util.PriorityQueue
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -584,5 +587,184 @@ class PathfindingTest {
         assertEquals(waypoints, diagnostic.path)
         assertEquals(2f * sqrt(2f), diagnostic.totalCost)
         assertTrue(diagnostic.explored.isNotEmpty())
+    }
+
+    @Test
+    fun `fixed seed blocked maps match independent shortest path oracle`() {
+        val random = Random(246813579)
+        val world = createWorld(width = 8, height = 7)
+
+        repeat(60) { case ->
+            val start = TilePosition(random.nextInt(world.width), random.nextInt(world.height))
+            val goal = TilePosition(random.nextInt(world.width), random.nextInt(world.height))
+            val blocked = buildSet {
+                for (y in 0 until world.height) {
+                    for (x in 0 until world.width) {
+                        val position = TilePosition(x, y)
+                        if (position != start && position != goal && random.nextFloat() < 0.28f) {
+                            add(position)
+                        }
+                    }
+                }
+            }
+
+            for (mode in PathMovementMode.entries) {
+                val result = world.findPathDiagnostic(start, goal, mode) { it !in blocked }
+                val expected = oracleCost(world, start, goal, mode, blocked) { from, to ->
+                    if (from.x != to.x && from.y != to.y) sqrt(2f) else 1f
+                }
+
+                assertEquals(expected == null, result.path == null, "case=$case mode=$mode")
+                if (expected != null) {
+                    assertEquals(expected, result.totalCost!!, 0.0001f, "case=$case mode=$mode")
+                    assertValidPath(requireNotNull(result.path), start, goal, mode, blocked)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `fixed seed weighted searches match independent dijkstra oracle`() {
+        val random = Random(97531)
+        val world = createWorld(width = 7, height = 6)
+
+        repeat(40) { case ->
+            val start = TilePosition(random.nextInt(world.width), random.nextInt(world.height))
+            val goal = TilePosition(random.nextInt(world.width), random.nextInt(world.height))
+            val blocked = buildSet {
+                world.forEachTile { position, _ ->
+                    if (position != start && position != goal && random.nextFloat() < 0.2f) {
+                        add(position)
+                    }
+                }
+            }
+            val edgeCost = { from: TilePosition, to: TilePosition ->
+                0.25f + ((from.x * 13 + from.y * 7 + to.x * 5 + to.y * 3) and 7) / 4f
+            }
+            val result = world.findPathDiagnostic(
+                start,
+                goal,
+                PathMovementMode.EIGHT_WAY,
+                canEnter = { it !in blocked },
+                movementCost = edgeCost
+            )
+            val expected = oracleCost(
+                world,
+                start,
+                goal,
+                PathMovementMode.EIGHT_WAY,
+                blocked,
+                edgeCost
+            )
+
+            assertEquals(expected == null, result.path == null, "case=$case")
+            if (expected != null) {
+                assertEquals(expected, result.totalCost!!, 0.0001f, "case=$case")
+            }
+        }
+    }
+
+    @Test
+    fun `blocked start and blocked degenerate search return no path`() {
+        val world = createWorld()
+        val start = TilePosition(2, 2)
+
+        assertNull(world.findPath(start, TilePosition(3, 2)) { it != start })
+        assertNull(world.findPath(start, start) { false })
+    }
+
+    @Test
+    fun `single waypoint still validates bounds and traversability`() {
+        val world = createWorld()
+        val point = TilePosition(2, 2)
+
+        assertNull(world.findPath(listOf(point)) { false })
+        assertFailsWith<IllegalArgumentException> {
+            world.findPath(listOf(TilePosition(-1, 2)))
+        }
+    }
+
+    @Test
+    fun `failed diagnostics report explored nodes without a cost`() {
+        val world = createWorld(width = 4, height = 3)
+        val wall = (0 until world.height).map { TilePosition(2, it) }.toSet()
+
+        val result = world.findPathDiagnostic(
+            TilePosition(0, 1),
+            TilePosition(3, 1),
+            canEnter = { it !in wall }
+        )
+
+        assertTrue(!result.success)
+        assertNull(result.path)
+        assertNull(result.totalCost)
+        assertTrue(result.explored.isNotEmpty())
+        assertTrue(result.explored.none { it in wall })
+    }
+
+    @Test
+    fun `diagnostics snapshot mutable waypoint input`() {
+        val waypoints = mutableListOf(TilePosition(0, 0), TilePosition(2, 0))
+        val result = createWorld().findPathDiagnostic(waypoints)
+
+        waypoints += TilePosition(4, 4)
+
+        assertEquals(listOf(TilePosition(0, 0), TilePosition(2, 0)), result.waypoints)
+        assertEquals(TilePosition(2, 0), result.goal)
+    }
+
+    private fun assertValidPath(
+        path: List<TilePosition>,
+        start: TilePosition,
+        goal: TilePosition,
+        mode: PathMovementMode,
+        blocked: Set<TilePosition>
+    ) {
+        assertEquals(start, path.first())
+        assertEquals(goal, path.last())
+        assertTrue(path.none { it in blocked })
+        path.zipWithNext().forEach { (from, to) ->
+            val dx = kotlin.math.abs(from.x - to.x)
+            val dy = kotlin.math.abs(from.y - to.y)
+            assertTrue(dx <= 1 && dy <= 1 && dx + dy > 0)
+            if (mode == PathMovementMode.FOUR_WAY) assertEquals(1, dx + dy)
+            if (dx == 1 && dy == 1) {
+                assertTrue(TilePosition(to.x, from.y) !in blocked)
+                assertTrue(TilePosition(from.x, to.y) !in blocked)
+            }
+        }
+    }
+
+    private fun oracleCost(
+        world: World,
+        start: TilePosition,
+        goal: TilePosition,
+        mode: PathMovementMode,
+        blocked: Set<TilePosition>,
+        edgeCost: (TilePosition, TilePosition) -> Float
+    ): Float? {
+        val costs = mutableMapOf(start to 0f)
+        val queue = PriorityQueue<Pair<TilePosition, Float>>(compareBy { it.second })
+        queue += start to 0f
+        while (queue.isNotEmpty()) {
+            val (current, cost) = queue.remove()
+            if (cost != costs[current]) continue
+            if (current == goal) return cost
+            for (next in world.neighbors(current, mode == PathMovementMode.EIGHT_WAY)) {
+                if (next in blocked) continue
+                val diagonal = current.x != next.x && current.y != next.y
+                if (diagonal && (
+                        TilePosition(next.x, current.y) in blocked ||
+                            TilePosition(current.x, next.y) in blocked
+                        )
+                ) continue
+                val candidate = cost + edgeCost(current, next)
+                if (candidate < (costs[next] ?: Float.POSITIVE_INFINITY)) {
+                    costs[next] = candidate
+                    queue += next to candidate
+                }
+            }
+        }
+        return null
     }
 }
