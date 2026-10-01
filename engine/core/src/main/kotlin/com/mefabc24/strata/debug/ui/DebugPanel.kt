@@ -138,7 +138,7 @@ internal class DebugPanel(
         overlaySelection?.let { group ->
             synchronizers += { painter.selectedOverlayLayerId?.let(group::select) }
         }
-        setPanelVisible(settings.panel.visible)
+        setPanelVisible(settings.panel.visibleOnStartup)
         syncControls()
         syncVisibility()
     }

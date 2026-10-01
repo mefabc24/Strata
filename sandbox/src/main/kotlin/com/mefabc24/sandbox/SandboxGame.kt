@@ -1,5 +1,6 @@
 package com.mefabc24.sandbox
 
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.sandbox.registration.registerSandboxEntities
 import com.mefabc24.sandbox.registration.registerSandboxObjects
@@ -57,7 +58,8 @@ class SandboxGame : StrataGame() {
                 debug {
                     panel {
                         enabled = true
-                        visible = true
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.F3
                     }
 
                     performance {

@@ -112,8 +112,12 @@ class DebugPanelSettings {
     /** Whether the debug panel is enabled. */
     var enabled: Boolean = false
 
-    /** Initial panel visibility. Can also be changed at runtime. */
+    /** Whether the panel should be visible when initialized. */
+    var visibleOnStartup: Boolean = false
+
+    /** Current runtime visibility of the panel. */
     var visible: Boolean = false
+        internal set
 
     var toggleKey: Int = Input.Keys.F3
         set(value) {
