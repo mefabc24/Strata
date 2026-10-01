@@ -80,6 +80,8 @@ Lifecycle callbacks run in this order:
 4. `onDeactivate` whenever the screen leaves the visible stack.
 5. `onDispose` before its retained UI is disposed.
 
+When navigating to a screen for the first time, Strata completes its UI and `onCreate` work before deactivating the outgoing presentation. A creation failure therefore leaves the current screen active and disposes the incomplete UI.
+
 `navigate` replaces the visible stack and records the previous base screen in history. `back` dismisses the top overlay first, then returns through history. Repeated navigation to the current screen with the same parameters is a no-op. Activation parameters are available through `ScreenContext.parameters`.
 
 ## Overlays and input
