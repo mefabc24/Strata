@@ -4,6 +4,7 @@ import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -129,14 +130,46 @@ class SandboxRoamingControllerTest {
         assertEquals(8, pathRequests)
     }
 
+    @Test
+    fun `debug-held entity does not resume roaming until released`() {
+        val world = world()
+        val wolf = world.addEntity(
+            Wolf(),
+            EntityPosition.centerOf(TilePosition(10, 10))
+        )
+        var held = true
+        var pathRequests = 0
+        val controller = controller(
+            world = world,
+            isHeld = { it === wolf && held }
+        ) { start, goal ->
+            pathRequests++
+            listOf(start, goal)
+        }
+        controller.control(wolf)
+
+        controller.update(10f)
+
+        assertFalse(wolf.isMoving)
+        assertEquals(0, pathRequests)
+
+        held = false
+        controller.update(1.5f)
+
+        assertTrue(wolf.isMoving)
+        assertEquals(1, pathRequests)
+    }
+
     private fun controller(
         world: World,
+        isHeld: (WorldEntity) -> Boolean = { false },
         pathFor: (TilePosition, TilePosition) -> List<TilePosition>?
     ): SandboxRoamingController {
         return SandboxRoamingController(
             world = world,
             random = ZeroRandom,
-            pathFor = pathFor
+            pathFor = pathFor,
+            isHeld = isHeld
         )
     }
 
