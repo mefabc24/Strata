@@ -275,21 +275,20 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `debug panel initial visibility can be configured`() {
+    fun `debug panel startup visibility is independent from runtime visibility`() {
         val settings = DebugSettings()
 
+        assertFalse(settings.panel.visibleOnStartup)
         assertFalse(settings.panel.visible)
 
         settings.panel {
             enabled = true
-            visible = true
+            visibleOnStartup = true
         }
 
-        assertTrue(settings.panel.enabled)
-        assertTrue(settings.panel.visible)
+        assertTrue(settings.panel.visibleOnStartup)
 
-        settings.panel.visible = false
-
+        // Runtime visibility is not changed by configuration alone.
         assertFalse(settings.panel.visible)
     }
 
