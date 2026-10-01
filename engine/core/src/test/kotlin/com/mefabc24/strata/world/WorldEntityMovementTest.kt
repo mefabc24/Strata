@@ -310,6 +310,79 @@ class WorldEntityMovementTest {
         assertFalse(entity.isMoving)
     }
 
+    @Test
+    fun `partitioned and single delta updates produce the same route state`() {
+        val path = listOf(
+            TilePosition(1, 1),
+            TilePosition(4, 1),
+            TilePosition(2, 3),
+            TilePosition(-1, 3)
+        )
+        val single = entityAt(0.25f, 0.75f)
+        val partitioned = entityAt(0.25f, 0.75f)
+        single.followPath(path, speed = 1.7f)
+        partitioned.followPath(path, speed = 1.7f)
+
+        single.updateMovement(2f)
+        repeat(20) { partitioned.updateMovement(0.1f) }
+
+        assertEquals(single.position.x, partitioned.position.x, absoluteTolerance = 0.00001f)
+        assertEquals(single.position.y, partitioned.position.y, absoluteTolerance = 0.00001f)
+        assertEquals(single.remainingPath, partitioned.remainingPath)
+        assertEquals(single.direction, partitioned.direction)
+    }
+
+    @Test
+    fun `off center entity first reaches the supplied start tile center`() {
+        val entity = entityAt(0.1f, 0.2f)
+        entity.followPath(
+            listOf(TilePosition(0, 0), TilePosition(1, 0)),
+            speed = 1f
+        )
+
+        assertEquals(
+            listOf(EntityPosition(0.5f, 0.5f), EntityPosition(1.5f, 0.5f)),
+            entity.remainingWaypoints
+        )
+        entity.updateMovement(0.5f)
+
+        assertTrue(entity.position.x > 0.1f)
+        assertTrue(entity.position.y > 0.2f)
+        assertTrue(entity.position.x <= 0.5f)
+        assertTrue(entity.position.y <= 0.5f)
+    }
+
+    @Test
+    fun `remaining route collections are snapshots`() {
+        val entity = entityAt(0.5f, 0.5f)
+        entity.followPath(
+            listOf(TilePosition(1, 0), TilePosition(2, 0)),
+            speed = 1f
+        )
+        val waypointSnapshot = entity.remainingWaypoints.toMutableList()
+        val pathSnapshot = entity.remainingPath.toMutableList()
+
+        waypointSnapshot.clear()
+        pathSnapshot.clear()
+
+        assertEquals(2, entity.remainingWaypoints.size)
+        assertEquals(2, entity.remainingPath.size)
+    }
+
+    @Test
+    fun `routes may intentionally contain non adjacent and negative tiles`() {
+        val entity = entityAt(0.5f, 0.5f)
+        entity.followPath(
+            listOf(TilePosition(4, 3), TilePosition(-2, -1)),
+            speed = 100f
+        )
+
+        entity.updateMovement(1f)
+
+        assertEquals(EntityPosition(-1.5f, -0.5f), entity.position)
+        assertFalse(entity.isMoving)
+    }
+
     private fun entityAt(x: Float, y: Float): WorldEntity {
         return WorldEntity(TestEntity, EntityPosition(x, y))
     }
