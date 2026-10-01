@@ -430,12 +430,22 @@ internal class DebugPanel(
                 DebugNotificationSeverity.INFO
             )
         }
-        simpleToggle(
+        featureExpander(
             "Render order",
-            { settings.renderOrder.enabled && settings.renderOrder.showLabels }
+            { settings.renderOrder.enabled },
+            { settings.renderOrder.enabled = it }
         ) {
-            settings.renderOrder.enabled = it
-            if (it) settings.renderOrder.showLabels = true
+            toggleGrid(
+                toggle("Object & entity labels", { settings.renderOrder.showLabels }) {
+                    settings.renderOrder.showLabels = it
+                },
+                toggle("Terrain indices", { settings.renderOrder.showTerrainIndices }) {
+                    settings.renderOrder.showTerrainIndices = it
+                },
+                toggle("Terrain heatmap", { settings.renderOrder.showTerrainHeatmap }) {
+                    settings.renderOrder.showTerrainHeatmap = it
+                }
+            )
         }
         featureExpander(
             "Event Bus Monitor",

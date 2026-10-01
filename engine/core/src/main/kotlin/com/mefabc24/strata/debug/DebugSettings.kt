@@ -123,6 +123,18 @@ class DebugPickingSettings : DebugFeatureSettings() {
 
 class DebugRenderOrderSettings : DebugFeatureSettings() {
     var showLabels: Boolean = true
+    var showTerrainIndices: Boolean = false
+    var showTerrainHeatmap: Boolean = false
+
+    private var storedTerrainHeatmapStartColor = Color(0.1f, 0.65f, 1f, 0.28f)
+    var terrainHeatmapStartColor: Color
+        get() = storedTerrainHeatmapStartColor.cpy()
+        set(value) { storedTerrainHeatmapStartColor = value.cpy() }
+
+    private var storedTerrainHeatmapEndColor = Color(1f, 0.2f, 0.25f, 0.28f)
+    var terrainHeatmapEndColor: Color
+        get() = storedTerrainHeatmapEndColor.cpy()
+        set(value) { storedTerrainHeatmapEndColor = value.cpy() }
 }
 
 class DebugCullingSettings : DebugFeatureSettings() {
