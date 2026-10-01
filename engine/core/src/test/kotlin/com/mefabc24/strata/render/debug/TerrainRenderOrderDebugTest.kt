@@ -64,9 +64,9 @@ class TerrainRenderOrderDebugTest {
         val end = Color(1f, 1f, 1f, 0.25f)
 
         listOf(
-            TerrainHeatmapSteps.STEPS_128 to 128,
-            TerrainHeatmapSteps.STEPS_64 to 64,
-            TerrainHeatmapSteps.STEPS_32 to 32
+            TerrainHeatmapSteps.STEPS_32 to 32,
+            TerrainHeatmapSteps.STEPS_16 to 16,
+            TerrainHeatmapSteps.STEPS_8 to 8
         ).forEach { (steps, expectedLevels) ->
             val colors = (0 until 4097).map { rank ->
                 terrainHeatmapColor(start, end, rank, 4097, steps).toFloatBits()
@@ -138,7 +138,7 @@ class TerrainRenderOrderDebugTest {
         )
         assertNull(renderOrderDebugMetadata(culled, snapshot, RenderOrderDebugMode.ACTUAL))
 
-        terrainHeatmapProgress(5, 12, TerrainHeatmapSteps.STEPS_32)
+        terrainHeatmapProgress(5, 12, TerrainHeatmapSteps.STEPS_8)
         assertEquals(7, terrain.index)
         assertEquals(2, terrain.actualIndex)
         assertEquals(5, terrain.terrain?.rank)
@@ -197,13 +197,13 @@ class TerrainRenderOrderDebugTest {
 
         val settings = DebugRenderOrderSettings().apply {
             mode = RenderOrderDebugMode.ACTUAL
-            terrainHeatmapSteps = TerrainHeatmapSteps.STEPS_32
+            terrainHeatmapSteps = TerrainHeatmapSteps.STEPS_8
             showLabels = false
             showTerrainIndices = true
             showTerrainHeatmap = false
         }
         assertEquals(RenderOrderDebugMode.ACTUAL, settings.mode)
-        assertEquals(TerrainHeatmapSteps.STEPS_32, settings.terrainHeatmapSteps)
+        assertEquals(TerrainHeatmapSteps.STEPS_8, settings.terrainHeatmapSteps)
         assertFalse(settings.showLabels)
         assertTrue(settings.showTerrainIndices)
         assertFalse(settings.showTerrainHeatmap)

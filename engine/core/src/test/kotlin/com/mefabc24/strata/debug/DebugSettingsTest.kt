@@ -71,6 +71,14 @@ class DebugSettingsTest {
     }
 
     @Test
+    fun `render order heatmap defaults use increased opacity`() {
+        val settings = DebugRenderOrderSettings()
+
+        assertEquals(0.55f, settings.terrainHeatmapStartColor.a)
+        assertEquals(0.55f, settings.terrainHeatmapEndColor.a)
+    }
+
+    @Test
     fun `off preset resets camera restriction override`() {
         val settings = DebugSettings().apply {
             camera.disableRestrictions = true
