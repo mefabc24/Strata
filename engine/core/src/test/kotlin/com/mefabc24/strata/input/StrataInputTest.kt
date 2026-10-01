@@ -158,6 +158,79 @@ class StrataInputTest {
         assertEquals(null, inputState.inputProcessor)
     }
 
+    @Test
+    fun `screen processors route after debug ui and before compatibility ui`() {
+        val calls = mutableListOf<String>()
+        val input = StrataInput(processor("world", calls, handled = true))
+        input.addDebugUiProcessor(processor("debug", calls, handled = false))
+        input.setScreenUiProcessors(
+            listOf(
+                processor("top-screen", calls, handled = false),
+                processor("base-screen", calls, handled = false)
+            )
+        )
+        input.addUiProcessor(processor("compatibility", calls, handled = false))
+
+        assertTrue(input.processor.touchDown(0, 0, 0, 0))
+
+        assertEquals(
+            listOf("debug", "top-screen", "base-screen", "compatibility", "world"),
+            calls
+        )
+    }
+
+    @Test
+    fun `screen processor list rejects identity duplicates`() {
+        val input = StrataInput()
+        val processor = InputAdapter()
+
+        assertFailsWith<IllegalStateException> {
+            input.setScreenUiProcessors(listOf(processor, InputAdapter(), processor))
+        }
+    }
+
+    @Test
+    fun `debug ui processors reject duplicates and can be removed`() {
+        val calls = mutableListOf<String>()
+        val input = StrataInput(processor("world", calls, handled = true))
+        val debug = processor("debug", calls, handled = true)
+        input.addDebugUiProcessor(debug)
+
+        assertFailsWith<IllegalStateException> { input.addDebugUiProcessor(debug) }
+        assertTrue(input.removeDebugUiProcessor(debug))
+        assertFalse(input.removeDebugUiProcessor(debug))
+        assertTrue(input.processor.touchDown(0, 0, 0, 0))
+
+        assertEquals(listOf("world"), calls)
+    }
+
+    @Test
+    fun `debug world processor has single ownership and identity removal`() {
+        val input = StrataInput()
+        val debugTool = InputAdapter()
+        input.setDebugWorldProcessor(debugTool)
+
+        assertFailsWith<IllegalStateException> {
+            input.setDebugWorldProcessor(InputAdapter())
+        }
+        assertFalse(input.removeDebugWorldProcessor(InputAdapter()))
+        assertTrue(input.removeDebugWorldProcessor(debugTool))
+        input.setDebugWorldProcessor(InputAdapter())
+    }
+
+    @Test
+    fun `world replacement immediately changes the routed target`() {
+        val calls = mutableListOf<String>()
+        val input = StrataInput(processor("first", calls, handled = true))
+
+        input.replaceWorldProcessor(processor("second", calls, handled = true))
+        assertTrue(input.processor.touchDown(0, 0, 0, 0))
+        input.replaceWorldProcessor(null)
+        assertFalse(input.processor.touchDown(0, 0, 0, 0))
+
+        assertEquals(listOf("second"), calls)
+    }
+
     private fun processor(
         name: String,
         calls: MutableList<String>,
