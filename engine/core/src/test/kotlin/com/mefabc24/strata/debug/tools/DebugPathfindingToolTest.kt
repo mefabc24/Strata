@@ -2,11 +2,13 @@ package com.mefabc24.strata.debug.tools
 
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
+import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,6 +23,68 @@ class DebugPathfindingToolTest {
     @Test
     fun `consume reached waypoints defaults to enabled`() {
         assertTrue(DebugSettings().pathfinding.consumeReachedWaypoints)
+    }
+
+    @Test
+    fun `switching movement mode changes standalone route generation`() {
+        val settings = DebugSettings()
+        val tool = DebugPathfindingTool(
+            world = world(),
+            state = settings.worldState,
+            movementMode = { settings.pathfinding.movementMode }
+        )
+        val start = TilePosition(0, 0)
+        val goal = TilePosition(2, 2)
+
+        tool.click(start)
+        tool.click(goal)
+        assertEquals(5, tool.result?.path?.size)
+        assertEquals(4f, tool.result?.totalCost)
+
+        tool.clear()
+        settings.pathfinding.movementMode = PathMovementMode.EIGHT_WAY
+        tool.click(start)
+        tool.click(goal)
+
+        assertEquals(
+            listOf(start, TilePosition(1, 1), goal),
+            tool.result?.path
+        )
+        assertEquals(2f * sqrt(2f), tool.result?.totalCost)
+        assertTrue(tool.result!!.explored.isNotEmpty())
+    }
+
+    @Test
+    fun `entity assigned multi waypoint route uses selected movement mode`() {
+        val settings = DebugSettings().apply {
+            pathfinding.movementMode = PathMovementMode.EIGHT_WAY
+        }
+        val world = world()
+        val tool = DebugPathfindingTool(
+            world = world,
+            state = settings.worldState,
+            movementMode = { settings.pathfinding.movementMode }
+        )
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+
+        tool.selectEntity(entity)
+        tool.click(TilePosition(2, 2))
+        tool.click(TilePosition(4, 0))
+
+        assertEquals(
+            listOf(
+                TilePosition(1, 1),
+                TilePosition(2, 2),
+                TilePosition(3, 1),
+                TilePosition(4, 0)
+            ),
+            entity.remainingPath
+        )
+        assertEquals(
+            listOf(TilePosition(0, 0), TilePosition(2, 2), TilePosition(4, 0)),
+            tool.waypoints
+        )
+        assertEquals(4f * sqrt(2f), tool.result?.totalCost)
     }
 
     @Test

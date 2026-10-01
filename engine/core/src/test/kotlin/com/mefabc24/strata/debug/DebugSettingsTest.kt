@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
+import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
@@ -49,6 +50,7 @@ class DebugSettingsTest {
         assertTrue(settings.inspect.showEntityDirection)
         assertTrue(settings.inspect.showEntitySpriteBounds)
         assertTrue(settings.pathfinding.enabled)
+        assertEquals(PathMovementMode.FOUR_WAY, settings.pathfinding.movementMode)
         assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
