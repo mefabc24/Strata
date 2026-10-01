@@ -458,8 +458,7 @@ internal class DebugPanel(
                     settings.renderOrder.showTerrainHeatmap = it
                 }
             )
-            label("Heatmap")
-            label("Color steps")
+            label("Heatmap color steps")
             val heatmapSteps = ui.selectionGroup(
                 TerrainHeatmapSteps.entries,
                 settings.renderOrder.terrainHeatmapSteps
@@ -478,18 +477,18 @@ internal class DebugPanel(
                     heatmapSteps
                 )
                 heatmapStepButtons += selectableButton(
-                    "128",
-                    TerrainHeatmapSteps.STEPS_128,
-                    heatmapSteps
-                )
-                heatmapStepButtons += selectableButton(
-                    "64",
-                    TerrainHeatmapSteps.STEPS_64,
-                    heatmapSteps
-                )
-                heatmapStepButtons += selectableButton(
                     "32",
                     TerrainHeatmapSteps.STEPS_32,
+                    heatmapSteps
+                )
+                heatmapStepButtons += selectableButton(
+                    "16",
+                    TerrainHeatmapSteps.STEPS_16,
+                    heatmapSteps
+                )
+                heatmapStepButtons += selectableButton(
+                    "8",
+                    TerrainHeatmapSteps.STEPS_8,
                     heatmapSteps
                 )
             }.cell { fillAvailableX() }

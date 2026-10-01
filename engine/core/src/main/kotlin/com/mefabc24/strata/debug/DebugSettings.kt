@@ -12,9 +12,9 @@ enum class DebugGridExtent { WORLD, VISIBLE }
 enum class RenderOrderDebugMode { CALCULATED, ACTUAL }
 enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
     PER_TILE(null),
-    STEPS_128(128),
-    STEPS_64(64),
-    STEPS_32(32)
+    STEPS_32(32),
+    STEPS_16(16),
+    STEPS_8(8)
 }
 
 /** Built-in debug panel and world diagnostic configuration. */
@@ -135,12 +135,12 @@ class DebugRenderOrderSettings : DebugFeatureSettings() {
     var showTerrainHeatmap: Boolean = false
     var terrainHeatmapSteps: TerrainHeatmapSteps = TerrainHeatmapSteps.PER_TILE
 
-    private var storedTerrainHeatmapStartColor = Color(0.1f, 0.65f, 1f, 0.28f)
+    private var storedTerrainHeatmapStartColor = Color(0.1f, 0.65f, 1f, 0.55f)
     var terrainHeatmapStartColor: Color
         get() = storedTerrainHeatmapStartColor.cpy()
         set(value) { storedTerrainHeatmapStartColor = value.cpy() }
 
-    private var storedTerrainHeatmapEndColor = Color(1f, 0.2f, 0.25f, 0.28f)
+    private var storedTerrainHeatmapEndColor = Color(1f, 0.2f, 0.25f, 0.55f)
     var terrainHeatmapEndColor: Color
         get() = storedTerrainHeatmapEndColor.cpy()
         set(value) { storedTerrainHeatmapEndColor = value.cpy() }
