@@ -98,8 +98,6 @@ internal class DebugPanel(
     }
 
     private lateinit var panelActor: StrataPanel
-    private lateinit var panelCell: Cell<StrataPanel>
-    private lateinit var panelExpander: StrataExpander
     private lateinit var bodyScroll: StrataScrollPane
     private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
@@ -122,7 +120,6 @@ internal class DebugPanel(
     private var previewAnchor: Actor? = null
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
-    private var lastPanelExpanded: Boolean? = null
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
@@ -143,7 +140,6 @@ internal class DebugPanel(
         }
         setPanelVisible(settings.panel.visible)
         syncControls()
-        syncPanelExpansion()
         syncVisibility()
     }
 
@@ -162,7 +158,6 @@ internal class DebugPanel(
             if (!settings.panel.visible) hidePreview()
         }
         syncControls()
-        syncPanelExpansion()
         syncVisibility()
         syncDiagnostics()
     }
@@ -174,59 +169,83 @@ internal class DebugPanel(
 
     private fun buildUi() {
         ui.root.pad(12f)
+
         panelActor = ui.panel(
             spacing = 8f,
-            padding = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
+            padding = StrataInsets(
+                top = 10f,
+                left = 10f,
+                bottom = 10f,
+                right = 10f
+            )
         ) {
             defaults().fillAvailableX()
-            panelExpander = expander(
-                title = "STRATA DEBUG",
-                expanded = settings.panel.expanded,
-                spacing = 8f,
-                headerHeight = 40f,
-                contentGrowY = true,
-                onExpandedChanged = { expanded ->
-                    settings.panel.expanded = expanded
-                    syncPanelCell(expanded)
-                    if (!expanded) hidePreview()
+
+            // Main navigation
+            row(spacing = 6f) {
+                defaults()
+                    .fillAvailableX()
+                    .uniformX()
+                    .height(40f)
+
+                DebugPanelTab.entries.forEach {
+                    selectableButton(it.label, it, tabs)
                 }
-            ) {
+            }
+
+            separator()
+
+            // Scrollable content
+            bodyScroll = scrollColumn(spacing = 8f) {
                 defaults().fillAvailableX()
-                row(spacing = 6f) {
-                    defaults().fillAvailableX().uniformX().height(40f)
-                    DebugPanelTab.entries.forEach { selectableButton(it.label, it, tabs) }
+
+                stack {
+                    toolsTab = column(spacing = 10f) {
+                        defaults().fillAvailableX()
+                        buildTools()
+                    }
+
+                    debugTab = column(spacing = 10f) {
+                        defaults().fillAvailableX()
+                        buildDebug()
+                    }
+                }.cell {
+                    fillAvailableX()
                 }
+            }.cell {
+                grow()
+                fill()
+                minHeight(0f)
+            }
+
+            // Fixed status footer
+            contextFooter = column(spacing = 3f) {
+                defaults().fillAvailableX()
+
                 separator()
-                bodyScroll = scrollColumn(spacing = 8f) {
-                    defaults().fillAvailableX()
-                    stack {
-                        toolsTab = column(spacing = 10f) {
-                            defaults().fillAvailableX(); buildTools()
-                        }
-                        debugTab = column(spacing = 10f) {
-                            defaults().fillAvailableX(); buildDebug()
-                        }
-                    }.cell { fillAvailableX() }
-                }.cell { grow(); fill(); minHeight(0f) }
-                contextFooter = column(spacing = 3f) {
-                    defaults().fillAvailableX()
-                    separator()
-                    label("STATUS").cell { height(24f); left() }
-                    contextRows = diagnosticTable()
+
+                label("STATUS").cell {
+                    height(24f)
+                    left()
                 }
-                contextFooterCell = getCell(contextFooter).apply {
-                    height(DebugContextFooterLayout.reservedHeight)
-                    padTop(4f)
-                }
-            }.cell { grow(); fill() }
+
+                contextRows = diagnosticTable()
+            }
+
+            contextFooterCell = getCell(contextFooter).apply {
+                height(DebugContextFooterLayout.reservedHeight)
+                padTop(4f)
+            }
         }.cell {
             minWidth(260f)
             prefWidth(Value.percentWidth(0.34f, ui.root))
             maxWidth(460f)
-            growY(); fillY(); top(); left()
+
+            growY()
+            fillY()
+            top()
+            left()
         }
-        panelCell = requireNotNull(ui.root.getCell(panelActor))
-        syncPanelCell(settings.panel.expanded)
     }
 
     private fun buildPreview() {
@@ -826,29 +845,6 @@ internal class DebugPanel(
 
     private fun syncControls() {
         synchronizers.sync()
-    }
-
-    private fun syncPanelExpansion() {
-        if (panelExpander.expanded != settings.panel.expanded) {
-            panelExpander.expanded = settings.panel.expanded
-        }
-        syncPanelCell(settings.panel.expanded)
-    }
-
-    private fun syncPanelCell(expanded: Boolean) {
-        if (!::panelCell.isInitialized || lastPanelExpanded == expanded) return
-        lastPanelExpanded = expanded
-        if (expanded) {
-            panelCell
-                .minHeight(0f)
-                .prefHeight(Value.prefHeight)
-                .maxHeight(Value.maxHeight)
-                .growY()
-                .fillY()
-        } else {
-            panelCell.height(Value.prefHeight)
-        }
-        panelActor.invalidateHierarchy()
     }
 
     private fun syncVisibility() {
