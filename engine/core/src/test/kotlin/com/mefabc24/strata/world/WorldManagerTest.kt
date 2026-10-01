@@ -9,6 +9,7 @@ import com.mefabc24.strata.scene.SceneWorldView
 import com.mefabc24.strata.terrain.TerrainId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -102,6 +103,192 @@ class WorldManagerTest {
         assertEquals(25, underground.groundTileCount)
     }
 
+    @Test
+    fun `world ids reject blank values`() {
+        listOf("", " ", "\t\n").forEach { value ->
+            assertFailsWith<IllegalArgumentException> { WorldId(value) }
+        }
+    }
+
+    @Test
+    fun `registration preserves order and rejects duplicate ids and instances`() {
+        val manager = manager()
+        val city = world()
+        val village = world()
+
+        assertSame(city, manager.register("city", city) { Terrain.GRASS })
+        manager.register("village", village) { Terrain.GRASS }
+
+        assertEquals(
+            linkedSetOf(WorldId("city"), WorldId("village")),
+            manager.ids
+        )
+        assertTrue(manager.contains(WorldId("city")))
+        assertSame(village, manager.find(WorldId("village")))
+        assertNull(manager.find(WorldId("missing")))
+        assertFailsWith<IllegalArgumentException> {
+            manager.register("city", world()) { Terrain.GRASS }
+        }
+        assertFailsWith<IllegalArgumentException> {
+            manager.register("alias", city) { Terrain.GRASS }
+        }
+    }
+
+    @Test
+    fun `unknown world lookup and activation fail without changing active world`() {
+        val activations = mutableListOf<Pair<WorldId?, WorldId?>>()
+        val manager = manager(activations = activations)
+        val city = world()
+        manager.register("city", city) { Terrain.GRASS }
+        manager.activate("city")
+
+        assertFailsWith<IllegalStateException> { manager["missing"] }
+        assertFailsWith<IllegalStateException> { manager.activate("missing") }
+
+        assertSame(city, manager.activeWorld)
+        assertEquals(
+            listOf<Pair<WorldId?, WorldId?>>(null to WorldId("city")),
+            activations
+        )
+    }
+
+    @Test
+    fun `activating current world and repeated deactivation are no ops`() {
+        val activations = mutableListOf<Pair<WorldId?, WorldId?>>()
+        val manager = manager(activations = activations)
+        val city = world()
+        manager.register("city", city) { Terrain.GRASS }
+
+        assertSame(city, manager.activate("city"))
+        assertSame(city, manager.activate("city"))
+        manager.deactivate()
+        manager.deactivate()
+
+        assertNull(manager.activeId)
+        assertEquals(
+            listOf(null to WorldId("city"), WorldId("city") to null),
+            activations
+        )
+    }
+
+    @Test
+    fun `update render and resize affect only the appropriate views`() {
+        val views = mutableMapOf<WorldId, RecordingView>()
+        val manager = manager(views)
+        val city = world()
+        val underground = world()
+        manager.register("city", city) { Terrain.GRASS }
+        manager.register("underground", underground) { Terrain.GRASS }
+        manager.activate("city")
+        val updated = mutableListOf<Triple<World, Float, Boolean>>()
+
+        manager.update(0.2f, 0.5f) { world, delta, active ->
+            updated += Triple(world, delta, active)
+        }
+        manager.render()
+        manager.resize(1280, 720)
+
+        assertEquals(listOf(Triple(city, 0.5f, true)), updated)
+        assertEquals(listOf(0.2f to 0.5f), views.getValue(WorldId("city")).updates)
+        assertTrue(views.getValue(WorldId("underground")).updates.isEmpty())
+        assertEquals(1, views.getValue(WorldId("city")).renderCalls)
+        assertEquals(0, views.getValue(WorldId("underground")).renderCalls)
+        assertEquals(listOf(1280 to 720), views.getValue(WorldId("city")).resizes)
+        assertEquals(listOf(1280 to 720), views.getValue(WorldId("underground")).resizes)
+    }
+
+    @Test
+    fun `background updates identify active world and never update inactive views`() {
+        val views = mutableMapOf<WorldId, RecordingView>()
+        val manager = manager(views)
+        val city = world()
+        val underground = world()
+        manager.register("city", city) { Terrain.GRASS }
+        manager.register("underground", underground) { Terrain.GRASS }
+        manager.activate("underground")
+        manager.inactiveWorldPolicy = InactiveWorldPolicy.UPDATE
+        val updated = mutableListOf<Pair<World, Boolean>>()
+
+        manager.update(0.25f, 0.75f) { world, delta, active ->
+            assertEquals(0.75f, delta)
+            updated += world to active
+        }
+
+        assertEquals(listOf(city to false, underground to true), updated)
+        assertTrue(views.getValue(WorldId("city")).updates.isEmpty())
+        assertEquals(
+            listOf(0.25f to 0.75f),
+            views.getValue(WorldId("underground")).updates
+        )
+    }
+
+    @Test
+    fun `removing missing or inactive worlds preserves active registration`() {
+        val views = mutableMapOf<WorldId, RecordingView>()
+        val manager = manager(views)
+        val city = world()
+        val underground = world()
+        manager.register("city", city) { Terrain.GRASS }
+        manager.register("underground", underground) { Terrain.GRASS }
+        manager.activate("city")
+
+        assertNull(manager.remove("missing"))
+        assertSame(underground, manager.remove("underground"))
+
+        assertSame(city, manager.activeWorld)
+        assertEquals(setOf(WorldId("city")), manager.ids)
+        assertFalse(views.getValue(WorldId("city")).disposed)
+        assertTrue(views.getValue(WorldId("underground")).disposed)
+    }
+
+    @Test
+    fun `disposal deactivates once and disposes views in reverse registration order`() {
+        val disposalOrder = mutableListOf<String>()
+        val activations = mutableListOf<Pair<WorldId?, WorldId?>>()
+        val manager = WorldManager(
+            createRuntime = { id, world, terrainFor ->
+                WorldRuntime(
+                    id,
+                    world,
+                    terrainFor,
+                    RecordingView { disposalOrder += id.value },
+                    placement = null
+                )
+            },
+            activationChanged = { previous, next ->
+                activations += previous?.id to next?.id
+            }
+        )
+        manager.register("first", world()) { Terrain.GRASS }
+        manager.register("second", world()) { Terrain.GRASS }
+        manager.register("third", world()) { Terrain.GRASS }
+        manager.activate("second")
+
+        manager.dispose()
+        manager.dispose()
+
+        assertEquals(listOf("third", "second", "first"), disposalOrder)
+        assertEquals(
+            listOf(null to WorldId("second"), WorldId("second") to null),
+            activations
+        )
+        assertTrue(manager.ids.isEmpty())
+        assertNull(manager.activeWorld)
+    }
+
+    @Test
+    fun `mutating operations fail after disposal`() {
+        val manager = manager()
+        manager.dispose()
+
+        assertFailsWith<IllegalStateException> {
+            manager.register("city", world()) { Terrain.GRASS }
+        }
+        assertFailsWith<IllegalStateException> { manager.activate("city") }
+        assertFailsWith<IllegalStateException> { manager.deactivate() }
+        assertFailsWith<IllegalStateException> { manager.remove("city") }
+    }
+
     private fun manager(
         views: MutableMap<WorldId, RecordingView> = mutableMapOf(),
         activations: MutableList<Pair<WorldId?, WorldId?>> = mutableListOf()
@@ -123,17 +310,27 @@ class WorldManagerTest {
             followPath(listOf(TilePosition(2, 0)), speed = 2f)
         }
 
-    private class RecordingView : SceneWorldView {
+    private class RecordingView(
+        private val onDispose: () -> Unit = {}
+    ) : SceneWorldView {
         override val publicView: IsoWorldView? = null
         override val inputProcessor: InputProcessor = InputAdapter()
         override val hoveredTile: TilePosition? = null
         override val renderStats = RenderStats()
         var cameraMarker = 0
         var disposed = false
+        val updates = mutableListOf<Pair<Float, Float>>()
+        var renderCalls = 0
+        val resizes = mutableListOf<Pair<Int, Int>>()
 
-        override fun update(realDelta: Float, simulationDelta: Float) = Unit
-        override fun render(previews: List<PlacementPreview>) = Unit
-        override fun resize(width: Int, height: Int) = Unit
-        override fun dispose() { disposed = true }
+        override fun update(realDelta: Float, simulationDelta: Float) {
+            updates += realDelta to simulationDelta
+        }
+        override fun render(previews: List<PlacementPreview>) { renderCalls++ }
+        override fun resize(width: Int, height: Int) { resizes += width to height }
+        override fun dispose() {
+            disposed = true
+            onDispose()
+        }
     }
 }
