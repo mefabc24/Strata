@@ -6,8 +6,18 @@ import com.mefabc24.strata.world.contains
 import com.mefabc24.strata.world.neighbors
 import java.util.PriorityQueue
 import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.sqrt
 
-private val UNIT_MOVEMENT_COST: (TilePosition, TilePosition) -> Float = { _, _ -> 1f }
+/** Tile transitions available to path searches. */
+enum class PathMovementMode {
+    FOUR_WAY,
+    EIGHT_WAY
+}
+
+private val GRID_MOVEMENT_COST: (TilePosition, TilePosition) -> Float = { from, to ->
+    if (from.x != to.x && from.y != to.y) DIAGONAL_MOVEMENT_COST else 1f
+}
 
 /**
  * Finds the shortest path between two tile positions.
@@ -20,11 +30,28 @@ fun World.findPath(
     start: TilePosition,
     goal: TilePosition,
     canEnter: (TilePosition) -> Boolean = { true }
+): List<TilePosition>? = findPath(
+    start = start,
+    goal = goal,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter
+)
+
+/**
+ * Finds the shortest path using the transitions allowed by [movementMode].
+ * Orthogonal steps cost `1`, while diagonal steps cost `sqrt(2)`.
+ */
+fun World.findPath(
+    start: TilePosition,
+    goal: TilePosition,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true }
 ): List<TilePosition>? = findPathSearch(
     start = start,
     goal = goal,
+    movementMode = movementMode,
     canEnter = canEnter,
-    movementCost = UNIT_MOVEMENT_COST,
+    movementCost = GRID_MOVEMENT_COST,
     minimumStepCost = 1f
 ).path
 
@@ -39,9 +66,32 @@ fun World.findPath(
     goal: TilePosition,
     canEnter: (TilePosition) -> Boolean = { true },
     movementCost: (from: TilePosition, to: TilePosition) -> Float
+): List<TilePosition>? = findPath(
+    start = start,
+    goal = goal,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter,
+    movementCost = movementCost
+)
+
+/**
+ * Finds the cheapest path using the transitions allowed by [movementMode].
+ *
+ * [movementCost] supplies the complete cost of every directed edge, including
+ * diagonal edges in [PathMovementMode.EIGHT_WAY]. The pathfinder does not add
+ * a diagonal multiplier to custom costs. Every returned cost must be finite and
+ * greater than zero. A zero heuristic keeps arbitrary positive costs optimal.
+ */
+fun World.findPath(
+    start: TilePosition,
+    goal: TilePosition,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true },
+    movementCost: (from: TilePosition, to: TilePosition) -> Float
 ): List<TilePosition>? = findPathSearch(
     start = start,
     goal = goal,
+    movementMode = movementMode,
     canEnter = canEnter,
     movementCost = movementCost,
     minimumStepCost = 0f
@@ -55,10 +105,22 @@ fun World.findPath(
 fun World.findPath(
     waypoints: List<TilePosition>,
     canEnter: (TilePosition) -> Boolean = { true }
+): List<TilePosition>? = findPath(
+    waypoints = waypoints,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter
+)
+
+/** Finds a path through every waypoint using [movementMode]. */
+fun World.findPath(
+    waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true }
 ): List<TilePosition>? = findPathThrough(
     waypoints = waypoints,
+    movementMode = movementMode,
     canEnter = canEnter,
-    movementCost = UNIT_MOVEMENT_COST,
+    movementCost = GRID_MOVEMENT_COST,
     minimumStepCost = 1f
 ).path
 
@@ -71,8 +133,25 @@ fun World.findPath(
     waypoints: List<TilePosition>,
     canEnter: (TilePosition) -> Boolean = { true },
     movementCost: (from: TilePosition, to: TilePosition) -> Float
+): List<TilePosition>? = findPath(
+    waypoints = waypoints,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter,
+    movementCost = movementCost
+)
+
+/**
+ * Finds the cheapest path through every waypoint using [movementMode]. Custom
+ * costs define the complete directed-edge cost, including diagonal edges.
+ */
+fun World.findPath(
+    waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true },
+    movementCost: (from: TilePosition, to: TilePosition) -> Float
 ): List<TilePosition>? = findPathThrough(
     waypoints = waypoints,
+    movementMode = movementMode,
     canEnter = canEnter,
     movementCost = movementCost,
     minimumStepCost = 0f
@@ -101,10 +180,24 @@ fun World.findPathDiagnostic(
     start: TilePosition,
     goal: TilePosition,
     canEnter: (TilePosition) -> Boolean = { true }
+): PathfindingDiagnosticResult = findPathDiagnostic(
+    start = start,
+    goal = goal,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter
+)
+
+/** Runs a two-point search in [movementMode] while collecting diagnostics. */
+fun World.findPathDiagnostic(
+    start: TilePosition,
+    goal: TilePosition,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true }
 ): PathfindingDiagnosticResult = findPathDiagnosticInternal(
     waypoints = listOf(start, goal),
+    movementMode = movementMode,
     canEnter = canEnter,
-    movementCost = UNIT_MOVEMENT_COST,
+    movementCost = GRID_MOVEMENT_COST,
     minimumStepCost = 1f
 )
 
@@ -114,8 +207,24 @@ fun World.findPathDiagnostic(
     goal: TilePosition,
     canEnter: (TilePosition) -> Boolean = { true },
     movementCost: (from: TilePosition, to: TilePosition) -> Float
+): PathfindingDiagnosticResult = findPathDiagnostic(
+    start = start,
+    goal = goal,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter,
+    movementCost = movementCost
+)
+
+/** Runs a weighted two-point search in [movementMode] with diagnostics. */
+fun World.findPathDiagnostic(
+    start: TilePosition,
+    goal: TilePosition,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true },
+    movementCost: (from: TilePosition, to: TilePosition) -> Float
 ): PathfindingDiagnosticResult = findPathDiagnosticInternal(
     waypoints = listOf(start, goal),
+    movementMode = movementMode,
     canEnter = canEnter,
     movementCost = movementCost,
     minimumStepCost = 0f
@@ -125,10 +234,22 @@ fun World.findPathDiagnostic(
 fun World.findPathDiagnostic(
     waypoints: List<TilePosition>,
     canEnter: (TilePosition) -> Boolean = { true }
+): PathfindingDiagnosticResult = findPathDiagnostic(
+    waypoints = waypoints,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter
+)
+
+/** Runs a multi-waypoint search in [movementMode] with diagnostics. */
+fun World.findPathDiagnostic(
+    waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true }
 ): PathfindingDiagnosticResult = findPathDiagnosticInternal(
     waypoints = waypoints,
+    movementMode = movementMode,
     canEnter = canEnter,
-    movementCost = UNIT_MOVEMENT_COST,
+    movementCost = GRID_MOVEMENT_COST,
     minimumStepCost = 1f
 )
 
@@ -137,8 +258,22 @@ fun World.findPathDiagnostic(
     waypoints: List<TilePosition>,
     canEnter: (TilePosition) -> Boolean = { true },
     movementCost: (from: TilePosition, to: TilePosition) -> Float
+): PathfindingDiagnosticResult = findPathDiagnostic(
+    waypoints = waypoints,
+    movementMode = PathMovementMode.FOUR_WAY,
+    canEnter = canEnter,
+    movementCost = movementCost
+)
+
+/** Runs a weighted multi-waypoint search in [movementMode] with diagnostics. */
+fun World.findPathDiagnostic(
+    waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
+    canEnter: (TilePosition) -> Boolean = { true },
+    movementCost: (from: TilePosition, to: TilePosition) -> Float
 ): PathfindingDiagnosticResult = findPathDiagnosticInternal(
     waypoints = waypoints,
+    movementMode = movementMode,
     canEnter = canEnter,
     movementCost = movementCost,
     minimumStepCost = 0f
@@ -146,6 +281,7 @@ fun World.findPathDiagnostic(
 
 private fun World.findPathDiagnosticInternal(
     waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
     canEnter: (TilePosition) -> Boolean,
     movementCost: (TilePosition, TilePosition) -> Float,
     minimumStepCost: Float
@@ -153,6 +289,7 @@ private fun World.findPathDiagnosticInternal(
     val started = System.nanoTime()
     val search = findPathThrough(
         waypoints = waypoints,
+        movementMode = movementMode,
         canEnter = canEnter,
         movementCost = movementCost,
         minimumStepCost = minimumStepCost
@@ -170,6 +307,7 @@ private fun World.findPathDiagnosticInternal(
 
 private fun World.findPathThrough(
     waypoints: List<TilePosition>,
+    movementMode: PathMovementMode,
     canEnter: (TilePosition) -> Boolean,
     movementCost: (TilePosition, TilePosition) -> Float,
     minimumStepCost: Float
@@ -182,6 +320,7 @@ private fun World.findPathThrough(
         return findPathSearch(
             waypoints.single(),
             waypoints.single(),
+            movementMode,
             canEnter,
             movementCost,
             minimumStepCost
@@ -196,6 +335,7 @@ private fun World.findPathThrough(
         val segment = findPathSearch(
             start,
             goal,
+            movementMode,
             canEnter,
             movementCost,
             minimumStepCost
@@ -217,6 +357,7 @@ private fun World.findPathThrough(
 private fun World.findPathSearch(
     start: TilePosition,
     goal: TilePosition,
+    movementMode: PathMovementMode,
     canEnter: (TilePosition) -> Boolean,
     movementCost: (TilePosition, TilePosition) -> Float,
     minimumStepCost: Float
@@ -245,7 +386,7 @@ private fun World.findPathSearch(
     val explored = mutableListOf<TilePosition>()
 
     gScore[start] = 0f
-    val startHeuristic = heuristic(start, goal, minimumStepCost)
+    val startHeuristic = heuristic(start, goal, movementMode, minimumStepCost)
     open.add(PathNode(start, startHeuristic, startHeuristic))
 
     while (open.isNotEmpty()) {
@@ -262,8 +403,11 @@ private fun World.findPathSearch(
         }
 
         val currentScore = gScore[current] ?: continue
-        for (neighbor in neighbors(current)) {
+        for (neighbor in neighbors(current, includeDiagonals = movementMode == PathMovementMode.EIGHT_WAY)) {
             if (neighbor in closed || !canEnter(neighbor)) continue
+            if (isDiagonal(current, neighbor) && !canTraverseDiagonal(current, neighbor, canEnter)) {
+                continue
+            }
 
             val edgeCost = movementCost(current, neighbor)
             require(edgeCost.isFinite() && edgeCost > 0f) {
@@ -275,7 +419,7 @@ private fun World.findPathSearch(
 
             cameFrom[neighbor] = current
             gScore[neighbor] = tentativeScore
-            val neighborHeuristic = heuristic(neighbor, goal, minimumStepCost)
+            val neighborHeuristic = heuristic(neighbor, goal, movementMode, minimumStepCost)
             open.add(
                 PathNode(
                     position = neighbor,
@@ -304,10 +448,29 @@ private data class PathNode(
 private fun heuristic(
     from: TilePosition,
     to: TilePosition,
+    movementMode: PathMovementMode,
     minimumStepCost: Float
-): Float = (
-    abs(from.x - to.x) + abs(from.y - to.y)
-).toFloat() * minimumStepCost
+): Float {
+    val dx = abs(from.x - to.x)
+    val dy = abs(from.y - to.y)
+    return when (movementMode) {
+        PathMovementMode.FOUR_WAY -> (dx + dy).toFloat() * minimumStepCost
+        PathMovementMode.EIGHT_WAY -> {
+            val diagonalSteps = min(dx, dy)
+            val orthogonalSteps = maxOf(dx, dy) - diagonalSteps
+            (diagonalSteps * DIAGONAL_MOVEMENT_COST + orthogonalSteps) * minimumStepCost
+        }
+    }
+}
+
+private fun isDiagonal(from: TilePosition, to: TilePosition): Boolean =
+    from.x != to.x && from.y != to.y
+
+private fun canTraverseDiagonal(
+    from: TilePosition,
+    to: TilePosition,
+    canEnter: (TilePosition) -> Boolean
+): Boolean = canEnter(TilePosition(to.x, from.y)) && canEnter(TilePosition(from.x, to.y))
 
 private fun reconstructPath(
     cameFrom: Map<TilePosition, TilePosition>,
@@ -322,3 +485,5 @@ private fun reconstructPath(
     path.reverse()
     return path
 }
+
+private val DIAGONAL_MOVEMENT_COST = sqrt(2f)
