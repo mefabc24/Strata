@@ -1,5 +1,6 @@
 package com.mefabc24.strata.debug
 
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.TilePosition
@@ -17,8 +18,8 @@ class DebugSettingsTest {
     fun `optional overlays are disabled while tool context defaults are ready`() {
         val settings = DebugSettings()
         assertFalse(settings.panel.enabled)
-        assertTrue(settings.panel.visible)
-        assertFalse(settings.panel.expanded)
+        assertFalse(settings.panel.visible)
+        assertEquals(Input.Keys.F3, settings.panel.toggleKey)
         assertFalse(settings.performance.enabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
@@ -271,6 +272,25 @@ class DebugSettingsTest {
                 settings.pathfinding.entitySpeedMultiplier = invalid
             }
         }
+    }
+
+    @Test
+    fun `debug panel initial visibility can be configured`() {
+        val settings = DebugSettings()
+
+        assertFalse(settings.panel.visible)
+
+        settings.panel {
+            enabled = true
+            visible = true
+        }
+
+        assertTrue(settings.panel.enabled)
+        assertTrue(settings.panel.visible)
+
+        settings.panel.visible = false
+
+        assertFalse(settings.panel.visible)
     }
 
     private data object TestTile : Tile
