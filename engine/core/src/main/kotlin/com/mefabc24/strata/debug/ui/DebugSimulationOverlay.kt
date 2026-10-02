@@ -10,9 +10,13 @@ import com.mefabc24.strata.ui.StrataUi
 
 internal class DebugSimulationOverlay(
     ui: StrataUi,
-    simulation: SimulationController
+    private val simulation: SimulationController
 ) {
     private val state = DebugSimulationOverlayState(simulation)
+    private var refreshElapsed = 0f
+    private var accumulatedRealDelta = 0f
+    private var accumulatedSimulationDelta = 0f
+    private var sampledFrames = 0
     private val pauseButton = StrataButton(
         state.pauseButtonText, ui.skin, ui.theme.buttonStyle
     ) { state.togglePause(); sync() }
@@ -62,6 +66,7 @@ internal class DebugSimulationOverlay(
     init { ui.stage.addActor(root); sync() }
 
     fun setVisible(visible: Boolean) { state.setVisible(visible); sync() }
+
     fun sync() {
         root.isVisible = state.visible
 
@@ -73,7 +78,41 @@ internal class DebugSimulationOverlay(
         speedButtons.forEach { (scale, button) ->
             button.isChecked = scale == state.selectedTimeScale
         }
-        deltaLabel.setText(state.deltaText)
+    }
+
+    /** Updates the timing display using averaged values at a fixed interval. */
+    fun update(delta: Float) {
+        sync()
+
+        if (!state.visible) {
+            refreshElapsed = 0f
+            accumulatedRealDelta = 0f
+            accumulatedSimulationDelta = 0f
+            sampledFrames = 0
+            return
+        }
+
+        refreshElapsed += delta
+        accumulatedRealDelta += simulation.lastRealDelta
+        accumulatedSimulationDelta += simulation.lastSimulationDelta
+        sampledFrames++
+
+        if (refreshElapsed < 0.25f) return
+
+        val averageRealDelta = accumulatedRealDelta / sampledFrames
+        val averageSimulationDelta = accumulatedSimulationDelta / sampledFrames
+
+        deltaLabel.setText(
+            state.formatDeltaText(
+                averageRealDelta,
+                averageSimulationDelta
+            )
+        )
+
+        refreshElapsed = 0f
+        accumulatedRealDelta = 0f
+        accumulatedSimulationDelta = 0f
+        sampledFrames = 0
     }
 
     private fun speedLabel(scale: Float) = when (scale) {
@@ -88,25 +127,39 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
     val paused get() = simulation.paused
     val pauseButtonText get() = if (paused) "Resume" else "Pause"
     val selectedTimeScale get() = TIME_SCALES.firstOrNull { it == simulation.timeScale }
-    val deltaText: String
-        get() = "Real Δ ${formatMs(simulation.lastRealDelta)} ms   " +
-            "Simulation Δ ${formatMs(simulation.lastSimulationDelta)} ms   " +
-            "Scale ${simulation.timeScale}x"
+
+    /** Formats averaged simulation timing values for the debug overlay. */
+    fun formatDeltaText(
+        realDelta: Float,
+        simulationDelta: Float
+    ): String =
+        "Real: ${formatMs(realDelta)} ms   " +
+                "Simulation: ${formatMs(simulationDelta)} ms   " +
+                "Scale: ${formatScale(simulation.timeScale)}x"
+
     fun setVisible(visible: Boolean) { this.visible = visible }
     fun togglePause() = simulation.togglePause()
     fun selectTimeScale(timeScale: Float) {
         require(timeScale in TIME_SCALES) { "Unsupported debug simulation speed: $timeScale" }
         simulation.timeScale = timeScale
     }
+
     fun step() {
         simulation.step()
     }
+
     fun setCustomTimeScale(timeScale: Float) {
         simulation.timeScale = timeScale
     }
+
     fun resetTimeScale() {
         simulation.resetTimeScale()
     }
+
     private fun formatMs(delta: Float) = String.format(java.util.Locale.ROOT, "%.2f", delta * 1000f)
+
+    private fun formatScale(scale: Float): String =
+        String.format(java.util.Locale.ROOT, "%.2f", scale)
+
     companion object { val TIME_SCALES = listOf(0.25f, 0.5f, 1f, 2f, 4f) }
 }

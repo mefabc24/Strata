@@ -175,7 +175,7 @@ internal class DebugPanel(
     fun update(delta: Float) {
         statsOverlay.update(delta)
         simulationOverlay.setVisible(settings.simulation.enabled)
-        simulationOverlay.sync()
+        simulationOverlay.update(delta)
         if (ui.root.isVisible != settings.panel.visible) {
             ui.root.isVisible = settings.panel.visible
             if (!settings.panel.visible) hidePreview()
