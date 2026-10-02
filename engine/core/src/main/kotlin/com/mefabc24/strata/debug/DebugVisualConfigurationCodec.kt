@@ -1,7 +1,6 @@
 package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
 import com.badlogic.gdx.utils.JsonWriter
@@ -72,7 +71,19 @@ internal object DebugVisualConfigurationCodec {
             "color:${value.r},${value.g},${value.b},${value.a}"
         }
         is Enum<*> -> "enum:${value.name}"
-        is Set<*> -> "set:${Json().toJson(value.toList())}"
+        is Set<*> -> {
+            val array = JsonValue(JsonValue.ValueType.array)
+
+            value.forEach { element ->
+                require(element is String) {
+                    "Debug configuration sets must contain strings."
+                }
+
+                array.addChild(JsonValue(element))
+            }
+
+            "set:${array.toJson(JsonWriter.OutputType.json)}"
+        }
 
         else -> error(
             "Unsupported debug setting type: ${value::class.simpleName}"
