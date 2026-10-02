@@ -214,6 +214,7 @@ class StrataScene private constructor(
             configure(this)
             configurationOpen = false
 
+            debug.validateWindowConfiguration()
             debug.initializeDefaultVisualConfiguration()
 
             terrain.freeze()
@@ -402,7 +403,7 @@ class StrataScene private constructor(
         sceneInput.replaceWorldProcessor(next?.view?.inputProcessor)
         if (next != null) installInputIfNeeded()
 
-        if (next != null && debug.panel.enabled) {
+        if (next != null && (debug.toolsWindow.enabled || debug.debugWindow.enabled)) {
             attachDebugRuntime(next)
         }
     }

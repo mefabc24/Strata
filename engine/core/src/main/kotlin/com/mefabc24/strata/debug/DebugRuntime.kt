@@ -131,9 +131,17 @@ internal class DebugRuntime(
 
     private val toggleProcessor = object : InputAdapter() {
         override fun keyDown(keycode: Int): Boolean {
-            if (keycode != settings.panel.toggleKey) return false
-            panel.setPanelVisible(!settings.panel.visible)
-            return true
+            return when {
+                settings.toolsWindow.enabled && keycode == settings.toolsWindow.toggleKey -> {
+                    panel.setToolsWindowVisible(!settings.toolsWindow.visible)
+                    true
+                }
+                settings.debugWindow.enabled && keycode == settings.debugWindow.toggleKey -> {
+                    panel.setDebugWindowVisible(!settings.debugWindow.visible)
+                    true
+                }
+                else -> false
+            }
         }
     }
 

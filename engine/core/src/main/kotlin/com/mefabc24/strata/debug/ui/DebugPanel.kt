@@ -5,9 +5,11 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
@@ -64,10 +66,6 @@ internal class DebugPanel(
     private val synchronizers = DebugControlBindings()
     private val previewState = DebugContentPreviewState()
     private val navigation = DebugPanelNavigation()
-    private val tabs = ui.selectionGroup(DebugPanelTab.entries, DebugPanelTab.TOOLS) { tab ->
-        navigation.select(tab)
-        hidePreview(); syncVisibility()
-    }
     private val debugSections = ui.selectionGroup(
         DebugPanelSection.entries,
         DebugPanelSection.VISUALS
@@ -109,8 +107,11 @@ internal class DebugPanel(
         ui.selectionGroup(layers, layers.first()) { painter.selectedOverlayLayerId = it }
     }
 
-    private lateinit var panelActor: StrataPanel
-    private lateinit var bodyScroll: StrataScrollPane
+    private lateinit var windowLayout: Table
+    private lateinit var toolsPanelActor: StrataPanel
+    private lateinit var debugPanelActor: StrataPanel
+    private lateinit var toolsScroll: StrataScrollPane
+    private lateinit var debugScroll: StrataScrollPane
     private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
     private lateinit var buildControls: StrataColumn
@@ -140,16 +141,16 @@ internal class DebugPanel(
     private var registeringDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
     private var matchingDebugSections: Set<DebugPanelSection> = DebugPanelSection.entries.toSet()
     private var previewAnchor: Actor? = null
-    private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
+    private var appliedWindowOrder: List<DebugWindowKind> = emptyList()
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
         terrainSelection?.selected?.let { painter.selectedEntry = it }
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
-        syncDebugSectionVisibility(resetScroll = false)
-        buildPreview()
+        if (settings.debugWindow.enabled) syncDebugSectionVisibility(resetScroll = false)
+        if (settings.toolsWindow.enabled) buildPreview()
         synchronizers += { modeSelection.select(tools.mode) }
         terrainSelection?.let { group ->
             synchronizers += { painter.selectedEntry?.let(group::select) }
@@ -161,116 +162,105 @@ internal class DebugPanel(
         overlaySelection?.let { group ->
             synchronizers += { painter.selectedOverlayLayerId?.let(group::select) }
         }
-        setPanelVisible(settings.panel.visibleOnStartup)
+        setToolsWindowVisible(settings.toolsWindow.visibleOnStartup)
+        setDebugWindowVisible(settings.debugWindow.visibleOnStartup)
         syncControls()
         syncVisibility()
     }
 
-    fun setPanelVisible(visible: Boolean) {
-        settings.panel.visible = visible
-        ui.root.isVisible = visible
+    fun setToolsWindowVisible(visible: Boolean) {
+        if (!settings.toolsWindow.enabled) return
+        settings.toolsWindow.visible = visible
         if (!visible) hidePreview()
+        syncWindowLayout()
+    }
+
+    fun setDebugWindowVisible(visible: Boolean) {
+        if (!settings.debugWindow.enabled) return
+        settings.debugWindow.visible = visible
+        syncWindowLayout()
     }
 
     fun update(delta: Float) {
         statsOverlay.update(delta)
         simulationOverlay.setVisible(settings.simulation.enabled)
         simulationOverlay.update(delta)
-        if (ui.root.isVisible != settings.panel.visible) {
-            ui.root.isVisible = settings.panel.visible
-            if (!settings.panel.visible) hidePreview()
-        }
+        syncWindowLayout()
         syncControls()
         syncVisibility()
         syncDiagnostics()
     }
 
     fun resized() {
+        syncWindowLayout(force = true)
+        if (!settings.toolsWindow.enabled) return
         val anchor = previewAnchor ?: return
-        if (previewState.current != null) previewPopover.showRightOf(panelActor, anchor)
+        if (previewState.current != null) previewPopover.showRightOf(toolsPanelActor, anchor)
     }
 
     private fun buildUi() {
         ui.root.pad(12f)
 
-        panelActor = ui.panel(
-            spacing = 8f,
-            padding = StrataInsets(
-                top = 10f,
-                left = 10f,
-                bottom = 10f,
-                right = 10f
-            )
-        ) {
-            defaults().fillAvailableX()
-
-            // Main navigation
-            row(spacing = 6f) {
-                defaults()
-                    .fillAvailableX()
-                    .uniformX()
-                    .height(40f)
-
-                DebugPanelTab.entries.forEach {
-                    selectableButton(it.label, it, tabs)
-                }
-            }
-
-            separator()
-
-            // Scrollable content
-            bodyScroll = scrollColumn(spacing = 8f) {
+        if (settings.toolsWindow.enabled) {
+            toolsPanelActor = ui.panel(spacing = 8f, padding = windowPadding()) {
                 defaults().fillAvailableX()
-
-                stack {
+                label("TOOLS", "title").cell { height(28f); left() }
+                separator()
+                toolsScroll = scrollColumn(spacing = 8f) {
+                    defaults().fillAvailableX()
                     toolsTab = column(spacing = 10f) {
                         defaults().fillAvailableX()
                         buildTools()
                     }
+                }.cell {
+                    fillAvailableX()
+                    minHeight(0f)
+                    prefHeight(Value.prefHeight)
+                    maxHeight(Value.percentHeight(0.70f, ui.root))
+                }
+                contextFooter = column(spacing = 3f) {
+                    defaults().fillAvailableX()
+                    separator()
+                    label("STATUS").cell { height(24f); left() }
+                    contextRows = diagnosticTable()
+                }
+                contextFooterCell = getCell(contextFooter).apply {
+                    height(DebugContextFooterLayout.reservedHeight)
+                    padTop(4f)
+                }
+            }
+            toolsPanelActor.remove()
+        }
 
+        if (settings.debugWindow.enabled) {
+            debugPanelActor = ui.panel(spacing = 8f, padding = windowPadding()) {
+                defaults().fillAvailableX()
+                label("DEBUG", "title").cell { height(28f); left() }
+                separator()
+                debugScroll = scrollColumn(spacing = 8f) {
+                    defaults().fillAvailableX()
                     debugTab = column(spacing = 10f) {
                         defaults().fillAvailableX()
                         buildDebug()
                     }
                 }.cell {
                     fillAvailableX()
+                    minHeight(0f)
+                    prefHeight(Value.prefHeight)
+                    maxHeight(Value.percentHeight(0.82f, ui.root))
                 }
-            }.cell {
-                fillAvailableX()
-                minHeight(0f)
-                prefHeight(Value.prefHeight)
-                maxHeight(Value.percentHeight(0.75f, ui.root))
             }
-
-            // Fixed status footer
-            contextFooter = column(spacing = 3f) {
-                defaults().fillAvailableX()
-
-                separator()
-
-                label("STATUS").cell {
-                    height(24f)
-                    left()
-                }
-
-                contextRows = diagnosticTable()
-            }
-
-            contextFooterCell = getCell(contextFooter).apply {
-                height(DebugContextFooterLayout.reservedHeight)
-                padTop(4f)
-            }
-        }.cell {
-            minWidth(260f)
-            prefWidth(Value.percentWidth(0.34f, ui.root))
-            maxWidth(460f)
-
-            prefHeight(Value.prefHeight)
-            maxHeight(Value.percentHeight(0.95f, ui.root))
-            top()
-            left()
+            debugPanelActor.remove()
         }
+
+        windowLayout = Table().apply {
+            top().left()
+            touchable = Touchable.childrenOnly
+        }
+        ui.actor(windowLayout).cell { growX(); fillX(); top(); left() }
     }
+
+    private fun windowPadding() = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
 
     private fun buildPreview() {
         previewPopover = ui.popover(width = 128f, height = 154f) {
@@ -1341,7 +1331,7 @@ internal class DebugPanel(
             if (it.expander.isVisible) it.expander.expanded = expanded
         }
         debugTab.invalidateHierarchy()
-        bodyScroll.invalidateHierarchy()
+        debugScroll.invalidateHierarchy()
     }
 
     private fun actorContainsText(actor: Actor, query: String): Boolean {
@@ -1367,11 +1357,11 @@ internal class DebugPanel(
             expandAllButton.isDisabled = !hasExpandableCategories
             collapseAllButton.isDisabled = !hasExpandableCategories
         }
-        if (resetScroll && ::bodyScroll.isInitialized) bodyScroll.scrollY = 0f
+        if (resetScroll && ::debugScroll.isInitialized) debugScroll.scrollY = 0f
         debugTab.invalidateHierarchy()
-        if (::bodyScroll.isInitialized) {
-            bodyScroll.content.invalidateHierarchy()
-            bodyScroll.invalidateHierarchy()
+        if (::debugScroll.isInitialized) {
+            debugScroll.content.invalidateHierarchy()
+            debugScroll.invalidateHierarchy()
         }
     }
 
@@ -1467,12 +1457,12 @@ internal class DebugPanel(
     )
 
     private fun showPreview(preview: DebugContentPreview, anchor: Actor) {
-        if (!settings.panel.visible || tabs.selected != DebugPanelTab.TOOLS) return
+        if (!settings.toolsWindow.visible) return
         previewState.show(preview)
         previewAnchor = anchor
         previewName.setText(preview.name)
         previewImage.drawable = TextureRegionDrawable(preview.texture)
-        previewPopover.showRightOf(panelActor, anchor)
+        previewPopover.showRightOf(toolsPanelActor, anchor)
     }
 
     private fun hidePreview(key: Any? = null) {
@@ -1487,25 +1477,51 @@ internal class DebugPanel(
         synchronizers.sync()
     }
 
-    private fun syncVisibility() {
-        if (!::toolsTab.isInitialized) return
+    private fun syncWindowLayout(force: Boolean = false) {
+        if (!::windowLayout.isInitialized) return
+        val desired = orderedVisibleDebugWindows(settings).filter { kind ->
+            when (kind) {
+                DebugWindowKind.TOOLS -> ::toolsPanelActor.isInitialized
+                DebugWindowKind.DEBUG -> ::debugPanelActor.isInitialized
+            }
+        }
+        if (!force && desired == appliedWindowOrder) return
 
-        val tab = requireNotNull(tabs.selected)
+        windowLayout.clearChildren()
+        desired.forEachIndexed { index, kind ->
+            val actor = when (kind) {
+                DebugWindowKind.TOOLS -> toolsPanelActor
+                DebugWindowKind.DEBUG -> debugPanelActor
+            }
+            windowLayout.add(actor)
+                .minWidth(260f)
+                .prefWidth(Value.percentWidth(0.34f, ui.root))
+                .maxWidth(460f)
+                .minHeight(0f)
+                .prefHeight(Value.prefHeight)
+                .maxHeight(Value.percentHeight(0.95f, ui.root))
+                .top()
+                .left()
+                .padRight(if (index < desired.lastIndex) 12f else 0f)
+        }
+        appliedWindowOrder = desired
+        windowLayout.isVisible = desired.isNotEmpty()
+        windowLayout.invalidateHierarchy()
+        ui.root.invalidateHierarchy()
+    }
+
+    private fun syncVisibility() {
+        if (!settings.toolsWindow.enabled || !::toolsTab.isInitialized) return
         val mode = tools.mode
 
-        val previousTab = lastTab
         val previousMode = lastMode
         val previousOverlayVisibility = overlayPaintControls.isVisible
 
-        if (tab != lastTab || mode != lastMode) {
+        if (mode != lastMode) {
             hidePreview()
-            bodyScroll.scrollY = 0f
-            lastTab = tab
+            toolsScroll.scrollY = 0f
             lastMode = mode
         }
-
-        toolsTab.isVisible = tab == DebugPanelTab.TOOLS
-        debugTab.isVisible = tab == DebugPanelTab.DEBUG
 
         buildControls.isVisible = mode == DebugToolMode.BUILD
         deleteControls.isVisible = mode == DebugToolMode.DELETE
@@ -1519,23 +1535,25 @@ internal class DebugPanel(
                     painter.target == DebugPaintTarget.OVERLAY
 
         if (
-            tab != previousTab ||
             mode != previousMode ||
             overlayPaintControls.isVisible != previousOverlayVisibility
         ) {
             toolsTab.invalidateHierarchy()
-            debugTab.invalidateHierarchy()
-            bodyScroll.content.invalidateHierarchy()
-            bodyScroll.invalidateHierarchy()
+            toolsScroll.content.invalidateHierarchy()
+            toolsScroll.invalidateHierarchy()
         }
     }
 
     private fun syncDiagnostics() {
-        inspectorRows.show(formatInspection())
-        pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
-        cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
-        cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
-        syncContextFooter()
+        if (settings.toolsWindow.enabled) {
+            inspectorRows.show(formatInspection())
+            syncContextFooter()
+        }
+        if (settings.debugWindow.enabled) {
+            pickingRows.show(if (settings.picking.enabled) formatPicking() else emptyList())
+            cameraRows.show(if (settings.camera.enabled) formatCamera() else emptyList())
+            cullingRows.show(if (settings.culling.enabled) formatCulling() else emptyList())
+        }
     }
 
     private fun formatPicking(): List<DebugDiagnosticRow> {

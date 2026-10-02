@@ -24,7 +24,14 @@ enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
 class DebugSettings {
     internal val worldState = DebugWorldState()
     internal val entityFreezeState = DebugEntityFreezeState()
-    val panel = DebugPanelSettings()
+    val toolsWindow = DebugWindowSettings(
+        defaultToggleKey = Input.Keys.F2,
+        defaultOrder = 0
+    )
+    val debugWindow = DebugWindowSettings(
+        defaultToggleKey = Input.Keys.F3,
+        defaultOrder = 1
+    )
     val performance = DebugPerformanceSettings()
     val simulation = DebugSimulationSettings()
     val grid = DebugGridSettings()
@@ -58,7 +65,8 @@ class DebugSettings {
     internal var pathTraversal: ((World, TilePosition) -> Boolean)? = null
     internal var pathCost: ((World, TilePosition, TilePosition) -> Float)? = null
 
-    fun panel(configure: DebugPanelSettings.() -> Unit) = panel.apply(configure)
+    fun toolsWindow(configure: DebugWindowSettings.() -> Unit) = toolsWindow.apply(configure)
+    fun debugWindow(configure: DebugWindowSettings.() -> Unit) = debugWindow.apply(configure)
     fun performance(configure: DebugPerformanceSettings.() -> Unit) = performance.apply(configure)
     fun simulation(configure: DebugSimulationSettings.() -> Unit) = simulation.apply(configure)
     fun grid(configure: DebugGridSettings.() -> Unit) = grid.apply(configure)
@@ -217,26 +225,46 @@ class DebugSettings {
     fun resetVisualCategory(category: DebugVisualCategory) {
         DebugVisualSettings.reset(this, category)
     }
+
+    internal fun validateWindowConfiguration() {
+        val enabled = listOf(toolsWindow, debugWindow).filter(DebugWindowSettings::enabled)
+        if (enabled.size < 2) return
+
+        require(toolsWindow.order != debugWindow.order) {
+            "Enabled debug windows must use unique order values; both use ${toolsWindow.order}."
+        }
+        require(toolsWindow.toggleKey != debugWindow.toggleKey) {
+            "Enabled debug windows must use different toggle keys; both use ${toolsWindow.toggleKey}."
+        }
+    }
 }
 
-class DebugPanelSettings {
-    /** Whether the debug panel is enabled. */
+/** Availability, startup visibility, shortcut, and horizontal order for one debug window. */
+class DebugWindowSettings internal constructor(
+    defaultToggleKey: Int,
+    defaultOrder: Int
+) {
+    /** Whether this window is available in the current scene. */
     var enabled: Boolean = false
 
-    /** Whether the panel should be visible when initialized. */
+    /** Whether this window is displayed when a debug runtime is initialized. */
     var visibleOnStartup: Boolean = false
 
-    /** Current runtime visibility of the panel. */
+    /** Current runtime visibility. Hidden windows retain their UI and engine state. */
     var visible: Boolean = false
         internal set
 
-    var toggleKey: Int = Input.Keys.F3
+    /** Keyboard shortcut that toggles only this window. */
+    var toggleKey: Int = defaultToggleKey
         set(value) {
             require(value >= 0) {
-                "Debug panel toggle key must be non-negative."
+                "Debug window toggle key must be non-negative."
             }
             field = value
         }
+
+    /** Horizontal position; lower values appear further left. */
+    var order: Int = defaultOrder
 }
 
 /** Independent output controls for the shared renderer performance metrics. */
