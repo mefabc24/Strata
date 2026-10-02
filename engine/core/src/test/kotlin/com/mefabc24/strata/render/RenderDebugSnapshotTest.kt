@@ -31,6 +31,9 @@ class RenderDebugSnapshotTest {
     private class TestObject : Placeable {
         override val footprint = Footprint.square(1)
     }
+    private class WideObject : Placeable {
+        override val footprint = Footprint.rectangle(2, 1)
+    }
 
     @BeforeTest
     fun installTestEnvironment() {
@@ -278,6 +281,65 @@ class RenderDebugSnapshotTest {
                 (0..farView.actualTerrainCount).toList(),
                 farView.items.mapNotNull { it.actualIndex }.sorted()
             )
+        } finally {
+            renderer.dispose()
+            texture.dispose()
+        }
+    }
+
+    @Test
+    fun `snapshot exposes exact sort volumes projected front positions and priorities`() {
+        val pixmap = Pixmap(8, 12, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val projection = IsoProjection(TileGeometry(32f, 24f))
+        val renderer = IsoWorldRenderer(
+            projection = projection,
+            collectDebugSnapshot = { true },
+            objectPriorityFor = { 5 },
+            entityPriorityFor = { -2 }
+        )
+        try {
+            val world = World(4, 4) { _, _ -> TestTile }
+            val placed = requireNotNull(world.place(WideObject(), 1, 2))
+            val entity = world.addEntity(TestEntity, EntityPosition(2.25f, 1.75f))
+            val region = TextureRegion(texture)
+            val camera = OrthographicCamera(1000f, 1000f).apply { update() }
+
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                objectVisualFor = { ObjectVisual(region) },
+                entityVisualFor = { EntityVisual(region) }
+            )
+
+            val snapshot = requireNotNull(renderer.debugSnapshot)
+            val objectSort = requireNotNull(
+                snapshot.items.single { it.placedObject === placed }.sort
+            )
+            assertEquals(1f, objectSort.minX)
+            assertEquals(3f, objectSort.maxX)
+            assertEquals(2f, objectSort.minY)
+            assertEquals(3f, objectSort.maxY)
+            assertEquals(5, objectSort.renderPriority)
+            assertEquals(
+                projection.tileToWorld(objectSort.maxX, objectSort.maxY).x,
+                objectSort.projectedFrontX
+            )
+            assertEquals(
+                projection.tileToWorld(objectSort.maxX, objectSort.maxY).y,
+                objectSort.projectedFrontY
+            )
+
+            val entitySort = requireNotNull(
+                snapshot.items.single { it.entity === entity }.sort
+            )
+            assertEquals(entity.position.x, entitySort.minX)
+            assertEquals(entity.position.x, entitySort.maxX)
+            assertEquals(entity.position.y, entitySort.minY)
+            assertEquals(entity.position.y, entitySort.maxY)
+            assertEquals(-2, entitySort.renderPriority)
         } finally {
             renderer.dispose()
             texture.dispose()

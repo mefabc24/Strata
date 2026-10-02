@@ -30,6 +30,13 @@ class DebugSettingsTest {
         assertFalse(settings.picking.enabled)
         assertFalse(settings.renderOrder.enabled)
         assertEquals(RenderOrderDebugMode.CALCULATED, settings.renderOrder.mode)
+        assertEquals(DebugVisualizationFilter.ALL, settings.visualizationFilter)
+        assertFalse(settings.renderOrder.showPriorityLabels)
+        assertFalse(settings.renderOrder.colorByPriority)
+        assertEquals(RenderPriorityFocusMode.OFF, settings.renderOrder.priorityFocusMode)
+        assertFalse(settings.renderOrder.showSortVolumes)
+        assertFalse(settings.renderOrder.showSortAnchors)
+        assertFalse(settings.renderOrder.showProjectedSortPositions)
         assertFalse(settings.renderOrder.showTerrainIndices)
         assertFalse(settings.renderOrder.showTerrainHeatmap)
         assertEquals(
@@ -98,6 +105,22 @@ class DebugSettingsTest {
 
         assertEquals(0.55f, settings.terrainHeatmapStartColor.a)
         assertEquals(0.55f, settings.terrainHeatmapEndColor.a)
+    }
+
+    @Test
+    fun `render diagnostic numeric settings reject invalid values`() {
+        val settings = DebugRenderOrderSettings()
+
+        listOf(-0.1f, 1.1f, Float.NaN).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.priorityColorAlpha = invalid
+            }
+        }
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.sortGeometryLineWidth = invalid
+            }
+        }
     }
 
     @Test

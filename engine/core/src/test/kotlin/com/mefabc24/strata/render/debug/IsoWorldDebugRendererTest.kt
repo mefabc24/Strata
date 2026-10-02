@@ -6,6 +6,10 @@ import com.mefabc24.strata.iso.TileGeometry
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 import com.mefabc24.strata.debug.DebugEntitySettings
 import com.mefabc24.strata.debug.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugVisualizationFilter
+import com.mefabc24.strata.debug.DebugVisualizationFilterContext
+import com.mefabc24.strata.debug.inspector.DebugInspection
+import com.mefabc24.strata.iso.PickedTarget
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityDirection
@@ -94,6 +98,70 @@ class IsoWorldDebugRendererTest {
 
         assertEquals(0, objectResolutions)
         assertEquals(0, entityResolutions)
+    }
+
+    @Test
+    fun `shared selected filter limits object and entity visual resolution`() {
+        val objectSettings = DebugObjectSettings().apply {
+            enabled = true
+            showOccupiedTiles = false
+            showOriginTile = false
+            showSpriteBounds = true
+            occupiedTileFillColor = null
+        }
+        val entitySettings = DebugEntitySettings().apply {
+            enabled = true
+            showCurrentTile = false
+            showPosition = false
+            showPath = false
+            showDirection = false
+            showSpriteBounds = true
+            currentTileFillColor = null
+        }
+        val world = World(2, 2) { _, _ -> TestTile }
+        val selectedObject = requireNotNull(world.place(TestPlaceable(), 0, 0))
+        world.place(TestPlaceable(), 1, 0)
+        val selectedEntity = world.addEntity(TestEntity, EntityPosition(0.5f, 1.5f))
+        world.addEntity(TestEntity, EntityPosition(1.5f, 1.5f))
+        val context = DebugVisualizationFilterContext().apply {
+            update(
+                inspection = DebugInspection.ObjectTarget(selectedObject),
+                selectedTarget = PickedTarget.Entity(selectedEntity, bounds = null),
+                hoveredTarget = null,
+                renderSnapshot = null
+            )
+        }
+        val renderer = IsoWorldDebugRenderer(
+            projection = IsoProjection(TileGeometry()),
+            objectSettings = objectSettings,
+            entitySettings = entitySettings,
+            objectRenderingSettings = ObjectRenderingSettings(),
+            filterContext = context
+        )
+        var objectResolutions = 0
+        var entityResolutions = 0
+
+        try {
+            renderer.render(
+                world = world,
+                camera = OrthographicCamera().apply { update() },
+                animationTime = 0f,
+                objectVisualFor = { _, _ ->
+                    objectResolutions++
+                    null
+                },
+                entityVisualFor = { _, _ ->
+                    entityResolutions++
+                    null
+                },
+                filter = DebugVisualizationFilter.SELECTED
+            )
+        } finally {
+            renderer.dispose()
+        }
+
+        assertEquals(1, objectResolutions)
+        assertEquals(1, entityResolutions)
     }
 
     @Test
@@ -189,4 +257,7 @@ class IsoWorldDebugRendererTest {
 
     private data object TestEntity : Entity
     private data object TestTile : Tile
+    private class TestPlaceable : Placeable {
+        override val footprint = Footprint.square(1)
+    }
 }

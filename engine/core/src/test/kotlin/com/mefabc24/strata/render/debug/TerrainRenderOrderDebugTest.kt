@@ -3,6 +3,7 @@ package com.mefabc24.strata.render.debug
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.mefabc24.strata.debug.DebugRenderOrderSettings
+import com.mefabc24.strata.debug.RenderPriorityFocusMode
 import com.mefabc24.strata.debug.RenderOrderDebugMode
 import com.mefabc24.strata.debug.TerrainHeatmapSteps
 import com.mefabc24.strata.render.RenderDebugSnapshot
@@ -16,6 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertNotEquals
 
 class TerrainRenderOrderDebugTest {
     @BeforeTest
@@ -207,5 +209,76 @@ class TerrainRenderOrderDebugTest {
         assertFalse(settings.showLabels)
         assertTrue(settings.showTerrainIndices)
         assertFalse(settings.showTerrainHeatmap)
+    }
+
+    @Test
+    fun `priority and sort geometry layers remain independently configurable`() {
+        val settings = DebugRenderOrderSettings().apply { enabled = true }
+        val setters = listOf<(Boolean) -> Unit>(
+            { settings.showPriorityLabels = it },
+            { settings.colorByPriority = it },
+            {
+                settings.priorityFocusMode = if (it) {
+                    RenderPriorityFocusMode.HIGHLIGHT
+                } else {
+                    RenderPriorityFocusMode.OFF
+                }
+            },
+            { settings.showSortVolumes = it },
+            { settings.showSortAnchors = it },
+            { settings.showProjectedSortPositions = it }
+        )
+
+        setters.indices.forEach { selected ->
+            setters.forEach { it(false) }
+            setters[selected](true)
+            val layers = renderOrderDebugLayers(settings)
+            assertEquals(
+                listOf(
+                    layers.priorityLabels,
+                    layers.priorityColors,
+                    layers.priorityFocus,
+                    layers.sortVolumes,
+                    layers.sortAnchors,
+                    layers.projectedSortPositions
+                ),
+                setters.indices.map { it == selected }
+            )
+        }
+    }
+
+    @Test
+    fun `priority palette is stable for negative values and focus can isolate`() {
+        val negative = renderPriorityColor(-1, 0.35f)
+        val wrapped = renderPriorityColor(7, 0.35f)
+        val next = renderPriorityColor(0, 0.35f)
+
+        assertEquals(wrapped, negative)
+        assertNotEquals(negative, next)
+        assertEquals(0.35f, negative.a)
+
+        val item = RenderItemDebugSnapshot(
+            index = 0,
+            drawn = true,
+            sort = com.mefabc24.strata.render.RenderSortDebugSnapshot(
+                minX = 0f,
+                maxX = 1f,
+                minY = 0f,
+                maxY = 1f,
+                projectedFrontX = 0f,
+                projectedFrontY = -1f,
+                renderPriority = 3
+            )
+        )
+        val settings = DebugRenderOrderSettings().apply {
+            priorityFocusMode = RenderPriorityFocusMode.ISOLATE
+            selectedPriority = 3
+        }
+
+        assertTrue(renderPriorityFocusAllows(settings, item))
+        settings.selectedPriority = 4
+        assertFalse(renderPriorityFocusAllows(settings, item))
+        settings.priorityFocusMode = RenderPriorityFocusMode.HIGHLIGHT
+        assertTrue(renderPriorityFocusAllows(settings, item))
     }
 }
