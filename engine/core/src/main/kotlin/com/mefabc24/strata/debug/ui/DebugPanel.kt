@@ -148,6 +148,7 @@ internal class DebugPanel(
         terrainSelection?.selected?.let { painter.selectedEntry = it }
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
+        syncDebugSectionVisibility(resetScroll = false)
         buildPreview()
         synchronizers += { modeSelection.select(tools.mode) }
         terrainSelection?.let { group ->
@@ -971,7 +972,6 @@ internal class DebugPanel(
             }.cell { fillAvailableX() }
         }
         debugSearch = DebugSettingsSearch(debugCategories.map { it.searchCategory })
-        syncDebugSectionVisibility(resetScroll = false)
     }
 
     private fun StrataColumn.buildGridSettings() {
