@@ -1,0 +1,127 @@
+package com.mefabc24.strata.debug
+
+import com.badlogic.gdx.graphics.Color
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class DebugVisualPresetsTest {
+    @Test
+    fun `custom configuration restores visual settings and preserves operational state`() {
+        val settings = DebugSettings().apply {
+            visualizationFilter = DebugVisualizationFilter.HOVERED
+            grid.enabled = true
+            grid.lineWidth = 3f
+            grid.color = Color.CYAN
+            worldVisibility.entitiesVisible = false
+            worldVisibility.setOverlayLayerVisible("roads", false)
+            entities.enabled = true
+            entities.showMovementTrail = true
+            renderOrder.showSortVolumes = true
+            notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
+        }
+        val captured = settings.captureVisualConfiguration()
+
+        settings.apply {
+            visualizationFilter = DebugVisualizationFilter.ALL
+            grid.enabled = false
+            grid.lineWidth = 1f
+            grid.color = Color.RED
+            worldVisibility.showAll()
+            entities.enabled = false
+            entities.showMovementTrail = false
+            renderOrder.showSortVolumes = false
+            notifications.position = DebugNotificationPosition.TOP_CENTER
+            performance.terminalLoggingEnabled = true
+            performance.historyRecording = true
+            simulation.freezeVisualAnimations = true
+            camera.disableRestrictions = true
+            inspect.showEntityPath = false
+            pathfinding.showFinalPath = false
+        }
+
+        settings.applyVisualConfiguration(captured)
+
+        assertEquals(DebugVisualizationFilter.HOVERED, settings.visualizationFilter)
+        assertTrue(settings.grid.enabled)
+        assertEquals(3f, settings.grid.lineWidth)
+        assertEquals(Color.CYAN, settings.grid.color)
+        assertFalse(settings.worldVisibility.entitiesVisible)
+        assertFalse(settings.worldVisibility.isOverlayLayerVisible("roads"))
+        assertTrue(settings.entities.enabled)
+        assertTrue(settings.entities.showMovementTrail)
+        assertTrue(settings.renderOrder.showSortVolumes)
+        assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.notifications.position)
+
+        assertTrue(settings.performance.terminalLoggingEnabled)
+        assertTrue(settings.performance.historyRecording)
+        assertTrue(settings.simulation.freezeVisualAnimations)
+        assertTrue(settings.camera.disableRestrictions)
+        assertFalse(settings.inspect.showEntityPath)
+        assertFalse(settings.pathfinding.showFinalPath)
+    }
+
+    @Test
+    fun `category reset changes only that visual category`() {
+        val settings = DebugSettings().apply {
+            grid.enabled = true
+            grid.lineWidth = 4f
+            entities.enabled = true
+            entities.showPath = false
+            performance.terminalLoggingEnabled = true
+        }
+
+        settings.resetVisualCategory(DebugVisualCategory.GRID)
+
+        assertFalse(settings.grid.enabled)
+        assertEquals(1f, settings.grid.lineWidth)
+        assertTrue(settings.entities.enabled)
+        assertFalse(settings.entities.showPath)
+        assertTrue(settings.performance.terminalLoggingEnabled)
+    }
+
+    @Test
+    fun `reset all visual settings preserves operational settings`() {
+        val settings = DebugSettings().apply {
+            applyPreset(DebugPreset.EVERYTHING)
+            performance.terminalLoggingEnabled = true
+            camera.disableRestrictions = true
+            simulation.freezeVisualAnimations = true
+            inspect.showTile = false
+        }
+
+        settings.resetVisualConfiguration()
+
+        assertFalse(settings.grid.enabled)
+        assertFalse(settings.entities.enabled)
+        assertFalse(settings.renderOrder.enabled)
+        assertTrue(settings.worldVisibility.entitiesVisible)
+        assertTrue(settings.performance.terminalLoggingEnabled)
+        assertTrue(settings.camera.disableRestrictions)
+        assertTrue(settings.simulation.freezeVisualAnimations)
+        assertFalse(settings.inspect.showTile)
+    }
+
+    @Test
+    fun `custom preset store replaces names case insensitively and deletes explicitly`() {
+        val settings = DebugSettings()
+        val first = settings.captureVisualConfiguration()
+        settings.grid.enabled = true
+        val second = settings.captureVisualConfiguration()
+
+        settings.customPresets.save("  Layout  ", first)
+        settings.customPresets.save("layout", second)
+
+        assertEquals(listOf("layout"), settings.customPresets.names)
+        assertTrue(settings.customPresets.find("LAYOUT")?.configuration === second)
+        assertTrue(settings.customPresets.delete(" Layout "))
+        assertNull(settings.customPresets.find("layout"))
+        assertFalse(settings.customPresets.delete("layout"))
+        assertFailsWith<IllegalArgumentException> {
+            settings.customPresets.save("   ", first)
+        }
+    }
+}
