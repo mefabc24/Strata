@@ -9,6 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.debug.DebugEventMonitor
 import com.mefabc24.strata.debug.DebugEventMonitorSettings
+import com.mefabc24.strata.debug.DebugPerformanceSettings
+import com.mefabc24.strata.debug.performanceSparkline
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -19,6 +21,7 @@ import java.util.Locale
 internal class DebugStatsOverlay(
     ui: StrataUi,
     private val stats: () -> RenderStats,
+    private val performanceSettings: DebugPerformanceSettings,
     private val performanceEnabled: () -> Boolean,
     private val worldStatsEnabled: () -> Boolean,
     private val world: World,
@@ -31,7 +34,13 @@ internal class DebugStatsOverlay(
     private val state = DebugStatsOverlayState()
     private val performanceRows = statsRows(ui)
     private val worldRows = statsRows(ui)
-    private val performancePanel = statsPanel("PERFORMANCE", performanceRows, ui)
+    private val performanceGraph = Label("No captured samples", ui.skin).apply {
+        setAlignment(Align.left)
+        touchable = Touchable.disabled
+    }
+    private val performancePanel = statsPanel(
+        "PERFORMANCE", performanceRows, ui, performanceGraph
+    )
     private val worldPanel = statsPanel("WORLD", worldRows, ui)
     private val eventMonitorPanel = DebugEventMonitorOverlay(ui, eventMonitor, eventSettings)
     private val performanceCell: Cell<Table>
@@ -83,11 +92,39 @@ internal class DebugStatsOverlay(
 
         val average = performanceState.update(performance, delta)
         if (average != null) {
+            val summary = performanceSettings.history.summary(performanceSettings.historyMetric)
             performanceRows.show(
-                DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).rows()
+                buildList {
+                    addAll(DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).rows())
+                    add(DebugDiagnosticRow(
+                        "Capture",
+                        if (performanceSettings.historyRecording) "Recording" else "Stopped"
+                    ))
+                    add(DebugDiagnosticRow(
+                        "History metric",
+                        performanceSettings.historyMetric.name.replace('_', ' ').lowercase()
+                    ))
+                    add(DebugDiagnosticRow("Samples", performanceSettings.history.size.toString()))
+                    summary?.let {
+                        add(DebugDiagnosticRow("History avg", "${ms(it.averageMs)} ms"))
+                        add(DebugDiagnosticRow("History min", "${ms(it.minimumMs)} ms"))
+                        add(DebugDiagnosticRow("History max", "${ms(it.maximumMs)} ms"))
+                    }
+                }
+            )
+            performanceGraph.setText(
+                performanceSparkline(
+                    performanceSettings.history.samples(
+                        performanceSettings.historyMetric,
+                        maximumSamples = 48
+                    )
+                )
             )
         }
-        if (!performance) performanceRows.show(emptyList())
+        if (!performance) {
+            performanceRows.show(emptyList())
+            performanceGraph.setText("")
+        }
 
         if (!worldStats) {
             worldElapsed = 0f
@@ -115,7 +152,8 @@ private fun statsRows(ui: StrataUi): DebugDiagnosticTable = DebugDiagnosticTable
 private fun statsPanel(
     title: String,
     rows: DebugDiagnosticTable,
-    ui: StrataUi
+    ui: StrataUi,
+    footer: com.badlogic.gdx.scenes.scene2d.Actor? = null
 ): Table = Table(ui.skin).apply {
     background = ui.skin.get(
         requireNotNull(ui.theme.panelStyle),
@@ -129,7 +167,13 @@ private fun statsPanel(
     }).growX().fillX().left().padBottom(6f)
     row()
     add(rows).growX().fillX().left()
+    footer?.let {
+        row()
+        add(it).growX().fillX().left().padTop(6f)
+    }
 }
+
+private fun ms(value: Double) = String.format(Locale.ROOT, "%.2f", value)
 
 /** Visibility model for independently enabled sections in the shared overlay. */
 class DebugStatsOverlayState {

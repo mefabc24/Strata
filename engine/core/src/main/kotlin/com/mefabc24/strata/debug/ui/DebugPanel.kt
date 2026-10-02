@@ -45,7 +45,7 @@ internal class DebugPanel(
     private val placement: PlacementController?,
     private val inspector: DebugInspector,
     private val pathfinding: DebugPathfindingTool,
-    simulation: SimulationController,
+    private val simulation: SimulationController,
     private val eventMonitor: DebugEventMonitor,
     private val world: World,
     private val view: IsoWorldView,
@@ -54,7 +54,7 @@ internal class DebugPanel(
     private val entities: EntityRegistry
 ) {
     private val statsOverlay = DebugStatsOverlay(
-        ui, { view.renderStats }, { settings.performance.overlayEnabled },
+        ui, { view.renderStats }, settings.performance, { settings.performance.overlayEnabled },
         { settings.worldStats.enabled }, world, placement, eventMonitor, settings.eventBus
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
@@ -556,6 +556,63 @@ internal class DebugPanel(
         }
         simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
         simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
+        settingsExpander("Performance history") {
+            toggleGrid(
+                toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
+                    settings.performance.overlayEnabled = it
+                },
+                toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
+                    settings.performance.terminalLoggingEnabled = it
+                }
+            )
+            boundStepper(
+                "Terminal interval",
+                { settings.performance.terminalLoggingIntervalSeconds },
+                0.25f,
+                30f,
+                0.25f
+            ) { settings.performance.terminalLoggingIntervalSeconds = it }
+            boundStepper(
+                "History length",
+                { settings.performance.historyLength.toFloat() },
+                30f,
+                2000f,
+                10f
+            ) { settings.performance.historyLength = it.toInt() }
+            label("Graph metric")
+            val metrics = ui.selectionGroup(
+                DebugPerformanceMetric.entries,
+                settings.performance.historyMetric
+            ) { settings.performance.historyMetric = it }
+            synchronizers += { metrics.select(settings.performance.historyMetric) }
+            responsiveGrid(105f, 36f, maximumColumns = 2) {
+                selectableButton("Frame", DebugPerformanceMetric.FRAME_TIME, metrics)
+                selectableButton("Render", DebugPerformanceMetric.RENDER_TIME, metrics)
+                selectableButton("Static plan", DebugPerformanceMetric.STATIC_PLAN_TIME, metrics)
+                selectableButton("Dynamic plan", DebugPerformanceMetric.DYNAMIC_PLAN_TIME, metrics)
+            }.cell { fillAvailableX() }
+            responsiveGrid(105f, 38f, maximumColumns = 3) {
+                button("Start") { settings.performance.startHistoryRecording() }
+                button("Stop") { settings.performance.stopHistoryRecording() }
+                button("Clear") { settings.performance.clearHistory() }
+            }.cell { fillAvailableX() }
+        }
+        settingsExpander("Simulation runtime") {
+            boundStepper(
+                "Custom time scale",
+                { simulation.timeScale },
+                0.05f,
+                16f,
+                0.05f
+            ) { simulation.timeScale = it }
+            simpleToggle(
+                "Freeze visual animations",
+                { settings.simulation.freezeVisualAnimations }
+            ) { settings.simulation.freezeVisualAnimations = it }
+            button("Reset to normal speed") {
+                simulation.resetTimeScale()
+            }.cell { height(38f) }
+        }
         simpleToggle(
             "Disable camera restrictions",
             { settings.camera.disableRestrictions }

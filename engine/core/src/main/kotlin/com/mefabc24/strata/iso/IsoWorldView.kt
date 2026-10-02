@@ -389,7 +389,12 @@ class IsoWorldView(
             "Simulation delta must be finite and non-negative."
         }
 
-        animationTime += simulationDelta
+        val freezeVisualAnimations = debugSettings?.simulation?.let {
+            it.enabled && it.freezeVisualAnimations
+        } == true
+        if (!freezeVisualAnimations) {
+            animationTime += simulationDelta
+        }
         cameraController.update(realDelta)
 
         hoveredGridPosition = tilePicker.pickGrid(

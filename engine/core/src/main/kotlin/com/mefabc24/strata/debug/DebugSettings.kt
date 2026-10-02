@@ -25,7 +25,7 @@ class DebugSettings {
     internal val entityFreezeState = DebugEntityFreezeState()
     val panel = DebugPanelSettings()
     val performance = DebugPerformanceSettings()
-    val simulation = DebugFeatureSettings()
+    val simulation = DebugSimulationSettings()
     val grid = DebugGridSettings()
     val worldInfo = DebugWorldInfoSettings()
     val worldVisibility = DebugWorldVisibilitySettings()
@@ -53,7 +53,7 @@ class DebugSettings {
 
     fun panel(configure: DebugPanelSettings.() -> Unit) = panel.apply(configure)
     fun performance(configure: DebugPerformanceSettings.() -> Unit) = performance.apply(configure)
-    fun simulation(configure: DebugFeatureSettings.() -> Unit) = simulation.apply(configure)
+    fun simulation(configure: DebugSimulationSettings.() -> Unit) = simulation.apply(configure)
     fun grid(configure: DebugGridSettings.() -> Unit) = grid.apply(configure)
     fun worldInfo(configure: DebugWorldInfoSettings.() -> Unit) = worldInfo.apply(configure)
     fun worldVisibility(configure: DebugWorldVisibilitySettings.() -> Unit) =
@@ -145,6 +145,7 @@ class DebugPanelSettings {
 /** Independent output controls for the shared renderer performance metrics. */
 class DebugPerformanceSettings internal constructor() {
     private val terminalLogger = DebugPerformanceLogger()
+    val history = DebugPerformanceHistory()
 
     /** Whether the on-screen performance overlay is visible. */
     var overlayEnabled: Boolean = false
@@ -159,8 +160,31 @@ class DebugPerformanceSettings internal constructor() {
         get() = terminalLogger.intervalSeconds
         set(value) { terminalLogger.intervalSeconds = value }
 
+    var historyLength: Int
+        get() = history.capacity
+        set(value) { history.capacity = value }
+
+    var historyRecording: Boolean
+        get() = history.recording
+        set(value) { history.recording = value }
+
+    var historyMetric: DebugPerformanceMetric = DebugPerformanceMetric.FRAME_TIME
+
+    fun startHistoryRecording() {
+        history.recording = true
+    }
+
+    fun stopHistoryRecording() {
+        history.recording = false
+    }
+
+    fun clearHistory() {
+        history.clear()
+    }
+
     internal fun record(stats: com.mefabc24.strata.render.RenderStats, delta: Float) {
         terminalLogger.record(stats, delta)
+        history.record(stats, delta)
     }
 }
 
@@ -190,6 +214,11 @@ class DebugDeleteToolSettings : DebugBrushSettings() {
 
 open class DebugFeatureSettings {
     var enabled: Boolean = false
+}
+
+class DebugSimulationSettings : DebugFeatureSettings() {
+    /** Stops visual animation clocks while simulation continues normally. */
+    var freezeVisualAnimations: Boolean = false
 }
 
 /** Information drawn directly over visible world tiles. */

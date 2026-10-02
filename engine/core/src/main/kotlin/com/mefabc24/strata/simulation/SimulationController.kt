@@ -26,6 +26,12 @@ class SimulationController {
 
     private var stepRequested: Boolean = false
 
+    var lastRealDelta: Float = 0f
+        private set
+
+    var lastSimulationDelta: Float = 0f
+        private set
+
     /** Pauses simulation progression without changing [timeScale]. */
     fun pause() {
         paused = true
@@ -54,15 +60,25 @@ class SimulationController {
         stepRequested = true
     }
 
+    /** Restores normal real-time simulation speed without changing pause state. */
+    fun resetTimeScale() {
+        timeScale = 1f
+    }
+
     internal fun simulationDelta(realDelta: Float): Float {
         require(realDelta.isFinite() && realDelta >= 0f) {
             "Real frame delta must be finite and non-negative."
         }
+        lastRealDelta = realDelta
 
         if (paused) {
-            if (!stepRequested) return 0f
+            if (!stepRequested) {
+                lastSimulationDelta = 0f
+                return 0f
+            }
 
             stepRequested = false
+            lastSimulationDelta = FIXED_STEP
             return FIXED_STEP
         }
 
@@ -72,6 +88,7 @@ class SimulationController {
             "Scaled simulation delta must remain finite."
         }
 
+        lastSimulationDelta = simulationDelta
         return simulationDelta
     }
 

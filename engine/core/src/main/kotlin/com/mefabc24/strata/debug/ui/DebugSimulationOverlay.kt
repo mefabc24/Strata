@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.ui.StrataButton
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -22,6 +23,13 @@ internal class DebugSimulationOverlay(
     ) {
         state.step()
     }
+    private val resetSpeedButton = StrataButton(
+        "Reset speed", ui.skin, ui.theme.buttonStyle
+    ) {
+        state.resetTimeScale()
+        sync()
+    }
+    private val deltaLabel = Label("", ui.skin)
     private val speedButtons = DebugSimulationOverlayState.TIME_SCALES.associateWith { scale ->
         StrataButton(speedLabel(scale), ui.skin, ui.theme.buttonStyle) {
             state.selectTimeScale(scale)
@@ -43,8 +51,11 @@ internal class DebugSimulationOverlay(
             add(stepButton).minWidth(64f).height(34f).padRight(4f)
             DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
                 add(speedButtons.getValue(scale)).minWidth(52f).height(34f)
-                    .padRight(if (index == DebugSimulationOverlayState.TIME_SCALES.lastIndex) 0f else 4f)
+                    .padRight(4f)
             }
+            add(resetSpeedButton).minWidth(88f).height(34f)
+            row()
+            add(deltaLabel).colspan(8).growX().left().padTop(5f)
         })
     }
 
@@ -62,6 +73,7 @@ internal class DebugSimulationOverlay(
         speedButtons.forEach { (scale, button) ->
             button.isChecked = scale == state.selectedTimeScale
         }
+        deltaLabel.setText(state.deltaText)
     }
 
     private fun speedLabel(scale: Float) = when (scale) {
@@ -76,6 +88,10 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
     val paused get() = simulation.paused
     val pauseButtonText get() = if (paused) "Resume" else "Pause"
     val selectedTimeScale get() = TIME_SCALES.firstOrNull { it == simulation.timeScale }
+    val deltaText: String
+        get() = "Real Δ ${formatMs(simulation.lastRealDelta)} ms   " +
+            "Simulation Δ ${formatMs(simulation.lastSimulationDelta)} ms   " +
+            "Scale ${simulation.timeScale}x"
     fun setVisible(visible: Boolean) { this.visible = visible }
     fun togglePause() = simulation.togglePause()
     fun selectTimeScale(timeScale: Float) {
@@ -85,5 +101,12 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
     fun step() {
         simulation.step()
     }
+    fun setCustomTimeScale(timeScale: Float) {
+        simulation.timeScale = timeScale
+    }
+    fun resetTimeScale() {
+        simulation.resetTimeScale()
+    }
+    private fun formatMs(delta: Float) = String.format(java.util.Locale.ROOT, "%.2f", delta * 1000f)
     companion object { val TIME_SCALES = listOf(0.25f, 0.5f, 1f, 2f, 4f) }
 }
