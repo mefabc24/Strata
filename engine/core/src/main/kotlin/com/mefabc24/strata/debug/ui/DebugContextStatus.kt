@@ -59,6 +59,9 @@ internal fun debugContextStatus(
         diagnosticRows("Camera" to "Unrestricted pan and zoom")
     )
     DebugToolMode.BUILD -> DebugContextStatus(buildStatusRows(input))
+    DebugToolMode.DELETE -> DebugContextStatus(
+        diagnosticRows("Status" to "Click an entity, object, or terrain overlay")
+    )
     DebugToolMode.MOVE -> DebugContextStatus(moveStatusRows(input.movePreview))
     DebugToolMode.PAINT -> DebugContextStatus(
         diagnosticRows(

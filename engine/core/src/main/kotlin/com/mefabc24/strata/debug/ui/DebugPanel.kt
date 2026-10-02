@@ -71,6 +71,7 @@ internal class DebugPanel(
         add(DebugToolMode.MOVE)
         add(DebugToolMode.FREE_CAMERA)
         if (tools.buildAvailable && buildEntries.isNotEmpty()) add(DebugToolMode.BUILD)
+        add(DebugToolMode.DELETE)
         if (painter.entries.isNotEmpty()) add(DebugToolMode.PAINT)
         if (spawner.entries.isNotEmpty()) add(DebugToolMode.SPAWN)
         add(DebugToolMode.PATHFINDING)

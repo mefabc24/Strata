@@ -7,6 +7,7 @@ enum class DebugToolMode(val displayName: String) {
     MOVE("Move"),
     FREE_CAMERA("Free Camera"),
     BUILD("Build"),
+    DELETE("Delete"),
     PAINT("Paint"),
     SPAWN("Spawn"),
     PATHFINDING("Path")

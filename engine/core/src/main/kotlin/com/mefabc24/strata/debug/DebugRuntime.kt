@@ -13,6 +13,8 @@ import com.mefabc24.strata.debug.tools.DebugPathfindingTool
 import com.mefabc24.strata.debug.tools.DebugTerrainPainter
 import com.mefabc24.strata.debug.tools.DebugToolController
 import com.mefabc24.strata.debug.tools.DebugMoveTool
+import com.mefabc24.strata.debug.tools.DebugRemovalKind
+import com.mefabc24.strata.debug.tools.DebugWorldRemover
 import com.mefabc24.strata.debug.ui.DebugPanel
 import com.mefabc24.strata.debug.ui.DebugNotificationOverlay
 import com.mefabc24.strata.iso.EntityPickingMode
@@ -69,6 +71,7 @@ internal class DebugRuntime(
         entityFreezeState = settings.entityFreezeState
     )
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
+    private val remover = DebugWorldRemover(world)
     private val buildDrag = placement?.let(::DebugBuildDragController)
     private val move = DebugMoveTool(
         world,
@@ -162,6 +165,12 @@ internal class DebugRuntime(
                 view.pickingDebugSnapshot(screenX, screenY).picked
             )
             false
+        },
+        WorldInputBinding.Pointer(
+            WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.DELETE }
+        ) { screenX, screenY ->
+            notifyRemoval(remover.remove(view.pickingDebugSnapshot(screenX, screenY).picked))
         },
         WorldInputBinding.Entity(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
@@ -288,11 +297,14 @@ internal class DebugRuntime(
             ObjectPickingMode.SPRITE_OR_FOOTPRINT,
             { tools.mode == DebugToolMode.BUILD }
         ) {
-            val removed = world.remove(it)
-            if (removed) {
-                settings.notify("Object removed", DebugNotificationSeverity.SUCCESS)
-            }
-            removed
+            notifyRemoval(remover.removeObject(it))
+        },
+        WorldInputBinding.Entity(
+            WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
+            EntityPickingMode.SPRITE_ALPHA,
+            { tools.mode == DebugToolMode.SPAWN }
+        ) { entity ->
+            notifyRemoval(remover.removeEntity(entity))
         },
         WorldInputBinding.Entity(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
@@ -320,6 +332,18 @@ internal class DebugRuntime(
             handled
         }
     )
+
+    private fun notifyRemoval(kind: DebugRemovalKind?): Boolean {
+        if (kind == null) return false
+        tools.clearSelection()
+        val subject = when (kind) {
+            DebugRemovalKind.OBJECT -> "Object"
+            DebugRemovalKind.ENTITY -> "Entity"
+            DebugRemovalKind.TERRAIN_OVERLAY -> "Terrain overlay"
+        }
+        settings.notify("$subject removed", DebugNotificationSeverity.SUCCESS)
+        return true
+    }
 
     fun update(delta: Float) {
         syncCameraRestrictions()
