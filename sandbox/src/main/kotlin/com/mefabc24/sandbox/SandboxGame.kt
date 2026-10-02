@@ -71,13 +71,13 @@ class SandboxGame : StrataGame() {
 
                     paint {
                         brushSize = 1
-                        showBrushPreview = false
+                        showBrushPreview = true
                     }
 
                     delete {
                         brushSize = 1
-                        dragEnabled = false
-                        showBrushPreview = false
+                        dragEnabled = true
+                        showBrushPreview = true
                     }
 
                     grid {
