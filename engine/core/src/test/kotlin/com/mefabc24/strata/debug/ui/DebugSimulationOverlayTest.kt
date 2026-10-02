@@ -27,4 +27,18 @@ class DebugSimulationOverlayTest {
         state.resetTimeScale()
         assertEquals(1f, simulation.timeScale)
     }
+
+    @Test
+    fun `timing display formats scale and delta values consistently`() {
+        val simulation = SimulationController().apply {
+            timeScale = 1.1f
+        }
+
+        val state = DebugSimulationOverlayState(simulation)
+
+        assertEquals(
+            "Real: 16.67 ms   Simulation: 18.33 ms   Scale: 1.10x",
+            state.formatDeltaText(0.01667f, 0.01833f)
+        )
+    }
 }
