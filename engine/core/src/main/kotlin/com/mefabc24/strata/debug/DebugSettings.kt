@@ -43,6 +43,9 @@ class DebugSettings {
     val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
 
+    /** Session-owned user presets for visual diagnostics. */
+    val customPresets = DebugCustomPresetStore()
+
     /** Target subset shared by object, entity, culling, and render-order visuals. */
     var visualizationFilter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
 
@@ -119,6 +122,25 @@ class DebugSettings {
     /** Applies a visual-only settings preset. */
     fun applyPreset(preset: DebugPreset) {
         DebugPresets.apply(this, preset)
+    }
+
+    /** Captures the current visual diagnostics without operational tool state. */
+    fun captureVisualConfiguration(): DebugVisualConfiguration =
+        DebugVisualSettings.capture(this)
+
+    /** Applies a previously captured visual diagnostics configuration. */
+    fun applyVisualConfiguration(configuration: DebugVisualConfiguration) {
+        DebugVisualSettings.apply(this, configuration)
+    }
+
+    /** Restores every visual diagnostic to its engine default. */
+    fun resetVisualConfiguration() {
+        DebugVisualSettings.reset(this)
+    }
+
+    /** Restores one visual diagnostic category to its engine default. */
+    fun resetVisualCategory(category: DebugVisualCategory) {
+        DebugVisualSettings.reset(this, category)
     }
 }
 
@@ -283,6 +305,13 @@ class DebugWorldVisibilitySettings {
     fun setOverlayLayerVisible(layerId: String, visible: Boolean) {
         require(layerId.isNotBlank()) { "Overlay layer ID must not be blank." }
         if (visible) hiddenOverlayLayers.remove(layerId) else hiddenOverlayLayers.add(layerId)
+    }
+
+    internal fun hiddenOverlayLayerIds(): Set<String> = hiddenOverlayLayers.toSet()
+
+    internal fun restoreHiddenOverlayLayers(layerIds: Set<String>) {
+        hiddenOverlayLayers.clear()
+        hiddenOverlayLayers.addAll(layerIds)
     }
 
     /** Restores the normal renderer view for every category and overlay layer. */

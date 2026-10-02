@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.mefabc24.strata.ui.StrataInsets
 import com.mefabc24.strata.ui.StrataExpanderStyle
@@ -56,6 +57,15 @@ internal object DebugPanelSkin {
             checkedOver = drawable.tint(Color(0.20f, 0.55f, 0.78f, 1f))
             disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
             disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
+        })
+        skin.add("default", TextField.TextFieldStyle().apply {
+            this.font = font
+            fontColor = Color.WHITE
+            messageFontColor = Color(0.55f, 0.56f, 0.60f, 1f)
+            background = drawable.tint(Color(0.13f, 0.13f, 0.15f, 1f))
+            focusedBackground = drawable.tint(Color(0.18f, 0.22f, 0.27f, 1f))
+            cursor = drawable.tint(Color.WHITE)
+            selection = drawable.tint(Color(0.16f, 0.45f, 0.68f, 1f))
         })
         skin.add("debug-selection", TextButton.TextButtonStyle().apply {
             this.font = font

@@ -4,10 +4,13 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.ui.Value
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
@@ -120,6 +123,11 @@ internal class DebugPanel(
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
+    private lateinit var searchEmptyLabel: Label
+    private lateinit var customPresetName: TextField
+    private lateinit var customPresetNames: Label
+    private val debugCategories = mutableListOf<DebugCategoryActor>()
+    private var debugSearch: DebugSettingsSearch? = null
     private var previewAnchor: Actor? = null
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
@@ -525,6 +533,24 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
+        label("Find settings")
+        actor(TextField("", ui.skin).apply {
+            messageText = "Search by setting name"
+            addListener(object : ChangeListener() {
+                override fun changed(event: ChangeEvent, actor: Actor) {
+                    applyDebugSearch(text)
+                }
+            })
+        }).cell { fillAvailableX(); height(38f) }
+        responsiveGrid(120f, 36f, maximumColumns = 2) {
+            button("Expand all") { setAllDebugCategoriesExpanded(true) }
+            button("Collapse all") { setAllDebugCategoriesExpanded(false) }
+        }.cell { fillAvailableX() }
+        searchEmptyLabel = wrappingLabel("No debug settings match this search.").apply {
+            isVisible = false
+        }
+        getCell(searchEmptyLabel).height(0f)
+        separator()
         label("Presets")
         responsiveGrid(105f, 38f, maximumColumns = 3) {
             DebugPreset.entries.forEach { preset ->
@@ -533,29 +559,66 @@ internal class DebugPanel(
                 }
             }
         }.cell { fillAvailableX() }
-        separator()
-        label("Visualization filter")
-        val visualizationFilters = ui.selectionGroup(
-            DebugVisualizationFilter.entries,
-            settings.visualizationFilter
-        ) {
-            settings.visualizationFilter = it
-        }
-        synchronizers += {
-            visualizationFilters.select(settings.visualizationFilter)
-        }
-        responsiveGrid(105f, 36f, maximumColumns = 4) {
-            selectableButton("All", DebugVisualizationFilter.ALL, visualizationFilters)
-            selectableButton("Selected", DebugVisualizationFilter.SELECTED, visualizationFilters)
-            selectableButton("Hovered", DebugVisualizationFilter.HOVERED, visualizationFilters)
-            selectableButton("Visible", DebugVisualizationFilter.VISIBLE, visualizationFilters)
+        customPresetName = actor(TextField("", ui.skin).apply {
+            messageText = "Custom preset name"
+        }).cell { fillAvailableX(); height(38f) }
+        responsiveGrid(105f, 36f, maximumColumns = 3) {
+            button("Save") {
+                val name = customPresetName.text.trim()
+                if (name.isNotEmpty()) {
+                    settings.customPresets.save(name, settings.captureVisualConfiguration())
+                    refreshCustomPresetNames()
+                    settings.notify("Saved debug preset: $name")
+                }
+            }
+            button("Apply") {
+                settings.customPresets.find(customPresetName.text)?.let { preset ->
+                    settings.applyVisualConfiguration(preset.configuration)
+                    syncControls()
+                    settings.notify("Applied debug preset: ${preset.name}")
+                }
+            }
+            button("Delete") {
+                if (settings.customPresets.delete(customPresetName.text)) {
+                    refreshCustomPresetNames()
+                    settings.notify("Deleted custom debug preset")
+                }
+            }
         }.cell { fillAvailableX() }
+        customPresetNames = wrappingLabel("")
+        refreshCustomPresetNames()
+        button("Reset visual settings") {
+            settings.resetVisualConfiguration()
+            syncControls()
+        }.cell { fillAvailableX(); height(36f) }
         separator()
-        simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
-            settings.performance.overlayEnabled = it
+        settingsExpander("General overlays", DebugVisualCategory.GENERAL) {
+            label("Visualization filter")
+            val visualizationFilters = ui.selectionGroup(
+                DebugVisualizationFilter.entries,
+                settings.visualizationFilter
+            ) {
+                settings.visualizationFilter = it
+            }
+            synchronizers += {
+                visualizationFilters.select(settings.visualizationFilter)
+            }
+            responsiveGrid(105f, 36f, maximumColumns = 4) {
+                selectableButton("All", DebugVisualizationFilter.ALL, visualizationFilters)
+                selectableButton("Selected", DebugVisualizationFilter.SELECTED, visualizationFilters)
+                selectableButton("Hovered", DebugVisualizationFilter.HOVERED, visualizationFilters)
+                selectableButton("Visible", DebugVisualizationFilter.VISIBLE, visualizationFilters)
+            }.cell { fillAvailableX() }
+            simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
+                settings.performance.overlayEnabled = it
+            }
+            simpleToggle("World stats overlay", { settings.worldStats.enabled }) {
+                settings.worldStats.enabled = it
+            }
+            simpleToggle("Simulation controls", { settings.simulation.enabled }) {
+                settings.simulation.enabled = it
+            }
         }
-        simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
-        simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
         settingsExpander("Performance history") {
             toggleGrid(
                 toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
@@ -613,18 +676,21 @@ internal class DebugPanel(
                 simulation.resetTimeScale()
             }.cell { height(38f) }
         }
-        simpleToggle(
-            "Disable camera restrictions",
-            { settings.camera.disableRestrictions }
-        ) {
-            settings.camera.disableRestrictions = it
-            settings.notify(
-                if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
-                DebugNotificationSeverity.INFO
-            )
+        settingsExpander("Runtime overrides") {
+            simpleToggle(
+                "Disable camera restrictions",
+                { settings.camera.disableRestrictions }
+            ) {
+                settings.camera.disableRestrictions = it
+                settings.notify(
+                    if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
+                    DebugNotificationSeverity.INFO
+                )
+            }
         }
         featureExpander(
             "Render order",
+            DebugVisualCategory.RENDER_ORDER,
             { settings.renderOrder.enabled },
             { settings.renderOrder.enabled = it }
         ) {
@@ -750,6 +816,7 @@ internal class DebugPanel(
         }
         featureExpander(
             "Event Bus Monitor",
+            DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it }
         ) {
@@ -781,16 +848,17 @@ internal class DebugPanel(
                 }
             }.cell { height(38f) }
         }
-        featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
+        featureExpander("Grid", DebugVisualCategory.GRID, { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
         featureExpander(
             "World information",
+            DebugVisualCategory.WORLD_INFORMATION,
             { settings.worldInfo.enabled },
             { settings.worldInfo.enabled = it }
         ) { buildWorldInfoSettings() }
-        settingsExpander("World visibility") { buildWorldVisibilitySettings() }
-        featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
-        featureExpander("Entities", { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
-        featureExpander("Picking", { settings.picking.enabled }, { settings.picking.enabled = it }) {
+        settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
+        featureExpander("Objects", DebugVisualCategory.OBJECTS, { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
+        featureExpander("Entities", DebugVisualCategory.ENTITIES, { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
+        featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleGrid(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
@@ -800,7 +868,7 @@ internal class DebugPanel(
                 settings.worldState.pickingSelection.clear()
             }.cell { height(38f) }
         }
-        featureExpander("Culling", { settings.culling.enabled }, { settings.culling.enabled = it }) {
+        featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleGrid(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
@@ -814,7 +882,7 @@ internal class DebugPanel(
             )
             cullingRows = diagnosticTable()
         }
-        featureExpander("Camera", { settings.camera.enabled }, { settings.camera.enabled = it }) {
+        featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
             toggleGrid(
                 toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
@@ -824,6 +892,7 @@ internal class DebugPanel(
         }
         featureExpander(
             "Notifications",
+            DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
             { settings.notifications.enabled = it }
         ) {
@@ -857,6 +926,7 @@ internal class DebugPanel(
                 )
             }.cell { fillAvailableX() }
         }
+        debugSearch = DebugSettingsSearch(debugCategories.map { it.searchCategory })
     }
 
     private fun StrataColumn.buildGridSettings() {
@@ -1112,11 +1182,12 @@ internal class DebugPanel(
 
     private fun StrataColumn.featureExpander(
         title: String,
+        category: DebugVisualCategory? = null,
         read: () -> Boolean,
         write: (Boolean) -> Unit,
         configure: StrataColumn.() -> Unit
     ) {
-        expander(
+        val expander = expander(
             title = title,
             expanded = false,
             spacing = 8f,
@@ -1128,15 +1199,24 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
+            category?.let {
+                button("Reset $title") {
+                    settings.resetVisualCategory(it)
+                    syncControls()
+                }.cell { fillAvailableX(); height(34f) }
+            }
             separator()
-        }.cell { fillAvailableX() }
+        }
+        val cell = getCell(expander).apply { fillAvailableX() }
+        registerDebugCategory(expander, cell)
     }
 
     private fun StrataColumn.settingsExpander(
         title: String,
+        category: DebugVisualCategory? = null,
         configure: StrataColumn.() -> Unit
     ) {
-        expander(
+        val expander = expander(
             title = title,
             expanded = false,
             spacing = 8f,
@@ -1145,8 +1225,77 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
+            category?.let {
+                button("Reset $title") {
+                    settings.resetVisualCategory(it)
+                    syncControls()
+                }.cell { fillAvailableX(); height(34f) }
+            }
             separator()
-        }.cell { fillAvailableX() }
+        }
+        val cell = getCell(expander).apply { fillAvailableX() }
+        registerDebugCategory(expander, cell)
+    }
+
+    private data class DebugCategoryActor(
+        val expander: StrataExpander,
+        val cell: Cell<StrataExpander>,
+        val searchCategory: DebugSearchCategory
+    )
+
+    private fun registerDebugCategory(expander: StrataExpander, cell: Cell<StrataExpander>) {
+        val terms = linkedSetOf<String>()
+        collectActorText(expander.content, terms)
+        debugCategories += DebugCategoryActor(
+            expander,
+            cell,
+            DebugSearchCategory(expander.title, terms, expander.expanded)
+        )
+    }
+
+    private fun collectActorText(actor: Actor, destination: MutableSet<String>) {
+        if (actor is Label) {
+            actor.text.toString().trim().takeIf(String::isNotEmpty)?.let(destination::add)
+        }
+        if (actor is Group) actor.children.forEach { collectActorText(it, destination) }
+    }
+
+    private fun applyDebugSearch(query: String) {
+        val search = debugSearch ?: return
+        debugCategories.forEach { it.searchCategory.expanded = it.expander.expanded }
+        val result = search.update(query)
+        debugCategories.forEachIndexed { index, entry ->
+            val visible = index in result.matchingIndices
+            entry.expander.isVisible = visible
+            entry.cell.height(if (visible) Value.prefHeight else Value.Fixed(0f))
+            entry.cell.space(if (visible) 10f else 0f)
+            entry.expander.expanded = entry.searchCategory.expanded
+        }
+        searchEmptyLabel.isVisible = !result.hasMatches
+        requireNotNull(debugTab.getCell(searchEmptyLabel)).height(
+            if (result.hasMatches) Value.Fixed(0f) else Value.prefHeight
+        )
+        debugTab.invalidateHierarchy()
+        bodyScroll.invalidateHierarchy()
+    }
+
+    private fun setAllDebugCategoriesExpanded(expanded: Boolean) {
+        debugSearch?.setAllExpanded(expanded)
+        debugCategories.forEach {
+            it.searchCategory.expanded = expanded
+            if (it.expander.isVisible) it.expander.expanded = expanded
+        }
+        debugTab.invalidateHierarchy()
+        bodyScroll.invalidateHierarchy()
+    }
+
+    private fun refreshCustomPresetNames() {
+        if (!::customPresetNames.isInitialized) return
+        customPresetNames.setText(
+            settings.customPresets.names.takeIf { it.isNotEmpty() }
+                ?.joinToString(prefix = "Saved: ")
+                ?: "No custom presets saved"
+        )
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
