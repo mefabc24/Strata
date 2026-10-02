@@ -1,15 +1,17 @@
 package com.mefabc24.strata.debug.tools
 
 import com.mefabc24.strata.terrain.TerrainEntry
+import com.mefabc24.strata.debug.DebugPaintToolSettings
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
-import kotlin.math.abs
 
 enum class DebugPaintTarget { GROUND, OVERLAY }
 
 /** Paints registered terrain on ground and overlay layers with continuous strokes. */
 class DebugTerrainPainter(
     private val world: World,
-    entries: List<TerrainEntry>
+    entries: List<TerrainEntry>,
+    private val settings: DebugPaintToolSettings = DebugPaintToolSettings()
 ) {
     private enum class Stroke { PAINT, ERASE }
 
@@ -58,18 +60,19 @@ class DebugTerrainPainter(
         get() = selectedOverlayLayerId.takeIf { target == DebugPaintTarget.OVERLAY }
 
     private var activeStroke: Stroke? = null
-    private var lastTile: Pair<Int, Int>? = null
+    private val brushStroke = DebugBrushStroke()
 
     fun beginPaint(x: Int, y: Int): Boolean {
         if (!enabled || selectedEntry == null) return false
         cancel()
         activeStroke = Stroke.PAINT
-        return paint(x, y)
+        paintBegin(TilePosition(x, y))
+        return true
     }
 
     fun dragPaint(x: Int, y: Int): Boolean {
         if (!enabled || activeStroke != Stroke.PAINT) return false
-        return paint(x, y)
+        return paintDrag(TilePosition(x, y))
     }
 
     fun endPaint(): Boolean {
@@ -82,12 +85,13 @@ class DebugTerrainPainter(
         if (!enabled || activeOverlayLayerId == null) return false
         cancel()
         activeStroke = Stroke.ERASE
-        return erase(x, y)
+        eraseBegin(TilePosition(x, y))
+        return true
     }
 
     fun dragErase(x: Int, y: Int): Boolean {
         if (!enabled || activeStroke != Stroke.ERASE) return false
-        return erase(x, y)
+        return eraseDrag(TilePosition(x, y))
     }
 
     fun endErase(): Boolean {
@@ -98,62 +102,43 @@ class DebugTerrainPainter(
 
     fun cancel() {
         activeStroke = null
-        lastTile = null
+        brushStroke.cancel()
     }
 
-    private fun paint(x: Int, y: Int): Boolean {
-        val entry = selectedEntry ?: return false
-        val target = x to y
+    private fun paintBegin(center: TilePosition) {
+        val entry = selectedEntry ?: return
         val selectedLayer = activeOverlayLayerId
-        forEachTileOnLine(lastTile, target) { tileX, tileY ->
-            if (world.getTile(tileX, tileY) == null) return@forEachTileOnLine
+        brushStroke.begin(center, settings.brushSize, world.width, world.height) { position ->
             val tile = entry.createTile()
             if (selectedLayer == null) {
-                world.terrain.setTile(tileX, tileY, tile)
+                world.terrain.setTile(position.x, position.y, tile)
             } else {
-                world.setOverlayTile(selectedLayer, tileX, tileY, tile)
+                world.setOverlayTile(selectedLayer, position, tile)
             }
         }
-        lastTile = target
-        return true
     }
 
-    private fun erase(x: Int, y: Int): Boolean {
+    private fun paintDrag(center: TilePosition): Boolean {
+        val entry = selectedEntry ?: return false
+        val selectedLayer = activeOverlayLayerId
+        return brushStroke.drag(center, settings.brushSize, world.width, world.height) { position ->
+            val tile = entry.createTile()
+            if (selectedLayer == null) world.terrain.setTile(position.x, position.y, tile)
+            else world.setOverlayTile(selectedLayer, position, tile)
+        }
+    }
+
+    private fun eraseBegin(center: TilePosition) {
+        val selectedLayer = activeOverlayLayerId ?: return
+        brushStroke.begin(center, settings.brushSize, world.width, world.height) { position ->
+            world.setOverlayTile(selectedLayer, position, null)
+        }
+    }
+
+    private fun eraseDrag(center: TilePosition): Boolean {
         val selectedLayer = activeOverlayLayerId ?: return false
-        val target = x to y
-        forEachTileOnLine(lastTile, target) { tileX, tileY ->
-            if (world.getTile(tileX, tileY) != null) {
-                world.setOverlayTile(selectedLayer, tileX, tileY, null)
-            }
-        }
-        lastTile = target
-        return true
-    }
-
-    private fun forEachTileOnLine(
-        from: Pair<Int, Int>?,
-        to: Pair<Int, Int>,
-        action: (Int, Int) -> Unit
-    ) {
-        var x = from?.first ?: to.first
-        var y = from?.second ?: to.second
-        val dx = abs(to.first - x)
-        val dy = abs(to.second - y)
-        val stepX = if (x < to.first) 1 else -1
-        val stepY = if (y < to.second) 1 else -1
-        var error = dx - dy
-        while (true) {
-            if (from == null || x != from.first || y != from.second) action(x, y)
-            if (x == to.first && y == to.second) break
-            val doubleError = 2 * error
-            if (doubleError > -dy) {
-                error -= dy
-                x += stepX
-            }
-            if (doubleError < dx) {
-                error += dx
-                y += stepY
-            }
+        return brushStroke.drag(center, settings.brushSize, world.width, world.height) { position ->
+            world.setOverlayTile(selectedLayer, position, null)
         }
     }
 }

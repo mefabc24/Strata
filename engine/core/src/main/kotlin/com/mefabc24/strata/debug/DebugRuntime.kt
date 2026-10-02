@@ -70,8 +70,8 @@ internal class DebugRuntime(
         consumeReachedWaypoints = { settings.pathfinding.consumeReachedWaypoints },
         entityFreezeState = settings.entityFreezeState
     )
-    private val painter = DebugTerrainPainter(world, terrain.paintableEntries)
-    private val remover = DebugWorldRemover(world)
+    private val painter = DebugTerrainPainter(world, terrain.paintableEntries, settings.paint)
+    private val remover = DebugWorldRemover(world, settings.delete)
     private val buildDrag = placement?.let(::DebugBuildDragController)
     private val move = DebugMoveTool(
         world,
@@ -93,7 +93,8 @@ internal class DebugRuntime(
             freeCameraToolActive = enabled
             syncCameraRestrictions()
         },
-        move = move
+        move = move,
+        remover = remover
     )
     private val spawner = DebugEntitySpawner(
         world = world,
@@ -166,11 +167,25 @@ internal class DebugRuntime(
             )
             false
         },
-        WorldInputBinding.Pointer(
+        WorldInputBinding.Grid(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.DELETE }
-        ) { screenX, screenY ->
-            notifyRemoval(remover.remove(view.pickingDebugSnapshot(screenX, screenY).picked))
+        ) { x, y ->
+            notifyRemovals(remover.beginDelete(TilePosition(x, y)))
+            true
+        },
+        WorldInputBinding.Grid(
+            WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.DELETE && settings.delete.dragEnabled }
+        ) { x, y ->
+            notifyRemovals(remover.dragDelete(TilePosition(x, y)))
+            true
+        },
+        WorldInputBinding.NoPicking(
+            WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
+            { tools.mode == DebugToolMode.DELETE }
+        ) {
+            remover.endDelete()
         },
         WorldInputBinding.Entity(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
@@ -343,6 +358,19 @@ internal class DebugRuntime(
         }
         settings.notify("$subject removed", DebugNotificationSeverity.SUCCESS)
         return true
+    }
+
+    private fun notifyRemovals(kinds: Set<DebugRemovalKind>) {
+        if (kinds.isEmpty()) return
+        tools.clearSelection()
+        val subjects = kinds.map { kind ->
+            when (kind) {
+                DebugRemovalKind.OBJECT -> "objects"
+                DebugRemovalKind.ENTITY -> "entities"
+                DebugRemovalKind.TERRAIN_OVERLAY -> "terrain overlays"
+            }
+        }.joinToString()
+        settings.notify("Removed $subjects", DebugNotificationSeverity.SUCCESS)
     }
 
     fun update(delta: Float) {

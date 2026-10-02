@@ -34,6 +34,8 @@ class DebugSettings {
     val camera = DebugCameraSettings()
     val worldStats = DebugFeatureSettings()
     val inspect = DebugInspectSettings()
+    val paint = DebugPaintToolSettings()
+    val delete = DebugDeleteToolSettings()
     val pathfinding = DebugPathfindingSettings()
     val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
@@ -55,6 +57,8 @@ class DebugSettings {
     fun camera(configure: DebugCameraSettings.() -> Unit) = camera.apply(configure)
     fun worldStats(configure: DebugFeatureSettings.() -> Unit) = worldStats.apply(configure)
     fun inspect(configure: DebugInspectSettings.() -> Unit) = inspect.apply(configure)
+    fun paint(configure: DebugPaintToolSettings.() -> Unit) = paint.apply(configure)
+    fun delete(configure: DebugDeleteToolSettings.() -> Unit) = delete.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
     fun eventBus(configure: DebugEventMonitorSettings.() -> Unit) = eventBus.apply(configure)
 
@@ -149,6 +153,30 @@ class DebugPerformanceSettings internal constructor() {
     internal fun record(stats: com.mefabc24.strata.render.RenderStats, delta: Float) {
         terminalLogger.record(stats, delta)
     }
+}
+
+/** Common square-brush options for debug world editing tools. */
+open class DebugBrushSettings {
+    /** Odd side length of the square affected tile area. */
+    var brushSize: Int = 1
+        set(value) {
+            require(value in 1..9 && value % 2 == 1) {
+                "Debug brush size must be an odd number between 1 and 9."
+            }
+            field = value
+        }
+
+    /** Whether the current affected tile area is drawn under the cursor. */
+    var showBrushPreview: Boolean = false
+}
+
+/** Brush options for the terrain Paint tool. */
+class DebugPaintToolSettings : DebugBrushSettings()
+
+/** Brush and stroke options for the Delete tool. */
+class DebugDeleteToolSettings : DebugBrushSettings() {
+    /** Whether holding the left mouse button continues deletion along cursor movement. */
+    var dragEnabled: Boolean = false
 }
 
 open class DebugFeatureSettings {
