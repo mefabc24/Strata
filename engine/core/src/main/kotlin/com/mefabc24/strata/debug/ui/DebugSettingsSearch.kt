@@ -5,12 +5,14 @@ import java.util.Locale
 internal data class DebugSearchCategory(
     val title: String,
     val settingNames: Set<String>,
-    var expanded: Boolean = false
+    var expanded: Boolean = false,
+    val section: DebugPanelSection = DebugPanelSection.VISUALS
 )
 
 internal data class DebugSearchResult(
     val matchingIndices: Set<Int>,
-    val hasMatches: Boolean
+    val hasMatches: Boolean,
+    val matchingSections: Set<DebugPanelSection>
 )
 
 /** Search state independent from Scene2D so filtering never rebuilds controls. */
@@ -26,7 +28,7 @@ internal class DebugSettingsSearch(private val categories: List<DebugSearchCateg
             savedExpansion?.forEachIndexed { index, expanded -> categories[index].expanded = expanded }
             savedExpansion = null
             this.query = ""
-            return DebugSearchResult(categories.indices.toSet(), categories.isNotEmpty())
+            return result(categories.indices.toSet())
         }
         if (savedExpansion == null) savedExpansion = categories.map { it.expanded }
         this.query = query
@@ -36,11 +38,25 @@ internal class DebugSettingsSearch(private val categories: List<DebugSearchCateg
                     category.settingNames.any { it.contains(normalized, ignoreCase = true) }
         }
         matches.forEach { categories[it].expanded = true }
-        return DebugSearchResult(matches, matches.isNotEmpty())
+        return result(matches)
     }
 
     fun setAllExpanded(expanded: Boolean) {
-        categories.forEach { it.expanded = expanded }
-        if (query.isNotBlank()) savedExpansion = categories.map { expanded }
+        setExpanded(categories.indices.toSet(), expanded)
     }
+
+    fun setExpanded(indices: Set<Int>, expanded: Boolean) {
+        indices.forEach { categories[it].expanded = expanded }
+        if (query.isNotBlank()) {
+            val restored = savedExpansion?.toMutableList() ?: categories.map { it.expanded }.toMutableList()
+            indices.forEach { restored[it] = expanded }
+            savedExpansion = restored
+        }
+    }
+
+    private fun result(indices: Set<Int>) = DebugSearchResult(
+        matchingIndices = indices,
+        hasMatches = indices.isNotEmpty(),
+        matchingSections = indices.mapTo(linkedSetOf()) { categories[it].section }
+    )
 }

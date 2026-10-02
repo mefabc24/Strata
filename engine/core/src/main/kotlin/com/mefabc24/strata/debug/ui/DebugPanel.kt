@@ -68,6 +68,13 @@ internal class DebugPanel(
         navigation.select(tab)
         hidePreview(); syncVisibility()
     }
+    private val debugSections = ui.selectionGroup(
+        DebugPanelSection.entries,
+        DebugPanelSection.VISUALS
+    ) { section ->
+        navigation.select(section)
+        syncDebugSectionVisibility(resetScroll = true)
+    }
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
@@ -124,8 +131,14 @@ internal class DebugPanel(
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
     private lateinit var searchEmptyLabel: Label
+    private val debugSectionColumns = linkedMapOf<DebugPanelSection, StrataColumn>()
+    private val debugSectionButtons = linkedMapOf<DebugPanelSection, StrataSelectableButton<DebugPanelSection>>()
+    private lateinit var expandAllButton: StrataButton
+    private lateinit var collapseAllButton: StrataButton
     private val debugCategories = mutableListOf<DebugCategoryActor>()
     private var debugSearch: DebugSettingsSearch? = null
+    private var registeringDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
+    private var matchingDebugSections: Set<DebugPanelSection> = DebugPanelSection.entries.toSet()
     private var previewAnchor: Actor? = null
     private var lastTab = DebugPanelTab.TOOLS
     private var lastMode = DebugToolMode.NONE
@@ -540,19 +553,46 @@ internal class DebugPanel(
                 }
             })
         }).cell { fillAvailableX(); height(38f) }
+        responsiveGrid(112f, 36f, maximumColumns = 4) {
+            DebugPanelSection.entries.forEach { section ->
+                debugSectionButtons[section] =
+                    selectableButton(section.label, section, debugSections)
+            }
+        }.cell { fillAvailableX() }
         responsiveGrid(120f, 36f, maximumColumns = 2) {
-            button("Expand all") { setAllDebugCategoriesExpanded(true) }
-            button("Collapse all") { setAllDebugCategoriesExpanded(false) }
+            expandAllButton = button("Expand all") { setAllDebugCategoriesExpanded(true) }
+            collapseAllButton = button("Collapse all") { setAllDebugCategoriesExpanded(false) }
         }.cell { fillAvailableX() }
         searchEmptyLabel = wrappingLabel("No debug settings match this search.").apply {
             isVisible = false
         }
         getCell(searchEmptyLabel).height(0f)
         separator()
-        label("Presets")
+        stack {
+            DebugPanelSection.entries.forEach { section ->
+                debugSectionColumns[section] = column(spacing = 8f) {
+                    defaults().fillAvailableX()
+                }
+            }
+        }.cell { fillAvailableX() }
 
-        // Built-in and user-defined presets.
-        responsiveGrid(
+        val visuals = debugSectionColumns.getValue(DebugPanelSection.VISUALS)
+        val diagnostics = debugSectionColumns.getValue(DebugPanelSection.DIAGNOSTICS)
+        val runtime = debugSectionColumns.getValue(DebugPanelSection.RUNTIME)
+        val presets = debugSectionColumns.getValue(DebugPanelSection.PRESETS)
+
+        presets.label("Presets")
+
+        // Disable every visual diagnostic without changing operational state.
+        presets.button("OFF") {
+            settings.applyPreset(DebugPreset.OFF)
+            syncControls()
+        }.cell {
+            fillAvailableX()
+            height(38f)
+        }
+
+        presets.responsiveGrid(
             minimumItemWidth = 105f,
             itemHeight = 38f,
             maximumColumns = 3
@@ -574,18 +614,8 @@ internal class DebugPanel(
             fillAvailableX()
         }
 
-
-        // Disable all visual diagnostics.
-        button("Disable everything") {
-            settings.applyPreset(DebugPreset.OFF)
-            syncControls()
-        }.cell {
-            fillAvailableX()
-            height(38f)
-        }
-
         // Replace the previously saved default.
-        button("Save current configuration as default") {
+        presets.button("Save current configuration as default") {
             settings.saveDefaultVisualConfiguration()
 
             settings.notify(
@@ -597,9 +627,8 @@ internal class DebugPanel(
             height(38f)
         }
 
-        separator()
-        separator()
-        settingsExpander("General overlays", DebugVisualCategory.GENERAL) {
+        registeringDebugSection = DebugPanelSection.VISUALS
+        visuals.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
             label("Visualization filter")
             val visualizationFilters = ui.selectionGroup(
                 DebugVisualizationFilter.entries,
@@ -616,17 +645,18 @@ internal class DebugPanel(
                 selectableButton("Hovered", DebugVisualizationFilter.HOVERED, visualizationFilters)
                 selectableButton("Visible", DebugVisualizationFilter.VISIBLE, visualizationFilters)
             }.cell { fillAvailableX() }
+        }
+
+        registeringDebugSection = DebugPanelSection.RUNTIME
+        runtime.settingsExpander("Performance", DebugVisualCategory.GENERAL) {
             simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
                 settings.performance.overlayEnabled = it
             }
             simpleToggle("World stats overlay", { settings.worldStats.enabled }) {
                 settings.worldStats.enabled = it
             }
-            simpleToggle("Simulation controls", { settings.simulation.enabled }) {
-                settings.simulation.enabled = it
-            }
         }
-        settingsExpander("Performance history") {
+        runtime.settingsExpander("Performance history") {
             toggleGrid(
                 toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
                     settings.performance.overlayEnabled = it
@@ -667,7 +697,11 @@ internal class DebugPanel(
                 button("Clear") { settings.performance.clearHistory() }
             }.cell { fillAvailableX() }
         }
-        settingsExpander("Simulation runtime") {
+        runtime.featureExpander(
+            "Simulation",
+            read = { settings.simulation.enabled },
+            write = { settings.simulation.enabled = it }
+        ) {
             boundStepper(
                 "Custom time scale",
                 { simulation.timeScale },
@@ -683,20 +717,9 @@ internal class DebugPanel(
                 simulation.resetTimeScale()
             }.cell { height(38f) }
         }
-        settingsExpander("Runtime overrides") {
-            simpleToggle(
-                "Disable camera restrictions",
-                { settings.camera.disableRestrictions }
-            ) {
-                settings.camera.disableRestrictions = it
-                settings.notify(
-                    if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
-                    DebugNotificationSeverity.INFO
-                )
-            }
-        }
-        settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
-        featureExpander(
+        registeringDebugSection = DebugPanelSection.VISUALS
+        visuals.settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
+        visuals.featureExpander(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
             { settings.renderOrder.enabled },
@@ -822,7 +845,8 @@ internal class DebugPanel(
                 }
             }
         }
-        featureExpander(
+        registeringDebugSection = DebugPanelSection.DIAGNOSTICS
+        diagnostics.featureExpander(
             "Event Bus Monitor",
             DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
@@ -856,16 +880,19 @@ internal class DebugPanel(
                 }
             }.cell { height(38f) }
         }
-        featureExpander("Grid", DebugVisualCategory.GRID, { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
-        featureExpander(
+        registeringDebugSection = DebugPanelSection.VISUALS
+        visuals.featureExpander("Grid", DebugVisualCategory.GRID, { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
+        visuals.featureExpander(
             "World information",
             DebugVisualCategory.WORLD_INFORMATION,
             { settings.worldInfo.enabled },
             { settings.worldInfo.enabled = it }
         ) { buildWorldInfoSettings() }
-        featureExpander("Objects", DebugVisualCategory.OBJECTS, { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
-        featureExpander("Entities", DebugVisualCategory.ENTITIES, { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
-        featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
+        visuals.featureExpander("Objects", DebugVisualCategory.OBJECTS, { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
+        visuals.featureExpander("Entities", DebugVisualCategory.ENTITIES, { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
+
+        registeringDebugSection = DebugPanelSection.DIAGNOSTICS
+        diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleGrid(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
@@ -875,7 +902,7 @@ internal class DebugPanel(
                 settings.worldState.pickingSelection.clear()
             }.cell { height(38f) }
         }
-        featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
+        diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleGrid(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
@@ -889,15 +916,27 @@ internal class DebugPanel(
             )
             cullingRows = diagnosticTable()
         }
-        featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
+        diagnostics.featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
             toggleGrid(
                 toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
                 toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
             )
+            simpleToggle(
+                "Disable restrictions",
+                { settings.camera.disableRestrictions }
+            ) {
+                settings.camera.disableRestrictions = it
+                settings.notify(
+                    if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
+                    DebugNotificationSeverity.INFO
+                )
+            }
             cameraRows = diagnosticTable()
         }
-        featureExpander(
+
+        registeringDebugSection = DebugPanelSection.RUNTIME
+        runtime.featureExpander(
             "Notifications",
             DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
@@ -932,6 +971,7 @@ internal class DebugPanel(
             }.cell { fillAvailableX() }
         }
         debugSearch = DebugSettingsSearch(debugCategories.map { it.searchCategory })
+        syncDebugSectionVisibility(resetScroll = false)
     }
 
     private fun StrataColumn.buildGridSettings() {
@@ -1243,6 +1283,7 @@ internal class DebugPanel(
     }
 
     private data class DebugCategoryActor(
+        val section: DebugPanelSection,
         val expander: StrataExpander,
         val cell: Cell<StrataExpander>,
         val searchCategory: DebugSearchCategory
@@ -1252,9 +1293,15 @@ internal class DebugPanel(
         val terms = linkedSetOf<String>()
         collectActorText(expander.content, terms)
         debugCategories += DebugCategoryActor(
+            registeringDebugSection,
             expander,
             cell,
-            DebugSearchCategory(expander.title, terms, expander.expanded)
+            DebugSearchCategory(
+                expander.title,
+                terms,
+                expander.expanded,
+                registeringDebugSection
+            )
         )
     }
 
@@ -1276,22 +1323,67 @@ internal class DebugPanel(
             entry.cell.space(if (visible) 10f else 0f)
             entry.expander.expanded = entry.searchCategory.expanded
         }
-        searchEmptyLabel.isVisible = !result.hasMatches
-        requireNotNull(debugTab.getCell(searchEmptyLabel)).height(
-            if (result.hasMatches) Value.Fixed(0f) else Value.prefHeight
+        val presetMatches = query.isBlank() || actorContainsText(
+            debugSectionColumns.getValue(DebugPanelSection.PRESETS),
+            query
         )
-        debugTab.invalidateHierarchy()
-        bodyScroll.invalidateHierarchy()
+        matchingDebugSections = buildSet {
+            addAll(result.matchingSections)
+            if (presetMatches) add(DebugPanelSection.PRESETS)
+        }
+        val hasMatches = matchingDebugSections.isNotEmpty()
+        if (query.isNotBlank() && navigation.selectedDebugSection !in matchingDebugSections) {
+            matchingDebugSections.firstOrNull()?.let(debugSections::select)
+        }
+        searchEmptyLabel.isVisible = !hasMatches
+        requireNotNull(debugTab.getCell(searchEmptyLabel)).height(
+            if (hasMatches) Value.Fixed(0f) else Value.prefHeight
+        )
+        syncDebugSectionVisibility(resetScroll = false)
     }
 
     private fun setAllDebugCategoriesExpanded(expanded: Boolean) {
-        debugSearch?.setAllExpanded(expanded)
-        debugCategories.forEach {
+        val indices = debugCategories.indices.filter {
+            debugCategories[it].section == navigation.selectedDebugSection
+        }.toSet()
+        debugSearch?.setExpanded(indices, expanded)
+        debugCategories.filter { it.section == navigation.selectedDebugSection }.forEach {
             it.searchCategory.expanded = expanded
             if (it.expander.isVisible) it.expander.expanded = expanded
         }
         debugTab.invalidateHierarchy()
         bodyScroll.invalidateHierarchy()
+    }
+
+    private fun actorContainsText(actor: Actor, query: String): Boolean {
+        val normalized = query.trim()
+        if (normalized.isEmpty()) return true
+        val terms = linkedSetOf<String>()
+        collectActorText(actor, terms)
+        return terms.any { it.contains(normalized, ignoreCase = true) }
+    }
+
+    private fun syncDebugSectionVisibility(resetScroll: Boolean) {
+        if (debugSectionColumns.isEmpty()) return
+        val selected = navigation.selectedDebugSection
+        val searching = debugSearch?.query?.isNotBlank() == true
+        debugSectionColumns.forEach { (section, column) ->
+            column.isVisible = section == selected && section in matchingDebugSections
+        }
+        debugSectionButtons.forEach { (section, button) ->
+            button.isDisabled = searching && section !in matchingDebugSections
+        }
+        val hasExpandableCategories = debugCategories.any { it.section == selected }
+        if (::expandAllButton.isInitialized) {
+            expandAllButton.isDisabled = !hasExpandableCategories
+            collapseAllButton.isDisabled = !hasExpandableCategories
+        }
+        if (resetScroll && ::bodyScroll.isInitialized) bodyScroll.scrollY = 0f
+        debugTab.invalidateHierarchy()
+        if (::bodyScroll.isInitialized) {
+            bodyScroll.content.invalidateHierarchy()
+            bodyScroll.invalidateHierarchy()
+        }
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
