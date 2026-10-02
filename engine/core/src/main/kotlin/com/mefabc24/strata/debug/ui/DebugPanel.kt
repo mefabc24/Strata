@@ -695,6 +695,7 @@ internal class DebugPanel(
                 )
             }
         }
+        settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
         featureExpander(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
@@ -862,7 +863,6 @@ internal class DebugPanel(
             { settings.worldInfo.enabled },
             { settings.worldInfo.enabled = it }
         ) { buildWorldInfoSettings() }
-        settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
         featureExpander("Objects", DebugVisualCategory.OBJECTS, { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
         featureExpander("Entities", DebugVisualCategory.ENTITIES, { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
         featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
