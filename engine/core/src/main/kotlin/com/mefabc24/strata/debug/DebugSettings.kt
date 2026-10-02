@@ -398,6 +398,46 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
 
     var showExploredNodes: Boolean = true
     var showFinalPath: Boolean = true
+    var showOpenSet: Boolean = false
+    var showClosedSet: Boolean = false
+    var showGCost: Boolean = false
+    var showHCost: Boolean = false
+    var showFCost: Boolean = false
+    var showParentDirections: Boolean = false
+    var showExplorationOrder: Boolean = false
+    var showRejectedTransitions: Boolean = false
+
+    var maximumLabelZoom: Float = 1.5f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Pathfinding maximum label zoom must be finite and positive."
+            }
+            field = value
+        }
+
+    var maximumVisibleLabels: Int = 128
+        set(value) {
+            require(value in 1..4096) {
+                "Maximum visible pathfinding labels must be between 1 and 4096."
+            }
+            field = value
+        }
+
+    var maximumRejectedTransitions: Int = 2048
+        set(value) {
+            require(value in 0..16384) {
+                "Maximum rejected pathfinding transitions must be between 0 and 16384."
+            }
+            field = value
+        }
+
+    var automaticIterationsPerUpdate: Int = 1
+        set(value) {
+            require(value in 1..1024) {
+                "Automatic pathfinding iterations per update must be between 1 and 1024."
+            }
+            field = value
+        }
 
     /** Removes completed sections from debug-assigned entity route diagnostics. */
     var consumeReachedWaypoints: Boolean = true

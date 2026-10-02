@@ -5,6 +5,8 @@ import com.mefabc24.strata.debug.DebugEntityFreezeState
 import com.mefabc24.strata.pathfinding.PathMovementMode
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.pathfinding.findPathDiagnostic
+import com.mefabc24.strata.pathfinding.PathfindingDiagnosticSearch
+import com.mefabc24.strata.pathfinding.createPathfindingDiagnosticSearch
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
@@ -20,6 +22,8 @@ class DebugPathfindingTool internal constructor(
     private val movementMode: () -> PathMovementMode = { PathMovementMode.FOUR_WAY },
     private val entitySpeedMultiplier: () -> Float = { 1f },
     private val consumeReachedWaypoints: () -> Boolean = { true },
+    private val maximumRejectedTransitions: () -> Int = { 2048 },
+    private val automaticIterationsPerUpdate: () -> Int = { 1 },
     private val entityFreezeState: DebugEntityFreezeState = DebugEntityFreezeState()
 ) {
     constructor(
@@ -29,6 +33,13 @@ class DebugPathfindingTool internal constructor(
 
     private var committedEntityResult: PathfindingDiagnosticResult? = null
     private val committedEntitySegments = mutableListOf<PathfindingDiagnosticResult>()
+    private var diagnosticSearch: PathfindingDiagnosticSearch? = null
+
+    var diagnosticSearchRunning: Boolean = false
+        private set
+
+    val diagnosticSearchActive: Boolean
+        get() = diagnosticSearch != null
 
     val waypoints: List<TilePosition>
         get() = state.pathfindingWaypoints
@@ -56,11 +67,20 @@ class DebugPathfindingTool internal constructor(
         state.pathfindingEntityWaiting = false
         committedEntityResult = null
         committedEntitySegments.clear()
+        cancelDiagnosticSearch()
         return true
     }
 
     /** Keeps an uncommitted entity route start aligned with the entity's live tile. */
     fun update() {
+        if (diagnosticSearch != null) {
+            if (diagnosticSearchRunning) {
+                val search = requireNotNull(diagnosticSearch)
+                state.pathfinding = search.advance(automaticIterationsPerUpdate())
+                if (search.complete) diagnosticSearchRunning = false
+            }
+            return
+        }
         if (committedEntityResult == null) {
             syncPendingEntityStart()
         } else {
@@ -70,6 +90,7 @@ class DebugPathfindingTool internal constructor(
 
     fun click(position: TilePosition): Boolean {
         if (world.getTile(position) == null) return false
+        cancelDiagnosticSearch()
         syncPendingEntityStart()
         val entity = selectedEntity
         if (entity != null) {
@@ -163,7 +184,11 @@ class DebugPathfindingTool internal constructor(
                 remainingPath.size <= 1 -> 0f
                 completedPathIndex == 0 -> committed.totalCost
                 else -> null
-            }
+            },
+            nodes = mergeNodes(remainingSegments),
+            rejectedTransitions = remainingSegments
+                .flatMap(PathfindingDiagnosticResult::rejectedTransitions)
+                .take(maximumRejectedTransitions())
         )
     }
 
@@ -196,7 +221,8 @@ class DebugPathfindingTool internal constructor(
     }
 
     fun clear(): Boolean {
-        val changed = waypoints.isNotEmpty() || result != null || selectedEntity != null
+        val changed = waypoints.isNotEmpty() || result != null || selectedEntity != null ||
+            diagnosticSearch != null
         releaseSelectedEntity()
         state.pathfindingWaypoints = emptyList()
         state.pathfindingEntity = null
@@ -204,11 +230,78 @@ class DebugPathfindingTool internal constructor(
         state.pathfinding = null
         committedEntityResult = null
         committedEntitySegments.clear()
+        cancelDiagnosticSearch()
         return changed
+    }
+
+    fun startDiagnosticSearch(): Boolean {
+        if (waypoints.size < 2) return false
+        diagnosticSearch = createDiagnosticSearch().also { search ->
+            state.pathfinding = search.snapshot()
+        }
+        diagnosticSearchRunning = false
+        return true
+    }
+
+    fun stepDiagnosticSearch(): Boolean {
+        val search = diagnosticSearch ?: run {
+            if (!startDiagnosticSearch()) return false
+            requireNotNull(diagnosticSearch)
+        }
+        diagnosticSearchRunning = false
+        state.pathfinding = search.step()
+        return true
+    }
+
+    fun continueDiagnosticSearch(): Boolean {
+        var search = diagnosticSearch
+        if (search == null && !startDiagnosticSearch()) return false
+        search = requireNotNull(diagnosticSearch)
+        if (search.complete) state.pathfinding = search.reset()
+        diagnosticSearchRunning = true
+        return true
+    }
+
+    fun pauseDiagnosticSearch(): Boolean {
+        if (!diagnosticSearchRunning) return false
+        diagnosticSearchRunning = false
+        return true
+    }
+
+    fun resetDiagnosticSearch(): Boolean {
+        val search = diagnosticSearch ?: return false
+        diagnosticSearchRunning = false
+        state.pathfinding = search.reset()
+        return true
     }
 
     private fun releaseSelectedEntity() {
         selectedEntity?.let { entityFreezeState.setPathfindingHeld(it, false) }
+    }
+
+    private fun cancelDiagnosticSearch() {
+        diagnosticSearch = null
+        diagnosticSearchRunning = false
+    }
+
+    private fun createDiagnosticSearch(): PathfindingDiagnosticSearch {
+        val cost = movementCost
+        return if (cost == null) {
+            world.createPathfindingDiagnosticSearch(
+                waypoints = waypoints,
+                movementMode = movementMode(),
+                canEnter = canEnter,
+                maximumRejectedTransitions = maximumRejectedTransitions()
+            )
+        } else {
+            world.createPathfindingDiagnosticSearch(
+                waypoints = waypoints,
+                movementMode = movementMode(),
+                canEnter = canEnter,
+                movementCost = cost,
+                maximumRejectedTransitions = maximumRejectedTransitions()
+            )
+        }
     }
 
     private fun successfulCombinedResult(
@@ -226,7 +319,10 @@ class DebugPathfindingTool internal constructor(
             explored = previous.explored + segment.explored,
             durationNanos = previous.durationNanos + segment.durationNanos,
             waypoints = requestedWaypoints,
-            totalCost = requireNotNull(previous.totalCost) + requireNotNull(segment.totalCost)
+            totalCost = requireNotNull(previous.totalCost) + requireNotNull(segment.totalCost),
+            nodes = mergeNodes(listOf(previous, segment)),
+            rejectedTransitions = (previous.rejectedTransitions + segment.rejectedTransitions)
+                .take(maximumRejectedTransitions())
         )
     }
 
@@ -241,8 +337,17 @@ class DebugPathfindingTool internal constructor(
         explored = previous?.explored.orEmpty() + segment.explored,
         durationNanos = (previous?.durationNanos ?: 0L) + segment.durationNanos,
         waypoints = requestedWaypoints,
-        totalCost = null
+        totalCost = null,
+        nodes = mergeNodes(listOfNotNull(previous, segment)),
+        rejectedTransitions = (previous?.rejectedTransitions.orEmpty() +
+            segment.rejectedTransitions).take(maximumRejectedTransitions())
     )
+
+    private fun mergeNodes(
+        results: List<PathfindingDiagnosticResult>
+    ) = linkedMapOf<TilePosition, com.mefabc24.strata.pathfinding.PathfindingNodeDiagnostic>().apply {
+        results.forEach { result -> result.nodes.forEach { node -> put(node.position, node) } }
+    }.values.toList()
 
     private fun findPathDiagnostic(
         waypoints: List<TilePosition>

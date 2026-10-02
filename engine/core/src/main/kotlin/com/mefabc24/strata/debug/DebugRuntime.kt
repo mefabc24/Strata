@@ -71,6 +71,8 @@ internal class DebugRuntime(
         movementMode = { settings.pathfinding.movementMode },
         entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier },
         consumeReachedWaypoints = { settings.pathfinding.consumeReachedWaypoints },
+        maximumRejectedTransitions = { settings.pathfinding.maximumRejectedTransitions },
+        automaticIterationsPerUpdate = { settings.pathfinding.automaticIterationsPerUpdate },
         entityFreezeState = settings.entityFreezeState
     )
     private val painter = DebugTerrainPainter(world, terrain.paintableEntries, settings.paint)

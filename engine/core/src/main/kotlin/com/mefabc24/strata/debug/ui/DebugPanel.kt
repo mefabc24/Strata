@@ -442,8 +442,68 @@ internal class DebugPanel(
                     },
                     toggle("Final path", { settings.pathfinding.showFinalPath }) {
                         settings.pathfinding.showFinalPath = it
+                    },
+                    toggle("Open set", { settings.pathfinding.showOpenSet }) {
+                        settings.pathfinding.showOpenSet = it
+                    },
+                    toggle("Closed set", { settings.pathfinding.showClosedSet }) {
+                        settings.pathfinding.showClosedSet = it
+                    },
+                    toggle("G cost", { settings.pathfinding.showGCost }) {
+                        settings.pathfinding.showGCost = it
+                    },
+                    toggle("H cost", { settings.pathfinding.showHCost }) {
+                        settings.pathfinding.showHCost = it
+                    },
+                    toggle("F cost", { settings.pathfinding.showFCost }) {
+                        settings.pathfinding.showFCost = it
+                    },
+                    toggle("Parent direction", { settings.pathfinding.showParentDirections }) {
+                        settings.pathfinding.showParentDirections = it
+                    },
+                    toggle("Exploration order", { settings.pathfinding.showExplorationOrder }) {
+                        settings.pathfinding.showExplorationOrder = it
+                    },
+                    toggle("Rejected transitions", { settings.pathfinding.showRejectedTransitions }) {
+                        settings.pathfinding.showRejectedTransitions = it
                     }
                 )
+                boundStepper(
+                    "Maximum label zoom",
+                    { settings.pathfinding.maximumLabelZoom },
+                    0.25f,
+                    8f,
+                    0.25f
+                ) { settings.pathfinding.maximumLabelZoom = it }
+                boundStepper(
+                    "Maximum labels",
+                    { settings.pathfinding.maximumVisibleLabels.toFloat() },
+                    16f,
+                    1024f,
+                    16f
+                ) { settings.pathfinding.maximumVisibleLabels = it.toInt() }
+                boundStepper(
+                    "Recorded rejections",
+                    { settings.pathfinding.maximumRejectedTransitions.toFloat() },
+                    0f,
+                    8192f,
+                    128f
+                ) { settings.pathfinding.maximumRejectedTransitions = it.toInt() }
+                label("Diagnostic search")
+                responsiveGrid(105f, 38f, maximumColumns = 2) {
+                    button("Start") { pathfinding.startDiagnosticSearch() }
+                    button("Step") { pathfinding.stepDiagnosticSearch() }
+                    button("Continue") { pathfinding.continueDiagnosticSearch() }
+                    button("Pause") { pathfinding.pauseDiagnosticSearch() }
+                    button("Reset") { pathfinding.resetDiagnosticSearch() }
+                }.cell { fillAvailableX() }
+                boundStepper(
+                    "Iterations / update",
+                    { settings.pathfinding.automaticIterationsPerUpdate.toFloat() },
+                    1f,
+                    64f,
+                    1f
+                ) { settings.pathfinding.automaticIterationsPerUpdate = it.toInt() }
                 simpleToggle(
                     "Consume reached nodes",
                     { settings.pathfinding.consumeReachedWaypoints }

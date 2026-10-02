@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
+import com.mefabc24.strata.pathfinding.PathfindingSearchStatus
 import com.mefabc24.strata.placement.PlacementDiagnostic
 import com.mefabc24.strata.placement.PlacementFailureReason
 import com.mefabc24.strata.debug.inspector.formatTilePosition
@@ -168,13 +169,26 @@ internal fun pathfindingDiagnosticRows(
         DebugDiagnosticRow("Waypoints", result.waypoints.size.toString()),
         DebugDiagnosticRow("Start", result.start?.let(::formatTilePosition) ?: "—"),
         DebugDiagnosticRow("Goal", result.goal?.let(::formatTilePosition) ?: "—"),
-        DebugDiagnosticRow("Result", if (result.success) "Success" else "No path"),
+        DebugDiagnosticRow("Result", when (result.status) {
+            PathfindingSearchStatus.READY, PathfindingSearchStatus.RUNNING -> "Pending"
+            PathfindingSearchStatus.SUCCEEDED -> "Success"
+            PathfindingSearchStatus.FAILED -> "No path"
+        }),
+        DebugDiagnosticRow("Search state", when (result.status) {
+            PathfindingSearchStatus.READY -> "Ready"
+            PathfindingSearchStatus.RUNNING -> "Running"
+            PathfindingSearchStatus.SUCCEEDED -> "Goal reached"
+            PathfindingSearchStatus.FAILED -> "No path"
+        }),
         DebugDiagnosticRow("Path length", (result.path?.size ?: 0).toString()),
         DebugDiagnosticRow(
             "Total cost",
             result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) } ?: "—"
         ),
         DebugDiagnosticRow("Explored", result.explored.size.toString()),
+        DebugDiagnosticRow("Open set", result.openSetSize.toString()),
+        DebugDiagnosticRow("Closed set", result.closedSetSize.toString()),
+        DebugDiagnosticRow("Goal reached", if (result.goalReached) "Yes" else "No"),
         DebugDiagnosticRow(
             "Search time",
             String.format(Locale.ROOT, "%.2f ms", result.durationNanos / 1_000_000.0)

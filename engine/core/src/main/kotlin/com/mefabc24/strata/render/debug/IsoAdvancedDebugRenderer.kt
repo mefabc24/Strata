@@ -18,6 +18,8 @@ import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.debug.RenderPriorityFocusMode
 import com.mefabc24.strata.debug.RenderOrderDebugMode
 import com.mefabc24.strata.debug.TerrainHeatmapSteps
+import com.mefabc24.strata.pathfinding.PathfindingNodeStatus
+import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.tools.DebugBrushPreviewKind
 import com.mefabc24.strata.iso.CameraDebugSnapshot
@@ -204,7 +206,7 @@ internal class IsoAdvancedDebugRenderer(
             renderOrderLayers.sortAnchors || renderOrderLayers.projectedSortPositions
         val drawLabels = renderOrderLayers.objectEntityLabels ||
             renderOrderLayers.priorityLabels || renderOrderLayers.terrainIndices ||
-            worldInfoLabelsEnabled(camera.zoom)
+            worldInfoLabelsEnabled(camera.zoom) || pathfindingLabelsEnabled(camera.zoom, path)
         if (!drawShapes && !drawLabels) return
 
         if (drawShapes) {
@@ -294,6 +296,7 @@ internal class IsoAdvancedDebugRenderer(
                 }
             }
             drawWorldInfoLabels(world, cameraSnapshot, terrainIdFor)
+            drawPathfindingLabels(path, camera.zoom)
             labels.end()
         }
     }
@@ -328,6 +331,53 @@ internal class IsoAdvancedDebugRenderer(
             (info.showTileCoordinates || info.showTerrainIds || info.showOverlayInfo) &&
             worldDebugLabelsVisible(cameraZoom, info.maximumLabelZoom)
     }
+
+    private fun pathfindingLabelsEnabled(
+        cameraZoom: Float,
+        result: PathfindingDiagnosticResult?
+    ): Boolean {
+        val path = settings.pathfinding
+        return path.enabled && result != null && result.nodes.isNotEmpty() &&
+            (path.showGCost || path.showHCost || path.showFCost || path.showExplorationOrder) &&
+            worldDebugLabelsVisible(cameraZoom, path.maximumLabelZoom)
+    }
+
+    private fun drawPathfindingLabels(
+        result: PathfindingDiagnosticResult?,
+        cameraZoom: Float
+    ) {
+        if (!pathfindingLabelsEnabled(cameraZoom, result)) return
+        val nodes = requireNotNull(result).nodes
+        val stride = worldDebugLabelStride(nodes.size, settings.pathfinding.maximumVisibleLabels)
+        font.color = PATH_LABEL_COLOR
+        font.withRelativeScale(PATH_LABEL_FONT_SCALE) {
+            nodes.forEachIndexed { index, node ->
+                if (index % stride != 0) return@forEachIndexed
+                worldLabel.setLength(0)
+                if (settings.pathfinding.showGCost) appendWorldLabelLine("G=${costLabel(node.gCost)}")
+                if (settings.pathfinding.showHCost) appendWorldLabelLine("H=${costLabel(node.hCost)}")
+                if (settings.pathfinding.showFCost) appendWorldLabelLine("F=${costLabel(node.fCost)}")
+                if (settings.pathfinding.showExplorationOrder) {
+                    node.explorationOrder?.let { appendWorldLabelLine("#${it + 1}") }
+                }
+                if (worldLabel.isEmpty()) return@forEachIndexed
+                val center = projection.tileToWorld(
+                    node.position.x + 0.5f,
+                    node.position.y + 0.5f
+                )
+                labelLayout.setText(font, worldLabel)
+                font.draw(
+                    labels,
+                    labelLayout,
+                    center.x - labelLayout.width / 2f,
+                    center.y + labelLayout.height / 2f
+                )
+            }
+        }
+    }
+
+    private fun costLabel(value: Float): String =
+        (round(value * 100f) / 100f).toString()
 
     private fun drawWorldInfoLabels(
         world: World,
@@ -453,6 +503,10 @@ internal class IsoAdvancedDebugRenderer(
     ) {
         val explored = path?.explored.orEmpty()
         val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
+        val drawOpenSet = settings.pathfinding.enabled && settings.pathfinding.showOpenSet &&
+            path?.nodes?.any { it.status == PathfindingNodeStatus.OPEN } == true
+        val drawClosedSet = settings.pathfinding.enabled && settings.pathfinding.showClosedSet &&
+            path?.nodes?.any { it.status == PathfindingNodeStatus.CLOSED } == true
         val pathWaypoints = state.pathfindingWaypoints.takeIf {
             settings.pathfinding.enabled
         }.orEmpty()
@@ -469,7 +523,8 @@ internal class IsoAdvancedDebugRenderer(
             renderSnapshot != null
         val drawWorldFills = settings.worldInfo.enabled &&
             (settings.worldInfo.showOccupancy || settings.worldInfo.showMissingTerrainVisuals)
-        if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
+        if (!shouldDrawExplored && !drawOpenSet && !drawClosedSet &&
+            inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
             brushPreview == null && !drawTerrainHeatmap && !drawPriorityColors && !drawWorldFills
         ) return
@@ -531,6 +586,18 @@ internal class IsoAdvancedDebugRenderer(
         if (shouldDrawExplored) {
             shapes.color = Color(0.2f, 0.55f, 1f, 0.16f)
             explored.forEach(::drawTileFill)
+        }
+        if (drawClosedSet) {
+            shapes.color = PATH_CLOSED_FILL
+            path.nodes.forEach { node ->
+                if (node.status == PathfindingNodeStatus.CLOSED) drawTileFill(node.position)
+            }
+        }
+        if (drawOpenSet) {
+            shapes.color = PATH_OPEN_FILL
+            path.nodes.forEach { node ->
+                if (node.status == PathfindingNodeStatus.OPEN) drawTileFill(node.position)
+            }
         }
         shapes.color = Color(1f, 0.75f, 0.15f, 0.22f)
         pathWaypoints.forEach(::drawTileFill)
@@ -784,6 +851,40 @@ internal class IsoAdvancedDebugRenderer(
                 shapes.circle(center.x, center.y, markerRadius, 16)
             }
         }
+        val pathfindingResult = state.pathfinding
+        if (
+            settings.pathfinding.enabled && settings.pathfinding.showParentDirections &&
+            pathfindingResult != null
+        ) {
+            shapes.color = PATH_PARENT_LINE
+            pathfindingResult.nodes.forEach { node ->
+                val parent = node.parent ?: return@forEach
+                val from = projection.tileToWorld(parent.x + 0.5f, parent.y + 0.5f)
+                val to = projection.tileToWorld(node.position.x + 0.5f, node.position.y + 0.5f)
+                shapes.line(from.x, from.y, to.x, to.y)
+                shapes.circle(to.x, to.y, 2f * camera.zoom, 8)
+            }
+        }
+        if (
+            settings.pathfinding.enabled && settings.pathfinding.showRejectedTransitions &&
+            pathfindingResult != null
+        ) {
+            shapes.color = PATH_REJECTED_LINE
+            val marker = 2.5f * camera.zoom
+            pathfindingResult.rejectedTransitions.forEach { transition ->
+                val from = projection.tileToWorld(
+                    transition.from.x + 0.5f,
+                    transition.from.y + 0.5f
+                )
+                val to = projection.tileToWorld(
+                    transition.to.x + 0.5f,
+                    transition.to.y + 0.5f
+                )
+                shapes.line(from.x, from.y, to.x, to.y)
+                shapes.line(to.x - marker, to.y - marker, to.x + marker, to.y + marker)
+                shapes.line(to.x - marker, to.y + marker, to.x + marker, to.y - marker)
+            }
+        }
 
         if (settings.picking.enabled) {
             if (settings.picking.showCursorHit) {
@@ -931,6 +1032,7 @@ internal class IsoAdvancedDebugRenderer(
     private companion object {
         const val TERRAIN_INDEX_FONT_SCALE = 0.68f
         const val WORLD_INFO_FONT_SCALE = 0.55f
+        const val PATH_LABEL_FONT_SCALE = 0.55f
         const val SORT_ANCHOR_RADIUS = 3f
         const val PROJECTED_SORT_MARKER_RADIUS = 5f
         const val SORT_MARKER_SEGMENTS = 12
@@ -948,6 +1050,11 @@ internal class IsoAdvancedDebugRenderer(
         val BRUSH_PAINT_OUTLINE = Color(0.2f, 0.85f, 1f, 1f)
         val BRUSH_DELETE_FILL = Color(1f, 0.2f, 0.2f, 0.22f)
         val BRUSH_DELETE_OUTLINE = Color(1f, 0.3f, 0.25f, 1f)
+        val PATH_OPEN_FILL = Color(0.2f, 0.95f, 0.85f, 0.22f)
+        val PATH_CLOSED_FILL = Color(0.35f, 0.45f, 1f, 0.2f)
+        val PATH_PARENT_LINE = Color(0.95f, 0.8f, 0.2f, 0.9f)
+        val PATH_REJECTED_LINE = Color(1f, 0.2f, 0.25f, 0.8f)
+        val PATH_LABEL_COLOR = Color(1f, 0.95f, 0.65f, 1f)
     }
 }
 
