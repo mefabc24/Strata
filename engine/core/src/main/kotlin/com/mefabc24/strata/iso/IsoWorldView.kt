@@ -40,6 +40,7 @@ import com.mefabc24.strata.debug.DebugGridSettings
 import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.debug.DebugEntitySettings
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.debug.DebugGridExtent
 import com.mefabc24.strata.debug.DebugGridRenderLayer
 import com.mefabc24.strata.debug.DebugSettings
@@ -107,7 +108,8 @@ class IsoWorldView(
     private val entityPriorityFor: (WorldEntity) -> Int = { 0 },
     debugObjectSettings: DebugObjectSettings = DebugObjectSettings(),
     debugEntitySettings: DebugEntitySettings = DebugEntitySettings(),
-    private val debugSettings: DebugSettings? = null
+    private val debugSettings: DebugSettings? = null,
+    private val terrainIdFor: ((Tile) -> TerrainId)? = null
 ) {
 
     private val cameraConfig = cameraSettings.copy().also {
@@ -165,7 +167,9 @@ class IsoWorldView(
             } ?: false
         },
         objectPriorityFor = objectPriorityFor,
-        entityPriorityFor = entityPriorityFor
+        entityPriorityFor = entityPriorityFor,
+        visibility = debugSettings?.worldVisibility
+            ?: com.mefabc24.strata.debug.DebugWorldVisibilitySettings()
     )
 
     private val debugGridConfig = debugGridSettings
@@ -481,13 +485,18 @@ class IsoWorldView(
             val active = inspectionActive || pathActive ||
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
-                settings.camera.enabled || state.movePreview?.visible == true
+                settings.camera.enabled || settings.worldInfo.enabled ||
+                state.movePreview?.visible == true
                 || state.brushPreview != null
             if (active) {
                 advancedDebugRenderer.value.render(
                     camera = camera,
                     cameraSnapshot = cameraDebugSnapshot(),
-                    renderSnapshot = worldRenderer.debugSnapshot
+                    renderSnapshot = worldRenderer.debugSnapshot,
+                    world = world,
+                    animationTime = animationTime,
+                    terrainVisualFor = textureFor,
+                    terrainIdFor = terrainIdFor
                 )
             }
         }

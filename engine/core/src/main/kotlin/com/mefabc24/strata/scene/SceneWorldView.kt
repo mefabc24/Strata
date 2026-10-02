@@ -22,10 +22,12 @@ import com.mefabc24.strata.debug.DebugEntitySettings
 import com.mefabc24.strata.debug.DebugGridSettings
 import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.debug.DebugSettings
+import com.mefabc24.strata.terrain.TerrainId
 
 internal data class SceneWorldViewSpec(
     val world: World,
     val textureFor: (Tile, Float) -> TextureRegion?,
+    val terrainIdFor: (Tile) -> TerrainId,
     val objectVisualFor: (PlacedObject) -> ObjectVisual?,
     val entityVisualFor: (WorldEntity) -> EntityVisual?,
     val resolvedObjectVisualFor: (PlacedObject, Float) -> ResolvedObjectVisual?,
@@ -71,6 +73,7 @@ internal object DefaultSceneWorldViewFactory : SceneWorldViewFactory {
             IsoWorldView(
                 world = spec.world,
                 textureFor = spec.textureFor,
+                terrainIdFor = spec.terrainIdFor,
                 objectVisualFor = spec.objectVisualFor,
                 entityVisualFor = spec.entityVisualFor,
                 resolvedObjectVisualFor = spec.resolvedObjectVisualFor,

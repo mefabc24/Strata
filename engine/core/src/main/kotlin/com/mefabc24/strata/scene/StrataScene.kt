@@ -356,6 +356,7 @@ class StrataScene private constructor(
                 textureFor = { tile, animationTime ->
                     terrain.frameAt(terrainFor(tile), tile, animationTime)
                 },
+                terrainIdFor = terrainFor,
                 objectVisualFor = objects::get,
                 entityVisualFor = entities::get,
                 resolvedObjectVisualFor = objects::resolve,

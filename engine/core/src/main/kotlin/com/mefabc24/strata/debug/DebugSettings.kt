@@ -27,6 +27,8 @@ class DebugSettings {
     val performance = DebugPerformanceSettings()
     val simulation = DebugFeatureSettings()
     val grid = DebugGridSettings()
+    val worldInfo = DebugWorldInfoSettings()
+    val worldVisibility = DebugWorldVisibilitySettings()
     val objects = DebugObjectSettings()
     val entities = DebugEntitySettings()
     val picking = DebugPickingSettings()
@@ -53,6 +55,9 @@ class DebugSettings {
     fun performance(configure: DebugPerformanceSettings.() -> Unit) = performance.apply(configure)
     fun simulation(configure: DebugFeatureSettings.() -> Unit) = simulation.apply(configure)
     fun grid(configure: DebugGridSettings.() -> Unit) = grid.apply(configure)
+    fun worldInfo(configure: DebugWorldInfoSettings.() -> Unit) = worldInfo.apply(configure)
+    fun worldVisibility(configure: DebugWorldVisibilitySettings.() -> Unit) =
+        worldVisibility.apply(configure)
     fun objects(configure: DebugObjectSettings.() -> Unit) = objects.apply(configure)
     fun entities(configure: DebugEntitySettings.() -> Unit) = entities.apply(configure)
     fun picking(configure: DebugPickingSettings.() -> Unit) = picking.apply(configure)
@@ -185,6 +190,80 @@ class DebugDeleteToolSettings : DebugBrushSettings() {
 
 open class DebugFeatureSettings {
     var enabled: Boolean = false
+}
+
+/** Information drawn directly over visible world tiles. */
+class DebugWorldInfoSettings : DebugFeatureSettings() {
+    var showTileCoordinates: Boolean = false
+    var showTerrainIds: Boolean = false
+    var showOverlayInfo: Boolean = false
+    var showOccupancy: Boolean = false
+    var showMissingTerrainVisuals: Boolean = false
+    var showOrigin: Boolean = true
+
+    /** Labels are omitted beyond this camera zoom to keep them readable. */
+    var maximumLabelZoom: Float = 1.5f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "World information maximum label zoom must be finite and positive."
+            }
+            field = value
+        }
+
+    /** Upper bound used to sample labels across large visible tile ranges. */
+    var maximumVisibleLabels: Int = 256
+        set(value) {
+            require(value in 1..4096) {
+                "Maximum visible world labels must be between 1 and 4096."
+            }
+            field = value
+        }
+
+    private var storedLabelColor = Color.WHITE.cpy()
+    var labelColor: Color
+        get() = storedLabelColor.cpy()
+        set(value) { storedLabelColor = value.cpy() }
+
+    private var storedOccupancyColor = Color(1f, 0.35f, 0.15f, 0.28f)
+    var occupancyColor: Color
+        get() = storedOccupancyColor.cpy()
+        set(value) { storedOccupancyColor = value.cpy() }
+
+    private var storedMissingVisualColor = Color(1f, 0.1f, 0.65f, 0.42f)
+    var missingVisualColor: Color
+        get() = storedMissingVisualColor.cpy()
+        set(value) { storedMissingVisualColor = value.cpy() }
+
+    private var storedOriginColor = Color(0.2f, 1f, 0.85f, 1f)
+    var originColor: Color
+        get() = storedOriginColor.cpy()
+        set(value) { storedOriginColor = value.cpy() }
+}
+
+/** Debug-only category visibility. These flags never alter world contents. */
+class DebugWorldVisibilitySettings {
+    var groundTerrainVisible: Boolean = true
+    var terrainOverlaysVisible: Boolean = true
+    var placedObjectsVisible: Boolean = true
+    var entitiesVisible: Boolean = true
+
+    private val hiddenOverlayLayers = mutableSetOf<String>()
+
+    fun isOverlayLayerVisible(layerId: String): Boolean = layerId !in hiddenOverlayLayers
+
+    fun setOverlayLayerVisible(layerId: String, visible: Boolean) {
+        require(layerId.isNotBlank()) { "Overlay layer ID must not be blank." }
+        if (visible) hiddenOverlayLayers.remove(layerId) else hiddenOverlayLayers.add(layerId)
+    }
+
+    /** Restores the normal renderer view for every category and overlay layer. */
+    fun showAll() {
+        groundTerrainVisible = true
+        terrainOverlaysVisible = true
+        placedObjectsVisible = true
+        entitiesVisible = true
+        hiddenOverlayLayers.clear()
+    }
 }
 
 class DebugPickingSettings : DebugFeatureSettings() {
@@ -600,6 +679,12 @@ internal object DebugPresets {
                 settings.grid.enabled = true
                 settings.grid.backgroundColor = Color(1f, 1f, 1f, 0.2f)
                 settings.grid.hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
+                settings.worldInfo.enabled = true
+                settings.worldInfo.showTileCoordinates = true
+                settings.worldInfo.showTerrainIds = true
+                settings.worldInfo.showOverlayInfo = true
+                settings.worldInfo.showOccupancy = true
+                settings.worldInfo.showMissingTerrainVisuals = true
                 settings.objects.enabled = true
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
@@ -637,6 +722,8 @@ internal object DebugPresets {
         settings.performance.overlayEnabled = false
         settings.simulation.enabled = false
         settings.grid.enabled = false
+        settings.worldInfo.enabled = false
+        settings.worldVisibility.showAll()
         settings.objects.enabled = false
         settings.entities.enabled = false
         settings.picking.enabled = false

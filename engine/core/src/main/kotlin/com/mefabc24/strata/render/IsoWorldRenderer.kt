@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
 import com.mefabc24.strata.iso.IsoProjection
+import com.mefabc24.strata.debug.DebugWorldVisibilitySettings
 import com.mefabc24.strata.lighting.Lighting
 import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.IsoObjectRenderer
@@ -119,7 +120,8 @@ class IsoWorldRenderer(
     private val lighting: Lighting = Lighting(),
     private val collectDebugSnapshot: () -> Boolean = { false },
     private val objectPriorityFor: (PlacedObject) -> Int = { 0 },
-    private val entityPriorityFor: (WorldEntity) -> Int = { 0 }
+    private val entityPriorityFor: (WorldEntity) -> Int = { 0 },
+    private val visibility: DebugWorldVisibilitySettings = DebugWorldVisibilitySettings()
 ) {
     private val objectSettings = objectSettings.copy().also {
         it.validate()
@@ -263,6 +265,10 @@ class IsoWorldRenderer(
                 }
 
                 is WorldObjectPrimitive -> {
+                    if (!visibility.placedObjectsVisible) {
+                        debugItems?.add(hiddenObjectSnapshot(renderIndex, item))
+                        continue
+                    }
                     renderObject(
                         placed = item.placedObject,
                         visual = resolvedObjectVisualFor?.invoke(
@@ -294,6 +300,10 @@ class IsoWorldRenderer(
                 }
 
                 is WorldEntityPrimitive -> {
+                    if (!visibility.entitiesVisible) {
+                        debugItems?.add(hiddenEntitySnapshot(renderIndex, item))
+                        continue
+                    }
                     renderEntity(
                         entity = item.worldEntity,
                         visual = resolvedEntityVisualFor?.invoke(
@@ -588,21 +598,24 @@ class IsoWorldRenderer(
         animationTime: Float,
         actualOrder: ActualRenderOrderRecorder?
     ) {
-        stats.terrainChecked++
+        if (visibility.groundTerrainVisible) {
+            stats.terrainChecked++
+            world.getTile(x, y)
+                ?.let { textureFor(it, animationTime) }
+                ?.let { texture ->
+                    renderTerrainSprite(
+                        x = x,
+                        y = y,
+                        texture = texture,
+                        overlay = false,
+                        onSubmitted = { actualOrder?.recordGround(x, y) }
+                    )
+                }
+        }
 
-        world.getTile(x, y)
-            ?.let { textureFor(it, animationTime) }
-            ?.let { texture ->
-                renderTerrainSprite(
-                    x = x,
-                    y = y,
-                    texture = texture,
-                    overlay = false,
-                    onSubmitted = { actualOrder?.recordGround(x, y) }
-                )
-            }
-
+        if (!visibility.terrainOverlaysVisible) return
         for (layerId in overlayIds) {
+            if (!visibility.isOverlayLayerVisible(layerId)) continue
             stats.terrainChecked++
 
             world.getOverlayTile(layerId, x, y)
@@ -719,7 +732,7 @@ class IsoWorldRenderer(
         beginWorldBatch()
 
         for (item in normalRenderPlan) {
-            if (item is WorldObjectPrimitive) {
+            if (item is WorldObjectPrimitive && visibility.placedObjectsVisible) {
                 renderObject(
                     placed = item.placedObject,
                     visual = resolvedObjectVisualFor?.invoke(
@@ -731,7 +744,7 @@ class IsoWorldRenderer(
                     preview = null,
                     recordStats = false
                 )
-            } else if (item is WorldEntityPrimitive) {
+            } else if (item is WorldEntityPrimitive && visibility.entitiesVisible) {
                 renderEntity(
                     entity = item.worldEntity,
                     visual = resolvedEntityVisualFor?.invoke(
@@ -806,6 +819,46 @@ class IsoWorldRenderer(
         }
         return true
     }
+
+    private fun hiddenObjectSnapshot(
+        renderIndex: Int,
+        item: WorldObjectPrimitive
+    ) = RenderItemDebugSnapshot(
+        index = renderIndex,
+        placedObject = item.placedObject,
+        drawn = false,
+        sort = item.sortVolume.let { volume ->
+            RenderSortDebugSnapshot(
+                minX = volume.minX,
+                maxX = volume.maxX,
+                minY = volume.minY,
+                maxY = volume.maxY,
+                projectedFrontX = volume.projectedFrontX(projection),
+                projectedFrontY = volume.projectedFrontY(projection),
+                renderPriority = item.renderPriority
+            )
+        }
+    )
+
+    private fun hiddenEntitySnapshot(
+        renderIndex: Int,
+        item: WorldEntityPrimitive
+    ) = RenderItemDebugSnapshot(
+        index = renderIndex,
+        entity = item.worldEntity,
+        drawn = false,
+        sort = item.sortVolume.let { volume ->
+            RenderSortDebugSnapshot(
+                minX = volume.minX,
+                maxX = volume.maxX,
+                minY = volume.minY,
+                maxY = volume.maxY,
+                projectedFrontX = volume.projectedFrontX(projection),
+                projectedFrontY = volume.projectedFrontY(projection),
+                renderPriority = item.renderPriority
+            )
+        }
+    )
 
     private fun elapsedMs(startNanos: Long): Double {
         return (System.nanoTime() - startNanos) / 1_000_000.0

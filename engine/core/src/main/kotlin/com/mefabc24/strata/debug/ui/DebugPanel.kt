@@ -665,6 +665,12 @@ internal class DebugPanel(
             }.cell { height(38f) }
         }
         featureExpander("Grid", { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
+        featureExpander(
+            "World information",
+            { settings.worldInfo.enabled },
+            { settings.worldInfo.enabled = it }
+        ) { buildWorldInfoSettings() }
+        settingsExpander("World visibility") { buildWorldVisibilitySettings() }
         featureExpander("Objects", { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
         featureExpander("Entities", { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
         featureExpander("Picking", { settings.picking.enabled }, { settings.picking.enabled = it }) {
@@ -876,6 +882,94 @@ internal class DebugPanel(
         }.cell { height(38f) }
     }
 
+    private fun StrataColumn.buildWorldInfoSettings() {
+        toggleGrid(
+            toggle("Tile coordinates", { settings.worldInfo.showTileCoordinates }) {
+                settings.worldInfo.showTileCoordinates = it
+            },
+            toggle("Terrain IDs", { settings.worldInfo.showTerrainIds }) {
+                settings.worldInfo.showTerrainIds = it
+            },
+            toggle("Overlay info", { settings.worldInfo.showOverlayInfo }) {
+                settings.worldInfo.showOverlayInfo = it
+            },
+            toggle("Occupancy", { settings.worldInfo.showOccupancy }) {
+                settings.worldInfo.showOccupancy = it
+            },
+            toggle("Missing visuals", { settings.worldInfo.showMissingTerrainVisuals }) {
+                settings.worldInfo.showMissingTerrainVisuals = it
+            },
+            toggle("World origin", { settings.worldInfo.showOrigin }) {
+                settings.worldInfo.showOrigin = it
+            }
+        )
+        boundStepper(
+            "Maximum label zoom",
+            { settings.worldInfo.maximumLabelZoom },
+            0.25f,
+            8f,
+            0.25f
+        ) { settings.worldInfo.maximumLabelZoom = it }
+        boundStepper(
+            "Maximum labels",
+            { settings.worldInfo.maximumVisibleLabels.toFloat() },
+            16f,
+            1024f,
+            16f
+        ) { settings.worldInfo.maximumVisibleLabels = it.toInt() }
+        boundStepper(
+            "Occupancy alpha",
+            { settings.worldInfo.occupancyColor.a },
+            0f,
+            1f,
+            0.05f
+        ) { alpha ->
+            settings.worldInfo.occupancyColor = settings.worldInfo.occupancyColor.apply { a = alpha }
+        }
+        boundStepper(
+            "Missing visual alpha",
+            { settings.worldInfo.missingVisualColor.a },
+            0f,
+            1f,
+            0.05f
+        ) { alpha ->
+            settings.worldInfo.missingVisualColor =
+                settings.worldInfo.missingVisualColor.apply { a = alpha }
+        }
+    }
+
+    private fun StrataColumn.buildWorldVisibilitySettings() {
+        toggleGrid(
+            toggle("Ground terrain", { settings.worldVisibility.groundTerrainVisible }) {
+                settings.worldVisibility.groundTerrainVisible = it
+            },
+            toggle("Terrain overlays", { settings.worldVisibility.terrainOverlaysVisible }) {
+                settings.worldVisibility.terrainOverlaysVisible = it
+            },
+            toggle("Placed objects", { settings.worldVisibility.placedObjectsVisible }) {
+                settings.worldVisibility.placedObjectsVisible = it
+            },
+            toggle("Entities", { settings.worldVisibility.entitiesVisible }) {
+                settings.worldVisibility.entitiesVisible = it
+            }
+        )
+        val overlayIds = world.overlayLayerIds
+        if (overlayIds.isNotEmpty()) {
+            label("Overlay layers")
+            overlayIds.forEach { layerId ->
+                simpleToggle(
+                    layerId,
+                    { settings.worldVisibility.isOverlayLayerVisible(layerId) }
+                ) { visible ->
+                    settings.worldVisibility.setOverlayLayerVisible(layerId, visible)
+                }
+            }
+        }
+        button("Show all categories") {
+            settings.worldVisibility.showAll()
+        }.cell { height(38f) }
+    }
+
     private data class ToggleBinding(
         val text: String,
         val read: () -> Boolean,
@@ -914,6 +1008,23 @@ internal class DebugPanel(
             headerContent = {
                 settingToggle(read, write).cell { minWidth(64f); height(36f) }
             }
+        ) {
+            defaults().fillAvailableX()
+            configure()
+            separator()
+        }.cell { fillAvailableX() }
+    }
+
+    private fun StrataColumn.settingsExpander(
+        title: String,
+        configure: StrataColumn.() -> Unit
+    ) {
+        expander(
+            title = title,
+            expanded = false,
+            spacing = 8f,
+            headerHeight = 36f,
+            expandedStyle = debugExpanderStyle()
         ) {
             defaults().fillAvailableX()
             configure()

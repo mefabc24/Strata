@@ -38,9 +38,13 @@ internal class DebugVisualizationFilterContext {
             ?: (selectedTarget as? PickedTarget.Entity)?.worldEntity
         selectedTile = (inspection as? DebugInspection.TileTarget)?.position
             ?: (selectedTarget as? PickedTarget.Tile)?.position
+            ?: selectedObject?.let { TilePosition(it.x, it.y) }
+            ?: selectedEntity?.currentTile
         hoveredObject = (hoveredTarget as? PickedTarget.Object)?.placedObject
         hoveredEntity = (hoveredTarget as? PickedTarget.Entity)?.worldEntity
         hoveredTile = (hoveredTarget as? PickedTarget.Tile)?.position
+            ?: hoveredObject?.let { TilePosition(it.x, it.y) }
+            ?: hoveredEntity?.currentTile
 
         visibleObjects.clear()
         visibleEntities.clear()
@@ -85,6 +89,18 @@ internal class DebugVisualizationFilterContext {
             )
         }
 
+    fun matches(
+        filter: DebugVisualizationFilter,
+        x: Int,
+        y: Int,
+        visible: Boolean = true
+    ): Boolean = when (filter) {
+        DebugVisualizationFilter.ALL -> true
+        DebugVisualizationFilter.VISIBLE -> visible
+        DebugVisualizationFilter.SELECTED -> selectedTile?.let { it.x == x && it.y == y } == true
+        DebugVisualizationFilter.HOVERED -> hoveredTile?.let { it.x == x && it.y == y } == true
+    }
+
     private fun matchesTarget(
         item: RenderItemDebugSnapshot,
         placed: PlacedObject?,
@@ -100,4 +116,5 @@ internal class DebugVisualizationFilterContext {
 
 internal fun DebugSettings.needsHoveredVisualizationTarget(): Boolean =
     visualizationFilter == DebugVisualizationFilter.HOVERED &&
-        (objects.enabled || entities.enabled || renderOrder.enabled || culling.enabled)
+        (objects.enabled || entities.enabled || renderOrder.enabled || culling.enabled ||
+            worldInfo.enabled)

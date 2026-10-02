@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugRenderOrderSettings
+import com.mefabc24.strata.debug.DebugVisualizationFilter
 import com.mefabc24.strata.debug.DebugVisualizationFilterContext
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.debug.RenderPriorityFocusMode
@@ -25,7 +26,13 @@ import com.mefabc24.strata.iso.PickedTarget
 import com.mefabc24.strata.render.RenderDebugSnapshot
 import com.mefabc24.strata.render.RenderItemDebugSnapshot
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.World
+import com.mefabc24.strata.terrain.TerrainId
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import kotlin.math.ceil
 import kotlin.math.round
+import kotlin.math.sqrt
 
 internal data class RenderOrderDebugLayers(
     val objectEntityLabels: Boolean,
@@ -162,11 +169,16 @@ internal class IsoAdvancedDebugRenderer(
     private val sortPointB = Vector2()
     private val sortPointC = Vector2()
     private val sortPointD = Vector2()
+    private val worldLabel = StringBuilder(96)
 
     fun render(
         camera: OrthographicCamera,
         cameraSnapshot: CameraDebugSnapshot,
-        renderSnapshot: RenderDebugSnapshot?
+        renderSnapshot: RenderDebugSnapshot?,
+        world: World,
+        animationTime: Float,
+        terrainVisualFor: (Tile, Float) -> TextureRegion?,
+        terrainIdFor: ((Tile) -> TerrainId)?
     ) {
         val inspection = state.inspection
         val inspectionVisuals = inspectionVisuals(
@@ -185,12 +197,14 @@ internal class IsoAdvancedDebugRenderer(
         val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
+            settings.worldInfo.enabled ||
             state.movePreview != null || state.brushPreview != null ||
             renderOrderLayers.terrainHeatmap || renderOrderLayers.priorityColors ||
             renderOrderLayers.priorityFocus || renderOrderLayers.sortVolumes ||
             renderOrderLayers.sortAnchors || renderOrderLayers.projectedSortPositions
         val drawLabels = renderOrderLayers.objectEntityLabels ||
-            renderOrderLayers.priorityLabels || renderOrderLayers.terrainIndices
+            renderOrderLayers.priorityLabels || renderOrderLayers.terrainIndices ||
+            worldInfoLabelsEnabled(camera.zoom)
         if (!drawShapes && !drawLabels) return
 
         if (drawShapes) {
@@ -204,7 +218,10 @@ internal class IsoAdvancedDebugRenderer(
                 camera,
                 cameraSnapshot,
                 renderSnapshot,
-                pickingVisuals
+                pickingVisuals,
+                world,
+                animationTime,
+                terrainVisualFor
             )
             drawLines(
                 inspection,
@@ -217,10 +234,12 @@ internal class IsoAdvancedDebugRenderer(
             Gdx.gl.glDisable(GL20.GL_BLEND)
         }
 
-        if (drawLabels && renderSnapshot != null) {
+        if (drawLabels) {
             labels.projectionMatrix = camera.combined
             labels.begin()
-            if (renderOrderLayers.objectEntityLabels || renderOrderLayers.priorityLabels) {
+            if (renderSnapshot != null &&
+                (renderOrderLayers.objectEntityLabels || renderOrderLayers.priorityLabels)
+            ) {
                 val highlightColor = settings.renderOrder.priorityHighlightColor
                 for (item in renderSnapshot.items) {
                     if (!item.drawn || item.terrain != null) continue
@@ -249,7 +268,7 @@ internal class IsoAdvancedDebugRenderer(
                     )
                 }
             }
-            if (renderOrderLayers.terrainIndices) {
+            if (renderSnapshot != null && renderOrderLayers.terrainIndices) {
                 font.withRelativeScale(TERRAIN_INDEX_FONT_SCALE) {
                     for (item in renderSnapshot.items) {
                         if (!item.drawn) continue
@@ -274,6 +293,7 @@ internal class IsoAdvancedDebugRenderer(
                     }
                 }
             }
+            drawWorldInfoLabels(world, cameraSnapshot, terrainIdFor)
             labels.end()
         }
     }
@@ -302,6 +322,123 @@ internal class IsoAdvancedDebugRenderer(
             .takeIf(String::isNotEmpty)
     }
 
+    private fun worldInfoLabelsEnabled(cameraZoom: Float): Boolean {
+        val info = settings.worldInfo
+        return info.enabled &&
+            (info.showTileCoordinates || info.showTerrainIds || info.showOverlayInfo) &&
+            worldDebugLabelsVisible(cameraZoom, info.maximumLabelZoom)
+    }
+
+    private fun drawWorldInfoLabels(
+        world: World,
+        camera: CameraDebugSnapshot,
+        terrainIdFor: ((Tile) -> TerrainId)?
+    ) {
+        if (!worldInfoLabelsEnabled(camera.zoom)) return
+        val range = visibleWorldTileRange(world, camera) ?: return
+        val count = range.x.count() * range.y.count()
+        val stride = if (
+            settings.visualizationFilter == DebugVisualizationFilter.SELECTED ||
+            settings.visualizationFilter == DebugVisualizationFilter.HOVERED
+        ) 1 else worldDebugLabelStride(count, settings.worldInfo.maximumVisibleLabels)
+        val overlayIds = if (settings.worldInfo.showOverlayInfo) world.overlayLayerIds else emptyList()
+        font.color = settings.worldInfo.labelColor
+        font.withRelativeScale(WORLD_INFO_FONT_SCALE) {
+            for (y in range.y step stride) {
+                for (x in range.x step stride) {
+                    if (!filterContext.matches(settings.visualizationFilter, x, y)) continue
+                    val tile = world.getTile(x, y) ?: continue
+                    worldLabel.setLength(0)
+                    if (settings.worldInfo.showTileCoordinates) {
+                        worldLabel.append(x).append(',').append(y)
+                    }
+                    if (settings.worldInfo.showTerrainIds && terrainIdFor != null) {
+                        appendWorldLabelLine("terrain=${terrainIdFor(tile)}")
+                    }
+                    for (layerId in overlayIds) {
+                        val overlay = world.getOverlayTile(layerId, x, y) ?: continue
+                        val id = terrainIdFor?.invoke(overlay)
+                        appendWorldLabelLine(if (id == null) layerId else "$layerId=$id")
+                    }
+                    if (worldLabel.isEmpty()) continue
+                    val center = projection.tileToWorld(x + 0.5f, y + 0.5f)
+                    labelLayout.setText(font, worldLabel)
+                    font.draw(
+                        labels,
+                        labelLayout,
+                        center.x - labelLayout.width / 2f,
+                        center.y + labelLayout.height / 2f
+                    )
+                }
+            }
+        }
+    }
+
+    private fun appendWorldLabelLine(text: String) {
+        if (worldLabel.isNotEmpty()) worldLabel.append('\n')
+        worldLabel.append(text)
+    }
+
+    private fun drawWorldInfoFills(
+        world: World,
+        camera: CameraDebugSnapshot,
+        animationTime: Float,
+        terrainVisualFor: (Tile, Float) -> TextureRegion?
+    ) {
+        val range = visibleWorldTileRange(world, camera) ?: return
+        val overlayIds = if (settings.worldInfo.showMissingTerrainVisuals) {
+            world.overlayLayerIds
+        } else {
+            emptyList()
+        }
+        for (y in range.y) {
+            for (x in range.x) {
+                if (!filterContext.matches(settings.visualizationFilter, x, y)) continue
+                if (settings.worldInfo.showOccupancy && world.getObjectAt(x, y) != null) {
+                    shapes.color = settings.worldInfo.occupancyColor
+                    drawTileFill(x, y)
+                }
+                if (settings.worldInfo.showMissingTerrainVisuals) {
+                    val ground = world.getTile(x, y)
+                    var missing = ground != null && terrainVisualFor(ground, animationTime) == null
+                    if (!missing) {
+                        for (layerId in overlayIds) {
+                            val overlay = world.getOverlayTile(layerId, x, y) ?: continue
+                            if (terrainVisualFor(overlay, animationTime) == null) {
+                                missing = true
+                                break
+                            }
+                        }
+                    }
+                    if (missing) {
+                        shapes.color = settings.worldInfo.missingVisualColor
+                        drawTileFill(x, y)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun visibleWorldTileRange(
+        world: World,
+        camera: CameraDebugSnapshot
+    ): DebugGridTileRange? {
+        val visible = camera.visibleArea
+        val raw = visibleDebugGridTileRange(
+            projection,
+            visible.x,
+            visible.y,
+            visible.x + visible.width,
+            visible.y + visible.height
+        )
+        val minX = maxOf(0, raw.x.first)
+        val maxX = minOf(world.width - 1, raw.x.last)
+        val minY = maxOf(0, raw.y.first)
+        val maxY = minOf(world.height - 1, raw.y.last)
+        if (minX > maxX || minY > maxY) return null
+        return DebugGridTileRange(minX..maxX, minY..maxY)
+    }
+
     private fun drawFills(
         inspection: DebugInspection?,
         inspectionVisuals: Set<DebugInspectionVisual>,
@@ -309,7 +446,10 @@ internal class IsoAdvancedDebugRenderer(
         camera: OrthographicCamera,
         cameraSnapshot: CameraDebugSnapshot,
         renderSnapshot: RenderDebugSnapshot?,
-        pickingVisuals: DebugPickingVisualTargets
+        pickingVisuals: DebugPickingVisualTargets,
+        world: World,
+        animationTime: Float,
+        terrainVisualFor: (Tile, Float) -> TextureRegion?
     ) {
         val explored = path?.explored.orEmpty()
         val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
@@ -327,11 +467,16 @@ internal class IsoAdvancedDebugRenderer(
             renderSnapshot != null
         val drawPriorityColors = renderOrderDebugLayers(settings.renderOrder).priorityColors &&
             renderSnapshot != null
+        val drawWorldFills = settings.worldInfo.enabled &&
+            (settings.worldInfo.showOccupancy || settings.worldInfo.showMissingTerrainVisuals)
         if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
-            brushPreview == null && !drawTerrainHeatmap && !drawPriorityColors
+            brushPreview == null && !drawTerrainHeatmap && !drawPriorityColors && !drawWorldFills
         ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
+        if (drawWorldFills) {
+            drawWorldInfoFills(world, cameraSnapshot, animationTime, terrainVisualFor)
+        }
         if (drawPriorityColors) {
             val snapshot = requireNotNull(renderSnapshot)
             snapshot.items.forEach { item ->
@@ -539,6 +684,11 @@ internal class IsoAdvancedDebugRenderer(
         pickingVisuals: DebugPickingVisualTargets
     ) {
         shapes.begin(ShapeRenderer.ShapeType.Line)
+        if (settings.worldInfo.enabled && settings.worldInfo.showOrigin) {
+            Gdx.gl.glLineWidth(3f)
+            shapes.color = settings.worldInfo.originColor
+            drawTileOutline(0, 0)
+        }
         val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
         if (renderOrderLayers.terrainHeatmapGrid && renderSnapshot != null) {
             Gdx.gl.glLineWidth(1f)
@@ -725,12 +875,20 @@ internal class IsoAdvancedDebugRenderer(
     }
 
     private fun drawTileFill(position: TilePosition) {
-        val top = projection.tileToWorld(position.x, position.y)
+        drawTileFill(position.x, position.y)
+    }
+
+    private fun drawTileFill(x: Int, y: Int) {
+        val top = projection.tileToWorld(x, y)
         shapes.drawIsoTileFill(projection, top.x, top.y)
     }
 
     private fun drawTileOutline(position: TilePosition) {
-        val top = projection.tileToWorld(position.x, position.y)
+        drawTileOutline(position.x, position.y)
+    }
+
+    private fun drawTileOutline(x: Int, y: Int) {
+        val top = projection.tileToWorld(x, y)
         shapes.drawIsoTileOutline(projection, top.x, top.y)
     }
 
@@ -772,6 +930,7 @@ internal class IsoAdvancedDebugRenderer(
 
     private companion object {
         const val TERRAIN_INDEX_FONT_SCALE = 0.68f
+        const val WORLD_INFO_FONT_SCALE = 0.55f
         const val SORT_ANCHOR_RADIUS = 3f
         const val PROJECTED_SORT_MARKER_RADIUS = 5f
         const val SORT_MARKER_SEGMENTS = 12
@@ -791,3 +950,13 @@ internal class IsoAdvancedDebugRenderer(
         val BRUSH_DELETE_OUTLINE = Color(1f, 0.3f, 0.25f, 1f)
     }
 }
+
+internal fun worldDebugLabelStride(visibleTileCount: Int, maximumLabels: Int): Int {
+    require(visibleTileCount >= 0)
+    require(maximumLabels > 0)
+    if (visibleTileCount <= maximumLabels) return 1
+    return ceil(sqrt(visibleTileCount.toDouble() / maximumLabels)).toInt()
+}
+
+internal fun worldDebugLabelsVisible(cameraZoom: Float, maximumLabelZoom: Float): Boolean =
+    cameraZoom.isFinite() && maximumLabelZoom.isFinite() && cameraZoom <= maximumLabelZoom
