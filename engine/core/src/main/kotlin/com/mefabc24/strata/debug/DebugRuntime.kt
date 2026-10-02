@@ -179,9 +179,11 @@ internal class DebugRuntime(
         },
         WorldInputBinding.Grid(
             WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-            { tools.mode == DebugToolMode.DELETE && settings.delete.dragEnabled }
+            { tools.mode == DebugToolMode.DELETE }
         ) { x, y ->
-            notifyRemovals(remover.dragDelete(TilePosition(x, y)))
+            if (settings.delete.dragEnabled) {
+                notifyRemovals(remover.dragDelete(TilePosition(x, y)))
+            }
             true
         },
         WorldInputBinding.NoPicking(
@@ -232,7 +234,7 @@ internal class DebugRuntime(
                 false
             }
         },
-        WorldInputBinding.Tile(
+        WorldInputBinding.Grid(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.PAINT }
         ) { x, y -> painter.beginPaint(x, y) },
@@ -244,7 +246,7 @@ internal class DebugRuntime(
             WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.PAINT }
         ) { painter.endPaint() },
-        WorldInputBinding.Tile(
+        WorldInputBinding.Grid(
             WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
             { tools.mode == DebugToolMode.PAINT && painter.activeOverlayLayerId != null }
         ) { x, y -> painter.beginErase(x, y) },
