@@ -43,11 +43,12 @@ class DebugSettings {
     val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
 
-    /** Session-owned user presets for visual diagnostics. */
-    val customPresets = DebugCustomPresetStore()
-
     /** Target subset shared by object, entity, culling, and render-order visuals. */
     var visualizationFilter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
+
+    /** User-defined default visual configuration. */
+    private var defaultVisualConfiguration: DebugVisualConfiguration =
+        captureVisualConfiguration()
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
@@ -131,6 +132,16 @@ class DebugSettings {
     /** Applies a previously captured visual diagnostics configuration. */
     fun applyVisualConfiguration(configuration: DebugVisualConfiguration) {
         DebugVisualSettings.apply(this, configuration)
+    }
+
+    /** Saves the current visual settings as the default preset. */
+    fun saveDefaultVisualConfiguration() {
+        defaultVisualConfiguration = captureVisualConfiguration()
+    }
+
+    /** Restores the last saved default visual configuration. */
+    fun applyDefaultVisualConfiguration() {
+        applyVisualConfiguration(defaultVisualConfiguration)
     }
 
     /** Restores every visual diagnostic to its engine default. */

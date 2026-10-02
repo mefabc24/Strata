@@ -1,7 +1,6 @@
 package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.graphics.Color
-import java.util.Locale
 
 /** Stable visual sections used by category reset controls and custom presets. */
 enum class DebugVisualCategory {
@@ -26,26 +25,6 @@ class DebugVisualConfiguration internal constructor(
     val version: Int,
     internal val values: Map<String, Any?>
 )
-
-data class DebugCustomPreset(val name: String, val configuration: DebugVisualConfiguration)
-
-/** Bounded only by explicit developer saves; entries live for the DebugSettings session. */
-class DebugCustomPresetStore {
-    private val presets = linkedMapOf<String, DebugCustomPreset>()
-
-    val names: List<String>
-        get() = presets.values.map(DebugCustomPreset::name)
-
-    fun save(name: String, configuration: DebugVisualConfiguration) {
-        val displayName = name.trim()
-        require(displayName.isNotEmpty()) { "Custom debug preset name must not be blank." }
-        presets[displayName.lowercase(Locale.ROOT)] = DebugCustomPreset(displayName, configuration)
-    }
-
-    fun find(name: String): DebugCustomPreset? = presets[name.trim().lowercase(Locale.ROOT)]
-
-    fun delete(name: String): Boolean = presets.remove(name.trim().lowercase(Locale.ROOT)) != null
-}
 
 internal object DebugVisualSettings {
     private const val VERSION = 1

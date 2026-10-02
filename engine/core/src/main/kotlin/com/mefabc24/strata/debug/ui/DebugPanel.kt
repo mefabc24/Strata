@@ -124,8 +124,6 @@ internal class DebugPanel(
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
     private lateinit var searchEmptyLabel: Label
-    private lateinit var customPresetName: TextField
-    private lateinit var customPresetNames: Label
     private val debugCategories = mutableListOf<DebugCategoryActor>()
     private var debugSearch: DebugSettingsSearch? = null
     private var previewAnchor: Actor? = null
@@ -552,45 +550,53 @@ internal class DebugPanel(
         getCell(searchEmptyLabel).height(0f)
         separator()
         label("Presets")
-        responsiveGrid(105f, 38f, maximumColumns = 3) {
-            DebugPreset.entries.forEach { preset ->
-                button(preset.name.toDisplayName()) {
-                    settings.applyPreset(preset); syncControls()
-                }
-            }
-        }.cell { fillAvailableX() }
-        customPresetName = actor(TextField("", ui.skin).apply {
-            messageText = "Custom preset name"
-        }).cell { fillAvailableX(); height(38f) }
-        responsiveGrid(105f, 36f, maximumColumns = 3) {
-            button("Save") {
-                val name = customPresetName.text.trim()
-                if (name.isNotEmpty()) {
-                    settings.customPresets.save(name, settings.captureVisualConfiguration())
-                    refreshCustomPresetNames()
-                    settings.notify("Saved debug preset: $name")
-                }
-            }
-            button("Apply") {
-                settings.customPresets.find(customPresetName.text)?.let { preset ->
-                    settings.applyVisualConfiguration(preset.configuration)
-                    syncControls()
-                    settings.notify("Applied debug preset: ${preset.name}")
-                }
-            }
-            button("Delete") {
-                if (settings.customPresets.delete(customPresetName.text)) {
-                    refreshCustomPresetNames()
-                    settings.notify("Deleted custom debug preset")
-                }
-            }
-        }.cell { fillAvailableX() }
-        customPresetNames = wrappingLabel("")
-        refreshCustomPresetNames()
-        button("Reset visual settings") {
-            settings.resetVisualConfiguration()
+
+// Disable all visual diagnostics.
+        button("OFF") {
+            settings.applyPreset(DebugPreset.OFF)
             syncControls()
-        }.cell { fillAvailableX(); height(36f) }
+        }.cell {
+            fillAvailableX()
+            height(38f)
+        }
+
+// Built-in and user-defined presets.
+        responsiveGrid(
+            minimumItemWidth = 105f,
+            itemHeight = 38f,
+            maximumColumns = 3
+        ) {
+            button("DEFAULT") {
+                settings.applyDefaultVisualConfiguration()
+                syncControls()
+            }
+
+            DebugPreset.entries
+                .filterNot { it == DebugPreset.OFF }
+                .forEach { preset ->
+                    button(preset.name.toDisplayName()) {
+                        settings.applyPreset(preset)
+                        syncControls()
+                    }
+                }
+        }.cell {
+            fillAvailableX()
+        }
+
+        // Replace the previously saved default.
+        button("Save current configuration as default") {
+            settings.saveDefaultVisualConfiguration()
+
+            settings.notify(
+                "Default debug configuration saved",
+                DebugNotificationSeverity.SUCCESS
+            )
+        }.cell {
+            fillAvailableX()
+            height(38f)
+        }
+
+        separator()
         separator()
         settingsExpander("General overlays", DebugVisualCategory.GENERAL) {
             label("Visualization filter")
@@ -896,8 +902,6 @@ internal class DebugPanel(
             { settings.notifications.enabled },
             { settings.notifications.enabled = it }
         ) {
-            label("Position")
-
             val positions = ui.selectionGroup(
                 DebugNotificationPosition.entries,
                 settings.notifications.position
@@ -1287,15 +1291,6 @@ internal class DebugPanel(
         }
         debugTab.invalidateHierarchy()
         bodyScroll.invalidateHierarchy()
-    }
-
-    private fun refreshCustomPresetNames() {
-        if (!::customPresetNames.isInitialized) return
-        customPresetNames.setText(
-            settings.customPresets.names.takeIf { it.isNotEmpty() }
-                ?.joinToString(prefix = "Saved: ")
-                ?: "No custom presets saved"
-        )
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
