@@ -378,8 +378,13 @@ internal class DebugRuntime(
         settings.notify("Removed $subjects", DebugNotificationSeverity.SUCCESS)
     }
 
-    fun update(delta: Float) {
+    fun update(delta: Float, simulationDelta: Float = delta) {
         syncCameraRestrictions()
+        settings.worldState.entityTrails.update(
+            entities = world.getEntities(),
+            simulationDelta = simulationDelta,
+            settings = settings.entities
+        )
         pathfinding.update()
         spawner.update(view.hoveredGridPosition)
         settings.worldState.spawnPreview = spawner.preview
@@ -423,6 +428,7 @@ internal class DebugRuntime(
         try {
             tools.select(DebugToolMode.NONE)
         } finally {
+            settings.worldState.entityTrails.clear()
             try {
                 ui.dispose()
             } finally {

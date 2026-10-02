@@ -1,10 +1,14 @@
 package com.mefabc24.strata.render.debug
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.render.`object`.IsoObjectBounds
 import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
@@ -12,6 +16,7 @@ import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.debug.DebugEntitySettings
+import com.mefabc24.strata.debug.DebugEntityTrailRecorder
 import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.debug.DebugVisualizationFilter
 import com.mefabc24.strata.debug.DebugVisualizationFilterContext
@@ -22,6 +27,8 @@ import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
 import kotlin.math.sqrt
+import kotlin.math.floor
+import java.util.Locale
 
 internal class IsoWorldDebugRenderer(
     private val projection: IsoProjection,
@@ -30,10 +37,14 @@ internal class IsoWorldDebugRenderer(
     private val objectRenderingSettings: ObjectRenderingSettings,
     private val filterContext: DebugVisualizationFilterContext =
         DebugVisualizationFilterContext(),
+    private val trailRecorder: DebugEntityTrailRecorder? = null,
     private val shapes: ShapeRenderer = ShapeRenderer()
 ) {
     private val objectBounds = Rectangle()
     private val entityBounds = Rectangle()
+    private val pointA = Vector2()
+    private val pointB = Vector2()
+    private val speedLabels = lazy { EntitySpeedLabelRenderer(projection) }
     private var disposed = false
 
     fun render(
@@ -50,34 +61,45 @@ internal class IsoWorldDebugRenderer(
                 objectSettings.showSpriteBounds ||
                 objectSettings.occupiedTileFillColor != null
             )
-        val drawEntities = entitySettings.enabled && (
+        val drawEntityShapes = entitySettings.enabled && (
             entitySettings.showCurrentTile ||
                 entitySettings.showPosition ||
                 entitySettings.showPath ||
                 entitySettings.showDirection ||
                 entitySettings.showSpriteBounds ||
+                entitySettings.showMovementTrail ||
+                entitySettings.showMovementVector ||
+                entitySettings.showNextWaypoint ||
+                entitySettings.showPositionTileOffset ||
                 entitySettings.currentTileFillColor != null
             )
-        if (!drawObjects && !drawEntities) return
+        val drawEntityLabels = entitySettings.enabled &&
+            entitySettings.showMovementSpeed
+        if (!drawObjects && !drawEntityShapes && !drawEntityLabels) return
 
-        shapes.projectionMatrix = camera.combined
-        Gdx.gl.glEnable(GL20.GL_BLEND)
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        if (drawObjects || drawEntityShapes) {
+            shapes.projectionMatrix = camera.combined
+            Gdx.gl.glEnable(GL20.GL_BLEND)
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
 
-        drawFills(world, camera, drawObjects, drawEntities, filter)
-        drawLines(
-            world = world,
-            camera = camera,
-            animationTime = animationTime,
-            drawObjects = drawObjects,
-            drawEntities = drawEntities,
-            objectVisualFor = objectVisualFor,
-            entityVisualFor = entityVisualFor,
-            filter = filter
-        )
+            drawFills(world, camera, drawObjects, drawEntityShapes, filter)
+            drawLines(
+                world = world,
+                camera = camera,
+                animationTime = animationTime,
+                drawObjects = drawObjects,
+                drawEntities = drawEntityShapes,
+                objectVisualFor = objectVisualFor,
+                entityVisualFor = entityVisualFor,
+                filter = filter
+            )
 
-        Gdx.gl.glLineWidth(1f)
-        Gdx.gl.glDisable(GL20.GL_BLEND)
+            Gdx.gl.glLineWidth(1f)
+            Gdx.gl.glDisable(GL20.GL_BLEND)
+        }
+        if (drawEntityLabels) {
+            speedLabels.value.render(world, camera, filter, filterContext)
+        }
     }
 
     private fun drawFills(
@@ -92,7 +114,10 @@ internal class IsoWorldDebugRenderer(
         val hasObjectFill = drawObjects && objectFill != null
         val hasEntityFill = drawEntities && entityFill != null
         val hasPositionMarkers = drawEntities && entitySettings.showPosition
-        if (!hasObjectFill && !hasEntityFill && !hasPositionMarkers) return
+        val hasNextWaypointMarkers = drawEntities && entitySettings.showNextWaypoint
+        if (!hasObjectFill && !hasEntityFill && !hasPositionMarkers &&
+            !hasNextWaypointMarkers
+        ) return
 
         shapes.begin(ShapeRenderer.ShapeType.Filled)
 
@@ -124,6 +149,17 @@ internal class IsoWorldDebugRenderer(
                     entity.position.y
                 )
                 shapes.circle(point.x, point.y, radius, MARKER_SEGMENTS)
+            }
+        }
+
+        if (hasNextWaypointMarkers) {
+            shapes.color = entitySettings.nextWaypointColor
+            val radius = NEXT_WAYPOINT_MARKER_RADIUS * camera.zoom
+            for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
+                val waypoint = entity.nextWaypoint ?: continue
+                projection.tileToWorld(waypoint.x, waypoint.y, pointA)
+                shapes.circle(pointA.x, pointA.y, radius, MARKER_SEGMENTS)
             }
         }
 
@@ -212,6 +248,27 @@ internal class IsoWorldDebugRenderer(
         visualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
         filter: DebugVisualizationFilter
     ) {
+        if (entitySettings.showMovementTrail) {
+            val color = entitySettings.trailColor
+            for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
+                val trail = trailRecorder?.trail(entity) ?: continue
+                val segmentCount = trail.size - 1
+                for (index in 0 until segmentCount) {
+                    projection.tileToWorld(trail.xAt(index), trail.yAt(index), pointA)
+                    projection.tileToWorld(
+                        trail.xAt(index + 1),
+                        trail.yAt(index + 1),
+                        pointB
+                    )
+                    color.a = entitySettings.trailOpacity *
+                        (index + 1).toFloat() / segmentCount
+                    shapes.color = color
+                    shapes.line(pointA, pointB)
+                }
+            }
+        }
+
         if (entitySettings.showCurrentTile) {
             shapes.color = entitySettings.currentTileColor
             for (entity in world.getEntities()) {
@@ -253,6 +310,46 @@ internal class IsoWorldDebugRenderer(
             }
         }
 
+        if (entitySettings.showMovementVector) {
+            shapes.color = entitySettings.movementVectorColor
+            for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
+                withEntityDebugMovementVector(entity) { velocityX, velocityY ->
+                    val position = entity.position
+                    projection.tileToWorld(position.x, position.y, pointA)
+                    projection.tileToWorld(
+                        position.x + velocityX * entitySettings.movementVectorScaleSeconds,
+                        position.y + velocityY * entitySettings.movementVectorScaleSeconds,
+                        pointB
+                    )
+                    drawArrow(pointA, pointB, camera.zoom)
+                }
+            }
+        }
+
+        if (entitySettings.showPositionTileOffset) {
+            shapes.color = entitySettings.positionTileOffsetColor
+            val radius = POSITION_OFFSET_MARKER_RADIUS * camera.zoom
+            for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
+                val position = entity.position
+                projection.tileToWorld(
+                    floor(position.x) + 0.5f,
+                    floor(position.y) + 0.5f,
+                    pointA
+                )
+                projection.tileToWorld(position.x, position.y, pointB)
+                shapes.line(pointA, pointB)
+                shapes.circle(pointA.x, pointA.y, radius, MARKER_SEGMENTS)
+                shapes.circle(
+                    pointB.x,
+                    pointB.y,
+                    radius * 0.65f,
+                    MARKER_SEGMENTS
+                )
+            }
+        }
+
         if (entitySettings.showSpriteBounds) {
             shapes.color = entitySettings.spriteBoundsColor
             for (entity in world.getEntities()) {
@@ -284,16 +381,77 @@ internal class IsoWorldDebugRenderer(
         shapes.drawIsoTileOutline(projection, top.x, top.y)
     }
 
+    private fun drawArrow(start: Vector2, end: Vector2, cameraZoom: Float) {
+        shapes.line(start, end)
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        val length = sqrt(dx * dx + dy * dy)
+        if (length <= 0f) return
+        val arrowLength = MOVEMENT_ARROW_HEAD_LENGTH * cameraZoom
+        val unitX = dx / length
+        val unitY = dy / length
+        val sideX = -unitY * arrowLength * 0.55f
+        val sideY = unitX * arrowLength * 0.55f
+        val baseX = end.x - unitX * arrowLength
+        val baseY = end.y - unitY * arrowLength
+        shapes.line(end.x, end.y, baseX + sideX, baseY + sideY)
+        shapes.line(end.x, end.y, baseX - sideX, baseY - sideY)
+    }
+
     fun dispose() {
         if (disposed) return
         disposed = true
+        if (speedLabels.isInitialized()) speedLabels.value.dispose()
         shapes.dispose()
     }
 
     private companion object {
         const val POSITION_MARKER_RADIUS = 3f
         const val WAYPOINT_MARKER_RADIUS = 2f
+        const val NEXT_WAYPOINT_MARKER_RADIUS = 4f
+        const val POSITION_OFFSET_MARKER_RADIUS = 3f
+        const val MOVEMENT_ARROW_HEAD_LENGTH = 7f
         const val MARKER_SEGMENTS = 12
+    }
+}
+
+private class EntitySpeedLabelRenderer(
+    private val projection: IsoProjection
+) {
+    private val batch = SpriteBatch()
+    private val font = BitmapFont()
+    private val point = Vector2()
+
+    fun render(
+        world: World,
+        camera: OrthographicCamera,
+        filter: DebugVisualizationFilter,
+        filterContext: DebugVisualizationFilterContext
+    ) {
+        batch.projectionMatrix = camera.combined
+        batch.begin()
+        font.color = Color.WHITE
+        for (entity in world.getEntities()) {
+            if (!filterContext.matches(filter, entity)) continue
+            projection.tileToWorld(entity.position.x, entity.position.y, point)
+            val speed = entity.movementSpeed ?: 0f
+            font.draw(
+                batch,
+                String.format(Locale.ROOT, "%.2f tiles/s", speed),
+                point.x,
+                point.y + SPEED_LABEL_OFFSET * camera.zoom
+            )
+        }
+        batch.end()
+    }
+
+    fun dispose() {
+        batch.dispose()
+        font.dispose()
+    }
+
+    private companion object {
+        const val SPEED_LABEL_OFFSET = 14f
     }
 }
 
@@ -310,6 +468,20 @@ internal inline fun forEachEntityDebugPathSegment(
         action(from, waypoint)
         from = waypoint
     }
+}
+
+internal inline fun withEntityDebugMovementVector(
+    entity: WorldEntity,
+    action: (velocityX: Float, velocityY: Float) -> Unit
+): Boolean {
+    val target = entity.nextWaypoint ?: return false
+    val speed = entity.movementSpeed ?: return false
+    val dx = target.x - entity.position.x
+    val dy = target.y - entity.position.y
+    val distance = sqrt(dx * dx + dy * dy)
+    if (distance <= 0f) return false
+    action(dx / distance * speed, dy / distance * speed)
+    return true
 }
 
 internal fun entityDebugDirectionTarget(

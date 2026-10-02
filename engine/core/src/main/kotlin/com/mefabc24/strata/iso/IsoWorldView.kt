@@ -181,7 +181,8 @@ class IsoWorldView(
         objectSettings = debugObjectSettings,
         entitySettings = debugEntitySettings,
         objectRenderingSettings = renderingConfig.objects,
-        filterContext = debugFilterContext
+        filterContext = debugFilterContext,
+        trailRecorder = debugSettings?.worldState?.entityTrails
     )
 
     private val advancedDebugRenderer = lazy {

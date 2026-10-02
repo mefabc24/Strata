@@ -387,6 +387,60 @@ class DebugEntitySettings : DebugFeatureSettings() {
     var showPath: Boolean = true
     var showDirection: Boolean = false
     var showSpriteBounds: Boolean = false
+    var showMovementTrail: Boolean = false
+    var showMovementVector: Boolean = false
+    var showNextWaypoint: Boolean = false
+    var showMovementSpeed: Boolean = false
+    var showPositionTileOffset: Boolean = false
+
+    var trailMaxPositions: Int = 120
+        set(value) {
+            require(value in 2..4096) {
+                "Entity trail maximum positions must be between 2 and 4096."
+            }
+            field = value
+        }
+
+    var trailHistoryDurationSeconds: Float = 5f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Entity trail history duration must be finite and positive."
+            }
+            field = value
+        }
+
+    var trailMinimumDistance: Float = 0.02f
+        set(value) {
+            require(value.isFinite() && value >= 0f) {
+                "Entity trail minimum distance must be finite and non-negative."
+            }
+            field = value
+        }
+
+    var trailOpacity: Float = 0.65f
+        set(value) {
+            require(value.isFinite() && value in 0f..1f) {
+                "Entity trail opacity must be between zero and one."
+            }
+            field = value
+        }
+
+    /** Length of the velocity arrow in seconds of current movement. */
+    var movementVectorScaleSeconds: Float = 0.5f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Entity movement vector scale must be finite and positive."
+            }
+            field = value
+        }
+
+    internal var trailClearGeneration: Long = 0L
+        private set
+
+    /** Clears engine-owned movement trail history on the next debug update. */
+    fun clearMovementTrails() {
+        trailClearGeneration++
+    }
 
     var lineWidth: Float = 1f
         set(value) {
@@ -420,6 +474,26 @@ class DebugEntitySettings : DebugFeatureSettings() {
     var directionColor: Color
         get() = storedDirectionColor.cpy()
         set(value) { storedDirectionColor = value.cpy() }
+
+    private var storedTrailColor = Color(0.2f, 0.9f, 1f, 1f)
+    var trailColor: Color
+        get() = storedTrailColor.cpy()
+        set(value) { storedTrailColor = value.cpy() }
+
+    private var storedMovementVectorColor = Color(1f, 0.45f, 0.15f, 1f)
+    var movementVectorColor: Color
+        get() = storedMovementVectorColor.cpy()
+        set(value) { storedMovementVectorColor = value.cpy() }
+
+    private var storedNextWaypointColor = Color(1f, 0.2f, 0.75f, 1f)
+    var nextWaypointColor: Color
+        get() = storedNextWaypointColor.cpy()
+        set(value) { storedNextWaypointColor = value.cpy() }
+
+    private var storedPositionTileOffsetColor = Color(0.8f, 0.5f, 1f, 1f)
+    var positionTileOffsetColor: Color
+        get() = storedPositionTileOffsetColor.cpy()
+        set(value) { storedPositionTileOffsetColor = value.cpy() }
 
     private var storedSpriteBoundsColor = Color(1f, 0.3f, 0.9f, 1f)
     var spriteBoundsColor: Color

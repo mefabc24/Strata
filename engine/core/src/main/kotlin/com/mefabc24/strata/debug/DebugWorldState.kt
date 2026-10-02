@@ -13,6 +13,7 @@ import com.mefabc24.strata.iso.PickedTarget
 
 /** Mutable runtime-only state consumed by debug world rendering. */
 internal class DebugWorldState {
+    val entityTrails = DebugEntityTrailRecorder()
     var inspection: DebugInspection? = null
     var inspectionHighlightVisible: Boolean = false
     var pathfinding: PathfindingDiagnosticResult? = null

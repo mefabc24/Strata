@@ -807,6 +807,21 @@ internal class DebugPanel(
             toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
             toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
             toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
+            toggle("Movement trail", { settings.entities.showMovementTrail }) {
+                settings.entities.showMovementTrail = it
+            },
+            toggle("Movement vector", { settings.entities.showMovementVector }) {
+                settings.entities.showMovementVector = it
+            },
+            toggle("Next waypoint", { settings.entities.showNextWaypoint }) {
+                settings.entities.showNextWaypoint = it
+            },
+            toggle("Speed labels", { settings.entities.showMovementSpeed }) {
+                settings.entities.showMovementSpeed = it
+            },
+            toggle("Tile-position offset", { settings.entities.showPositionTileOffset }) {
+                settings.entities.showPositionTileOffset = it
+            },
             toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
                 settings.entities.currentTileFillColor =
                     if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
@@ -820,6 +835,45 @@ internal class DebugPanel(
                 settings.entities.currentTileFillColor = it.apply { a = alpha }
             }
         }
+        label("Movement trail")
+        boundStepper(
+            "Maximum positions",
+            { settings.entities.trailMaxPositions.toFloat() },
+            2f,
+            1000f,
+            10f
+        ) { settings.entities.trailMaxPositions = it.toInt() }
+        boundStepper(
+            "History seconds",
+            { settings.entities.trailHistoryDurationSeconds },
+            0.25f,
+            60f,
+            0.25f
+        ) { settings.entities.trailHistoryDurationSeconds = it }
+        boundStepper(
+            "Sample distance",
+            { settings.entities.trailMinimumDistance },
+            0f,
+            1f,
+            0.01f
+        ) { settings.entities.trailMinimumDistance = it }
+        boundStepper(
+            "Trail opacity",
+            { settings.entities.trailOpacity },
+            0f,
+            1f,
+            0.05f
+        ) { settings.entities.trailOpacity = it }
+        boundStepper(
+            "Vector seconds",
+            { settings.entities.movementVectorScaleSeconds },
+            0.1f,
+            5f,
+            0.1f
+        ) { settings.entities.movementVectorScaleSeconds = it }
+        button("Clear movement trails") {
+            settings.entities.clearMovementTrails()
+        }.cell { height(38f) }
     }
 
     private data class ToggleBinding(

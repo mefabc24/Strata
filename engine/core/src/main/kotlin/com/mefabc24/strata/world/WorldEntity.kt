@@ -69,6 +69,10 @@ class WorldEntity internal constructor(
     val movementSpeed: Float?
         get() = movement?.speed
 
+    /** Next continuous route target, without copying the remaining route. */
+    val nextWaypoint: EntityPosition?
+        get() = movement?.let { it.waypoints[it.waypointIndex] }
+
     /** Remaining route centers, returned as a snapshot. */
     val remainingWaypoints: List<EntityPosition>
         get() = movement?.let { state ->

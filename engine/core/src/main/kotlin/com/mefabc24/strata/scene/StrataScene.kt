@@ -584,7 +584,7 @@ class StrataScene private constructor(
 
         screenManager.update(realDelta)
         attachedUi?.update(realDelta)
-        attachedDebug?.update(realDelta)
+        attachedDebug?.update(realDelta, simulationDelta)
     }
 
     /**
