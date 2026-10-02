@@ -25,6 +25,19 @@ class DebugSettingsTest {
         assertFalse(settings.performance.terminalLoggingEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
+        assertFalse(settings.worldInfo.enabled)
+        assertFalse(settings.worldInfo.showTileCoordinates)
+        assertFalse(settings.worldInfo.showTerrainIds)
+        assertFalse(settings.worldInfo.showOverlayInfo)
+        assertFalse(settings.worldInfo.showOccupancy)
+        assertFalse(settings.worldInfo.showMissingTerrainVisuals)
+        assertTrue(settings.worldInfo.showOrigin)
+        assertEquals(1.5f, settings.worldInfo.maximumLabelZoom)
+        assertEquals(256, settings.worldInfo.maximumVisibleLabels)
+        assertTrue(settings.worldVisibility.groundTerrainVisible)
+        assertTrue(settings.worldVisibility.terrainOverlaysVisible)
+        assertTrue(settings.worldVisibility.placedObjectsVisible)
+        assertTrue(settings.worldVisibility.entitiesVisible)
         assertFalse(settings.objects.enabled)
         assertFalse(settings.entities.enabled)
         assertFalse(settings.entities.showMovementTrail)
@@ -133,6 +146,48 @@ class DebugSettingsTest {
     }
 
     @Test
+    fun `world information settings validate limits and copy colors`() {
+        val settings = DebugWorldInfoSettings()
+        val color = Color(0.1f, 0.2f, 0.3f, 0.4f)
+        settings.occupancyColor = color
+        color.set(Color.RED)
+        settings.occupancyColor.set(Color.BLUE)
+
+        assertEquals(Color(0.1f, 0.2f, 0.3f, 0.4f), settings.occupancyColor)
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.maximumLabelZoom = invalid
+            }
+        }
+        listOf(0, 4097).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.maximumVisibleLabels = invalid
+            }
+        }
+    }
+
+    @Test
+    fun `off preset restores normal world visibility`() {
+        val settings = DebugSettings().apply {
+            worldVisibility.groundTerrainVisible = false
+            worldVisibility.terrainOverlaysVisible = false
+            worldVisibility.placedObjectsVisible = false
+            worldVisibility.entitiesVisible = false
+            worldVisibility.setOverlayLayerVisible("roads", false)
+            worldInfo.enabled = true
+        }
+
+        settings.applyPreset(DebugPreset.OFF)
+
+        assertFalse(settings.worldInfo.enabled)
+        assertTrue(settings.worldVisibility.groundTerrainVisible)
+        assertTrue(settings.worldVisibility.terrainOverlaysVisible)
+        assertTrue(settings.worldVisibility.placedObjectsVisible)
+        assertTrue(settings.worldVisibility.entitiesVisible)
+        assertTrue(settings.worldVisibility.isOverlayLayerVisible("roads"))
+    }
+
+    @Test
     fun `off preset resets camera restriction override`() {
         val settings = DebugSettings().apply {
             camera.disableRestrictions = true
@@ -173,6 +228,12 @@ class DebugSettingsTest {
         assertFalse(settings.performance.terminalLoggingEnabled)
         assertTrue(settings.simulation.enabled)
         assertTrue(settings.grid.enabled)
+        assertTrue(settings.worldInfo.enabled)
+        assertTrue(settings.worldInfo.showTileCoordinates)
+        assertTrue(settings.worldInfo.showTerrainIds)
+        assertTrue(settings.worldInfo.showOverlayInfo)
+        assertTrue(settings.worldInfo.showOccupancy)
+        assertTrue(settings.worldInfo.showMissingTerrainVisuals)
         assertTrue(settings.objects.enabled)
         assertTrue(settings.entities.enabled)
         assertTrue(settings.picking.enabled)
@@ -225,6 +286,7 @@ class DebugSettingsTest {
         assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
+        assertFalse(settings.worldInfo.enabled)
         assertFalse(settings.objects.enabled)
         assertFalse(settings.entities.enabled)
         assertFalse(settings.picking.enabled)

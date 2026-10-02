@@ -84,6 +84,10 @@ class DebugVisualizationFilterTest {
         assertTrue(context.matches(DebugVisualizationFilter.VISIBLE, terrainItem))
         assertFalse(context.matches(DebugVisualizationFilter.VISIBLE, selectedObject))
         assertFalse(context.matches(DebugVisualizationFilter.VISIBLE, hoveredEntity))
+        assertTrue(context.matches(DebugVisualizationFilter.SELECTED, 2, 0))
+        assertTrue(context.matches(DebugVisualizationFilter.HOVERED, 2, 1))
+        assertFalse(context.matches(DebugVisualizationFilter.SELECTED, 0, 0))
+        assertTrue(context.matches(DebugVisualizationFilter.VISIBLE, 1, 0))
     }
 
     @Test
@@ -107,6 +111,9 @@ class DebugVisualizationFilterTest {
 
         assertFalse(settings.needsHoveredVisualizationTarget())
         settings.objects.enabled = true
+        assertTrue(settings.needsHoveredVisualizationTarget())
+        settings.objects.enabled = false
+        settings.worldInfo.enabled = true
         assertTrue(settings.needsHoveredVisualizationTarget())
         settings.visualizationFilter = DebugVisualizationFilter.SELECTED
         assertFalse(settings.needsHoveredVisualizationTarget())
