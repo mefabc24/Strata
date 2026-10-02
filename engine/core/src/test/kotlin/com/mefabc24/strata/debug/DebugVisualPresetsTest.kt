@@ -106,22 +106,27 @@ class DebugVisualPresetsTest {
     }
 
     @Test
-    fun `custom preset store replaces names case insensitively and deletes explicitly`() {
+    fun `saving default replaces the previous visual configuration`() {
         val settings = DebugSettings()
-        val first = settings.captureVisualConfiguration()
+
         settings.grid.enabled = true
-        val second = settings.captureVisualConfiguration()
+        settings.grid.lineWidth = 3f
+        settings.saveDefaultVisualConfiguration()
 
-        settings.customPresets.save("  Layout  ", first)
-        settings.customPresets.save("layout", second)
+        settings.grid.enabled = false
+        settings.grid.lineWidth = 1f
 
-        assertEquals(listOf("layout"), settings.customPresets.names)
-        assertTrue(settings.customPresets.find("LAYOUT")?.configuration === second)
-        assertTrue(settings.customPresets.delete(" Layout "))
-        assertNull(settings.customPresets.find("layout"))
-        assertFalse(settings.customPresets.delete("layout"))
-        assertFailsWith<IllegalArgumentException> {
-            settings.customPresets.save("   ", first)
-        }
+        settings.applyDefaultVisualConfiguration()
+
+        assertTrue(settings.grid.enabled)
+        assertEquals(3f, settings.grid.lineWidth)
+
+        settings.grid.enabled = false
+        settings.saveDefaultVisualConfiguration()
+
+        settings.grid.enabled = true
+        settings.applyDefaultVisualConfiguration()
+
+        assertFalse(settings.grid.enabled)
     }
 }
