@@ -62,7 +62,7 @@ internal class DebugPanel(
     private val previewState = DebugContentPreviewState()
     private val navigation = DebugPanelNavigation()
     private val tabs = ui.selectionGroup(DebugPanelTab.entries, DebugPanelTab.TOOLS) { tab ->
-        navigation.select(tab) { modeSelection.select(DebugToolMode.NONE) }
+        navigation.select(tab)
         hidePreview(); syncVisibility()
     }
     private val modes = buildList {
