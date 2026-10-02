@@ -648,14 +648,15 @@ internal class DebugPanel(
             }.cell { fillAvailableX() }
         }
 
-        registeringDebugSection = DebugPanelSection.RUNTIME
         runtime.settingsExpander("Performance", DebugVisualCategory.GENERAL) {
-            simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
-                settings.performance.overlayEnabled = it
-            }
-            simpleToggle("World stats overlay", { settings.worldStats.enabled }) {
-                settings.worldStats.enabled = it
-            }
+            toggleGrid(
+                toggle("Performance overlay", { settings.performance.overlayEnabled }) {
+                    settings.performance.overlayEnabled = it
+                },
+                toggle("World stats overlay", { settings.worldStats.enabled }) {
+                    settings.worldStats.enabled = it
+                }
+            )
         }
         runtime.settingsExpander("Performance history") {
             toggleGrid(
