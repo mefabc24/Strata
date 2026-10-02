@@ -27,6 +27,15 @@ class DebugSettingsTest {
         assertFalse(settings.grid.enabled)
         assertFalse(settings.objects.enabled)
         assertFalse(settings.entities.enabled)
+        assertFalse(settings.entities.showMovementTrail)
+        assertFalse(settings.entities.showMovementVector)
+        assertFalse(settings.entities.showNextWaypoint)
+        assertFalse(settings.entities.showMovementSpeed)
+        assertFalse(settings.entities.showPositionTileOffset)
+        assertEquals(120, settings.entities.trailMaxPositions)
+        assertEquals(5f, settings.entities.trailHistoryDurationSeconds)
+        assertEquals(0.02f, settings.entities.trailMinimumDistance)
+        assertEquals(0.65f, settings.entities.trailOpacity)
         assertFalse(settings.picking.enabled)
         assertFalse(settings.renderOrder.enabled)
         assertEquals(RenderOrderDebugMode.CALCULATED, settings.renderOrder.mode)
@@ -315,6 +324,35 @@ class DebugSettingsTest {
         listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
             assertFailsWith<IllegalArgumentException> {
                 settings.pathfinding.entitySpeedMultiplier = invalid
+            }
+        }
+    }
+
+    @Test
+    fun `entity trail bounds and movement vector scale reject invalid values`() {
+        val settings = DebugEntitySettings()
+
+        listOf(1, 4097).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.trailMaxPositions = invalid
+            }
+        }
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.trailHistoryDurationSeconds = invalid
+            }
+            assertFailsWith<IllegalArgumentException> {
+                settings.movementVectorScaleSeconds = invalid
+            }
+        }
+        listOf(-0.1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.trailMinimumDistance = invalid
+            }
+        }
+        listOf(-0.1f, 1.1f, Float.NaN).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.trailOpacity = invalid
             }
         }
     }

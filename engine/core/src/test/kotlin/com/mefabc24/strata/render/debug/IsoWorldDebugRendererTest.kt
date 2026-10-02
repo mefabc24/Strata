@@ -26,6 +26,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class IsoWorldDebugRendererTest {
 
@@ -259,5 +260,24 @@ class IsoWorldDebugRendererTest {
     private data object TestTile : Tile
     private class TestPlaceable : Placeable {
         override val footprint = Footprint.square(1)
+    }
+
+    @Test
+    fun `movement vector follows next waypoint at configured entity speed`() {
+        val entity = WorldEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        entity.followPath(listOf(TilePosition(2, 0)), speed = 2f)
+        var velocityX = Float.NaN
+        var velocityY = Float.NaN
+
+        assertTrue(withEntityDebugMovementVector(entity) { x, y ->
+            velocityX = x
+            velocityY = y
+        })
+        assertEquals(2f, velocityX)
+        assertEquals(0f, velocityY)
+        assertEquals(EntityPosition(2.5f, 0.5f), entity.nextWaypoint)
+
+        entity.updateMovement(1f)
+        assertFalse(withEntityDebugMovementVector(entity) { _, _ -> })
     }
 }
