@@ -71,6 +71,13 @@ class DebugContextStatusTest {
     }
 
     @Test
+    fun `delete mode describes removable targets`() {
+        val delete = requireNotNull(debugContextStatus(DebugContextInputs(DebugToolMode.DELETE)))
+
+        assertEquals("Click an entity, object, or terrain overlay", delete.rows.single().value)
+    }
+
+    @Test
     fun `path mode summarizes waiting and completed searches`() {
         val start = TilePosition(1, 1)
         val waiting = requireNotNull(debugContextStatus(DebugContextInputs(
