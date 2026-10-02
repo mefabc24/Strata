@@ -551,22 +551,13 @@ internal class DebugPanel(
         separator()
         label("Presets")
 
-// Disable all visual diagnostics.
-        button("OFF") {
-            settings.applyPreset(DebugPreset.OFF)
-            syncControls()
-        }.cell {
-            fillAvailableX()
-            height(38f)
-        }
-
-// Built-in and user-defined presets.
+        // Built-in and user-defined presets.
         responsiveGrid(
             minimumItemWidth = 105f,
             itemHeight = 38f,
             maximumColumns = 3
         ) {
-            button("DEFAULT") {
+            button("Default") {
                 settings.applyDefaultVisualConfiguration()
                 syncControls()
             }
@@ -581,6 +572,16 @@ internal class DebugPanel(
                 }
         }.cell {
             fillAvailableX()
+        }
+
+
+        // Disable all visual diagnostics.
+        button("Disable everything") {
+            settings.applyPreset(DebugPreset.OFF)
+            syncControls()
+        }.cell {
+            fillAvailableX()
+            height(38f)
         }
 
         // Replace the previously saved default.
