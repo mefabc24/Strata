@@ -167,7 +167,7 @@ open class DebugBrushSettings {
         }
 
     /** Whether the current affected tile area is drawn under the cursor. */
-    var showBrushPreview: Boolean = false
+    var showBrushPreview: Boolean = true
 }
 
 /** Brush options for the terrain Paint tool. */
@@ -176,7 +176,7 @@ class DebugPaintToolSettings : DebugBrushSettings()
 /** Brush and stroke options for the Delete tool. */
 class DebugDeleteToolSettings : DebugBrushSettings() {
     /** Whether holding the left mouse button continues deletion along cursor movement. */
-    var dragEnabled: Boolean = false
+    var dragEnabled: Boolean = true
 }
 
 open class DebugFeatureSettings {
