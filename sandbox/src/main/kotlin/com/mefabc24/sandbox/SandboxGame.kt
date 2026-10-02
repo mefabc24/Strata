@@ -57,6 +57,8 @@ class SandboxGame : StrataGame() {
                 }
 
                 debug {
+                    defaultPresetStorage("strata.sandbox.debug")
+
                     panel {
                         enabled = true
                         visibleOnStartup = true

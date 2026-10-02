@@ -214,6 +214,8 @@ class StrataScene private constructor(
             configure(this)
             configurationOpen = false
 
+            debug.initializeDefaultVisualConfiguration()
+
             terrain.freeze()
             objects.freeze()
             entities.freeze()
