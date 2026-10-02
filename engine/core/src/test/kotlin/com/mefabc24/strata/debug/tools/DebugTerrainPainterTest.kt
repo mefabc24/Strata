@@ -3,6 +3,7 @@ package com.mefabc24.strata.debug.tools
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.terrain.TerrainRegistry
+import com.mefabc24.strata.debug.DebugPaintToolSettings
 import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
@@ -115,11 +116,48 @@ class DebugTerrainPainterTest {
         assertTrue(painter.dragPaint(-10, -10))
     }
 
-    private fun painter(world: World): DebugTerrainPainter {
+    @Test
+    fun `single click paints the configured brush area near boundaries`() {
+        val world = world()
+        val settings = DebugPaintToolSettings().apply { brushSize = 3 }
+        val painter = painter(world, settings).apply { selectedEntry = entries.last() }
+
+        assertTrue(painter.beginPaint(0, 0))
+
+        assertEquals(Terrain.WATER, (world.getTile(0, 0) as TestTile).terrain)
+        assertEquals(Terrain.WATER, (world.getTile(1, 0) as TestTile).terrain)
+        assertEquals(Terrain.WATER, (world.getTile(0, 1) as TestTile).terrain)
+        assertEquals(Terrain.WATER, (world.getTile(1, 1) as TestTile).terrain)
+        assertEquals(Terrain.GRASS, (world.getTile(2, 2) as TestTile).terrain)
+    }
+
+    @Test
+    fun `overlapping brush samples create each painted tile once per stroke`() {
+        var created = 0
+        val registry = TerrainRegistry("", {}, { TextureRegion() })
+        registry.register(Terrain.WATER, "water", factory = {
+            created++
+            TestTile(Terrain.WATER)
+        })
+        val settings = DebugPaintToolSettings().apply { brushSize = 3 }
+        val painter = DebugTerrainPainter(world(), registry.paintableEntries, settings).apply {
+            enabled = true
+        }
+
+        painter.beginPaint(1, 1)
+        painter.dragPaint(2, 1)
+
+        assertEquals(12, created)
+    }
+
+    private fun painter(
+        world: World,
+        settings: DebugPaintToolSettings = DebugPaintToolSettings()
+    ): DebugTerrainPainter {
         val registry = TerrainRegistry("", {}, { TextureRegion() })
         registry.register(Terrain.GRASS, "grass", factory = { TestTile(Terrain.GRASS) })
         registry.register(Terrain.WATER, "water", factory = { TestTile(Terrain.WATER) })
-        return DebugTerrainPainter(world, registry.paintableEntries).apply { enabled = true }
+        return DebugTerrainPainter(world, registry.paintableEntries, settings).apply { enabled = true }
     }
 
     private fun world() = World(4, 4) { _, _ -> TestTile(Terrain.GRASS) }

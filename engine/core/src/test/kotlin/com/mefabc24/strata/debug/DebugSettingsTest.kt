@@ -55,6 +55,24 @@ class DebugSettingsTest {
         assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
+        assertEquals(1, settings.paint.brushSize)
+        assertFalse(settings.paint.showBrushPreview)
+        assertEquals(1, settings.delete.brushSize)
+        assertFalse(settings.delete.dragEnabled)
+        assertFalse(settings.delete.showBrushPreview)
+    }
+
+    @Test
+    fun `editing brush sizes require supported odd values`() {
+        val settings = DebugSettings()
+        for (size in listOf(1, 3, 5, 7, 9)) {
+            settings.paint.brushSize = size
+            settings.delete.brushSize = size
+        }
+        for (size in listOf(-1, 0, 2, 10, 11)) {
+            assertFailsWith<IllegalArgumentException> { settings.paint.brushSize = size }
+            assertFailsWith<IllegalArgumentException> { settings.delete.brushSize = size }
+        }
     }
 
     @Test

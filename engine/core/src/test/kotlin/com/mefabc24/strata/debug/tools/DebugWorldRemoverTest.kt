@@ -1,6 +1,7 @@
 package com.mefabc24.strata.debug.tools
 
 import com.badlogic.gdx.Input
+import com.mefabc24.strata.debug.DebugDeleteToolSettings
 import com.mefabc24.strata.input.WorldInputBinding
 import com.mefabc24.strata.input.WorldInputProcessor
 import com.mefabc24.strata.input.WorldInputTrigger
@@ -97,6 +98,56 @@ class DebugWorldRemoverTest {
         assertEquals(0, spawnCount)
         assertEquals(0, world.entityCount)
         assertFalse(input.touchDown(0, 0, 0, Input.Buttons.RIGHT))
+    }
+
+    @Test
+    fun `brush size affects click deletion when dragging is disabled`() {
+        val world = World(5, 5) { _, _ -> Ground }.apply { addOverlayLayer("overlay") }
+        val inside = requireNotNull(world.place(TestPlaceable(), 1, 1))
+        val outside = requireNotNull(world.place(TestPlaceable(), 4, 4))
+        val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(2, 2)))
+        world.setOverlayTile("overlay", 0, 0, UpperOverlay)
+        val settings = DebugDeleteToolSettings().apply { brushSize = 3 }
+        val remover = DebugWorldRemover(world, settings)
+
+        val removed = remover.beginDelete(TilePosition(1, 1))
+
+        assertEquals(
+            setOf(DebugRemovalKind.OBJECT, DebugRemovalKind.ENTITY, DebugRemovalKind.TERRAIN_OVERLAY),
+            removed
+        )
+        assertFalse(inside in world.getObjects())
+        assertFalse(entity in world.getEntities())
+        assertNull(world.getOverlayTile("overlay", 0, 0))
+        assertSame(outside, world.getObjectAt(4, 4))
+
+        assertTrue(remover.dragDelete(TilePosition(4, 4)).isEmpty())
+        assertSame(outside, world.getObjectAt(4, 4))
+    }
+
+    @Test
+    fun `enabled drag deletion fills gaps across quickly sampled positions`() {
+        val world = World(7, 1) { _, _ -> Ground }.apply { addOverlayLayer("overlay") }
+        repeat(7) { x ->
+            requireNotNull(world.place(TestPlaceable(), x, 0))
+            world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(x, 0)))
+            world.setOverlayTile("overlay", x, 0, UpperOverlay)
+        }
+        val settings = DebugDeleteToolSettings().apply { dragEnabled = true }
+        val remover = DebugWorldRemover(world, settings)
+
+        remover.beginDelete(TilePosition(0, 0))
+        val removedByDrag = remover.dragDelete(TilePosition(6, 0))
+
+        assertEquals(
+            setOf(DebugRemovalKind.OBJECT, DebugRemovalKind.ENTITY, DebugRemovalKind.TERRAIN_OVERLAY),
+            removedByDrag
+        )
+        assertEquals(0, world.placedObjectCount)
+        assertEquals(0, world.entityCount)
+        assertEquals(0, world.overlayTileCount)
+        assertTrue(remover.endDelete())
+        assertFalse(remover.endDelete())
     }
 
     private fun worldWithOverlays() = World(2, 2) { _, _ -> Ground }.apply {
