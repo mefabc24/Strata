@@ -59,10 +59,18 @@ class SandboxGame : StrataGame() {
                 debug {
                     defaultPresetStorage("strata.sandbox.debug")
 
-                    panel {
+                    toolsWindow {
                         enabled = true
                         visibleOnStartup = true
-                        toggleKey = Input.Keys.ESCAPE
+                        toggleKey = Input.Keys.F2
+                        order = 0
+                    }
+
+                    debugWindow {
+                        enabled = true
+                        visibleOnStartup = true
+                        toggleKey = Input.Keys.F3
+                        order = 1
                     }
 
                     performance {
