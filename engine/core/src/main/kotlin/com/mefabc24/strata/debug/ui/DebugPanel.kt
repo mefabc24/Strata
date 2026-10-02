@@ -474,6 +474,23 @@ internal class DebugPanel(
             }
         }.cell { fillAvailableX() }
         separator()
+        label("Visualization filter")
+        val visualizationFilters = ui.selectionGroup(
+            DebugVisualizationFilter.entries,
+            settings.visualizationFilter
+        ) {
+            settings.visualizationFilter = it
+        }
+        synchronizers += {
+            visualizationFilters.select(settings.visualizationFilter)
+        }
+        responsiveGrid(105f, 36f, maximumColumns = 4) {
+            selectableButton("All", DebugVisualizationFilter.ALL, visualizationFilters)
+            selectableButton("Selected", DebugVisualizationFilter.SELECTED, visualizationFilters)
+            selectableButton("Hovered", DebugVisualizationFilter.HOVERED, visualizationFilters)
+            selectableButton("Visible", DebugVisualizationFilter.VISIBLE, visualizationFilters)
+        }.cell { fillAvailableX() }
+        separator()
         simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
             settings.performance.overlayEnabled = it
         }
@@ -507,8 +524,14 @@ internal class DebugPanel(
                 selectableButton("Actual", RenderOrderDebugMode.ACTUAL, modes)
             }.cell { fillAvailableX() }
             toggleGrid(
-                toggle("Object & entity labels", { settings.renderOrder.showLabels }) {
+                toggle("Order labels", { settings.renderOrder.showLabels }) {
                     settings.renderOrder.showLabels = it
+                },
+                toggle("Priority labels", { settings.renderOrder.showPriorityLabels }) {
+                    settings.renderOrder.showPriorityLabels = it
+                },
+                toggle("Priority colors", { settings.renderOrder.colorByPriority }) {
+                    settings.renderOrder.colorByPriority = it
                 },
                 toggle("Terrain indices", { settings.renderOrder.showTerrainIndices }) {
                     settings.renderOrder.showTerrainIndices = it
@@ -517,6 +540,57 @@ internal class DebugPanel(
                     settings.renderOrder.showTerrainHeatmap = it
                 }
             )
+            label("Sort geometry")
+            toggleGrid(
+                toggle("Sort volumes", { settings.renderOrder.showSortVolumes }) {
+                    settings.renderOrder.showSortVolumes = it
+                },
+                toggle("Sort anchors", { settings.renderOrder.showSortAnchors }) {
+                    settings.renderOrder.showSortAnchors = it
+                },
+                toggle(
+                    "Projected positions",
+                    { settings.renderOrder.showProjectedSortPositions }
+                ) {
+                    settings.renderOrder.showProjectedSortPositions = it
+                }
+            )
+            boundStepper(
+                "Geometry line width",
+                { settings.renderOrder.sortGeometryLineWidth },
+                0.25f,
+                8f,
+                0.25f
+            ) { settings.renderOrder.sortGeometryLineWidth = it }
+            label("Priority focus")
+            val priorityFocus = ui.selectionGroup(
+                RenderPriorityFocusMode.entries,
+                settings.renderOrder.priorityFocusMode
+            ) {
+                settings.renderOrder.priorityFocusMode = it
+            }
+            synchronizers += {
+                priorityFocus.select(settings.renderOrder.priorityFocusMode)
+            }
+            responsiveGrid(90f, 36f, maximumColumns = 3) {
+                selectableButton("Off", RenderPriorityFocusMode.OFF, priorityFocus)
+                selectableButton("Highlight", RenderPriorityFocusMode.HIGHLIGHT, priorityFocus)
+                selectableButton("Isolate", RenderPriorityFocusMode.ISOLATE, priorityFocus)
+            }.cell { fillAvailableX() }
+            boundStepper(
+                "Selected priority",
+                { settings.renderOrder.selectedPriority.toFloat() },
+                -100f,
+                100f,
+                1f
+            ) { settings.renderOrder.selectedPriority = it.toInt() }
+            boundStepper(
+                "Priority color alpha",
+                { settings.renderOrder.priorityColorAlpha },
+                0f,
+                1f,
+                0.05f
+            ) { settings.renderOrder.priorityColorAlpha = it }
             label("Heatmap color steps")
             val heatmapSteps = ui.selectionGroup(
                 TerrainHeatmapSteps.entries,

@@ -43,6 +43,8 @@ import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.debug.DebugGridExtent
 import com.mefabc24.strata.debug.DebugGridRenderLayer
 import com.mefabc24.strata.debug.DebugSettings
+import com.mefabc24.strata.debug.DebugVisualizationFilter
+import com.mefabc24.strata.debug.DebugVisualizationFilterContext
 import com.mefabc24.strata.render.RenderDebugSnapshot
 
 /**
@@ -157,6 +159,8 @@ class IsoWorldView(
                 settings.picking.enabled ||
                         settings.renderOrder.enabled ||
                         settings.culling.enabled ||
+                        settings.visualizationFilter == DebugVisualizationFilter.VISIBLE &&
+                        (settings.objects.enabled || settings.entities.enabled) ||
                         settings.worldState.inspectionHighlightVisible
             } ?: false
         },
@@ -165,6 +169,7 @@ class IsoWorldView(
     )
 
     private val debugGridConfig = debugGridSettings
+    private val debugFilterContext = DebugVisualizationFilterContext()
 
     private val gridRenderer = IsoGridRenderer(
         projection = projection,
@@ -175,14 +180,16 @@ class IsoWorldView(
         projection = projection,
         objectSettings = debugObjectSettings,
         entitySettings = debugEntitySettings,
-        objectRenderingSettings = renderingConfig.objects
+        objectRenderingSettings = renderingConfig.objects,
+        filterContext = debugFilterContext
     )
 
     private val advancedDebugRenderer = lazy {
         IsoAdvancedDebugRenderer(
             projection = projection,
             settings = checkNotNull(debugSettings),
-            state = checkNotNull(debugSettings).worldState
+            state = checkNotNull(debugSettings).worldState,
+            filterContext = debugFilterContext
         )
     }
 
@@ -446,12 +453,22 @@ class IsoWorldView(
             }
         }
 
+        val visualizationFilter = debugSettings?.visualizationFilter
+            ?: DebugVisualizationFilter.ALL
+        debugFilterContext.update(
+            inspection = debugSettings?.worldState?.inspection,
+            selectedTarget = debugSettings?.worldState?.pickingSelection?.lockedTarget,
+            hoveredTarget = debugSettings?.worldState?.hoveredTarget,
+            renderSnapshot = worldRenderer.debugSnapshot
+        )
+
         worldDebugRenderer.render(
             world = world,
             camera = camera,
             animationTime = animationTime,
             objectVisualFor = debugObjectVisualFor,
-            entityVisualFor = debugEntityVisualFor
+            entityVisualFor = debugEntityVisualFor,
+            filter = visualizationFilter
         )
 
         debugSettings?.let { settings ->

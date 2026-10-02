@@ -391,18 +391,24 @@ internal class DebugRuntime(
 
         settings.worldState.pickingSelection.syncEnabled(settings.picking.enabled)
 
-        if (settings.picking.enabled) {
+        if (settings.picking.enabled || settings.needsHoveredVisualizationTarget()) {
             val screenX = Gdx.input.x.toFloat()
             val screenY = Gdx.input.y.toFloat()
-            settings.worldState.cursorWorld = view.screenToWorld(screenX, screenY)
             val picking = view.pickingDebugSnapshot(screenX, screenY)
-            settings.worldState.picking = picking
+            settings.worldState.hoveredTarget = picking.picked
+            settings.worldState.cursorWorld = if (settings.picking.enabled) {
+                view.screenToWorld(screenX, screenY)
+            } else {
+                null
+            }
+            settings.worldState.picking = picking.takeIf { settings.picking.enabled }
             settings.worldState.pickingSelection.refresh(
                 view::refreshPickedTarget
             )
         } else {
             settings.worldState.cursorWorld = null
             settings.worldState.picking = null
+            settings.worldState.hoveredTarget = null
         }
         panel.update(delta)
         ui.update(delta)

@@ -11,6 +11,7 @@ import com.mefabc24.strata.world.WorldEntity
 enum class DebugGridRenderLayer { BELOW_OBJECTS, ABOVE_OBJECTS }
 enum class DebugGridExtent { WORLD, VISIBLE }
 enum class RenderOrderDebugMode { CALCULATED, ACTUAL }
+enum class RenderPriorityFocusMode { OFF, HIGHLIGHT, ISOLATE }
 enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
     PER_TILE(null),
     STEPS_32(32),
@@ -39,6 +40,9 @@ class DebugSettings {
     val pathfinding = DebugPathfindingSettings()
     val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
+
+    /** Target subset shared by object, entity, culling, and render-order visuals. */
+    var visualizationFilter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
@@ -191,9 +195,57 @@ class DebugPickingSettings : DebugFeatureSettings() {
 class DebugRenderOrderSettings : DebugFeatureSettings() {
     var mode: RenderOrderDebugMode = RenderOrderDebugMode.CALCULATED
     var showLabels: Boolean = true
+    var showPriorityLabels: Boolean = false
+    var colorByPriority: Boolean = false
+    var priorityFocusMode: RenderPriorityFocusMode = RenderPriorityFocusMode.OFF
+    var selectedPriority: Int = 0
+    var showSortVolumes: Boolean = false
+    var showSortAnchors: Boolean = false
+    var showProjectedSortPositions: Boolean = false
     var showTerrainIndices: Boolean = false
     var showTerrainHeatmap: Boolean = false
     var terrainHeatmapSteps: TerrainHeatmapSteps = TerrainHeatmapSteps.PER_TILE
+
+    var priorityColorAlpha: Float = 0.2f
+        set(value) {
+            require(value.isFinite() && value in 0f..1f) {
+                "Render priority color alpha must be between zero and one."
+            }
+            field = value
+        }
+
+    var sortGeometryLineWidth: Float = 2f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Sort geometry line width must be finite and positive."
+            }
+            field = value
+        }
+
+    private var storedPriorityHighlightColor = Color(1f, 0.92f, 0.2f, 1f)
+    var priorityHighlightColor: Color
+        get() = storedPriorityHighlightColor.cpy()
+        set(value) { storedPriorityHighlightColor = value.cpy() }
+
+    private var storedSortVolumeColor = Color(0.25f, 0.9f, 1f, 1f)
+    var sortVolumeColor: Color
+        get() = storedSortVolumeColor.cpy()
+        set(value) { storedSortVolumeColor = value.cpy() }
+
+    private var storedSortBackAnchorColor = Color(0.35f, 1f, 0.4f, 1f)
+    var sortBackAnchorColor: Color
+        get() = storedSortBackAnchorColor.cpy()
+        set(value) { storedSortBackAnchorColor = value.cpy() }
+
+    private var storedSortFrontAnchorColor = Color(1f, 0.35f, 0.25f, 1f)
+    var sortFrontAnchorColor: Color
+        get() = storedSortFrontAnchorColor.cpy()
+        set(value) { storedSortFrontAnchorColor = value.cpy() }
+
+    private var storedProjectedSortPositionColor = Color(1f, 0.3f, 0.9f, 1f)
+    var projectedSortPositionColor: Color
+        get() = storedProjectedSortPositionColor.cpy()
+        set(value) { storedProjectedSortPositionColor = value.cpy() }
 
     private var storedTerrainHeatmapStartColor = Color(0.1f, 0.65f, 1f, 0.55f)
     var terrainHeatmapStartColor: Color

@@ -9,9 +9,12 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.math.Vector2
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugRenderOrderSettings
+import com.mefabc24.strata.debug.DebugVisualizationFilterContext
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.debug.RenderPriorityFocusMode
 import com.mefabc24.strata.debug.RenderOrderDebugMode
 import com.mefabc24.strata.debug.TerrainHeatmapSteps
 import com.mefabc24.strata.debug.inspector.DebugInspection
@@ -26,6 +29,12 @@ import kotlin.math.round
 
 internal data class RenderOrderDebugLayers(
     val objectEntityLabels: Boolean,
+    val priorityLabels: Boolean,
+    val priorityColors: Boolean,
+    val priorityFocus: Boolean,
+    val sortVolumes: Boolean,
+    val sortAnchors: Boolean,
+    val projectedSortPositions: Boolean,
     val terrainIndices: Boolean,
     val terrainHeatmap: Boolean,
     val terrainHeatmapGrid: Boolean
@@ -35,9 +44,42 @@ internal fun renderOrderDebugLayers(
     settings: DebugRenderOrderSettings
 ): RenderOrderDebugLayers = RenderOrderDebugLayers(
     objectEntityLabels = settings.enabled && settings.showLabels,
+    priorityLabels = settings.enabled && settings.showPriorityLabels,
+    priorityColors = settings.enabled && settings.colorByPriority,
+    priorityFocus = settings.enabled &&
+        settings.priorityFocusMode != RenderPriorityFocusMode.OFF,
+    sortVolumes = settings.enabled && settings.showSortVolumes,
+    sortAnchors = settings.enabled && settings.showSortAnchors,
+    projectedSortPositions = settings.enabled && settings.showProjectedSortPositions,
     terrainIndices = settings.enabled && settings.showTerrainIndices,
     terrainHeatmap = settings.enabled && settings.showTerrainHeatmap,
     terrainHeatmapGrid = settings.enabled && settings.showTerrainHeatmap
+)
+
+internal fun renderPriorityFocusAllows(
+    settings: DebugRenderOrderSettings,
+    item: RenderItemDebugSnapshot
+): Boolean = settings.priorityFocusMode != RenderPriorityFocusMode.ISOLATE ||
+    item.sort?.renderPriority == settings.selectedPriority
+
+internal fun renderPriorityColor(
+    priority: Int,
+    alpha: Float,
+    result: Color = Color()
+): Color {
+    val index = Math.floorMod(priority, PRIORITY_PALETTE.size)
+    return result.set(PRIORITY_PALETTE[index]).also { it.a = alpha }
+}
+
+private val PRIORITY_PALETTE = arrayOf(
+    Color(0.2f, 0.8f, 1f, 1f),
+    Color(1f, 0.45f, 0.25f, 1f),
+    Color(0.45f, 1f, 0.35f, 1f),
+    Color(0.75f, 0.4f, 1f, 1f),
+    Color(1f, 0.85f, 0.2f, 1f),
+    Color(0.2f, 1f, 0.8f, 1f),
+    Color(1f, 0.3f, 0.7f, 1f),
+    Color(0.55f, 0.7f, 1f, 1f)
 )
 
 internal data class RenderOrderDebugMetadata(
@@ -108,12 +150,18 @@ internal class IsoAdvancedDebugRenderer(
     private val projection: IsoProjection,
     private val settings: DebugSettings,
     private val state: DebugWorldState,
+    private val filterContext: DebugVisualizationFilterContext,
     private val shapes: ShapeRenderer = ShapeRenderer(),
     private val labels: SpriteBatch = SpriteBatch(),
     private val font: BitmapFont = BitmapFont()
 ) {
     private val labelLayout = GlyphLayout()
     private val heatmapColor = Color()
+    private val priorityColor = Color()
+    private val sortPointA = Vector2()
+    private val sortPointB = Vector2()
+    private val sortPointC = Vector2()
+    private val sortPointD = Vector2()
 
     fun render(
         camera: OrthographicCamera,
@@ -138,9 +186,11 @@ internal class IsoAdvancedDebugRenderer(
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
             state.movePreview != null || state.brushPreview != null ||
-            renderOrderLayers.terrainHeatmap
+            renderOrderLayers.terrainHeatmap || renderOrderLayers.priorityColors ||
+            renderOrderLayers.priorityFocus || renderOrderLayers.sortVolumes ||
+            renderOrderLayers.sortAnchors || renderOrderLayers.projectedSortPositions
         val drawLabels = renderOrderLayers.objectEntityLabels ||
-            renderOrderLayers.terrainIndices
+            renderOrderLayers.priorityLabels || renderOrderLayers.terrainIndices
         if (!drawShapes && !drawLabels) return
 
         if (drawShapes) {
@@ -170,22 +220,29 @@ internal class IsoAdvancedDebugRenderer(
         if (drawLabels && renderSnapshot != null) {
             labels.projectionMatrix = camera.combined
             labels.begin()
-            font.color = Color.WHITE
-            if (renderOrderLayers.objectEntityLabels) {
+            if (renderOrderLayers.objectEntityLabels || renderOrderLayers.priorityLabels) {
                 for (item in renderSnapshot.items) {
                     if (!item.drawn || item.terrain != null) continue
-                    val metadata = renderOrderDebugMetadata(
+                    if (!filterContext.matches(settings.visualizationFilter, item)) continue
+                    if (!renderPriorityFocusAllows(settings.renderOrder, item)) continue
+                    val bounds = item.bounds ?: continue
+                    val text = buildRenderLabel(
                         item,
                         renderSnapshot,
-                        settings.renderOrder.mode
+                        renderOrderLayers
                     ) ?: continue
-                    val bounds = item.bounds ?: continue
-                    val name = item.placedObject?.placeable?.javaClass?.simpleName
-                        ?: item.entity?.entity?.javaClass?.simpleName
-                        ?: continue
+                    font.color = if (
+                        settings.renderOrder.priorityFocusMode ==
+                        RenderPriorityFocusMode.HIGHLIGHT &&
+                        item.sort?.renderPriority == settings.renderOrder.selectedPriority
+                    ) {
+                        settings.renderOrder.priorityHighlightColor
+                    } else {
+                        Color.WHITE
+                    }
                     font.draw(
                         labels,
-                        "$name  #${metadata.index}",
+                        text,
                         bounds.x,
                         bounds.y + bounds.height + 12f * camera.zoom
                     )
@@ -195,6 +252,7 @@ internal class IsoAdvancedDebugRenderer(
                 font.withRelativeScale(TERRAIN_INDEX_FONT_SCALE) {
                     for (item in renderSnapshot.items) {
                         if (!item.drawn) continue
+                        if (!filterContext.matches(settings.visualizationFilter, item)) continue
                         val terrain = item.terrain ?: continue
                         val metadata = renderOrderDebugMetadata(
                             item,
@@ -217,6 +275,30 @@ internal class IsoAdvancedDebugRenderer(
             }
             labels.end()
         }
+    }
+
+    private fun buildRenderLabel(
+        item: RenderItemDebugSnapshot,
+        snapshot: RenderDebugSnapshot,
+        layers: RenderOrderDebugLayers
+    ): String? {
+        val sort = item.sort ?: return null
+        val name = item.placedObject?.placeable?.javaClass?.simpleName
+            ?: item.entity?.entity?.javaClass?.simpleName
+            ?: return null
+        val order = if (layers.objectEntityLabels) {
+            renderOrderDebugMetadata(
+                item,
+                snapshot,
+                settings.renderOrder.mode
+            )?.let { "#${it.index}" }
+        } else {
+            null
+        }
+        val priority = if (layers.priorityLabels) "P:${sort.renderPriority}" else null
+        return listOfNotNull(name.takeIf { order != null }, order, priority)
+            .joinToString("  ")
+            .takeIf(String::isNotEmpty)
     }
 
     private fun drawFills(
@@ -242,11 +324,28 @@ internal class IsoAdvancedDebugRenderer(
         val brushPreview = state.brushPreview
         val drawTerrainHeatmap = renderOrderDebugLayers(settings.renderOrder).terrainHeatmap &&
             renderSnapshot != null
+        val drawPriorityColors = renderOrderDebugLayers(settings.renderOrder).priorityColors &&
+            renderSnapshot != null
         if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
-            brushPreview == null && !drawTerrainHeatmap
+            brushPreview == null && !drawTerrainHeatmap && !drawPriorityColors
         ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
+        if (drawPriorityColors) {
+            val snapshot = requireNotNull(renderSnapshot)
+            snapshot.items.forEach { item ->
+                if (!item.drawn || item.terrain != null) return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (!renderPriorityFocusAllows(settings.renderOrder, item)) return@forEach
+                val bounds = item.bounds ?: return@forEach
+                shapes.color = renderPriorityColor(
+                    priority = item.sort?.renderPriority ?: return@forEach,
+                    alpha = settings.renderOrder.priorityColorAlpha,
+                    result = priorityColor
+                )
+                shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
+            }
+        }
         if (drawTerrainHeatmap) {
             val snapshot = requireNotNull(renderSnapshot)
             val startColor = settings.renderOrder.terrainHeatmapStartColor
@@ -254,6 +353,7 @@ internal class IsoAdvancedDebugRenderer(
             snapshot.items.forEach { item ->
                 val terrain = item.terrain ?: return@forEach
                 if (!item.drawn) return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
                 val metadata = renderOrderDebugMetadata(
                     item,
                     snapshot,
@@ -445,6 +545,7 @@ internal class IsoAdvancedDebugRenderer(
             renderSnapshot.items.forEach { item ->
                 val terrain = item.terrain ?: return@forEach
                 if (!item.drawn) return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
                 if (renderOrderDebugMetadata(
                         item,
                         renderSnapshot,
@@ -453,6 +554,35 @@ internal class IsoAdvancedDebugRenderer(
                 ) {
                     drawTileOutline(terrain.position)
                 }
+            }
+        }
+        if (renderSnapshot != null && (
+                renderOrderLayers.sortVolumes ||
+                    renderOrderLayers.sortAnchors ||
+                    renderOrderLayers.projectedSortPositions
+                )
+        ) {
+            Gdx.gl.glLineWidth(
+                (settings.renderOrder.sortGeometryLineWidth / camera.zoom)
+                    .coerceAtLeast(1f)
+            )
+            renderSnapshot.items.forEach { item ->
+                if (item.terrain != null || item.sort == null) return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (!renderPriorityFocusAllows(settings.renderOrder, item)) return@forEach
+                drawSortGeometry(item, renderOrderLayers, camera.zoom)
+            }
+        }
+        if (renderOrderLayers.priorityFocus && renderSnapshot != null) {
+            Gdx.gl.glLineWidth(3f)
+            shapes.color = settings.renderOrder.priorityHighlightColor
+            renderSnapshot.items.forEach { item ->
+                if (!item.drawn || item.terrain != null) return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (item.sort?.renderPriority != settings.renderOrder.selectedPriority) {
+                    return@forEach
+                }
+                item.bounds?.let(::drawRect)
             }
         }
         Gdx.gl.glLineWidth(2f)
@@ -509,6 +639,7 @@ internal class IsoAdvancedDebugRenderer(
             val entityCulledColor = settings.culling.entityCulledColor
             renderSnapshot.items.forEach { item ->
                 val classification = classifyCullingItem(item) ?: return@forEach
+                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
                 val show = when (classification.kind) {
                     CullingDebugItemKind.OBJECT -> settings.culling.showObjectBounds
                     CullingDebugItemKind.ENTITY -> settings.culling.showEntityBounds
@@ -538,6 +669,41 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
         shapes.end()
+    }
+
+    private fun drawSortGeometry(
+        item: RenderItemDebugSnapshot,
+        layers: RenderOrderDebugLayers,
+        cameraZoom: Float
+    ) {
+        val sort = requireNotNull(item.sort)
+        projection.tileToWorld(sort.minX, sort.minY, sortPointA)
+        projection.tileToWorld(sort.maxX, sort.minY, sortPointB)
+        projection.tileToWorld(sort.maxX, sort.maxY, sortPointC)
+        projection.tileToWorld(sort.minX, sort.maxY, sortPointD)
+
+        if (layers.sortVolumes) {
+            shapes.color = settings.renderOrder.sortVolumeColor
+            shapes.line(sortPointA, sortPointB)
+            shapes.line(sortPointB, sortPointC)
+            shapes.line(sortPointC, sortPointD)
+            shapes.line(sortPointD, sortPointA)
+        }
+        if (layers.sortAnchors) {
+            val radius = SORT_ANCHOR_RADIUS * cameraZoom
+            shapes.color = settings.renderOrder.sortBackAnchorColor
+            shapes.circle(sortPointA.x, sortPointA.y, radius, SORT_MARKER_SEGMENTS)
+            shapes.color = settings.renderOrder.sortFrontAnchorColor
+            shapes.circle(sortPointC.x, sortPointC.y, radius, SORT_MARKER_SEGMENTS)
+        }
+        if (layers.projectedSortPositions) {
+            val radius = PROJECTED_SORT_MARKER_RADIUS * cameraZoom
+            val x = sort.projectedFrontX
+            val y = sort.projectedFrontY
+            shapes.color = settings.renderOrder.projectedSortPositionColor
+            shapes.line(x - radius, y, x + radius, y)
+            shapes.line(x, y - radius, x, y + radius)
+        }
     }
 
     private fun drawTileFill(position: TilePosition) {
@@ -588,6 +754,9 @@ internal class IsoAdvancedDebugRenderer(
 
     private companion object {
         const val TERRAIN_INDEX_FONT_SCALE = 0.68f
+        const val SORT_ANCHOR_RADIUS = 3f
+        const val PROJECTED_SORT_MARKER_RADIUS = 5f
+        const val SORT_MARKER_SEGMENTS = 12
         val TERRAIN_HEATMAP_GRID_COLOR = Color(0.72f, 0.72f, 0.72f, 0.3f)
         val PICKING_HOVER_FILL = Color(1f, 0.3f, 0.9f, 0.18f)
         val PICKING_HOVER_OUTLINE = Color(1f, 0.3f, 0.9f, 1f)

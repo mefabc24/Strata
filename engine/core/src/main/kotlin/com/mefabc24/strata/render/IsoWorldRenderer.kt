@@ -69,6 +69,7 @@ data class RenderSortDebugSnapshot(
     val maxX: Float,
     val minY: Float,
     val maxY: Float,
+    val projectedFrontX: Float,
     val projectedFrontY: Float,
     val renderPriority: Int = 0
 )
@@ -284,6 +285,7 @@ class IsoWorldRenderer(
                                 maxX = volume.maxX,
                                 minY = volume.minY,
                                 maxY = volume.maxY,
+                                projectedFrontX = volume.projectedFrontX(projection),
                                 projectedFrontY = volume.projectedFrontY(projection),
                                 renderPriority = item.renderPriority
                             )
@@ -313,6 +315,7 @@ class IsoWorldRenderer(
                                 maxX = volume.maxX,
                                 minY = volume.minY,
                                 maxY = volume.maxY,
+                                projectedFrontX = volume.projectedFrontX(projection),
                                 projectedFrontY = volume.projectedFrontY(projection),
                                 renderPriority = item.renderPriority
                             )

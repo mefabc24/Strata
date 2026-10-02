@@ -55,6 +55,10 @@ internal data class IsoSortVolume(
         return -(maxX + maxY) * projection.tileHeight / 2f
     }
 
+    fun projectedFrontX(projection: IsoProjection): Float {
+        return (maxX - maxY) * projection.tileWidth / 2f
+    }
+
     private fun isDefinitelyBehind(other: IsoSortVolume): Boolean {
         return axisEndsBefore(minX, maxX, other.minX, other.maxX) ||
                 axisEndsBefore(minY, maxY, other.minY, other.maxY)

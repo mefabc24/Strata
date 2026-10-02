@@ -13,6 +13,8 @@ import com.mefabc24.strata.render.entity.IsoEntityBounds
 import com.mefabc24.strata.render.entity.ResolvedEntityVisual
 import com.mefabc24.strata.debug.DebugEntitySettings
 import com.mefabc24.strata.debug.DebugObjectSettings
+import com.mefabc24.strata.debug.DebugVisualizationFilter
+import com.mefabc24.strata.debug.DebugVisualizationFilterContext
 import com.mefabc24.strata.world.EntityDirection
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.PlacedObject
@@ -26,6 +28,8 @@ internal class IsoWorldDebugRenderer(
     private val objectSettings: DebugObjectSettings,
     private val entitySettings: DebugEntitySettings,
     private val objectRenderingSettings: ObjectRenderingSettings,
+    private val filterContext: DebugVisualizationFilterContext =
+        DebugVisualizationFilterContext(),
     private val shapes: ShapeRenderer = ShapeRenderer()
 ) {
     private val objectBounds = Rectangle()
@@ -37,7 +41,8 @@ internal class IsoWorldDebugRenderer(
         camera: OrthographicCamera,
         animationTime: Float,
         objectVisualFor: (PlacedObject, Float) -> ResolvedObjectVisual?,
-        entityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?
+        entityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
+        filter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
     ) {
         val drawObjects = objectSettings.enabled && (
             objectSettings.showOccupiedTiles ||
@@ -59,7 +64,7 @@ internal class IsoWorldDebugRenderer(
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
 
-        drawFills(world, camera, drawObjects, drawEntities)
+        drawFills(world, camera, drawObjects, drawEntities, filter)
         drawLines(
             world = world,
             camera = camera,
@@ -67,7 +72,8 @@ internal class IsoWorldDebugRenderer(
             drawObjects = drawObjects,
             drawEntities = drawEntities,
             objectVisualFor = objectVisualFor,
-            entityVisualFor = entityVisualFor
+            entityVisualFor = entityVisualFor,
+            filter = filter
         )
 
         Gdx.gl.glLineWidth(1f)
@@ -78,7 +84,8 @@ internal class IsoWorldDebugRenderer(
         world: World,
         camera: OrthographicCamera,
         drawObjects: Boolean,
-        drawEntities: Boolean
+        drawEntities: Boolean,
+        filter: DebugVisualizationFilter
     ) {
         val objectFill = objectSettings.occupiedTileFillColor
         val entityFill = entitySettings.currentTileFillColor
@@ -92,6 +99,7 @@ internal class IsoWorldDebugRenderer(
         if (hasObjectFill) {
             shapes.color = objectFill
             for (placed in world.getObjects()) {
+                if (!filterContext.matches(filter, placed)) continue
                 for (tile in placed.occupiedTiles()) {
                     drawTileFill(tile)
                 }
@@ -101,6 +109,7 @@ internal class IsoWorldDebugRenderer(
         if (hasEntityFill) {
             shapes.color = entityFill
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 drawTileFill(entity.currentTile)
             }
         }
@@ -109,6 +118,7 @@ internal class IsoWorldDebugRenderer(
             shapes.color = entitySettings.positionColor
             val radius = POSITION_MARKER_RADIUS * camera.zoom
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 val point = projection.tileToWorld(
                     entity.position.x,
                     entity.position.y
@@ -127,7 +137,8 @@ internal class IsoWorldDebugRenderer(
         drawObjects: Boolean,
         drawEntities: Boolean,
         objectVisualFor: (PlacedObject, Float) -> ResolvedObjectVisual?,
-        entityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?
+        entityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
+        filter: DebugVisualizationFilter
     ) {
         shapes.begin(ShapeRenderer.ShapeType.Line)
 
@@ -135,14 +146,14 @@ internal class IsoWorldDebugRenderer(
             Gdx.gl.glLineWidth(
                 (objectSettings.lineWidth / camera.zoom).coerceAtLeast(1f)
             )
-            drawObjectLines(world, animationTime, objectVisualFor)
+            drawObjectLines(world, animationTime, objectVisualFor, filter)
         }
 
         if (drawEntities) {
             Gdx.gl.glLineWidth(
                 (entitySettings.lineWidth / camera.zoom).coerceAtLeast(1f)
             )
-            drawEntityLines(world, camera, animationTime, entityVisualFor)
+            drawEntityLines(world, camera, animationTime, entityVisualFor, filter)
         }
 
         shapes.end()
@@ -151,11 +162,13 @@ internal class IsoWorldDebugRenderer(
     private fun drawObjectLines(
         world: World,
         animationTime: Float,
-        visualFor: (PlacedObject, Float) -> ResolvedObjectVisual?
+        visualFor: (PlacedObject, Float) -> ResolvedObjectVisual?,
+        filter: DebugVisualizationFilter
     ) {
         if (objectSettings.showOccupiedTiles) {
             shapes.color = objectSettings.occupiedTileColor
             for (placed in world.getObjects()) {
+                if (!filterContext.matches(filter, placed)) continue
                 for (tile in placed.occupiedTiles()) {
                     drawTileOutline(tile)
                 }
@@ -165,6 +178,7 @@ internal class IsoWorldDebugRenderer(
         if (objectSettings.showOriginTile) {
             shapes.color = objectSettings.originTileColor
             for (placed in world.getObjects()) {
+                if (!filterContext.matches(filter, placed)) continue
                 drawTileOutline(objectDebugOrigin(placed))
             }
         }
@@ -172,6 +186,7 @@ internal class IsoWorldDebugRenderer(
         if (objectSettings.showSpriteBounds) {
             shapes.color = objectSettings.spriteBoundsColor
             for (placed in world.getObjects()) {
+                if (!filterContext.matches(filter, placed)) continue
                 val visual = visualFor(placed, animationTime) ?: continue
                 IsoObjectBounds.calculate(
                     projection = projection,
@@ -194,11 +209,13 @@ internal class IsoWorldDebugRenderer(
         world: World,
         camera: OrthographicCamera,
         animationTime: Float,
-        visualFor: (WorldEntity, Float) -> ResolvedEntityVisual?
+        visualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
+        filter: DebugVisualizationFilter
     ) {
         if (entitySettings.showCurrentTile) {
             shapes.color = entitySettings.currentTileColor
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 drawTileOutline(entity.currentTile)
             }
         }
@@ -207,6 +224,7 @@ internal class IsoWorldDebugRenderer(
             shapes.color = entitySettings.pathColor
             val markerRadius = WAYPOINT_MARKER_RADIUS * camera.zoom
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 forEachEntityDebugPathSegment(entity) { from, to ->
                     val fromWorld = projection.tileToWorld(from.x, from.y)
                     val toWorld = projection.tileToWorld(to.x, to.y)
@@ -224,6 +242,7 @@ internal class IsoWorldDebugRenderer(
         if (entitySettings.showDirection) {
             shapes.color = entitySettings.directionColor
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 val target = entityDebugDirectionTarget(entity)
                 val start = projection.tileToWorld(
                     entity.position.x,
@@ -237,6 +256,7 @@ internal class IsoWorldDebugRenderer(
         if (entitySettings.showSpriteBounds) {
             shapes.color = entitySettings.spriteBoundsColor
             for (entity in world.getEntities()) {
+                if (!filterContext.matches(filter, entity)) continue
                 val visual = visualFor(entity, animationTime) ?: continue
                 IsoEntityBounds.calculate(
                     projection = projection,
