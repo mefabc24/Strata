@@ -68,4 +68,56 @@ class DebugSettingsSearchTest {
         search.setAllExpanded(true)
         assertTrue(categories.all { it.expanded })
     }
+
+    @Test
+    fun `search reports every section containing a matching setting`() {
+        val search = DebugSettingsSearch(
+            listOf(
+                DebugSearchCategory(
+                    "Entities",
+                    setOf("Speed labels"),
+                    section = DebugPanelSection.VISUALS
+                ),
+                DebugSearchCategory(
+                    "Performance history",
+                    setOf("Render time"),
+                    section = DebugPanelSection.RUNTIME
+                ),
+                DebugSearchCategory(
+                    "Picking",
+                    setOf("Cursor marker"),
+                    section = DebugPanelSection.DIAGNOSTICS
+                )
+            )
+        )
+
+        val result = search.update("er")
+
+        assertEquals(
+            setOf(DebugPanelSection.RUNTIME, DebugPanelSection.DIAGNOSTICS),
+            result.matchingSections
+        )
+    }
+
+    @Test
+    fun `expand all can target only the selected section`() {
+        val categories = listOf(
+            DebugSearchCategory(
+                "Grid",
+                emptySet(),
+                section = DebugPanelSection.VISUALS
+            ),
+            DebugSearchCategory(
+                "Camera",
+                emptySet(),
+                section = DebugPanelSection.DIAGNOSTICS
+            )
+        )
+        val search = DebugSettingsSearch(categories)
+
+        search.setExpanded(setOf(1), expanded = true)
+
+        assertFalse(categories[0].expanded)
+        assertTrue(categories[1].expanded)
+    }
 }
