@@ -97,6 +97,32 @@ class DebugPerformanceLoggerTest {
     }
 
     @Test
+    fun `history capture is independent from overlay and terminal output`() {
+        val performance = DebugPerformanceSettings().apply {
+            startHistoryRecording()
+        }
+
+        performance.record(stats(renderMs = 3.0), 0.02f)
+
+        assertFalse(performance.overlayEnabled)
+        assertFalse(performance.terminalLoggingEnabled)
+        assertEquals(1, performance.history.size)
+        assertTrue(logs.isEmpty())
+
+        performance.stopHistoryRecording()
+        performance.overlayEnabled = true
+        performance.record(stats(renderMs = 9.0), 0.02f)
+        assertEquals(1, performance.history.size)
+        assertEquals(3.0, performance.history.summary(
+            DebugPerformanceMetric.RENDER_TIME
+        )?.averageMs)
+
+        performance.clearHistory()
+        assertEquals(0, performance.history.size)
+        assertTrue(performance.overlayEnabled)
+    }
+
+    @Test
     fun `logger aggregates frame and renderer metrics at interval`() {
         val logger = DebugPerformanceLogger().apply {
             enabled = true

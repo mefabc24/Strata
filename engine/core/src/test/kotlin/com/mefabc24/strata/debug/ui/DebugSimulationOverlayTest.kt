@@ -22,5 +22,9 @@ class DebugSimulationOverlayTest {
         assertEquals(0.25f, simulation.timeScale)
         simulation.timeScale = 1.5f
         assertNull(state.selectedTimeScale)
+        state.setCustomTimeScale(3.25f)
+        assertEquals(3.25f, simulation.timeScale)
+        state.resetTimeScale()
+        assertEquals(1f, simulation.timeScale)
     }
 }

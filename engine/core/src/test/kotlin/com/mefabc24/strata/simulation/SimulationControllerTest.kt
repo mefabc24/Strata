@@ -26,6 +26,8 @@ class SimulationControllerTest {
 
         simulation.timeScale = 0.5f
         assertEquals(0.05f, simulation.simulationDelta(0.1f))
+        assertEquals(0.1f, simulation.lastRealDelta)
+        assertEquals(0.05f, simulation.lastSimulationDelta)
     }
 
     @Test
@@ -36,11 +38,34 @@ class SimulationControllerTest {
         simulation.pause()
         assertTrue(simulation.paused)
         assertEquals(0f, simulation.simulationDelta(0.1f))
+        assertEquals(0f, simulation.lastSimulationDelta)
         assertEquals(4f, simulation.timeScale)
 
         simulation.resume()
         assertFalse(simulation.paused)
         assertEquals(0.4f, simulation.simulationDelta(0.1f))
+    }
+
+    @Test
+    fun `reset restores normal custom speed and preserves pause state`() {
+        val simulation = SimulationController().apply {
+            timeScale = 3.75f
+            pause()
+        }
+
+        simulation.resetTimeScale()
+
+        assertEquals(1f, simulation.timeScale)
+        assertTrue(simulation.paused)
+    }
+
+    @Test
+    fun `single step reports its effective delta`() {
+        val simulation = SimulationController().apply { pause(); step() }
+
+        assertEquals(1f / 60f, simulation.simulationDelta(0.5f))
+        assertEquals(0.5f, simulation.lastRealDelta)
+        assertEquals(1f / 60f, simulation.lastSimulationDelta)
     }
 
     @Test
