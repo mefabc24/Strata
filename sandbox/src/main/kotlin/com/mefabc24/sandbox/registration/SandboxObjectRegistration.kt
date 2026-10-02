@@ -99,6 +99,7 @@ internal fun ObjectRegistry.registerSandboxObjects() {
         sprite = "road1.png",
         factory = ::Road1
     ) {
+        renderPriority = -1
         offsetY = -7f
     }
 
@@ -106,6 +107,7 @@ internal fun ObjectRegistry.registerSandboxObjects() {
         sprite = "road2.png",
         factory = ::Road2
     ) {
+        renderPriority = -1
         offsetY = -7f
     }
 
@@ -113,6 +115,7 @@ internal fun ObjectRegistry.registerSandboxObjects() {
         sprite = "road-intersection.png",
         factory = ::RoadIntersection
     ) {
+        renderPriority = -1
         offsetY = -7f
     }
 
