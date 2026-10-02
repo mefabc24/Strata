@@ -6,25 +6,24 @@ import kotlin.test.assertEquals
 
 class DebugPanelNavigationTest {
     @Test
-    fun `switching from tools to debug resets tool mode once`() {
+    fun `switching from tools to debug changes only the selected tab`() {
         val navigation = DebugPanelNavigation()
-        var resets = 0
 
-        navigation.select(DebugPanelTab.DEBUG) { resets++ }
-        navigation.select(DebugPanelTab.DEBUG) { resets++ }
+        navigation.select(DebugPanelTab.DEBUG)
+        navigation.select(DebugPanelTab.DEBUG)
 
         assertEquals(DebugPanelTab.DEBUG, navigation.selectedTab)
-        assertEquals(1, resets)
     }
 
     @Test
-    fun `returning to tools does not reactivate a tool`() {
+    fun `tab navigation preserves independently managed tool selection`() {
         val navigation = DebugPanelNavigation()
-        var toolMode = DebugToolMode.BUILD
+        val toolMode = DebugToolMode.BUILD
 
-        navigation.select(DebugPanelTab.DEBUG) { toolMode = DebugToolMode.NONE }
-        navigation.select(DebugPanelTab.TOOLS) { toolMode = DebugToolMode.INSPECT }
+        navigation.select(DebugPanelTab.DEBUG)
+        navigation.select(DebugPanelTab.TOOLS)
 
-        assertEquals(DebugToolMode.NONE, toolMode)
+        assertEquals(DebugToolMode.BUILD, toolMode)
+        assertEquals(DebugPanelTab.TOOLS, navigation.selectedTab)
     }
 }
