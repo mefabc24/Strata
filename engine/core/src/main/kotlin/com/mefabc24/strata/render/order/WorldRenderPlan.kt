@@ -15,6 +15,12 @@ internal sealed interface WorldRenderPrimitive :
     WorldRenderItem,
     IsoSortable
 
+/** A world visual that belongs to a strict render-priority group. */
+internal sealed interface PrioritizedWorldRenderPrimitive :
+    WorldRenderPrimitive {
+    val renderPriority: Int
+}
+
 /** One complete authored terrain sprite at its logical world position. */
 internal data class TerrainCell(
     val x: Int,
@@ -33,8 +39,9 @@ internal data class TerrainCell(
 
 /** A placed object represented by its complete footprint and support level. */
 internal data class WorldObjectPrimitive(
-    val placedObject: PlacedObject
-) : WorldRenderPrimitive {
+    val placedObject: PlacedObject,
+    override val renderPriority: Int = 0
+) : PrioritizedWorldRenderPrimitive {
     val occupiedTiles: Set<TilePosition> = placedObject.occupiedTiles()
 
     val isSingleTile: Boolean =
@@ -54,8 +61,9 @@ internal data class WorldObjectPrimitive(
 
 /** A point-like entity at its continuous ground position. */
 internal data class WorldEntityPrimitive(
-    val worldEntity: WorldEntity
-) : WorldRenderPrimitive {
+    val worldEntity: WorldEntity,
+    override val renderPriority: Int = 0
+) : PrioritizedWorldRenderPrimitive {
     override val sortVolume = worldEntity.position.let { position ->
         IsoSortVolume(
             minX = position.x,
@@ -97,7 +105,8 @@ internal object WorldRenderPlan {
     fun prepareStatic(
         world: World,
         projection: IsoProjection,
-        metrics: IsoRenderOrderMetrics? = null
+        metrics: IsoRenderOrderMetrics? = null,
+        objectPriorityFor: (PlacedObject) -> Int = { 0 }
     ): StaticWorldRenderPlan {
         val items = mutableListOf<WorldRenderPrimitive>()
         val terrainIndexByCell =
@@ -132,7 +141,10 @@ internal object WorldRenderPlan {
 
         for (placed in world.getObjects()) {
             val objectIndex = items.size
-            val primitive = WorldObjectPrimitive(placed)
+            val primitive = WorldObjectPrimitive(
+                placedObject = placed,
+                renderPriority = objectPriorityFor(placed)
+            )
 
             items += primitive
             objectIndices += objectIndex
@@ -170,12 +182,14 @@ internal object WorldRenderPlan {
         val dependencies =
             explicitDependencies + objectDependencies
 
-        val orderedItems =
+        val spatiallyOrderedItems =
             IsoRenderOrder.backToFront(
                 items = items,
                 projection = projection,
                 explicitDependencies = dependencies
             )
+
+        val orderedItems = orderPriorityGroups(spatiallyOrderedItems)
 
         return buildStaticPlan(
             world = world,
@@ -208,6 +222,13 @@ internal object WorldRenderPlan {
                     val secondIndex = objectIndices[secondPosition]
                     val second =
                         items[secondIndex] as WorldObjectPrimitive
+
+                    if (
+                        second.renderPriority !=
+                        (items[firstIndex] as WorldObjectPrimitive).renderPriority
+                    ) {
+                        continue
+                    }
 
                     /*
                      * Complex-to-complex pairs are emitted only once.
@@ -242,7 +263,8 @@ internal object WorldRenderPlan {
         previous: StaticWorldRenderPlan,
         world: World,
         projection: IsoProjection,
-        metrics: IsoRenderOrderMetrics? = null
+        metrics: IsoRenderOrderMetrics? = null,
+        objectPriorityFor: (PlacedObject) -> Int = { 0 }
     ): StaticWorldRenderPlan {
         metrics?.relationChecks = 0
 
@@ -314,8 +336,12 @@ internal object WorldRenderPlan {
             }
         }
 
-        val addedPrimitives =
-            addedObjects.map(::WorldObjectPrimitive)
+        val addedPrimitives = addedObjects.map { placed ->
+            WorldObjectPrimitive(
+                placedObject = placed,
+                renderPriority = objectPriorityFor(placed)
+            )
+        }
 
         val items = ArrayList<WorldRenderPrimitive>(
             baseItems.size + addedPrimitives.size
@@ -382,12 +408,16 @@ internal object WorldRenderPlan {
                 }
 
             for (objectIndex in relationIndices) {
+                val existing =
+                    items[objectIndex] as WorldObjectPrimitive
+
+                if (existing.renderPriority != primitive.renderPriority) {
+                    continue
+                }
+
                 metrics?.let {
                     it.relationChecks++
                 }
-
-                val existing =
-                    items[objectIndex] as WorldObjectPrimitive
 
                 when (
                     existing.sortVolume.relationTo(
@@ -425,7 +455,8 @@ internal object WorldRenderPlan {
                 return prepareStatic(
                     world = world,
                     projection = projection,
-                    metrics = metrics
+                    metrics = metrics,
+                    objectPriorityFor = objectPriorityFor
                 )
             }
 
@@ -463,6 +494,13 @@ internal object WorldRenderPlan {
 
                 val secondPrimitive =
                     addedPrimitives[secondPosition]
+
+                if (
+                    secondPrimitive.renderPriority !=
+                    firstPrimitive.renderPriority
+                ) {
+                    continue
+                }
 
                 /*
                  * Complex-to-complex pairs are evaluated only once.
@@ -506,7 +544,7 @@ internal object WorldRenderPlan {
             }
         }
 
-        val orderedItems = order.resolve()
+        val orderedItems = orderPriorityGroups(order.resolve())
 
         return buildStaticPlan(
             world = world,
@@ -525,7 +563,8 @@ internal object WorldRenderPlan {
         staticPlan: StaticWorldRenderPlan,
         world: World,
         projection: IsoProjection,
-        metrics: IsoRenderOrderMetrics? = null
+        metrics: IsoRenderOrderMetrics? = null,
+        entityPriorityFor: (WorldEntity) -> Int = { 0 }
     ): List<WorldRenderPrimitive> {
         val entities = world.getEntities().toList()
 
@@ -568,13 +607,28 @@ internal object WorldRenderPlan {
         for (entity in entities) {
             val entityIndex = items.size
 
-            items += WorldEntityPrimitive(entity)
+            val entityPrimitive = WorldEntityPrimitive(
+                worldEntity = entity,
+                renderPriority = entityPriorityFor(entity)
+            )
+
+            items += entityPrimitive
 
             /*
              * Only movable entities need fresh spatial comparisons.
              * Static objects are already ordered relative to each other.
              */
             for (objectIndex in staticPlan.objectIndices) {
+                val objectPrimitive =
+                    staticItems[objectIndex] as WorldObjectPrimitive
+
+                if (
+                    objectPrimitive.renderPriority !=
+                    entityPrimitive.renderPriority
+                ) {
+                    continue
+                }
+
                 dynamicCandidates += IsoRenderCandidate(
                     first = objectIndex,
                     second = entityIndex
@@ -582,6 +636,16 @@ internal object WorldRenderPlan {
             }
 
             for (otherEntityIndex in entityIndices) {
+                val otherEntity =
+                    items[otherEntityIndex] as WorldEntityPrimitive
+
+                if (
+                    otherEntity.renderPriority !=
+                    entityPrimitive.renderPriority
+                ) {
+                    continue
+                }
+
                 dynamicCandidates += IsoRenderCandidate(
                     first = otherEntityIndex,
                     second = entityIndex
@@ -610,12 +674,14 @@ internal object WorldRenderPlan {
             }
         }
 
-        return IsoRenderOrder.backToFront(
-            items = items,
-            projection = projection,
-            relationCandidates = dynamicCandidates,
-            explicitDependencies = dependencies,
-            metrics = metrics
+        return orderPriorityGroups(
+            IsoRenderOrder.backToFront(
+                items = items,
+                projection = projection,
+                relationCandidates = dynamicCandidates,
+                explicitDependencies = dependencies,
+                metrics = metrics
+            )
         )
     }
 
@@ -627,7 +693,9 @@ internal object WorldRenderPlan {
     fun create(
         world: World,
         projection: IsoProjection,
-        metrics: IsoRenderOrderMetrics? = null
+        metrics: IsoRenderOrderMetrics? = null,
+        objectPriorityFor: (PlacedObject) -> Int = { 0 },
+        entityPriorityFor: (WorldEntity) -> Int = { 0 }
     ): List<WorldRenderPrimitive> {
         val staticMetrics =
             metrics?.let { IsoRenderOrderMetrics() }
@@ -635,7 +703,8 @@ internal object WorldRenderPlan {
         val staticPlan = prepareStatic(
             world = world,
             projection = projection,
-            metrics = staticMetrics
+            metrics = staticMetrics,
+            objectPriorityFor = objectPriorityFor
         )
 
         if (world.getEntities().isEmpty()) {
@@ -652,7 +721,8 @@ internal object WorldRenderPlan {
             staticPlan = staticPlan,
             world = world,
             projection = projection,
-            metrics = dynamicMetrics
+            metrics = dynamicMetrics,
+            entityPriorityFor = entityPriorityFor
         )
 
         metrics?.relationChecks =
@@ -660,6 +730,39 @@ internal object WorldRenderPlan {
                     (dynamicMetrics?.relationChecks ?: 0)
 
         return result
+    }
+
+    /**
+     * Keeps terrain in its existing structural positions while making the
+     * object/entity subsequence strictly ordered by priority. The stable group
+     * ordering preserves the already-resolved spatial order inside each group.
+     */
+    private fun orderPriorityGroups(
+        items: List<WorldRenderPrimitive>
+    ): List<WorldRenderPrimitive> {
+        val visuals = items.filterIsInstance<PrioritizedWorldRenderPrimitive>()
+
+        if (
+            visuals.size < 2 ||
+            visuals.all { it.renderPriority == visuals.first().renderPriority }
+        ) {
+            return items
+        }
+
+        val orderedVisuals = visuals
+            .groupBy(PrioritizedWorldRenderPrimitive::renderPriority)
+            .toSortedMap()
+            .values
+            .flatten()
+            .iterator()
+
+        return items.map { item ->
+            if (item is PrioritizedWorldRenderPrimitive) {
+                orderedVisuals.next()
+            } else {
+                item
+            }
+        }
     }
 
     private fun buildStaticPlan(

@@ -1077,6 +1077,7 @@ internal class DebugPanel(
                 RenderOrderDebugMode.ACTUAL -> item.actualIndex?.toString() ?: "not drawn"
             },
             "Drawn" to item.drawn.toString(),
+            "Render priority" to (sort?.renderPriority?.toString() ?: "unavailable"),
             "Sort volume" to if (sort != null) {
                 "[${sort.minX.format()}, ${sort.maxX.format()}] x " +
                         "[${sort.minY.format()}, ${sort.maxY.format()}]"

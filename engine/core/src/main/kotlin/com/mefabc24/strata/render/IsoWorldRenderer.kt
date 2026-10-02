@@ -69,7 +69,8 @@ data class RenderSortDebugSnapshot(
     val maxX: Float,
     val minY: Float,
     val maxY: Float,
-    val projectedFrontY: Float
+    val projectedFrontY: Float,
+    val renderPriority: Int = 0
 )
 
 /** Records the primary world pass at its real sprite submission points. */
@@ -115,7 +116,9 @@ class IsoWorldRenderer(
     private val projection: IsoProjection,
     objectSettings: ObjectRenderingSettings = ObjectRenderingSettings(),
     private val lighting: Lighting = Lighting(),
-    private val collectDebugSnapshot: () -> Boolean = { false }
+    private val collectDebugSnapshot: () -> Boolean = { false },
+    private val objectPriorityFor: (PlacedObject) -> Int = { 0 },
+    private val entityPriorityFor: (WorldEntity) -> Int = { 0 }
 ) {
     private val objectSettings = objectSettings.copy().also {
         it.validate()
@@ -281,7 +284,8 @@ class IsoWorldRenderer(
                                 maxX = volume.maxX,
                                 minY = volume.minY,
                                 maxY = volume.maxY,
-                                projectedFrontY = volume.projectedFrontY(projection)
+                                projectedFrontY = volume.projectedFrontY(projection),
+                                renderPriority = item.renderPriority
                             )
                         }
                     )
@@ -309,7 +313,8 @@ class IsoWorldRenderer(
                                 maxX = volume.maxX,
                                 minY = volume.minY,
                                 maxY = volume.maxY,
-                                projectedFrontY = volume.projectedFrontY(projection)
+                                projectedFrontY = volume.projectedFrontY(projection),
+                                renderPriority = item.renderPriority
                             )
                         }
                     )
@@ -384,7 +389,8 @@ class IsoWorldRenderer(
                 staticRenderPlan = WorldRenderPlan.prepareStatic(
                     world = world,
                     projection = projection,
-                    metrics = metrics
+                    metrics = metrics,
+                    objectPriorityFor = objectPriorityFor
                 )
 
                 pendingStaticPlanMs += elapsedMs(start)
@@ -401,7 +407,8 @@ class IsoWorldRenderer(
                     previous = cachedPlan,
                     world = world,
                     projection = projection,
-                    metrics = metrics
+                    metrics = metrics,
+                    objectPriorityFor = objectPriorityFor
                 )
 
                 pendingStaticPlanMs += elapsedMs(start)
@@ -419,7 +426,8 @@ class IsoWorldRenderer(
         normalRenderPlan = WorldRenderPlan.withEntities(
             staticPlan = checkNotNull(staticRenderPlan),
             world = world,
-            projection = projection
+            projection = projection,
+            entityPriorityFor = entityPriorityFor
         )
 
         pendingDynamicPlanMs += elapsedMs(dynamicStart)

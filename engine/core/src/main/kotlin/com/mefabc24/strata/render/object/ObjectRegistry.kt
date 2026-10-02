@@ -25,6 +25,12 @@ import kotlin.reflect.KClass
  * Configures the visual appearance of an object type.
  */
 class ObjectSpriteSettings {
+    /**
+     * Controls this object type's world rendering group.
+     * Lower priorities render before higher priorities. The default is `0`.
+     */
+    var renderPriority: Int = 0
+
     var offsetX: Float = 0f
     var offsetY: Float = 0f
 
@@ -507,6 +513,10 @@ class ObjectRegistry internal constructor(
     fun get(placed: PlacedObject): ObjectVisual? {
         return registrations[placed.placeable::class]?.visual
     }
+
+    /** Returns the registered world render priority for [placed]. */
+    internal fun renderPriority(placed: PlacedObject): Int =
+        registrations[placed.placeable::class]?.settings?.renderPriority ?: 0
 
     /** Resolves the active state and animation clock for [placed]. */
     fun resolve(

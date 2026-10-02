@@ -101,6 +101,8 @@ class IsoWorldView(
     private val resolvedRepresentativeEntityVisualFor: (
         (WorldEntity, Float) -> ResolvedEntityVisual?
     )? = null,
+    private val objectPriorityFor: (PlacedObject) -> Int = { 0 },
+    private val entityPriorityFor: (WorldEntity) -> Int = { 0 },
     debugObjectSettings: DebugObjectSettings = DebugObjectSettings(),
     debugEntitySettings: DebugEntitySettings = DebugEntitySettings(),
     private val debugSettings: DebugSettings? = null
@@ -157,7 +159,9 @@ class IsoWorldView(
                         settings.culling.enabled ||
                         settings.worldState.inspectionHighlightVisible
             } ?: false
-        }
+        },
+        objectPriorityFor = objectPriorityFor,
+        entityPriorityFor = entityPriorityFor
     )
 
     private val debugGridConfig = debugGridSettings

@@ -23,6 +23,12 @@ import com.mefabc24.strata.world.EntityDirection
 
 /** Configures one entity type's bottom-center anchored sprite. */
 class EntitySpriteSettings {
+    /**
+     * Controls this entity type's world rendering group.
+     * Lower priorities render before higher priorities. The default is `0`.
+     */
+    var renderPriority: Int = 0
+
     var offsetX: Float = 0f
     var offsetY: Float = 0f
     var width: Float? = null
@@ -506,6 +512,10 @@ class EntityRegistry internal constructor(
     fun get(entity: WorldEntity): EntityVisual? {
         return registrations[entity.entity::class]?.visual
     }
+
+    /** Returns the registered world render priority for [entity]. */
+    internal fun renderPriority(entity: WorldEntity): Int =
+        registrations[entity.entity::class]?.settings?.renderPriority ?: 0
 
     /** Resolves the active state and animation clock for [entity]. */
     fun resolve(
