@@ -98,6 +98,24 @@ class ObjectRegistryTest {
     }
 
     @Test
+    fun `render priority defaults to zero and accepts unrestricted integers`() {
+        val registry = registry()
+        registry.register<House>("house.png")
+        registry.register<Tree>("tree.png") {
+            renderPriority = Int.MIN_VALUE
+        }
+
+        assertEquals(
+            0,
+            registry.renderPriority(PlacedObject(House(), 0, 0))
+        )
+        assertEquals(
+            Int.MIN_VALUE,
+            registry.renderPriority(PlacedObject(Tree(), 1, 1))
+        )
+    }
+
+    @Test
     fun `multi file animation prepares ordered frames masks settings and factory`() {
         val queued = mutableListOf<String>()
         val textures = mapOf(

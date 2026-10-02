@@ -1,6 +1,7 @@
 package com.mefabc24.strata.iso
 
 import com.badlogic.gdx.math.Rectangle
+import com.mefabc24.strata.render.order.WorldRenderPlan
 import com.mefabc24.strata.render.order.WorldEntityPrimitive
 import com.mefabc24.strata.render.order.WorldObjectPrimitive
 import com.mefabc24.strata.world.Entity
@@ -73,6 +74,31 @@ class PickingDebugSnapshotTest {
         val pickedObject = assertIs<PickedTarget.Object>(picked)
         assertSame(placed, pickedObject.placedObject)
         assertEquals(objectBounds, pickedObject.bounds)
+    }
+
+    @Test
+    fun `picked target follows render priority across objects and entities`() {
+        val world = World(2, 2) { _, _ -> TestTile }
+        val placed = requireNotNull(world.place(TestObject(), 0, 0))
+        val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
+        val plan = WorldRenderPlan.create(
+            world = world,
+            projection = IsoProjection(TileGeometry(32f, 24f)),
+            objectPriorityFor = { 2 },
+            entityPriorityFor = { -1 }
+        )
+
+        val picked = frontmostPickedSprite(
+            renderPlan = plan,
+            objectResult = SpritePickDiagnostic(
+                placed, placed, Rectangle(), true, Rectangle()
+            ),
+            entityResult = SpritePickDiagnostic(
+                entity, entity, Rectangle(), true, Rectangle()
+            )
+        )
+
+        assertSame(placed, assertIs<PickedTarget.Object>(picked).placedObject)
     }
 
     @Test

@@ -79,6 +79,28 @@ class EntityRegistryTest {
     }
 
     @Test
+    fun `render priority defaults to zero and accepts unrestricted integers`() {
+        val registry = registry()
+        registry.register<Citizen>("citizen.png")
+        registry.register<Trader>("trader.png") {
+            renderPriority = Int.MAX_VALUE
+        }
+
+        assertEquals(
+            0,
+            registry.renderPriority(
+                WorldEntity(Citizen(), EntityPosition(0.5f, 0.5f))
+            )
+        )
+        assertEquals(
+            Int.MAX_VALUE,
+            registry.renderPriority(
+                WorldEntity(Trader(), EntityPosition(0.5f, 0.5f))
+            )
+        )
+    }
+
+    @Test
     fun `spawnable entries expose optional validated factories`() {
         val registry = registry()
         registry.register<Citizen>("citizen.png", factory = ::Citizen)
