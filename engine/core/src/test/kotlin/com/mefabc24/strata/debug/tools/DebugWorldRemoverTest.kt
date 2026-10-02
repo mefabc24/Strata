@@ -107,7 +107,10 @@ class DebugWorldRemoverTest {
         val outside = requireNotNull(world.place(TestPlaceable(), 4, 4))
         val entity = world.addEntity(TestEntity, EntityPosition.centerOf(TilePosition(2, 2)))
         world.setOverlayTile("overlay", 0, 0, UpperOverlay)
-        val settings = DebugDeleteToolSettings().apply { brushSize = 3 }
+        val settings = DebugDeleteToolSettings().apply {
+            brushSize = 3
+            dragEnabled = false
+        }
         val remover = DebugWorldRemover(world, settings)
 
         val removed = remover.beginDelete(TilePosition(1, 1))
