@@ -216,9 +216,10 @@ internal class DebugPanel(
                     fillAvailableX()
                 }
             }.cell {
-                grow()
-                fill()
+                fillAvailableX()
                 minHeight(0f)
+                prefHeight(Value.prefHeight)
+                maxHeight(Value.percentHeight(0.75f, ui.root))
             }
 
             // Fixed status footer
@@ -244,8 +245,8 @@ internal class DebugPanel(
             prefWidth(Value.percentWidth(0.34f, ui.root))
             maxWidth(460f)
 
-            growY()
-            fillY()
+            prefHeight(Value.prefHeight)
+            maxHeight(Value.percentHeight(0.95f, ui.root))
             top()
             left()
         }
@@ -906,24 +907,45 @@ internal class DebugPanel(
 
     private fun syncVisibility() {
         if (!::toolsTab.isInitialized) return
+
         val tab = requireNotNull(tabs.selected)
         val mode = tools.mode
+
+        val previousTab = lastTab
+        val previousMode = lastMode
+        val previousOverlayVisibility = overlayPaintControls.isVisible
+
         if (tab != lastTab || mode != lastMode) {
             hidePreview()
             bodyScroll.scrollY = 0f
             lastTab = tab
             lastMode = mode
         }
+
         toolsTab.isVisible = tab == DebugPanelTab.TOOLS
         debugTab.isVisible = tab == DebugPanelTab.DEBUG
+
         buildControls.isVisible = mode == DebugToolMode.BUILD
         deleteControls.isVisible = mode == DebugToolMode.DELETE
         paintControls.isVisible = mode == DebugToolMode.PAINT
         spawnControls.isVisible = mode == DebugToolMode.SPAWN
         inspectControls.isVisible = mode == DebugToolMode.INSPECT
         pathControls.isVisible = mode == DebugToolMode.PATHFINDING
-        overlayPaintControls.isVisible = mode == DebugToolMode.PAINT &&
-            painter.target == DebugPaintTarget.OVERLAY
+
+        overlayPaintControls.isVisible =
+            mode == DebugToolMode.PAINT &&
+                    painter.target == DebugPaintTarget.OVERLAY
+
+        if (
+            tab != previousTab ||
+            mode != previousMode ||
+            overlayPaintControls.isVisible != previousOverlayVisibility
+        ) {
+            toolsTab.invalidateHierarchy()
+            debugTab.invalidateHierarchy()
+            bodyScroll.content.invalidateHierarchy()
+            bodyScroll.invalidateHierarchy()
+        }
     }
 
     private fun syncDiagnostics() {

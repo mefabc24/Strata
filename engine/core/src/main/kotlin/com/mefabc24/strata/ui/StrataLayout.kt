@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 
 internal class StrataUiContext(
@@ -513,6 +514,21 @@ class StrataGrid internal constructor(
 class StrataStack internal constructor(
     private val context: StrataUiContext
 ) : Stack() {
+
+    /** Measures only visible layers when determining the required height. */
+    override fun getPrefHeight(): Float =
+        children
+            .filter { it.isVisible }
+            .maxOfOrNull { actor ->
+                (actor as? Layout)?.prefHeight ?: actor.height
+            } ?: 0f
+
+    override fun getMinHeight(): Float =
+        children
+            .filter { it.isVisible }
+            .maxOfOrNull { actor ->
+                (actor as? Layout)?.minHeight ?: actor.height
+            } ?: 0f
 
     /** Adds an actor as a stack layer and returns the same actor. */
     fun <A : Actor> actor(actor: A): A {
