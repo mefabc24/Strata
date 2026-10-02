@@ -221,6 +221,7 @@ internal class IsoAdvancedDebugRenderer(
             labels.projectionMatrix = camera.combined
             labels.begin()
             if (renderOrderLayers.objectEntityLabels || renderOrderLayers.priorityLabels) {
+                val highlightColor = settings.renderOrder.priorityHighlightColor
                 for (item in renderSnapshot.items) {
                     if (!item.drawn || item.terrain != null) continue
                     if (!filterContext.matches(settings.visualizationFilter, item)) continue
@@ -236,7 +237,7 @@ internal class IsoAdvancedDebugRenderer(
                         RenderPriorityFocusMode.HIGHLIGHT &&
                         item.sort?.renderPriority == settings.renderOrder.selectedPriority
                     ) {
-                        settings.renderOrder.priorityHighlightColor
+                        highlightColor
                     } else {
                         Color.WHITE
                     }
@@ -566,16 +567,29 @@ internal class IsoAdvancedDebugRenderer(
                 (settings.renderOrder.sortGeometryLineWidth / camera.zoom)
                     .coerceAtLeast(1f)
             )
+            val volumeColor = settings.renderOrder.sortVolumeColor
+            val backAnchorColor = settings.renderOrder.sortBackAnchorColor
+            val frontAnchorColor = settings.renderOrder.sortFrontAnchorColor
+            val projectedPositionColor = settings.renderOrder.projectedSortPositionColor
             renderSnapshot.items.forEach { item ->
                 if (item.terrain != null || item.sort == null) return@forEach
                 if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
                 if (!renderPriorityFocusAllows(settings.renderOrder, item)) return@forEach
-                drawSortGeometry(item, renderOrderLayers, camera.zoom)
+                drawSortGeometry(
+                    item = item,
+                    layers = renderOrderLayers,
+                    cameraZoom = camera.zoom,
+                    volumeColor = volumeColor,
+                    backAnchorColor = backAnchorColor,
+                    frontAnchorColor = frontAnchorColor,
+                    projectedPositionColor = projectedPositionColor
+                )
             }
         }
         if (renderOrderLayers.priorityFocus && renderSnapshot != null) {
             Gdx.gl.glLineWidth(3f)
-            shapes.color = settings.renderOrder.priorityHighlightColor
+            val highlightColor = settings.renderOrder.priorityHighlightColor
+            shapes.color = highlightColor
             renderSnapshot.items.forEach { item ->
                 if (!item.drawn || item.terrain != null) return@forEach
                 if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
@@ -674,7 +688,11 @@ internal class IsoAdvancedDebugRenderer(
     private fun drawSortGeometry(
         item: RenderItemDebugSnapshot,
         layers: RenderOrderDebugLayers,
-        cameraZoom: Float
+        cameraZoom: Float,
+        volumeColor: Color,
+        backAnchorColor: Color,
+        frontAnchorColor: Color,
+        projectedPositionColor: Color
     ) {
         val sort = requireNotNull(item.sort)
         projection.tileToWorld(sort.minX, sort.minY, sortPointA)
@@ -683,7 +701,7 @@ internal class IsoAdvancedDebugRenderer(
         projection.tileToWorld(sort.minX, sort.maxY, sortPointD)
 
         if (layers.sortVolumes) {
-            shapes.color = settings.renderOrder.sortVolumeColor
+            shapes.color = volumeColor
             shapes.line(sortPointA, sortPointB)
             shapes.line(sortPointB, sortPointC)
             shapes.line(sortPointC, sortPointD)
@@ -691,16 +709,16 @@ internal class IsoAdvancedDebugRenderer(
         }
         if (layers.sortAnchors) {
             val radius = SORT_ANCHOR_RADIUS * cameraZoom
-            shapes.color = settings.renderOrder.sortBackAnchorColor
+            shapes.color = backAnchorColor
             shapes.circle(sortPointA.x, sortPointA.y, radius, SORT_MARKER_SEGMENTS)
-            shapes.color = settings.renderOrder.sortFrontAnchorColor
+            shapes.color = frontAnchorColor
             shapes.circle(sortPointC.x, sortPointC.y, radius, SORT_MARKER_SEGMENTS)
         }
         if (layers.projectedSortPositions) {
             val radius = PROJECTED_SORT_MARKER_RADIUS * cameraZoom
             val x = sort.projectedFrontX
             val y = sort.projectedFrontY
-            shapes.color = settings.renderOrder.projectedSortPositionColor
+            shapes.color = projectedPositionColor
             shapes.line(x - radius, y, x + radius, y)
             shapes.line(x, y - radius, x, y + radius)
         }
