@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
 import com.mefabc24.strata.pathfinding.PathfindingDiagnosticResult
+import com.mefabc24.strata.pathfinding.PathfindingNodeDiagnostic
+import com.mefabc24.strata.pathfinding.PathfindingNodeStatus
 import com.mefabc24.strata.placement.PlacementDiagnostic
 import com.mefabc24.strata.placement.PlacementFailureReason
 import com.mefabc24.strata.world.TilePosition
@@ -50,7 +52,27 @@ class DebugDiagnosticRowsTest {
             goal = TilePosition(3, 2),
             path = listOf(start, TilePosition(2, 2), TilePosition(3, 2)),
             explored = listOf(start, TilePosition(2, 2)),
-            durationNanos = 1_500_000
+            durationNanos = 1_500_000,
+            nodes = listOf(
+                PathfindingNodeDiagnostic(
+                    position = start,
+                    gCost = 0f,
+                    hCost = 2f,
+                    fCost = 2f,
+                    parent = null,
+                    status = PathfindingNodeStatus.CLOSED,
+                    explorationOrder = 0
+                ),
+                PathfindingNodeDiagnostic(
+                    position = TilePosition(2, 2),
+                    gCost = 1f,
+                    hCost = 1f,
+                    fCost = 2f,
+                    parent = start,
+                    status = PathfindingNodeStatus.OPEN,
+                    explorationOrder = null
+                )
+            )
         )
         val rows = pathfindingDiagnosticRows(result.waypoints, null, result)
 
@@ -58,6 +80,9 @@ class DebugDiagnosticRowsTest {
         assertEquals("3", rows.first { it.key == "Path length" }.value)
         assertEquals("2.00", rows.first { it.key == "Total cost" }.value)
         assertEquals("2", rows.first { it.key == "Explored" }.value)
+        assertEquals("1", rows.first { it.key == "Open set" }.value)
+        assertEquals("1", rows.first { it.key == "Closed set" }.value)
+        assertEquals("Yes", rows.first { it.key == "Goal reached" }.value)
         assertEquals("1.50 ms", rows.first { it.key == "Search time" }.value)
     }
 

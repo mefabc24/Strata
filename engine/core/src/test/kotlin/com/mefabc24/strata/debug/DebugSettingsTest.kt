@@ -82,6 +82,18 @@ class DebugSettingsTest {
         assertTrue(settings.pathfinding.enabled)
         assertEquals(PathMovementMode.FOUR_WAY, settings.pathfinding.movementMode)
         assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
+        assertFalse(settings.pathfinding.showOpenSet)
+        assertFalse(settings.pathfinding.showClosedSet)
+        assertFalse(settings.pathfinding.showGCost)
+        assertFalse(settings.pathfinding.showHCost)
+        assertFalse(settings.pathfinding.showFCost)
+        assertFalse(settings.pathfinding.showParentDirections)
+        assertFalse(settings.pathfinding.showExplorationOrder)
+        assertFalse(settings.pathfinding.showRejectedTransitions)
+        assertEquals(1.5f, settings.pathfinding.maximumLabelZoom)
+        assertEquals(128, settings.pathfinding.maximumVisibleLabels)
+        assertEquals(2048, settings.pathfinding.maximumRejectedTransitions)
+        assertEquals(1, settings.pathfinding.automaticIterationsPerUpdate)
         assertTrue(settings.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
         assertEquals(1, settings.paint.brushSize)
@@ -386,6 +398,27 @@ class DebugSettingsTest {
         listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
             assertFailsWith<IllegalArgumentException> {
                 settings.pathfinding.entitySpeedMultiplier = invalid
+            }
+        }
+    }
+
+    @Test
+    fun `pathfinding diagnostic limits reject invalid values`() {
+        val settings = DebugPathfindingSettings()
+        listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> { settings.maximumLabelZoom = invalid }
+        }
+        listOf(0, 4097).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> { settings.maximumVisibleLabels = invalid }
+        }
+        listOf(-1, 16385).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.maximumRejectedTransitions = invalid
+            }
+        }
+        listOf(0, 1025).forEach { invalid ->
+            assertFailsWith<IllegalArgumentException> {
+                settings.automaticIterationsPerUpdate = invalid
             }
         }
     }

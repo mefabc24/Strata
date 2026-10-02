@@ -3,6 +3,7 @@ package com.mefabc24.strata.debug.tools
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.pathfinding.PathMovementMode
+import com.mefabc24.strata.pathfinding.PathfindingSearchStatus
 import com.mefabc24.strata.world.Entity
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Tile
@@ -23,6 +24,59 @@ class DebugPathfindingToolTest {
     @Test
     fun `consume reached waypoints defaults to enabled`() {
         assertTrue(DebugSettings().pathfinding.consumeReachedWaypoints)
+    }
+
+    @Test
+    fun `diagnostic search can step continue pause and reset`() {
+        val state = DebugWorldState()
+        val tool = DebugPathfindingTool(
+            world = world(),
+            state = state,
+            automaticIterationsPerUpdate = { 2 }
+        )
+        tool.click(TilePosition(0, 0))
+        tool.click(TilePosition(4, 4))
+
+        assertTrue(tool.startDiagnosticSearch())
+        assertTrue(tool.diagnosticSearchActive)
+        assertFalse(tool.diagnosticSearchRunning)
+        assertEquals(PathfindingSearchStatus.READY, tool.result?.status)
+
+        assertTrue(tool.stepDiagnosticSearch())
+        assertEquals(1, tool.result?.closedSetSize)
+        assertEquals(PathfindingSearchStatus.RUNNING, tool.result?.status)
+
+        assertTrue(tool.continueDiagnosticSearch())
+        tool.update()
+        assertTrue(requireNotNull(tool.result).closedSetSize >= 3)
+        assertTrue(tool.pauseDiagnosticSearch())
+        val pausedCount = tool.result?.closedSetSize
+        tool.update()
+        assertEquals(pausedCount, tool.result?.closedSetSize)
+
+        assertTrue(tool.resetDiagnosticSearch())
+        assertEquals(PathfindingSearchStatus.READY, tool.result?.status)
+        assertEquals(0, tool.result?.closedSetSize)
+
+        assertTrue(tool.continueDiagnosticSearch())
+        repeat(20) { tool.update() }
+        assertFalse(tool.diagnosticSearchRunning)
+        assertEquals(PathfindingSearchStatus.SUCCEEDED, tool.result?.status)
+        assertEquals(TilePosition(4, 4), tool.result?.path?.last())
+    }
+
+    @Test
+    fun `editing waypoints cancels a stepped diagnostic session`() {
+        val tool = DebugPathfindingTool(world())
+        tool.click(TilePosition(0, 0))
+        tool.click(TilePosition(2, 0))
+        assertTrue(tool.startDiagnosticSearch())
+
+        tool.click(TilePosition(4, 0))
+
+        assertFalse(tool.diagnosticSearchActive)
+        assertEquals(3, tool.waypoints.size)
+        assertEquals(TilePosition(4, 0), tool.result?.goal)
     }
 
     @Test
