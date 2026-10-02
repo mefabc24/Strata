@@ -132,6 +132,24 @@ class DebugTerrainPainterTest {
     }
 
     @Test
+    fun `brush centered outside world paints only its in-world intersection`() {
+        val world = world()
+        val settings = DebugPaintToolSettings().apply { brushSize = 3 }
+        val painter = painter(world, settings).apply { selectedEntry = entries.last() }
+
+        assertTrue(painter.beginPaint(-1, 1))
+
+        assertEquals(
+            List(3) { Terrain.WATER },
+            (0..2).map { y -> (world.getTile(0, y) as TestTile).terrain }
+        )
+        assertEquals(
+            List(3) { Terrain.GRASS },
+            (0..2).map { y -> (world.getTile(1, y) as TestTile).terrain }
+        )
+    }
+
+    @Test
     fun `overlapping brush samples create each painted tile once per stroke`() {
         var created = 0
         val registry = TerrainRegistry("", {}, { TextureRegion() })
