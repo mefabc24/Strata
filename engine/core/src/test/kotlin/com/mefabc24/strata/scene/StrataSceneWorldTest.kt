@@ -212,7 +212,7 @@ class StrataSceneWorldTest {
 
             debug {
                 performance {
-                    intervalSeconds = 3f
+                    terminalLoggingIntervalSeconds = 3f
                 }
 
                 grid {
@@ -269,7 +269,7 @@ class StrataSceneWorldTest {
 
         assertSame(world, scene.world)
         assertEquals(0.75f, scene.audio.masterVolume)
-        assertEquals(3f, scene.debug.performance.intervalSeconds)
+        assertEquals(3f, scene.debug.performance.terminalLoggingIntervalSeconds)
         assertSame(scene.debug.grid, spec.debugGridSettings)
         assertSame(scene.debug.objects, spec.debugObjectSettings)
         assertSame(scene.debug.entities, spec.debugEntitySettings)

@@ -21,7 +21,8 @@ class DebugSettingsTest {
         assertFalse(settings.panel.enabled)
         assertFalse(settings.panel.visible)
         assertEquals(Input.Keys.F3, settings.panel.toggleKey)
-        assertFalse(settings.performance.enabled)
+        assertFalse(settings.performance.overlayEnabled)
+        assertFalse(settings.performance.terminalLoggingEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
         assertFalse(settings.objects.enabled)
@@ -118,7 +119,8 @@ class DebugSettingsTest {
         assertFalse(settings.entities.enabled)
 
         settings.applyPreset(DebugPreset.EVERYTHING)
-        assertTrue(settings.performance.enabled)
+        assertTrue(settings.performance.overlayEnabled)
+        assertFalse(settings.performance.terminalLoggingEnabled)
         assertTrue(settings.simulation.enabled)
         assertTrue(settings.grid.enabled)
         assertTrue(settings.objects.enabled)
@@ -170,7 +172,7 @@ class DebugSettingsTest {
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertFalse(settings.performance.enabled)
+        assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
         assertFalse(settings.objects.enabled)
@@ -225,7 +227,7 @@ class DebugSettingsTest {
             )
         }
         settings.applyPreset(DebugPreset.MINIMAL)
-        assertTrue(settings.performance.enabled)
+        assertTrue(settings.performance.overlayEnabled)
         assertTrue(settings.grid.enabled)
         assertFalse(settings.worldStats.enabled)
         settings.applyPreset(DebugPreset.RENDERING)

@@ -10,6 +10,7 @@ import com.mefabc24.strata.testing.proxy
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -43,6 +44,55 @@ class DebugPerformanceLoggerTest {
 
         logger.record(RenderStats(), 1f)
 
+        assertTrue(logs.isEmpty())
+    }
+
+    @Test
+    fun `overlay activation does not enable terminal output`() {
+        val performance = DebugPerformanceSettings().apply {
+            overlayEnabled = true
+            terminalLoggingIntervalSeconds = 0.01f
+        }
+
+        performance.record(RenderStats(), 0.01f)
+
+        assertTrue(performance.overlayEnabled)
+        assertFalse(performance.terminalLoggingEnabled)
+        assertTrue(logs.isEmpty())
+    }
+
+    @Test
+    fun `terminal output remains active when overlay is disabled`() {
+        val performance = DebugPerformanceSettings().apply {
+            terminalLoggingEnabled = true
+            terminalLoggingIntervalSeconds = 0.02f
+        }
+
+        performance.record(RenderStats(), 0.01f)
+        performance.overlayEnabled = true
+        performance.overlayEnabled = false
+        performance.record(RenderStats(), 0.01f)
+
+        assertFalse(performance.overlayEnabled)
+        assertTrue(performance.terminalLoggingEnabled)
+        assertEquals(1, logs.size)
+    }
+
+    @Test
+    fun `terminal output can be disabled while overlay remains active`() {
+        val performance = DebugPerformanceSettings().apply {
+            overlayEnabled = true
+            terminalLoggingEnabled = true
+            terminalLoggingIntervalSeconds = 0.01f
+        }
+        performance.record(RenderStats(), 0.01f)
+        logs.clear()
+
+        performance.terminalLoggingEnabled = false
+        performance.record(RenderStats(), 0.01f)
+
+        assertTrue(performance.overlayEnabled)
+        assertFalse(performance.terminalLoggingEnabled)
         assertTrue(logs.isEmpty())
     }
 
