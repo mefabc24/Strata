@@ -1245,12 +1245,6 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
-            category?.let {
-                button("Reset $title") {
-                    settings.resetVisualCategory(it)
-                    syncControls()
-                }.cell { fillAvailableX(); height(34f) }
-            }
             separator()
         }
         val cell = getCell(expander).apply { fillAvailableX() }
@@ -1271,12 +1265,6 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
-            category?.let {
-                button("Reset $title") {
-                    settings.resetVisualCategory(it)
-                    syncControls()
-                }.cell { fillAvailableX(); height(34f) }
-            }
             separator()
         }
         val cell = getCell(expander).apply { fillAvailableX() }
