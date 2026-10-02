@@ -23,7 +23,7 @@ class DebugSettings {
     internal val worldState = DebugWorldState()
     internal val entityFreezeState = DebugEntityFreezeState()
     val panel = DebugPanelSettings()
-    val performance = DebugPerformanceLogger()
+    val performance = DebugPerformanceSettings()
     val simulation = DebugFeatureSettings()
     val grid = DebugGridSettings()
     val objects = DebugObjectSettings()
@@ -44,7 +44,7 @@ class DebugSettings {
     internal var pathCost: ((World, TilePosition, TilePosition) -> Float)? = null
 
     fun panel(configure: DebugPanelSettings.() -> Unit) = panel.apply(configure)
-    fun performance(configure: DebugPerformanceLogger.() -> Unit) = performance.apply(configure)
+    fun performance(configure: DebugPerformanceSettings.() -> Unit) = performance.apply(configure)
     fun simulation(configure: DebugFeatureSettings.() -> Unit) = simulation.apply(configure)
     fun grid(configure: DebugGridSettings.() -> Unit) = grid.apply(configure)
     fun objects(configure: DebugObjectSettings.() -> Unit) = objects.apply(configure)
@@ -127,6 +127,28 @@ class DebugPanelSettings {
             }
             field = value
         }
+}
+
+/** Independent output controls for the shared renderer performance metrics. */
+class DebugPerformanceSettings internal constructor() {
+    private val terminalLogger = DebugPerformanceLogger()
+
+    /** Whether the on-screen performance overlay is visible. */
+    var overlayEnabled: Boolean = false
+
+    /** Whether performance summaries are periodically written to the terminal log. */
+    var terminalLoggingEnabled: Boolean
+        get() = terminalLogger.enabled
+        set(value) { terminalLogger.enabled = value }
+
+    /** Seconds of rendered time accumulated between terminal performance summaries. */
+    var terminalLoggingIntervalSeconds: Float
+        get() = terminalLogger.intervalSeconds
+        set(value) { terminalLogger.intervalSeconds = value }
+
+    internal fun record(stats: com.mefabc24.strata.render.RenderStats, delta: Float) {
+        terminalLogger.record(stats, delta)
+    }
 }
 
 open class DebugFeatureSettings {
@@ -378,7 +400,7 @@ internal object DebugPresets {
         when (preset) {
             DebugPreset.OFF -> Unit
             DebugPreset.MINIMAL -> {
-                settings.performance.enabled = true
+                settings.performance.overlayEnabled = true
                 settings.grid.enabled = true
                 settings.notifications.enabled = true
             }
@@ -401,7 +423,7 @@ internal object DebugPresets {
                 settings.notifications.enabled = true
             }
             DebugPreset.RENDERING -> {
-                settings.performance.enabled = true
+                settings.performance.overlayEnabled = true
                 settings.objects.enabled = true
                 settings.objects.showSpriteBounds = true
                 settings.entities.enabled = true
@@ -419,7 +441,7 @@ internal object DebugPresets {
                 settings.notifications.enabled = true
             }
             DebugPreset.EVERYTHING -> {
-                settings.performance.enabled = true
+                settings.performance.overlayEnabled = true
                 settings.simulation.enabled = true
                 settings.grid.enabled = true
                 settings.grid.backgroundColor = Color(1f, 1f, 1f, 0.2f)
@@ -458,7 +480,7 @@ internal object DebugPresets {
     }
 
     private fun disableVisuals(settings: DebugSettings) {
-        settings.performance.enabled = false
+        settings.performance.overlayEnabled = false
         settings.simulation.enabled = false
         settings.grid.enabled = false
         settings.objects.enabled = false

@@ -64,8 +64,9 @@ class SandboxGame : StrataGame() {
                     }
 
                     performance {
-                        enabled = false
-                        intervalSeconds = 2f
+                        overlayEnabled = false
+                        terminalLoggingEnabled = false
+                        terminalLoggingIntervalSeconds = 2f
                     }
 
                     grid {

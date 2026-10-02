@@ -54,7 +54,7 @@ internal class DebugPanel(
     private val entities: EntityRegistry
 ) {
     private val statsOverlay = DebugStatsOverlay(
-        ui, { view.renderStats }, { settings.performance.enabled },
+        ui, { view.renderStats }, { settings.performance.overlayEnabled },
         { settings.worldStats.enabled }, world, placement, eventMonitor, settings.eventBus
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
@@ -452,7 +452,9 @@ internal class DebugPanel(
             }
         }.cell { fillAvailableX() }
         separator()
-        simpleToggle("Performance overlay", { settings.performance.enabled }) { settings.performance.enabled = it }
+        simpleToggle("Performance overlay", { settings.performance.overlayEnabled }) {
+            settings.performance.overlayEnabled = it
+        }
         simpleToggle("World stats overlay", { settings.worldStats.enabled }) { settings.worldStats.enabled = it }
         simpleToggle("Simulation controls", { settings.simulation.enabled }) { settings.simulation.enabled = it }
         simpleToggle(

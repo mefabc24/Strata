@@ -2,14 +2,15 @@
 
 `DebugSettings` contains four independent, runtime-mutable groups. Configure initial values in `debug {}` and change them later through `strata.debug`. The Sandbox UI is an example of wiring these live settings to controls.
 
-## Performance logging
+## Performance output
 
 ```kotlin
-strata.debug.performance.enabled = true
-strata.debug.performance.intervalSeconds = 2f
+strata.debug.performance.overlayEnabled = true
+strata.debug.performance.terminalLoggingEnabled = true
+strata.debug.performance.terminalLoggingIntervalSeconds = 2f
 ```
 
-The logger records completed world renders and periodically writes a `StrataPerf` libGDX log entry. It reports:
+The overlay and terminal logger are independent and disabled by default. The Debug Panel's Performance toggle changes only `overlayEnabled`. Terminal logging records the same completed-world-render metrics and periodically writes a `StrataPerf` libGDX log entry. It reports:
 
 - current FPS and frame time average, p95, and maximum;
 - world CPU render average and maximum;
@@ -18,7 +19,7 @@ The logger records completed world renders and periodically writes a `StrataPerf
 - terrain, object, and entity drawn/checked counts;
 - preview count and draw calls.
 
-Changing `enabled` resets the current sample window. `intervalSeconds` must be finite and positive. The most recent raw `RenderStats` is also readable from `strata.view.renderStats`.
+Changing `terminalLoggingEnabled` resets the current terminal sample window. `terminalLoggingIntervalSeconds` must be finite and positive. The most recent raw `RenderStats` is also readable from `strata.view.renderStats`.
 
 ## Grid overlay
 
