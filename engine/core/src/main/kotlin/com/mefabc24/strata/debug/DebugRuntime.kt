@@ -8,6 +8,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.debug.inspector.DebugInspector
 import com.mefabc24.strata.debug.tools.DebugBuildDragController
+import com.mefabc24.strata.debug.tools.DebugBrush
+import com.mefabc24.strata.debug.tools.DebugBrushPreview
+import com.mefabc24.strata.debug.tools.DebugBrushPreviewKind
 import com.mefabc24.strata.debug.tools.DebugEntitySpawner
 import com.mefabc24.strata.debug.tools.DebugPathfindingTool
 import com.mefabc24.strata.debug.tools.DebugTerrainPainter
@@ -40,7 +43,7 @@ internal class DebugRuntime(
     private val settings: DebugSettings,
     private val ui: StrataUi,
     private val skin: Skin,
-    world: World,
+    private val world: World,
     private val view: IsoWorldView,
     terrain: TerrainRegistry,
     objects: ObjectRegistry,
@@ -378,6 +381,7 @@ internal class DebugRuntime(
         pathfinding.update()
         spawner.update(view.hoveredGridPosition)
         settings.worldState.spawnPreview = spawner.preview
+        settings.worldState.brushPreview = brushPreview(world, view.hoveredGridPosition)
         eventMonitor.enabled = settings.eventBus.enabled
         eventMonitor.paused = !settings.eventBus.captureEnabled
         settings.notifications.update(delta)
@@ -421,6 +425,20 @@ internal class DebugRuntime(
                 }
             }
         }
+    }
+
+    private fun brushPreview(world: World, center: TilePosition?): DebugBrushPreview? {
+        val position = center ?: return null
+        val (kind, brushSettings) = when (tools.mode) {
+            DebugToolMode.PAINT -> DebugBrushPreviewKind.PAINT to settings.paint
+            DebugToolMode.DELETE -> DebugBrushPreviewKind.DELETE to settings.delete
+            else -> return null
+        }
+        if (!brushSettings.showBrushPreview) return null
+        return DebugBrushPreview(
+            kind,
+            DebugBrush.tiles(position, brushSettings.brushSize, world.width, world.height)
+        )
     }
 }
 

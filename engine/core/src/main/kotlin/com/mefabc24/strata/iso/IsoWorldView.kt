@@ -460,6 +460,7 @@ class IsoWorldView(
                 settings.picking.enabled ||
                 settings.renderOrder.enabled || settings.culling.enabled ||
                 settings.camera.enabled || state.movePreview?.visible == true
+                || state.brushPreview != null
             if (active) {
                 advancedDebugRenderer.value.render(
                     camera = camera,

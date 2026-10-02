@@ -21,6 +21,22 @@ The overlay and terminal logger are independent and disabled by default. The Deb
 
 Changing `terminalLoggingEnabled` resets the current terminal sample window. `terminalLoggingIntervalSeconds` must be finite and positive. The most recent raw `RenderStats` is also readable from `strata.view.renderStats`.
 
+## Paint and Delete brushes
+
+```kotlin
+strata.debug.paint.apply {
+    brushSize = 3
+    showBrushPreview = true
+}
+strata.debug.delete.apply {
+    brushSize = 5
+    dragEnabled = true
+    showBrushPreview = true
+}
+```
+
+Brush sizes are odd square side lengths from `1` through `9`. Paint and Delete use the same clipped tile geometry and fill gaps between sampled drag positions. Paint always supports continuous strokes; Delete dragging is optional. Each affected tile is processed once per stroke. Brush previews follow the cursor, show only in-world affected tiles, and do not modify the world.
+
 ## Grid overlay
 
 ```kotlin

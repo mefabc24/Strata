@@ -69,6 +69,17 @@ class SandboxGame : StrataGame() {
                         terminalLoggingIntervalSeconds = 2f
                     }
 
+                    paint {
+                        brushSize = 1
+                        showBrushPreview = false
+                    }
+
+                    delete {
+                        brushSize = 1
+                        dragEnabled = false
+                        showBrushPreview = false
+                    }
+
                     grid {
                         enabled = false
                         color = Color(1f, 1f, 1f, 0.4f)

@@ -104,6 +104,7 @@ internal class DebugPanel(
     private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
     private lateinit var buildControls: StrataColumn
+    private lateinit var deleteControls: StrataColumn
     private lateinit var paintControls: StrataColumn
     private lateinit var overlayPaintControls: StrataColumn
     private lateinit var spawnControls: StrataColumn
@@ -283,8 +284,28 @@ internal class DebugPanel(
                     }
                 }.cell { fillAvailableX() }
             }
+            deleteControls = column(spacing = 8f) {
+                defaults().fillAvailableX()
+                label("Delete brush")
+                brushSizeStepper("Brush size", { settings.delete.brushSize }) {
+                    settings.delete.brushSize = it
+                }
+                simpleToggle("Drag deletion", { settings.delete.dragEnabled }) {
+                    settings.delete.dragEnabled = it
+                }
+                simpleToggle("Show affected area", { settings.delete.showBrushPreview }) {
+                    settings.delete.showBrushPreview = it
+                }
+            }
             paintControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
+                label("Paint brush")
+                brushSizeStepper("Brush size", { settings.paint.brushSize }) {
+                    settings.paint.brushSize = it
+                }
+                simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
+                    settings.paint.showBrushPreview = it
+                }
                 label("Terrain")
                 responsiveGrid(130f, maximumColumns = 2) {
                     painter.entries.forEach { entry ->
@@ -821,6 +842,24 @@ internal class DebugPanel(
         return stepper
     }
 
+    private fun StrataLayout.brushSizeStepper(
+        text: String,
+        read: () -> Int,
+        write: (Int) -> Unit
+    ): StrataNumericStepper {
+        val stepper = numericStepper(
+            text,
+            read().toFloat(),
+            1f,
+            9f,
+            2f,
+            decimals = 0,
+            onChanged = { write(it.toInt()) }
+        ).cell { fillAvailableX(); height(38f) }
+        synchronizers += { stepper.sync(read().toFloat()) }
+        return stepper
+    }
+
     private fun StrataLayout.wrappingLabel(text: String): Label = label(text).apply {
         setWrap(true)
     }.cell { fillAvailableX() }
@@ -878,6 +917,7 @@ internal class DebugPanel(
         toolsTab.isVisible = tab == DebugPanelTab.TOOLS
         debugTab.isVisible = tab == DebugPanelTab.DEBUG
         buildControls.isVisible = mode == DebugToolMode.BUILD
+        deleteControls.isVisible = mode == DebugToolMode.DELETE
         paintControls.isVisible = mode == DebugToolMode.PAINT
         spawnControls.isVisible = mode == DebugToolMode.SPAWN
         inspectControls.isVisible = mode == DebugToolMode.INSPECT

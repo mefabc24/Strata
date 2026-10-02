@@ -3,6 +3,13 @@ package com.mefabc24.strata.debug.tools
 import com.mefabc24.strata.world.TilePosition
 import kotlin.math.abs
 
+enum class DebugBrushPreviewKind { PAINT, DELETE }
+
+data class DebugBrushPreview(
+    val kind: DebugBrushPreviewKind,
+    val tiles: List<TilePosition>
+)
+
 /** Shared square-brush geometry clipped to finite world bounds. */
 object DebugBrush {
     fun tiles(

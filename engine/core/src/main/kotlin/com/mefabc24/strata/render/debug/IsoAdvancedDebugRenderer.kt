@@ -15,6 +15,7 @@ import com.mefabc24.strata.debug.DebugWorldState
 import com.mefabc24.strata.debug.RenderOrderDebugMode
 import com.mefabc24.strata.debug.TerrainHeatmapSteps
 import com.mefabc24.strata.debug.inspector.DebugInspection
+import com.mefabc24.strata.debug.tools.DebugBrushPreviewKind
 import com.mefabc24.strata.iso.CameraDebugSnapshot
 import com.mefabc24.strata.iso.IsoProjection
 import com.mefabc24.strata.iso.PickedTarget
@@ -136,7 +137,8 @@ internal class IsoAdvancedDebugRenderer(
         val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
             settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
-            state.movePreview != null || renderOrderLayers.terrainHeatmap
+            state.movePreview != null || state.brushPreview != null ||
+            renderOrderLayers.terrainHeatmap
         val drawLabels = renderOrderLayers.objectEntityLabels ||
             renderOrderLayers.terrainIndices
         if (!drawShapes && !drawLabels) return
@@ -237,11 +239,12 @@ internal class IsoAdvancedDebugRenderer(
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
         val movePreview = state.movePreview?.takeIf { it.visible }
+        val brushPreview = state.brushPreview
         val drawTerrainHeatmap = renderOrderDebugLayers(settings.renderOrder).terrainHeatmap &&
             renderSnapshot != null
         if (!shouldDrawExplored && inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
-            !drawTerrainHeatmap
+            brushPreview == null && !drawTerrainHeatmap
         ) return
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         if (drawTerrainHeatmap) {
@@ -271,6 +274,13 @@ internal class IsoAdvancedDebugRenderer(
         movePreview?.let { preview ->
             shapes.color = if (preview.valid) MOVE_VALID_FILL else MOVE_INVALID_FILL
             preview.occupiedTiles.forEach(::drawTileFill)
+        }
+        brushPreview?.let { preview ->
+            shapes.color = when (preview.kind) {
+                DebugBrushPreviewKind.PAINT -> BRUSH_PAINT_FILL
+                DebugBrushPreviewKind.DELETE -> BRUSH_DELETE_FILL
+            }
+            preview.tiles.forEach(::drawTileFill)
         }
         if (shouldDrawExplored) {
             shapes.color = Color(0.2f, 0.55f, 1f, 0.16f)
@@ -454,6 +464,13 @@ internal class IsoAdvancedDebugRenderer(
             shapes.color = MOVE_ORIGIN_OUTLINE
             drawTileOutline(preview.target)
         }
+        state.brushPreview?.let { preview ->
+            shapes.color = when (preview.kind) {
+                DebugBrushPreviewKind.PAINT -> BRUSH_PAINT_OUTLINE
+                DebugBrushPreviewKind.DELETE -> BRUSH_DELETE_OUTLINE
+            }
+            preview.tiles.forEach(::drawTileOutline)
+        }
 
         val visiblePath = state.pathfinding?.path
         if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && visiblePath != null) {
@@ -581,5 +598,9 @@ internal class IsoAdvancedDebugRenderer(
         val MOVE_INVALID_FILL = Color(1f, 0.2f, 0.2f, 0.24f)
         val MOVE_INVALID_OUTLINE = Color(1f, 0.25f, 0.25f, 1f)
         val MOVE_ORIGIN_OUTLINE = Color(0.25f, 0.85f, 1f, 1f)
+        val BRUSH_PAINT_FILL = Color(0.2f, 0.75f, 1f, 0.2f)
+        val BRUSH_PAINT_OUTLINE = Color(0.2f, 0.85f, 1f, 1f)
+        val BRUSH_DELETE_FILL = Color(1f, 0.2f, 0.2f, 0.22f)
+        val BRUSH_DELETE_OUTLINE = Color(1f, 0.3f, 0.25f, 1f)
     }
 }
