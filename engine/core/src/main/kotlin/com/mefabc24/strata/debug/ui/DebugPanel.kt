@@ -62,7 +62,6 @@ internal class DebugPanel(
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
     private val previewState = DebugContentPreviewState()
-    private val navigation = DebugPanelNavigation()
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
@@ -121,11 +120,6 @@ internal class DebugPanel(
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
-    private val debugSectionColumns = linkedMapOf<DebugPanelSection, StrataColumn>()
-    private lateinit var expandAllButton: StrataButton
-    private lateinit var collapseAllButton: StrataButton
-    private val debugCategories = mutableListOf<DebugCategoryActor>()
-    private var registeringDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
     private var previewAnchor: Actor? = null
     private var lastMode = DebugToolMode.NONE
     private var appliedWindowVisibility: Pair<Boolean, Boolean>? = null
@@ -135,7 +129,6 @@ internal class DebugPanel(
         terrainSelection?.selected?.let { painter.selectedEntry = it }
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
-        if (settings.debugWindow.enabled) syncDebugSectionVisibility(resetScroll = false)
         if (settings.toolsWindow.enabled) buildPreview()
         synchronizers += { modeSelection.select(tools.mode) }
         terrainSelection?.let { group ->
@@ -519,43 +512,8 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
-        row(
-            spacing = 4f,
-            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 5f)
-        ) {
-            label("DEBUG", "title").cell { growX(); left() }
-            val sectionDropdown = dropdown(
-                DebugPanelSection.entries,
-                navigation.selectedDebugSection,
-                displayText = DebugPanelSection::label
-            ) { section ->
-                navigation.select(section)
-                syncDebugSectionVisibility(resetScroll = true)
-            }.cell { width(122f); height(30f) }
-            synchronizers += {
-                sectionDropdown.sync(navigation.selectedDebugSection)
-            }
-            expandAllButton = button("+") { setAllDebugCategoriesExpanded(true) }
-                .cell { width(30f); height(30f) }
-            collapseAllButton = button("-") { setAllDebugCategoriesExpanded(false) }
-                .cell { width(30f); height(30f) }
-        }.cell { fillAvailableX() }
-        separator()
-        stack {
-            DebugPanelSection.entries.forEach { section ->
-                debugSectionColumns[section] = column(spacing = 0f) {
-                    defaults().fillAvailableX()
-                }
-            }
-        }.cell { fillAvailableX() }
-
-        val visuals = debugSectionColumns.getValue(DebugPanelSection.VISUALS)
-        val diagnostics = debugSectionColumns.getValue(DebugPanelSection.DIAGNOSTICS)
-        val runtime = debugSectionColumns.getValue(DebugPanelSection.RUNTIME)
-        val presets = debugSectionColumns.getValue(DebugPanelSection.PRESETS)
-
         var selectedPreset = DebugPresetSelection.DEFAULT
-        presets.row(
+        row(
             spacing = 6f,
             padding = StrataInsets.symmetric(horizontal = 6f, vertical = 3f)
         ) {
@@ -570,8 +528,8 @@ internal class DebugPanel(
                 syncControls()
             }.cell { width(58f); height(28f) }
         }.cell { fillAvailableX(); height(34f) }
-        presets.separator()
-        presets.button("Save current configuration as DEFAULT") {
+        separator()
+        button("Save current configuration as DEFAULT") {
             settings.saveDefaultVisualConfiguration()
             settings.notify(
                 "Default debug configuration saved",
@@ -579,8 +537,7 @@ internal class DebugPanel(
             )
         }.cell { fillAvailableX(); height(32f); pad(4f) }
 
-        registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.settingsExpander("General") {
+        settingsExpander("General") {
             settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
                 boundDropdown(
                     "Visualization filter",
@@ -591,8 +548,7 @@ internal class DebugPanel(
             }
         }
 
-        registeringDebugSection = DebugPanelSection.RUNTIME
-        runtime.settingsExpander("Performance") {
+        settingsExpander("Performance") {
             settingsExpander("Overlays", DebugVisualCategory.GENERAL) {
                 toggleRows(
                     toggle("Performance overlay", { settings.performance.overlayEnabled }) {
@@ -636,7 +592,7 @@ internal class DebugPanel(
                 }.cell { fillAvailableX(); pad(4f) }
             }
         }
-        runtime.featureExpander(
+        featureExpander(
             "Simulation",
             read = { settings.simulation.enabled },
             write = { settings.simulation.enabled = it }
@@ -656,8 +612,7 @@ internal class DebugPanel(
                 simulation.resetTimeScale()
             }
         }
-        registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.settingsExpander("World") {
+        settingsExpander("World") {
             settingsExpander("Visibility", DebugVisualCategory.WORLD_VISIBILITY) {
                 buildWorldVisibilitySettings()
             }
@@ -674,7 +629,7 @@ internal class DebugPanel(
                 { settings.worldInfo.enabled = it }
             ) { buildWorldInfoSettings() }
         }
-        visuals.settingsExpander("Rendering") {
+        settingsExpander("Rendering") {
             featureExpander(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
@@ -756,8 +711,7 @@ internal class DebugPanel(
             }
             }
         }
-        registeringDebugSection = DebugPanelSection.DIAGNOSTICS
-        diagnostics.featureExpander(
+        featureExpander(
             "Event Bus Monitor",
             DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
@@ -791,8 +745,7 @@ internal class DebugPanel(
                 }
             }
         }
-        registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.settingsExpander("Scene elements") {
+        settingsExpander("Scene elements") {
             featureExpander(
                 "Objects",
                 DebugVisualCategory.OBJECTS,
@@ -807,8 +760,7 @@ internal class DebugPanel(
             ) { buildEntitySettings() }
         }
 
-        registeringDebugSection = DebugPanelSection.DIAGNOSTICS
-        diagnostics.settingsExpander("Scene diagnostics") {
+        settingsExpander("Scene diagnostics") {
         featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleRows(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
@@ -819,7 +771,7 @@ internal class DebugPanel(
                 settings.worldState.pickingSelection.clear()
             }
         }
-        diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
+        featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleRows(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
@@ -833,7 +785,7 @@ internal class DebugPanel(
             )
             cullingRows = diagnosticTable()
         }
-        diagnostics.featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
+        featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
             toggleRows(
                 toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
@@ -853,8 +805,7 @@ internal class DebugPanel(
         }
         }
 
-        registeringDebugSection = DebugPanelSection.RUNTIME
-        runtime.featureExpander(
+        featureExpander(
             "Notifications",
             DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
@@ -1124,7 +1075,6 @@ internal class DebugPanel(
             configure()
         }
         getCell(expander).fillAvailableX()
-        registerDebugCategory(expander)
     }
 
     private fun StrataColumn.settingsExpander(
@@ -1143,58 +1093,6 @@ internal class DebugPanel(
             configure()
         }
         getCell(expander).fillAvailableX()
-        registerDebugCategory(expander)
-    }
-
-    private data class DebugCategoryActor(
-        val section: DebugPanelSection,
-        val expander: StrataExpander
-    )
-
-    private fun registerDebugCategory(expander: StrataExpander) {
-        debugCategories += DebugCategoryActor(
-            section = registeringDebugSection,
-            expander = expander
-        )
-    }
-
-    private fun setAllDebugCategoriesExpanded(expanded: Boolean) {
-        debugCategories
-            .filter { it.section == navigation.selectedDebugSection }
-            .forEach { it.expander.expanded = expanded }
-
-        debugTab.invalidateHierarchy()
-        debugScroll.invalidateHierarchy()
-    }
-
-    private fun syncDebugSectionVisibility(resetScroll: Boolean) {
-        if (debugSectionColumns.isEmpty()) return
-
-        val selected = navigation.selectedDebugSection
-
-        debugSectionColumns.forEach { (section, column) ->
-            column.isVisible = section == selected
-        }
-
-        val hasExpandableCategories = debugCategories.any {
-            it.section == selected
-        }
-
-        if (::expandAllButton.isInitialized) {
-            expandAllButton.isDisabled = !hasExpandableCategories
-            collapseAllButton.isDisabled = !hasExpandableCategories
-        }
-
-        if (resetScroll && ::debugScroll.isInitialized) {
-            debugScroll.scrollY = 0f
-        }
-
-        debugTab.invalidateHierarchy()
-
-        if (::debugScroll.isInitialized) {
-            debugScroll.content.invalidateHierarchy()
-            debugScroll.invalidateHierarchy()
-        }
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
