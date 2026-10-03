@@ -32,6 +32,9 @@ class DebugNotificationsTest {
                     ),
             DebugNotificationPosition.BOTTOM_RIGHT to (
                     DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.BOTTOM
+                    ),
+            DebugNotificationPosition.BOTTOM_LEFT to (
+                    DebugOverlayHorizontal.LEFT to DebugOverlayVertical.BOTTOM
                     )
         )
 
@@ -55,12 +58,12 @@ class DebugNotificationsTest {
     fun `runtime position changes update alignment state`() {
         val notifications = DebugNotifications()
 
-        notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
+        notifications.position = DebugNotificationPosition.BOTTOM_LEFT
 
         val alignment = notificationAlignment(notifications.position)
 
         assertEquals(
-            DebugOverlayHorizontal.RIGHT,
+            DebugOverlayHorizontal.LEFT,
             alignment.horizontal
         )
         assertEquals(
