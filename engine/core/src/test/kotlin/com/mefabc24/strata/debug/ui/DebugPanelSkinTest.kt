@@ -2,11 +2,13 @@ package com.mefabc24.strata.debug.ui
 
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.ui.StrataExpanderStyle
+import com.mefabc24.strata.ui.StrataPanelStyle
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class DebugPanelSkinTest {
     @BeforeTest
@@ -36,6 +38,10 @@ class DebugPanelSkinTest {
         assertEquals(0f, style.contentSpacing)
         assertNotNull(style.headerSeparator)
         assertEquals(1f, style.headerSeparatorThickness)
+        assertNull(style.background)
+
+        val settingRow = skin.get("debug-setting-row", StrataPanelStyle::class.java)
+        assertNotNull(settingRow.background)
 
         skin.dispose()
     }
