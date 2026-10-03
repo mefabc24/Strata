@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -529,7 +530,7 @@ class StrataWidgetsTest {
 
         assertFalse(expander.content.isVisible)
         assertTrue(expander.prefHeight < expandedHeight)
-        assertEquals("Tools  >", expander.header.text.toString())
+        assertEquals(">  Tools", expander.header.text.toString())
 
         expander.expanded = true
 
@@ -545,24 +546,70 @@ class StrataWidgetsTest {
         val skin = createSkin()
         val context = StrataUiContext(skin, StrataUiTheme())
         lateinit var enabled: StrataToggleButton
+        var enabledChanges = 0
         val expander = StrataExpander(
             context = context,
             title = "Grid",
             expanded = false,
             spacing = 6f,
             headerContent = {
-                enabled = toggleButton("ON", checked = true)
+                enabled = toggleButton("ON", checked = true) {
+                    enabledChanges++
+                }
             }
         ) { spacer(height = 20f) }
 
         assertFalse(expander.expanded)
         assertTrue(enabled.isChecked)
-        enabled.syncChecked(false)
+        enabled.isChecked = false
         assertFalse(enabled.isChecked)
+        assertEquals(1, enabledChanges)
         assertFalse(expander.expanded)
-        expander.toggle()
+
+        expander.header.listeners.toList()
+            .filterIsInstance<ClickListener>()
+            .forEach { it.clicked(InputEvent(), 0f, 0f) }
+
         assertTrue(expander.expanded)
         assertFalse(enabled.isChecked)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander synchronizes styled header visuals with expansion state`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val collapsedIndicator = BaseDrawable()
+        val expandedIndicator = BaseDrawable()
+        val collapsedBackground = BaseDrawable()
+        val expandedBackground = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "Render order",
+            expanded = false,
+            spacing = 6f,
+            expandedStyle = StrataExpanderStyle().apply {
+                this.collapsedIndicator = collapsedIndicator
+                this.expandedIndicator = expandedIndicator
+                headerBackground = collapsedBackground
+                expandedHeaderBackground = expandedBackground
+            }
+        ) { spacer(height = 20f) }
+
+        val indicator = expander.header.children.first() as Image
+        assertSame(collapsedIndicator, indicator.drawable)
+        assertSame(collapsedBackground, expander.headerRow.background)
+        assertSame(indicator, expander.header.children.first())
+        assertSame(expander.header.label, expander.header.children[1])
+        assertEquals("Render order", expander.header.text.toString())
+
+        expander.expanded = true
+
+        assertSame(expandedIndicator, indicator.drawable)
+        assertSame(expandedBackground, expander.headerRow.background)
+        assertTrue(expander.content.isVisible)
 
         context.dispose()
         skin.dispose()
