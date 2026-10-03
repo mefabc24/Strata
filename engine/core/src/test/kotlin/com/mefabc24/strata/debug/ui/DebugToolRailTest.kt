@@ -14,7 +14,9 @@ import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class DebugToolRailTest {
     @BeforeTest
@@ -55,6 +57,48 @@ class DebugToolRailTest {
         )
         assertNull(state.toggleSettings(DebugToolMode.PATHFINDING))
         assertNull(state.toggleSettings(DebugToolMode.NONE))
+    }
+
+    @Test
+    fun `availability keeps universal tools and filters content tools`() {
+        assertEquals(
+            listOf(
+                DebugToolMode.NONE,
+                DebugToolMode.INSPECT,
+                DebugToolMode.MOVE,
+                DebugToolMode.DELETE,
+                DebugToolMode.PATHFINDING,
+                DebugToolMode.FREE_CAMERA
+            ),
+            availableDebugToolModes(false, false, false)
+        )
+        assertEquals(
+            listOf(
+                DebugToolMode.NONE,
+                DebugToolMode.INSPECT,
+                DebugToolMode.MOVE,
+                DebugToolMode.BUILD,
+                DebugToolMode.DELETE,
+                DebugToolMode.PAINT,
+                DebugToolMode.SPAWN,
+                DebugToolMode.PATHFINDING,
+                DebugToolMode.FREE_CAMERA
+            ),
+            availableDebugToolModes(true, true, true)
+        )
+    }
+
+    @Test
+    fun `supported mouse presses are consumed before world input`() {
+        val skin = skin()
+        val button = button(skin, {}, {}).apply { setSize(68f, 56f) }
+        val listener = button.listeners.filterIsInstance<InputListener>().single()
+        val leftEvent = InputEvent()
+
+        assertTrue(listener.touchDown(leftEvent, 34f, 28f, 0, Input.Buttons.LEFT))
+        assertTrue(leftEvent.isStopped)
+        assertFalse(listener.touchDown(InputEvent(), 34f, 28f, 0, Input.Buttons.MIDDLE))
+        skin.dispose()
     }
 
     @Test

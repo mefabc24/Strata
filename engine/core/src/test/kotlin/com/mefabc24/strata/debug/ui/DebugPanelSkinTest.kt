@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.mefabc24.strata.testing.TestGdxEnvironment
+import com.mefabc24.strata.debug.DebugToolMode
 import com.mefabc24.strata.ui.StrataButton
 import com.mefabc24.strata.ui.StrataExpanderStyle
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -61,6 +62,22 @@ class DebugPanelSkinTest {
         assertNotEquals(action.up, action.over)
         assertNotEquals(action.up, action.disabled)
 
+        skin.dispose()
+    }
+
+    @Test
+    fun `tool rail skin exposes button states and drawable icons`() {
+        val skin = DebugPanelSkin.create()
+        val style = skin.get(
+            "debug-tool-rail-button",
+            DebugToolRailButtonStyle::class.java
+        )
+
+        assertNotEquals(style.normal, style.hovered)
+        assertNotEquals(style.normal, style.selected)
+        DebugToolMode.entries.forEach { mode ->
+            assertNotNull(skin.getDrawable(debugToolIconName(mode)))
+        }
         skin.dispose()
     }
 
