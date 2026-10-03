@@ -27,7 +27,7 @@ class DebugVisualConfiguration internal constructor(
 )
 
 internal object DebugVisualSettings {
-    private const val VERSION = 1
+    private const val VERSION = 2
 
     private interface Binding {
         val key: String
@@ -74,7 +74,6 @@ internal object DebugVisualSettings {
         binding("grid.lineWidth", DebugVisualCategory.GRID, { it.grid.lineWidth }, { s, v -> s.grid.lineWidth = v }),
         binding("grid.background", DebugVisualCategory.GRID, { it.grid.backgroundColor }, { s, v -> s.grid.backgroundColor = v }, nullableColorCopy),
         binding("grid.hoverBackground", DebugVisualCategory.GRID, { it.grid.hoverBackgroundColor }, { s, v -> s.grid.hoverBackgroundColor = v }, nullableColorCopy),
-        binding("worldInfo.enabled", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.enabled }, { s, v -> s.worldInfo.enabled = v }),
         binding("worldInfo.coordinates", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showTileCoordinates }, { s, v -> s.worldInfo.showTileCoordinates = v }),
         binding("worldInfo.terrainIds", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showTerrainIds }, { s, v -> s.worldInfo.showTerrainIds = v }),
         binding("worldInfo.overlays", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showOverlayInfo }, { s, v -> s.worldInfo.showOverlayInfo = v }),
@@ -92,7 +91,6 @@ internal object DebugVisualSettings {
         binding("visibility.objects", DebugVisualCategory.WORLD_VISIBILITY, { it.worldVisibility.placedObjectsVisible }, { s, v -> s.worldVisibility.placedObjectsVisible = v }),
         binding("visibility.entities", DebugVisualCategory.WORLD_VISIBILITY, { it.worldVisibility.entitiesVisible }, { s, v -> s.worldVisibility.entitiesVisible = v }),
         binding("visibility.layers", DebugVisualCategory.WORLD_VISIBILITY, { it.worldVisibility.hiddenOverlayLayerIds() }, { s, v -> s.worldVisibility.restoreHiddenOverlayLayers(v) }, setCopy),
-        binding("objects.enabled", DebugVisualCategory.OBJECTS, { it.objects.enabled }, { s, v -> s.objects.enabled = v }),
         binding("objects.tiles", DebugVisualCategory.OBJECTS, { it.objects.showOccupiedTiles }, { s, v -> s.objects.showOccupiedTiles = v }),
         binding("objects.origin", DebugVisualCategory.OBJECTS, { it.objects.showOriginTile }, { s, v -> s.objects.showOriginTile = v }),
         binding("objects.bounds", DebugVisualCategory.OBJECTS, { it.objects.showSpriteBounds }, { s, v -> s.objects.showSpriteBounds = v }),
@@ -101,7 +99,6 @@ internal object DebugVisualSettings {
         binding("objects.fill", DebugVisualCategory.OBJECTS, { it.objects.occupiedTileFillColor }, { s, v -> s.objects.occupiedTileFillColor = v }, nullableColorCopy),
         binding("objects.originColor", DebugVisualCategory.OBJECTS, { it.objects.originTileColor }, { s, v -> s.objects.originTileColor = v }, colorCopy),
         binding("objects.boundsColor", DebugVisualCategory.OBJECTS, { it.objects.spriteBoundsColor }, { s, v -> s.objects.spriteBoundsColor = v }, colorCopy),
-        binding("entities.enabled", DebugVisualCategory.ENTITIES, { it.entities.enabled }, { s, v -> s.entities.enabled = v }),
         binding("entities.tile", DebugVisualCategory.ENTITIES, { it.entities.showCurrentTile }, { s, v -> s.entities.showCurrentTile = v }),
         binding("entities.position", DebugVisualCategory.ENTITIES, { it.entities.showPosition }, { s, v -> s.entities.showPosition = v }),
         binding("entities.path", DebugVisualCategory.ENTITIES, { it.entities.showPath }, { s, v -> s.entities.showPath = v }),
@@ -128,10 +125,8 @@ internal object DebugVisualSettings {
         binding("entities.waypointColor", DebugVisualCategory.ENTITIES, { it.entities.nextWaypointColor }, { s, v -> s.entities.nextWaypointColor = v }, colorCopy),
         binding("entities.offsetColor", DebugVisualCategory.ENTITIES, { it.entities.positionTileOffsetColor }, { s, v -> s.entities.positionTileOffsetColor = v }, colorCopy),
         binding("entities.boundsColor", DebugVisualCategory.ENTITIES, { it.entities.spriteBoundsColor }, { s, v -> s.entities.spriteBoundsColor = v }, colorCopy),
-        binding("picking.enabled", DebugVisualCategory.PICKING, { it.picking.enabled }, { s, v -> s.picking.enabled = v }),
         binding("picking.bounds", DebugVisualCategory.PICKING, { it.picking.showSpriteBounds }, { s, v -> s.picking.showSpriteBounds = v }),
         binding("picking.cursor", DebugVisualCategory.PICKING, { it.picking.showCursorHit }, { s, v -> s.picking.showCursorHit = v }),
-        binding("render.enabled", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.enabled }, { s, v -> s.renderOrder.enabled = v }),
         binding("render.mode", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.mode }, { s, v -> s.renderOrder.mode = v }),
         binding("render.labels", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.showLabels }, { s, v -> s.renderOrder.showLabels = v }),
         binding("render.priorityLabels", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.showPriorityLabels }, { s, v -> s.renderOrder.showPriorityLabels = v }),
@@ -153,7 +148,6 @@ internal object DebugVisualSettings {
         binding("render.projectedColor", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.projectedSortPositionColor }, { s, v -> s.renderOrder.projectedSortPositionColor = v }, colorCopy),
         binding("render.heatmapStart", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.terrainHeatmapStartColor }, { s, v -> s.renderOrder.terrainHeatmapStartColor = v }, colorCopy),
         binding("render.heatmapEnd", DebugVisualCategory.RENDER_ORDER, { it.renderOrder.terrainHeatmapEndColor }, { s, v -> s.renderOrder.terrainHeatmapEndColor = v }, colorCopy),
-        binding("culling.enabled", DebugVisualCategory.CULLING, { it.culling.enabled }, { s, v -> s.culling.enabled = v }),
         binding("culling.area", DebugVisualCategory.CULLING, { it.culling.showVisibleArea }, { s, v -> s.culling.showVisibleArea = v }),
         binding("culling.objects", DebugVisualCategory.CULLING, { it.culling.showObjectBounds }, { s, v -> s.culling.showObjectBounds = v }),
         binding("culling.entities", DebugVisualCategory.CULLING, { it.culling.showEntityBounds }, { s, v -> s.culling.showEntityBounds = v }),
@@ -162,7 +156,6 @@ internal object DebugVisualSettings {
         binding("culling.objectCulledColor", DebugVisualCategory.CULLING, { it.culling.objectCulledColor }, { s, v -> s.culling.objectCulledColor = v }, colorCopy),
         binding("culling.entityDrawnColor", DebugVisualCategory.CULLING, { it.culling.entityDrawnColor }, { s, v -> s.culling.entityDrawnColor = v }, colorCopy),
         binding("culling.entityCulledColor", DebugVisualCategory.CULLING, { it.culling.entityCulledColor }, { s, v -> s.culling.entityCulledColor = v }, colorCopy),
-        binding("camera.enabled", DebugVisualCategory.CAMERA, { it.camera.enabled }, { s, v -> s.camera.enabled = v }),
         binding("camera.area", DebugVisualCategory.CAMERA, { it.camera.showVisibleArea }, { s, v -> s.camera.showVisibleArea = v }),
         binding("camera.world", DebugVisualCategory.CAMERA, { it.camera.showWorldBounds }, { s, v -> s.camera.showWorldBounds = v }),
         binding("camera.clamp", DebugVisualCategory.CAMERA, { it.camera.showClampBounds }, { s, v -> s.camera.showClampBounds = v }),
@@ -180,7 +173,7 @@ internal object DebugVisualSettings {
     )
 
     fun apply(settings: DebugSettings, configuration: DebugVisualConfiguration) {
-        require(configuration.version == VERSION) {
+        require(configuration.version in 1..VERSION) {
             "Unsupported debug visual configuration version ${configuration.version}."
         }
         bindings.forEach { binding ->
@@ -188,6 +181,7 @@ internal object DebugVisualSettings {
                 binding.write(settings, configuration.values[binding.key])
             }
         }
+        if (configuration.version == 1) migrateLegacyFeatureGates(settings, configuration)
     }
 
     fun reset(settings: DebugSettings, category: DebugVisualCategory? = null) {
@@ -195,5 +189,65 @@ internal object DebugVisualSettings {
         bindings.asSequence()
             .filter { category == null || it.category == category }
             .forEach { it.write(settings, it.read(defaults)) }
+    }
+
+    private fun migrateLegacyFeatureGates(
+        settings: DebugSettings,
+        configuration: DebugVisualConfiguration
+    ) {
+        fun disabled(key: String): Boolean = configuration.values[key] == false
+
+        if (disabled("worldInfo.enabled")) {
+            settings.worldInfo.showTileCoordinates = false
+            settings.worldInfo.showTerrainIds = false
+            settings.worldInfo.showOverlayInfo = false
+            settings.worldInfo.showOccupancy = false
+            settings.worldInfo.showMissingTerrainVisuals = false
+            settings.worldInfo.showOrigin = false
+        }
+        if (disabled("objects.enabled")) {
+            settings.objects.showOccupiedTiles = false
+            settings.objects.showOriginTile = false
+            settings.objects.showSpriteBounds = false
+            settings.objects.occupiedTileFillColor = null
+        }
+        if (disabled("entities.enabled")) {
+            settings.entities.showCurrentTile = false
+            settings.entities.showPosition = false
+            settings.entities.showPath = false
+            settings.entities.showDirection = false
+            settings.entities.showSpriteBounds = false
+            settings.entities.showMovementTrail = false
+            settings.entities.showMovementVector = false
+            settings.entities.showNextWaypoint = false
+            settings.entities.showMovementSpeed = false
+            settings.entities.showPositionTileOffset = false
+            settings.entities.currentTileFillColor = null
+        }
+        if (disabled("picking.enabled")) {
+            settings.picking.showSpriteBounds = false
+            settings.picking.showCursorHit = false
+        }
+        if (disabled("render.enabled")) {
+            settings.renderOrder.showLabels = false
+            settings.renderOrder.showPriorityLabels = false
+            settings.renderOrder.colorByPriority = false
+            settings.renderOrder.priorityFocusMode = RenderPriorityFocusMode.OFF
+            settings.renderOrder.showSortVolumes = false
+            settings.renderOrder.showSortAnchors = false
+            settings.renderOrder.showProjectedSortPositions = false
+            settings.renderOrder.showTerrainIndices = false
+            settings.renderOrder.showTerrainHeatmap = false
+        }
+        if (disabled("culling.enabled")) {
+            settings.culling.showVisibleArea = false
+            settings.culling.showObjectBounds = false
+            settings.culling.showEntityBounds = false
+        }
+        if (disabled("camera.enabled")) {
+            settings.camera.showVisibleArea = false
+            settings.camera.showWorldBounds = false
+            settings.camera.showClampBounds = false
+        }
     }
 }

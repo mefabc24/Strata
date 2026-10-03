@@ -46,6 +46,7 @@ import com.mefabc24.strata.debug.DebugGridRenderLayer
 import com.mefabc24.strata.debug.DebugSettings
 import com.mefabc24.strata.debug.DebugVisualizationFilter
 import com.mefabc24.strata.debug.DebugVisualizationFilterContext
+import com.mefabc24.strata.debug.hasActiveVisuals
 import com.mefabc24.strata.render.RenderDebugSnapshot
 
 /**
@@ -158,11 +159,11 @@ class IsoWorldView(
         lighting = lighting,
         collectDebugSnapshot = {
             debugSettings?.let { settings ->
-                settings.picking.enabled ||
-                        settings.renderOrder.enabled ||
-                        settings.culling.enabled ||
+                settings.picking.hasActiveVisuals ||
+                        settings.renderOrder.hasActiveVisuals ||
+                        settings.culling.hasActiveVisuals ||
                         settings.visualizationFilter == DebugVisualizationFilter.VISIBLE &&
-                        (settings.objects.enabled || settings.entities.enabled) ||
+                        (settings.objects.hasActiveVisuals || settings.entities.hasActiveVisuals) ||
                         settings.worldState.inspectionHighlightVisible
             } ?: false
         },
@@ -488,9 +489,9 @@ class IsoWorldView(
             val pathActive = settings.pathfinding.enabled &&
                 (state.pathfindingWaypoints.isNotEmpty() || state.pathfinding != null)
             val active = inspectionActive || pathActive ||
-                settings.picking.enabled ||
-                settings.renderOrder.enabled || settings.culling.enabled ||
-                settings.camera.enabled || settings.worldInfo.enabled ||
+                settings.picking.hasActiveVisuals ||
+                settings.renderOrder.hasActiveVisuals || settings.culling.hasActiveVisuals ||
+                settings.camera.hasActiveVisuals || settings.worldInfo.hasActiveVisuals ||
                 state.movePreview?.visible == true
                 || state.brushPreview != null
             if (active) {

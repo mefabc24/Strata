@@ -20,6 +20,7 @@ import com.mefabc24.strata.debug.DebugEntityTrailRecorder
 import com.mefabc24.strata.debug.DebugObjectSettings
 import com.mefabc24.strata.debug.DebugVisualizationFilter
 import com.mefabc24.strata.debug.DebugVisualizationFilterContext
+import com.mefabc24.strata.debug.hasActiveVisuals
 import com.mefabc24.strata.world.EntityDirection
 import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.PlacedObject
@@ -55,13 +56,8 @@ internal class IsoWorldDebugRenderer(
         entityVisualFor: (WorldEntity, Float) -> ResolvedEntityVisual?,
         filter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
     ) {
-        val drawObjects = objectSettings.enabled && (
-            objectSettings.showOccupiedTiles ||
-                objectSettings.showOriginTile ||
-                objectSettings.showSpriteBounds ||
-                objectSettings.occupiedTileFillColor != null
-            )
-        val drawEntityShapes = entitySettings.enabled && (
+        val drawObjects = objectSettings.hasActiveVisuals
+        val drawEntityShapes = (
             entitySettings.showCurrentTile ||
                 entitySettings.showPosition ||
                 entitySettings.showPath ||
@@ -73,8 +69,7 @@ internal class IsoWorldDebugRenderer(
                 entitySettings.showPositionTileOffset ||
                 entitySettings.currentTileFillColor != null
             )
-        val drawEntityLabels = entitySettings.enabled &&
-            entitySettings.showMovementSpeed
+        val drawEntityLabels = entitySettings.showMovementSpeed
         if (!drawObjects && !drawEntityShapes && !drawEntityLabels) return
 
         if (drawObjects || drawEntityShapes) {

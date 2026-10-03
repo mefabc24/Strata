@@ -340,7 +340,7 @@ class DebugWorldInfoSettings : DebugFeatureSettings() {
     var showOverlayInfo: Boolean = false
     var showOccupancy: Boolean = false
     var showMissingTerrainVisuals: Boolean = false
-    var showOrigin: Boolean = true
+    var showOrigin: Boolean = false
 
     /** Labels are omitted beyond this camera zoom to keep them readable. */
     var maximumLabelZoom: Float = 1.5f
@@ -415,13 +415,13 @@ class DebugWorldVisibilitySettings {
 }
 
 class DebugPickingSettings : DebugFeatureSettings() {
-    var showSpriteBounds: Boolean = true
-    var showCursorHit: Boolean = true
+    var showSpriteBounds: Boolean = false
+    var showCursorHit: Boolean = false
 }
 
 class DebugRenderOrderSettings : DebugFeatureSettings() {
     var mode: RenderOrderDebugMode = RenderOrderDebugMode.CALCULATED
-    var showLabels: Boolean = true
+    var showLabels: Boolean = false
     var showPriorityLabels: Boolean = false
     var colorByPriority: Boolean = false
     var priorityFocusMode: RenderPriorityFocusMode = RenderPriorityFocusMode.OFF
@@ -486,9 +486,9 @@ class DebugRenderOrderSettings : DebugFeatureSettings() {
 }
 
 class DebugCullingSettings : DebugFeatureSettings() {
-    var showVisibleArea: Boolean = true
-    var showObjectBounds: Boolean = true
-    var showEntityBounds: Boolean = true
+    var showVisibleArea: Boolean = false
+    var showObjectBounds: Boolean = false
+    var showEntityBounds: Boolean = false
 
     private var storedVisibleAreaColor = Color(0.72f, 0.35f, 1f, 1f)
     var visibleAreaColor: Color
@@ -517,9 +517,9 @@ class DebugCullingSettings : DebugFeatureSettings() {
 }
 
 class DebugCameraSettings : DebugFeatureSettings() {
-    var showVisibleArea: Boolean = true
-    var showWorldBounds: Boolean = true
-    var showClampBounds: Boolean = true
+    var showVisibleArea: Boolean = false
+    var showWorldBounds: Boolean = false
+    var showClampBounds: Boolean = false
 
     var disableRestrictions: Boolean = false
 }
@@ -614,8 +614,8 @@ class DebugEventMonitorSettings : DebugFeatureSettings() {
 
 /** Runtime configuration for placed-object diagnostics. */
 class DebugObjectSettings : DebugFeatureSettings() {
-    var showOccupiedTiles: Boolean = true
-    var showOriginTile: Boolean = true
+    var showOccupiedTiles: Boolean = false
+    var showOriginTile: Boolean = false
     var showSpriteBounds: Boolean = false
 
     var lineWidth: Float = 1f
@@ -631,7 +631,7 @@ class DebugObjectSettings : DebugFeatureSettings() {
         get() = storedOccupiedTileColor.cpy()
         set(value) { storedOccupiedTileColor = value.cpy() }
 
-    private var storedOccupiedTileFillColor: Color? = Color(0.2f, 0.65f, 1f, 0.18f)
+    private var storedOccupiedTileFillColor: Color? = null
     var occupiedTileFillColor: Color?
         get() = storedOccupiedTileFillColor?.cpy()
         set(value) { storedOccupiedTileFillColor = value?.cpy() }
@@ -649,9 +649,9 @@ class DebugObjectSettings : DebugFeatureSettings() {
 
 /** Runtime configuration for world-entity diagnostics. */
 class DebugEntitySettings : DebugFeatureSettings() {
-    var showCurrentTile: Boolean = true
-    var showPosition: Boolean = true
-    var showPath: Boolean = true
+    var showCurrentTile: Boolean = false
+    var showPosition: Boolean = false
+    var showPath: Boolean = false
     var showDirection: Boolean = false
     var showSpriteBounds: Boolean = false
     var showMovementTrail: Boolean = false
@@ -722,7 +722,7 @@ class DebugEntitySettings : DebugFeatureSettings() {
         get() = storedCurrentTileColor.cpy()
         set(value) { storedCurrentTileColor = value.cpy() }
 
-    private var storedCurrentTileFillColor: Color? = Color(0.3f, 1f, 0.3f, 0.16f)
+    private var storedCurrentTileFillColor: Color? = null
     var currentTileFillColor: Color?
         get() = storedCurrentTileFillColor?.cpy()
         set(value) { storedCurrentTileFillColor = value?.cpy() }
@@ -767,6 +767,35 @@ class DebugEntitySettings : DebugFeatureSettings() {
         get() = storedSpriteBoundsColor.cpy()
         set(value) { storedSpriteBoundsColor = value.cpy() }
 }
+
+internal val DebugWorldInfoSettings.hasActiveVisuals: Boolean
+    get() = showTileCoordinates || showTerrainIds || showOverlayInfo ||
+        showOccupancy || showMissingTerrainVisuals || showOrigin
+
+internal val DebugObjectSettings.hasActiveVisuals: Boolean
+    get() = showOccupiedTiles || showOriginTile || showSpriteBounds ||
+        occupiedTileFillColor != null
+
+internal val DebugEntitySettings.hasActiveVisuals: Boolean
+    get() = showCurrentTile || showPosition || showPath || showDirection ||
+        showSpriteBounds || showMovementTrail || showMovementVector ||
+        showNextWaypoint || showMovementSpeed || showPositionTileOffset ||
+        currentTileFillColor != null
+
+internal val DebugPickingSettings.hasActiveVisuals: Boolean
+    get() = showSpriteBounds || showCursorHit
+
+internal val DebugRenderOrderSettings.hasActiveVisuals: Boolean
+    get() = showLabels || showPriorityLabels || colorByPriority ||
+        priorityFocusMode != RenderPriorityFocusMode.OFF || showSortVolumes ||
+        showSortAnchors || showProjectedSortPositions || showTerrainIndices ||
+        showTerrainHeatmap
+
+internal val DebugCullingSettings.hasActiveVisuals: Boolean
+    get() = showVisibleArea || showObjectBounds || showEntityBounds
+
+internal val DebugCameraSettings.hasActiveVisuals: Boolean
+    get() = showVisibleArea || showWorldBounds || showClampBounds
 
 /** Runtime configuration for the isometric world-grid overlay. */
 class DebugGridSettings : DebugFeatureSettings() {
@@ -827,14 +856,12 @@ internal object DebugPresets {
             }
             DebugPreset.PLACEMENT -> {
                 settings.grid.enabled = true
-                settings.objects.enabled = true
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
                 settings.notifications.enabled = true
             }
             DebugPreset.ENTITIES -> {
-                settings.entities.enabled = true
                 settings.entities.showCurrentTile = true
                 settings.entities.showPosition = true
                 settings.entities.showPath = true
@@ -845,17 +872,12 @@ internal object DebugPresets {
             }
             DebugPreset.RENDERING -> {
                 settings.performance.overlayEnabled = true
-                settings.objects.enabled = true
                 settings.objects.showSpriteBounds = true
-                settings.entities.enabled = true
                 settings.entities.showSpriteBounds = true
-                settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
-                settings.culling.enabled = true
                 settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
-                settings.camera.enabled = true
                 settings.camera.showVisibleArea = true
                 settings.camera.showWorldBounds = true
                 settings.camera.showClampBounds = true
@@ -867,34 +889,27 @@ internal object DebugPresets {
                 settings.grid.enabled = true
                 settings.grid.backgroundColor = Color(1f, 1f, 1f, 0.2f)
                 settings.grid.hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
-                settings.worldInfo.enabled = true
                 settings.worldInfo.showTileCoordinates = true
                 settings.worldInfo.showTerrainIds = true
                 settings.worldInfo.showOverlayInfo = true
                 settings.worldInfo.showOccupancy = true
                 settings.worldInfo.showMissingTerrainVisuals = true
-                settings.objects.enabled = true
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
                 settings.objects.showSpriteBounds = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
-                settings.entities.enabled = true
                 settings.entities.showCurrentTile = true
                 settings.entities.showPosition = true
                 settings.entities.showPath = true
                 settings.entities.showDirection = true
                 settings.entities.showSpriteBounds = true
                 settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
-                settings.picking.enabled = true
                 settings.picking.showSpriteBounds = true
                 settings.picking.showCursorHit = true
-                settings.renderOrder.enabled = true
                 settings.renderOrder.showLabels = true
-                settings.culling.enabled = true
                 settings.culling.showVisibleArea = true
                 settings.culling.showObjectBounds = true
                 settings.culling.showEntityBounds = true
-                settings.camera.enabled = true
                 settings.camera.showVisibleArea = true
                 settings.camera.showWorldBounds = true
                 settings.camera.showClampBounds = true
@@ -911,13 +926,51 @@ internal object DebugPresets {
         settings.simulation.enabled = false
         settings.grid.enabled = false
         settings.worldInfo.enabled = false
+        settings.worldInfo.showTileCoordinates = false
+        settings.worldInfo.showTerrainIds = false
+        settings.worldInfo.showOverlayInfo = false
+        settings.worldInfo.showOccupancy = false
+        settings.worldInfo.showMissingTerrainVisuals = false
+        settings.worldInfo.showOrigin = false
         settings.worldVisibility.showAll()
         settings.objects.enabled = false
+        settings.objects.showOccupiedTiles = false
+        settings.objects.showOriginTile = false
+        settings.objects.showSpriteBounds = false
+        settings.objects.occupiedTileFillColor = null
         settings.entities.enabled = false
+        settings.entities.showCurrentTile = false
+        settings.entities.showPosition = false
+        settings.entities.showPath = false
+        settings.entities.showDirection = false
+        settings.entities.showSpriteBounds = false
+        settings.entities.showMovementTrail = false
+        settings.entities.showMovementVector = false
+        settings.entities.showNextWaypoint = false
+        settings.entities.showMovementSpeed = false
+        settings.entities.showPositionTileOffset = false
+        settings.entities.currentTileFillColor = null
         settings.picking.enabled = false
+        settings.picking.showSpriteBounds = false
+        settings.picking.showCursorHit = false
         settings.renderOrder.enabled = false
+        settings.renderOrder.showLabels = false
+        settings.renderOrder.showPriorityLabels = false
+        settings.renderOrder.colorByPriority = false
+        settings.renderOrder.priorityFocusMode = RenderPriorityFocusMode.OFF
+        settings.renderOrder.showSortVolumes = false
+        settings.renderOrder.showSortAnchors = false
+        settings.renderOrder.showProjectedSortPositions = false
+        settings.renderOrder.showTerrainIndices = false
+        settings.renderOrder.showTerrainHeatmap = false
         settings.culling.enabled = false
+        settings.culling.showVisibleArea = false
+        settings.culling.showObjectBounds = false
+        settings.culling.showEntityBounds = false
         settings.camera.enabled = false
+        settings.camera.showVisibleArea = false
+        settings.camera.showWorldBounds = false
+        settings.camera.showClampBounds = false
         settings.worldStats.enabled = false
         settings.eventBus.enabled = false
         settings.camera.disableRestrictions = false

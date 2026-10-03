@@ -32,7 +32,7 @@ internal object DebugVisualConfigurationCodec {
         val root = JsonReader().parse(json)
 
         val version = root.getInt("version")
-        require(version == 1) {
+        require(version in 1..2) {
             "Unsupported debug configuration version: $version"
         }
 
@@ -54,6 +54,8 @@ internal object DebugVisualConfigurationCodec {
                     entry.asString(),
                     defaults[entry.name]
                 )
+            } else if (version == 1 && entry.name in LEGACY_FEATURE_GATES) {
+                values[entry.name] = decodeValue(entry.asString(), false)
             }
 
             entry = entry.next
@@ -140,4 +142,14 @@ internal object DebugVisualConfigurationCodec {
             else -> error("Unsupported debug value type: $type")
         }
     }
+
+    private val LEGACY_FEATURE_GATES = setOf(
+        "worldInfo.enabled",
+        "objects.enabled",
+        "entities.enabled",
+        "picking.enabled",
+        "render.enabled",
+        "culling.enabled",
+        "camera.enabled"
+    )
 }

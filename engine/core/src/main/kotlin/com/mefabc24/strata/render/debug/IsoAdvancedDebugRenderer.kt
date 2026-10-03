@@ -15,6 +15,7 @@ import com.mefabc24.strata.debug.DebugRenderOrderSettings
 import com.mefabc24.strata.debug.DebugVisualizationFilter
 import com.mefabc24.strata.debug.DebugVisualizationFilterContext
 import com.mefabc24.strata.debug.DebugWorldState
+import com.mefabc24.strata.debug.hasActiveVisuals
 import com.mefabc24.strata.debug.RenderPriorityFocusMode
 import com.mefabc24.strata.debug.RenderOrderDebugMode
 import com.mefabc24.strata.debug.TerrainHeatmapSteps
@@ -52,17 +53,16 @@ internal data class RenderOrderDebugLayers(
 internal fun renderOrderDebugLayers(
     settings: DebugRenderOrderSettings
 ): RenderOrderDebugLayers = RenderOrderDebugLayers(
-    objectEntityLabels = settings.enabled && settings.showLabels,
-    priorityLabels = settings.enabled && settings.showPriorityLabels,
-    priorityColors = settings.enabled && settings.colorByPriority,
-    priorityFocus = settings.enabled &&
-        settings.priorityFocusMode != RenderPriorityFocusMode.OFF,
-    sortVolumes = settings.enabled && settings.showSortVolumes,
-    sortAnchors = settings.enabled && settings.showSortAnchors,
-    projectedSortPositions = settings.enabled && settings.showProjectedSortPositions,
-    terrainIndices = settings.enabled && settings.showTerrainIndices,
-    terrainHeatmap = settings.enabled && settings.showTerrainHeatmap,
-    terrainHeatmapGrid = settings.enabled && settings.showTerrainHeatmap
+    objectEntityLabels = settings.showLabels,
+    priorityLabels = settings.showPriorityLabels,
+    priorityColors = settings.colorByPriority,
+    priorityFocus = settings.priorityFocusMode != RenderPriorityFocusMode.OFF,
+    sortVolumes = settings.showSortVolumes,
+    sortAnchors = settings.showSortAnchors,
+    projectedSortPositions = settings.showProjectedSortPositions,
+    terrainIndices = settings.showTerrainIndices,
+    terrainHeatmap = settings.showTerrainHeatmap,
+    terrainHeatmapGrid = settings.showTerrainHeatmap
 )
 
 internal fun renderPriorityFocusAllows(
@@ -189,7 +189,7 @@ internal class IsoAdvancedDebugRenderer(
             settings.inspect
         )
         val pickingVisuals = pickingVisualTargets(
-            settings.picking.enabled,
+            settings.picking.hasActiveVisuals,
             state.picking?.picked,
             state.pickingSelection.lockedTarget
         )
@@ -198,8 +198,8 @@ internal class IsoAdvancedDebugRenderer(
             (state.pathfindingWaypoints.isNotEmpty() || path != null)
         val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
-            settings.picking.enabled || settings.culling.enabled || settings.camera.enabled ||
-            settings.worldInfo.enabled ||
+            settings.picking.hasActiveVisuals || settings.culling.hasActiveVisuals ||
+            settings.camera.hasActiveVisuals || settings.worldInfo.hasActiveVisuals ||
             state.movePreview != null || state.brushPreview != null ||
             renderOrderLayers.terrainHeatmap || renderOrderLayers.priorityColors ||
             renderOrderLayers.priorityFocus || renderOrderLayers.sortVolumes ||
@@ -327,8 +327,7 @@ internal class IsoAdvancedDebugRenderer(
 
     private fun worldInfoLabelsEnabled(cameraZoom: Float): Boolean {
         val info = settings.worldInfo
-        return info.enabled &&
-            (info.showTileCoordinates || info.showTerrainIds || info.showOverlayInfo) &&
+        return (info.showTileCoordinates || info.showTerrainIds || info.showOverlayInfo) &&
             worldDebugLabelsVisible(cameraZoom, info.maximumLabelZoom)
     }
 
@@ -510,9 +509,8 @@ internal class IsoAdvancedDebugRenderer(
         val pathWaypoints = state.pathfindingWaypoints.takeIf {
             settings.pathfinding.enabled
         }.orEmpty()
-        val drawCullingArea = settings.culling.enabled &&
-            settings.culling.showVisibleArea && renderSnapshot != null
-        val drawCameraArea = settings.camera.enabled && settings.camera.showVisibleArea
+        val drawCullingArea = settings.culling.showVisibleArea && renderSnapshot != null
+        val drawCameraArea = settings.camera.showVisibleArea
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
         val movePreview = state.movePreview?.takeIf { it.visible }
@@ -521,8 +519,8 @@ internal class IsoAdvancedDebugRenderer(
             renderSnapshot != null
         val drawPriorityColors = renderOrderDebugLayers(settings.renderOrder).priorityColors &&
             renderSnapshot != null
-        val drawWorldFills = settings.worldInfo.enabled &&
-            (settings.worldInfo.showOccupancy || settings.worldInfo.showMissingTerrainVisuals)
+        val drawWorldFills = settings.worldInfo.showOccupancy ||
+            settings.worldInfo.showMissingTerrainVisuals
         if (!shouldDrawExplored && !drawOpenSet && !drawClosedSet &&
             inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
@@ -751,7 +749,7 @@ internal class IsoAdvancedDebugRenderer(
         pickingVisuals: DebugPickingVisualTargets
     ) {
         shapes.begin(ShapeRenderer.ShapeType.Line)
-        if (settings.worldInfo.enabled && settings.worldInfo.showOrigin) {
+        if (settings.worldInfo.showOrigin) {
             Gdx.gl.glLineWidth(3f)
             shapes.color = settings.worldInfo.originColor
             drawTileOutline(0, 0)
@@ -886,18 +884,16 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
 
-        if (settings.picking.enabled) {
-            if (settings.picking.showCursorHit) {
+        if (settings.picking.showCursorHit) {
                 state.cursorWorld?.let { cursor ->
                     shapes.color = Color.YELLOW
                     val radius = 5f * camera.zoom
                     shapes.line(cursor.x - radius, cursor.y, cursor.x + radius, cursor.y)
                     shapes.line(cursor.x, cursor.y - radius, cursor.x, cursor.y + radius)
                 }
-            }
         }
 
-        if (settings.culling.enabled && renderSnapshot != null) {
+        if (settings.culling.hasActiveVisuals && renderSnapshot != null) {
             val objectDrawnColor = settings.culling.objectDrawnColor
             val objectCulledColor = settings.culling.objectCulledColor
             val entityDrawnColor = settings.culling.entityDrawnColor
@@ -923,7 +919,7 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
 
-        if (settings.camera.enabled) {
+        if (settings.camera.hasActiveVisuals) {
             if (settings.camera.showWorldBounds) {
                 shapes.color = Color(0.3f, 1f, 0.3f, 1f)
                 drawRect(camera.worldBounds)

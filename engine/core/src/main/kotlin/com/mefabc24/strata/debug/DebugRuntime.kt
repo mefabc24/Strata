@@ -173,7 +173,7 @@ internal class DebugRuntime(
     private fun bindings(world: World, view: IsoWorldView): List<WorldInputBinding> = listOf(
         WorldInputBinding.Pointer(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-            { settings.picking.enabled }
+            { settings.picking.hasActiveVisuals }
         ) { screenX, screenY ->
             settings.worldState.pickingSelection.selectFromClick(
                 view.pickingDebugSnapshot(screenX, screenY).picked
@@ -404,19 +404,20 @@ internal class DebugRuntime(
         settings.notifications.update(delta)
         notificationOverlay.sync()
 
-        settings.worldState.pickingSelection.syncEnabled(settings.picking.enabled)
+        val pickingVisuals = settings.picking.hasActiveVisuals
+        settings.worldState.pickingSelection.syncEnabled(pickingVisuals)
 
-        if (settings.picking.enabled || settings.needsHoveredVisualizationTarget()) {
+        if (pickingVisuals || settings.needsHoveredVisualizationTarget()) {
             val screenX = Gdx.input.x.toFloat()
             val screenY = Gdx.input.y.toFloat()
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.hoveredTarget = picking.picked
-            settings.worldState.cursorWorld = if (settings.picking.enabled) {
+            settings.worldState.cursorWorld = if (settings.picking.showCursorHit) {
                 view.screenToWorld(screenX, screenY)
             } else {
                 null
             }
-            settings.worldState.picking = picking.takeIf { settings.picking.enabled }
+            settings.worldState.picking = picking.takeIf { pickingVisuals }
             settings.worldState.pickingSelection.refresh(
                 view::refreshPickedTarget
             )
