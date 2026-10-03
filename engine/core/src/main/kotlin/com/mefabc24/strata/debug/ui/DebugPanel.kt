@@ -896,16 +896,16 @@ internal class DebugPanel(
         boundStepper("Line width", { settings.grid.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.grid.lineWidth = it
         }
-        boundStepper("Grid alpha", { settings.grid.color.a }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Grid color", { settings.grid.color }, 0.2f) { alpha ->
             settings.grid.color = settings.grid.color.apply { a = alpha }
         }
-        boundStepper("Hover alpha", { settings.grid.hoverColor.a }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Hover color", { settings.grid.hoverColor }, 0.5f) { alpha ->
             settings.grid.hoverColor = settings.grid.hoverColor.apply { a = alpha }
         }
-        boundStepper("Background alpha", { settings.grid.backgroundColor?.a ?: 0.2f }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Background color", { settings.grid.backgroundColor }, 0.2f) { alpha ->
             settings.grid.backgroundColor?.let { settings.grid.backgroundColor = it.apply { a = alpha } }
         }
-        boundStepper("Hover background alpha", { settings.grid.hoverBackgroundColor?.a ?: 0.5f }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Hover background", { settings.grid.hoverBackgroundColor }, 0.5f) { alpha ->
             settings.grid.hoverBackgroundColor?.let { settings.grid.hoverBackgroundColor = it.apply { a = alpha } }
         }
     }
@@ -923,7 +923,7 @@ internal class DebugPanel(
         boundStepper("Line width", { settings.objects.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.objects.lineWidth = it
         }
-        boundStepper("Fill alpha", { settings.objects.occupiedTileFillColor?.a ?: 0.18f }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Fill color", { settings.objects.occupiedTileFillColor }, 0.18f) { alpha ->
             settings.objects.occupiedTileFillColor?.let {
                 settings.objects.occupiedTileFillColor = it.apply { a = alpha }
             }
@@ -960,7 +960,7 @@ internal class DebugPanel(
         boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.entities.lineWidth = it
         }
-        boundStepper("Fill alpha", { settings.entities.currentTileFillColor?.a ?: 0.16f }, 0f, 1f, 0.05f) { alpha ->
+        boundColorAlpha("Fill color", { settings.entities.currentTileFillColor }, 0.16f) { alpha ->
             settings.entities.currentTileFillColor?.let {
                 settings.entities.currentTileFillColor = it.apply { a = alpha }
             }
@@ -1041,22 +1041,10 @@ internal class DebugPanel(
             1024f,
             16f
         ) { settings.worldInfo.maximumVisibleLabels = it.toInt() }
-        boundStepper(
-            "Occupancy alpha",
-            { settings.worldInfo.occupancyColor.a },
-            0f,
-            1f,
-            0.05f
-        ) { alpha ->
+        boundColorAlpha("Occupancy color", { settings.worldInfo.occupancyColor }, 0.5f) { alpha ->
             settings.worldInfo.occupancyColor = settings.worldInfo.occupancyColor.apply { a = alpha }
         }
-        boundStepper(
-            "Missing visual alpha",
-            { settings.worldInfo.missingVisualColor.a },
-            0f,
-            1f,
-            0.05f
-        ) { alpha ->
+        boundColorAlpha("Missing visual color", { settings.worldInfo.missingVisualColor }, 0.5f) { alpha ->
             settings.worldInfo.missingVisualColor =
                 settings.worldInfo.missingVisualColor.apply { a = alpha }
         }
@@ -1307,6 +1295,44 @@ internal class DebugPanel(
         }
         separator()
         synchronizers += { stepper.sync(read()) }
+        return stepper
+    }
+
+    private fun StrataColumn.boundColorAlpha(
+        text: String,
+        read: () -> Color?,
+        defaultAlpha: Float,
+        write: (Float) -> Unit
+    ): StrataNumericStepper {
+        lateinit var preview: Image
+        lateinit var stepper: StrataNumericStepper
+        var displayedColor = Int.MIN_VALUE
+        row(
+            spacing = 6f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            label(text).cell { growX(); left() }
+            preview = actor(Image()).cell { width(24f); height(20f) }
+            stepper = numericStepper(
+                "",
+                read()?.a ?: defaultAlpha,
+                0f,
+                1f,
+                0.05f,
+                onChanged = write
+            ).cell { width(120f); height(28f) }
+        }.cell { fillAvailableX(); height(32f) }
+        separator()
+        synchronizers += {
+            val color = read()
+            stepper.sync(color?.a ?: defaultAlpha)
+            val previewColor = color ?: DISABLED_COLOR_PREVIEW
+            val packed = Color.rgba8888(previewColor)
+            if (packed != displayedColor) {
+                preview.drawable = ui.skin.newDrawable("debug-white", previewColor)
+                displayedColor = packed
+            }
+        }
         return stepper
     }
 
@@ -1690,6 +1716,10 @@ internal class DebugPanel(
         true -> "accepted"
         false -> "rejected"
         null -> "unavailable"
+    }
+
+    private companion object {
+        val DISABLED_COLOR_PREVIEW = Color(0.12f, 0.12f, 0.14f, 1f)
     }
 }
 
