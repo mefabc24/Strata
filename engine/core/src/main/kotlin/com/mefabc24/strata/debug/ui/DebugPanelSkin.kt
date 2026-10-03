@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.mefabc24.strata.ui.StrataInsets
 import com.mefabc24.strata.ui.StrataExpanderStyle
@@ -199,7 +200,7 @@ internal object DebugPanelSkin {
             skin.add(
                 name,
                 createToolIconDrawable(skin, name, mode),
-                TextureRegionDrawable::class.java
+                Drawable::class.java
             )
         }
         val collapsedChevron = createChevronDrawable(skin, "right", expanded = false)
