@@ -15,7 +15,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `unchanged and sub-threshold moving positions are not duplicated`() {
         val entity = entityAt(0.5f, 0.5f)
-        val settings = enabledSettings().apply {
+        val settings = trailSettings().apply {
             trailMinimumDistance = 0.75f
         }
         val recorder = DebugEntityTrailRecorder()
@@ -41,7 +41,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `movement endpoint is retained even below the sampling distance`() {
         val entity = entityAt(0.5f, 0.5f)
-        val settings = enabledSettings().apply {
+        val settings = trailSettings().apply {
             trailMinimumDistance = 2f
         }
         val recorder = DebugEntityTrailRecorder()
@@ -62,7 +62,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `position capacity retains only the newest samples`() {
         val entity = entityAt(0.5f, 0.5f)
-        val settings = enabledSettings().apply {
+        val settings = trailSettings().apply {
             trailMaxPositions = 3
             trailMinimumDistance = 0f
             trailHistoryDurationSeconds = 100f
@@ -85,7 +85,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `history duration prunes old segments while retaining a current anchor`() {
         val entity = entityAt(0.5f, 0.5f)
-        val settings = enabledSettings().apply {
+        val settings = trailSettings().apply {
             trailMinimumDistance = 0f
             trailHistoryDurationSeconds = 1f
         }
@@ -107,7 +107,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `clear disable and entity removal release recorded history`() {
         val entity = entityAt(0.5f, 0.5f)
-        val settings = enabledSettings().apply { trailMinimumDistance = 0f }
+        val settings = trailSettings().apply { trailMinimumDistance = 0f }
         val recorder = DebugEntityTrailRecorder()
         val entities = setOf(entity)
         recorder.update(entities, 0f, settings)
@@ -131,7 +131,7 @@ class DebugEntityTrailRecorderTest {
     @Test
     fun `invalid recording delta is rejected`() {
         val recorder = DebugEntityTrailRecorder()
-        val settings = enabledSettings()
+        val settings = trailSettings()
 
         listOf(-1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
             assertFailsWith<IllegalArgumentException> {
@@ -140,8 +140,7 @@ class DebugEntityTrailRecorderTest {
         }
     }
 
-    private fun enabledSettings() = DebugEntitySettings().apply {
-        enabled = true
+    private fun trailSettings() = DebugEntitySettings().apply {
         showMovementTrail = true
     }
 
