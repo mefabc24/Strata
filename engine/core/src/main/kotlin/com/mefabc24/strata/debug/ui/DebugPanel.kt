@@ -1295,11 +1295,12 @@ internal class DebugPanel(
     ): StrataNumericStepper {
         val stepper = numericStepper(
             text, read(), minimum, maximum, step, onChanged = write
-        ).applyDebugSettingBackground().cell {
-            fillAvailableX()
-            height(32f)
+        ).applyDebugSettingBackground().apply {
             padLeft(6f)
             padRight(6f)
+        }.cell {
+            fillAvailableX()
+            height(32f)
         }
         separator()
         synchronizers += { stepper.sync(read()) }
