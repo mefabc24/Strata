@@ -15,8 +15,7 @@ class DebugVisualConfigurationCodecTest {
             grid.lineWidth = 3f
             grid.color = Color.CYAN
 
-            entities.enabled = true
-            entities.showPath = false
+            entities.showPath = true
 
             visualizationFilter = DebugVisualizationFilter.HOVERED
 
@@ -39,8 +38,7 @@ class DebugVisualConfigurationCodecTest {
         assertEquals(3f, target.grid.lineWidth)
         assertEquals(Color.CYAN, target.grid.color)
 
-        assertTrue(target.entities.enabled)
-        assertFalse(target.entities.showPath)
+        assertTrue(target.entities.showPath)
 
         assertEquals(
             DebugVisualizationFilter.HOVERED,
@@ -50,5 +48,18 @@ class DebugVisualConfigurationCodecTest {
         assertFalse(
             target.worldVisibility.isOverlayLayerVisible("roads")
         )
+    }
+
+    @Test
+    fun `version one disabled gates keep dormant child options inactive`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """{"version":1,"values":{"entities.enabled":"boolean:false","entities.path":"boolean:true"}}"""
+        )
+        val target = DebugSettings()
+
+        target.applyVisualConfiguration(legacy)
+
+        assertFalse(target.entities.showPath)
+        assertFalse(target.entities.hasActiveVisuals)
     }
 }

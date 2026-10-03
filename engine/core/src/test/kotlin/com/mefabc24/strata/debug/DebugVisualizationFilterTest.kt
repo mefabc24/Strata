@@ -104,16 +104,16 @@ class DebugVisualizationFilterTest {
     }
 
     @Test
-    fun `hover picking activates only for enabled target diagnostics`() {
+    fun `hover picking activates only for active target diagnostics`() {
         val settings = DebugSettings().apply {
             visualizationFilter = DebugVisualizationFilter.HOVERED
         }
 
         assertFalse(settings.needsHoveredVisualizationTarget())
-        settings.objects.enabled = true
+        settings.objects.showOccupiedTiles = true
         assertTrue(settings.needsHoveredVisualizationTarget())
-        settings.objects.enabled = false
-        settings.worldInfo.enabled = true
+        settings.objects.showOccupiedTiles = false
+        settings.worldInfo.showOrigin = true
         assertTrue(settings.needsHoveredVisualizationTarget())
         settings.visualizationFilter = DebugVisualizationFilter.SELECTED
         assertFalse(settings.needsHoveredVisualizationTarget())

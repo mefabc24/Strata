@@ -187,15 +187,15 @@ class TerrainRenderOrderDebugTest {
             )
         }
 
-        val disabled = renderOrderDebugLayers(DebugRenderOrderSettings().apply {
+        val independentlyEnabled = renderOrderDebugLayers(DebugRenderOrderSettings().apply {
             showLabels = true
             showTerrainIndices = true
             showTerrainHeatmap = true
         })
-        assertFalse(disabled.objectEntityLabels)
-        assertFalse(disabled.terrainIndices)
-        assertFalse(disabled.terrainHeatmap)
-        assertFalse(disabled.terrainHeatmapGrid)
+        assertTrue(independentlyEnabled.objectEntityLabels)
+        assertTrue(independentlyEnabled.terrainIndices)
+        assertTrue(independentlyEnabled.terrainHeatmap)
+        assertTrue(independentlyEnabled.terrainHeatmapGrid)
 
         val settings = DebugRenderOrderSettings().apply {
             mode = RenderOrderDebugMode.ACTUAL

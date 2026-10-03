@@ -18,7 +18,6 @@ class DebugVisualPresetsTest {
             grid.color = Color.CYAN
             worldVisibility.entitiesVisible = false
             worldVisibility.setOverlayLayerVisible("roads", false)
-            entities.enabled = true
             entities.showMovementTrail = true
             renderOrder.showSortVolumes = true
             notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
@@ -31,7 +30,6 @@ class DebugVisualPresetsTest {
             grid.lineWidth = 1f
             grid.color = Color.RED
             worldVisibility.showAll()
-            entities.enabled = false
             entities.showMovementTrail = false
             renderOrder.showSortVolumes = false
             notifications.position = DebugNotificationPosition.TOP_CENTER
@@ -51,7 +49,6 @@ class DebugVisualPresetsTest {
         assertEquals(Color.CYAN, settings.grid.color)
         assertFalse(settings.worldVisibility.entitiesVisible)
         assertFalse(settings.worldVisibility.isOverlayLayerVisible("roads"))
-        assertTrue(settings.entities.enabled)
         assertTrue(settings.entities.showMovementTrail)
         assertTrue(settings.renderOrder.showSortVolumes)
         assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.notifications.position)
