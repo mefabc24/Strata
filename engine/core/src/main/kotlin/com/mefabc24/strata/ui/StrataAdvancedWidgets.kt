@@ -182,7 +182,9 @@ class StrataNumericStepper(
     private val decimals: Int = 2,
     var onChanged: (Float) -> Unit = {}
 ) : Table(skin) {
-    private val valueLabel = Label("", skin)
+    private val valueLabel = Label("", skin).apply {
+        setAlignment(Align.center)
+    }
     private var storedValue = value.coerceIn(minimum, maximum)
 
     var value: Float
