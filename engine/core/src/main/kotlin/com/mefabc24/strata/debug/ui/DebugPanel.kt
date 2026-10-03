@@ -1063,20 +1063,10 @@ internal class DebugPanel(
         write: (Boolean) -> Unit,
         configure: StrataColumn.() -> Unit
     ) {
-        val expander = expander(
-            title = title,
-            expanded = false,
-            spacing = 0f,
-            headerHeight = 34f,
-            expandedStyle = debugExpanderStyle(),
-            headerContent = {
-                settingToggle(read, write).cell { minWidth(56f); height(28f) }
-            }
-        ) {
-            defaults().fillAvailableX()
+        settingsExpander(title, category) {
+            settingToggleRow("$title enabled", read, write)
             configure()
         }
-        getCell(expander).fillAvailableX()
     }
 
     private fun StrataColumn.settingsExpander(
