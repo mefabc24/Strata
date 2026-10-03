@@ -33,6 +33,9 @@ class DebugPanelSkinTest {
         assertNotNull(style.expandedIndicator)
         assertEquals(12f, style.contentIndent)
         assertEquals(9f, style.indicatorSize)
+        assertEquals(0f, style.contentSpacing)
+        assertNotNull(style.headerSeparator)
+        assertEquals(1f, style.headerSeparatorThickness)
 
         skin.dispose()
     }

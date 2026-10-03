@@ -660,6 +660,31 @@ class StrataWidgetsTest {
     }
 
     @Test
+    fun `expander renders a themed separator directly below its header`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val separator = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = false,
+            spacing = 0f,
+            expandedStyle = StrataExpanderStyle().apply {
+                headerSeparator = separator
+                headerSeparatorThickness = 2f
+                contentSpacing = 0f
+            }
+        ) { spacer(height = 20f) }
+
+        val separatorImage = expander.children[1] as Image
+        assertSame(separator, separatorImage.drawable)
+        assertEquals(2f, expander.getCell(separatorImage).maxHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
     fun `expander applies an explicit header button height`() {
         val skin = createSkin()
         val context = StrataUiContext(skin, StrataUiTheme())
