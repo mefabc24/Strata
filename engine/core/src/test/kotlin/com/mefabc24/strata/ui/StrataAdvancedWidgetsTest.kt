@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.BeforeTest
@@ -39,6 +40,22 @@ class StrataAdvancedWidgetsTest {
         stepper.sync(0.75f)
         assertEquals(0.75f, stepper.value)
         assertEquals(listOf(0.75f, 1f, 0.75f, 0.5f, 0.25f, 0f), changes)
+        skin.dispose()
+    }
+
+    @Test
+    fun `numeric stepper centers its displayed value`() {
+        val skin = skin()
+        val stepper = StrataNumericStepper(
+            "Alpha", skin, value = 1.25f, minimum = 0f,
+            maximum = 2f, step = 0.25f
+        )
+
+        val valueLabel = stepper.children
+            .filterIsInstance<Label>()
+            .first { it.text.toString() == "1.25" }
+
+        assertEquals(Align.center, valueLabel.labelAlign)
         skin.dispose()
     }
 
