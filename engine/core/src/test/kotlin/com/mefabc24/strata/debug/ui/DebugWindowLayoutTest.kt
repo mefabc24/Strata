@@ -16,8 +16,8 @@ class DebugWindowLayoutTest {
     }
 
     @Test
-    fun `visible debug window reserves overlay space`() {
-        assertEquals(380f, DebugWindowLayout.overlayRightInset(true, 372f))
-        assertEquals(0f, DebugWindowLayout.overlayRightInset(false, 372f))
+    fun `overlay stack clears a visible tools window`() {
+        assertEquals(16f, DebugWindowLayout.overlayTopPadding(false, 420f))
+        assertEquals(440f, DebugWindowLayout.overlayTopPadding(true, 420f))
     }
 }
