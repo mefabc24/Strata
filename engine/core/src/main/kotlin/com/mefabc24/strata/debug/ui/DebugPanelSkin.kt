@@ -7,8 +7,10 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -110,6 +112,23 @@ internal object DebugPanelSkin {
         skin.add("default", ScrollPane.ScrollPaneStyle().apply {
             vScroll = drawable.tint(Color(0.10f, 0.10f, 0.12f, 0.85f))
             vScrollKnob = drawable.tint(Color(0.42f, 0.42f, 0.46f, 0.95f))
+        })
+        val dropdownListStyle = List.ListStyle().apply {
+            this.font = font
+            fontColorSelected = Color.WHITE
+            fontColorUnselected = Color(0.82f, 0.84f, 0.88f, 1f)
+            selection = drawable.tint(Color(0.12f, 0.39f, 0.63f, 1f))
+            background = drawable.tint(Color(0.10f, 0.10f, 0.12f, 1f))
+        }
+        skin.add("default", dropdownListStyle)
+        skin.add("default", SelectBox.SelectBoxStyle().apply {
+            this.font = font
+            fontColor = Color(0.88f, 0.89f, 0.92f, 1f)
+            background = drawable.tint(Color(0.16f, 0.16f, 0.19f, 1f))
+            backgroundOver = drawable.tint(Color(0.22f, 0.23f, 0.27f, 1f))
+            backgroundOpen = drawable.tint(Color(0.12f, 0.12f, 0.14f, 1f))
+            scrollStyle = skin.get("default", ScrollPane.ScrollPaneStyle::class.java)
+            listStyle = dropdownListStyle
         })
         skin.add(
             "debug-panel",

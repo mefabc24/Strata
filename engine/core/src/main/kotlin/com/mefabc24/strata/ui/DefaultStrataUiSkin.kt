@@ -7,7 +7,9 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -44,6 +46,23 @@ internal object DefaultStrataUiSkin {
         skin.add("default", ScrollPane.ScrollPaneStyle().apply {
             vScroll = white.tint(Color(0.08f, 0.09f, 0.11f, 0.8f))
             vScrollKnob = white.tint(Color(0.45f, 0.48f, 0.54f, 0.95f))
+        })
+        val listStyle = List.ListStyle().apply {
+            this.font = font
+            fontColorSelected = Color.WHITE
+            fontColorUnselected = Color(0.82f, 0.84f, 0.88f, 1f)
+            selection = white.tint(Color(0.16f, 0.48f, 0.68f, 1f))
+            background = white.tint(Color(0.10f, 0.11f, 0.14f, 1f))
+        }
+        skin.add("default", listStyle)
+        skin.add("default", SelectBox.SelectBoxStyle().apply {
+            this.font = font
+            fontColor = Color.WHITE
+            background = white.tint(Color(0.18f, 0.20f, 0.24f, 0.96f))
+            backgroundOver = white.tint(Color(0.25f, 0.29f, 0.35f, 0.98f))
+            backgroundOpen = white.tint(Color(0.12f, 0.14f, 0.18f, 1f))
+            scrollStyle = skin.get("default", ScrollPane.ScrollPaneStyle::class.java)
+            this.listStyle = listStyle
         })
         skin.add(
             "panel",

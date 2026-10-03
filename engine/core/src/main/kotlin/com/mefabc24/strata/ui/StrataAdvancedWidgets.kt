@@ -5,15 +5,66 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.max
+
+/** A compact single-choice control that keeps domain values out of Scene2D labels. */
+class StrataDropdown<T>(
+    options: Iterable<T>,
+    selected: T,
+    skin: Skin,
+    styleName: String = "default",
+    private val displayText: (T) -> String = { it.toString() },
+    var onChanged: (T) -> Unit = {}
+) : SelectBox<StrataDropdown.Option<T>>(skin, styleName) {
+    data class Option<T>(val value: T, private val text: String) {
+        override fun toString(): String = text
+    }
+
+    private val values = options.toList()
+    private var synchronizing = false
+
+    var value: T
+        get() = selected.value
+        set(value) = select(value, notify = true)
+
+    init {
+        require(values.isNotEmpty()) { "Dropdown options must not be empty." }
+        require(selected in values) { "The selected dropdown value must be an option." }
+        setItems(*values.map { Option(it, displayText(it)) }.toTypedArray())
+        setSelected(optionFor(selected))
+        addListener(object : ChangeListener() {
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                if (!synchronizing) onChanged(value)
+            }
+        })
+    }
+
+    /** Updates the authoritative value without invoking [onChanged]. */
+    fun sync(value: T) = select(value, notify = false)
+
+    private fun select(value: T, notify: Boolean) {
+        require(value in values) { "The selected dropdown value must be an option." }
+        if (selected.value == value) return
+        synchronizing = !notify
+        try {
+            setSelected(optionFor(value))
+        } finally {
+            synchronizing = false
+        }
+    }
+
+    private fun optionFor(value: T): Option<T> = items.first { it.value == value }
+}
 
 /** Returns the number of equal-width columns that fit in [availableWidth]. */
 fun responsiveColumnCount(

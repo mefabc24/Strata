@@ -328,6 +328,16 @@ abstract class StrataLayout internal constructor(
         )
     )
 
+    fun <T> dropdown(
+        options: Iterable<T>,
+        selected: T,
+        styleName: String = theme.dropdownStyle,
+        displayText: (T) -> String = { it.toString() },
+        onChanged: (T) -> Unit
+    ): StrataDropdown<T> = actor(
+        StrataDropdown(options, selected, context.skin, styleName, displayText, onChanged)
+    )
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack {

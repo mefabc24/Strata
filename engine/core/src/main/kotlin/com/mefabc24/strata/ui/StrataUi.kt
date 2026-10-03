@@ -269,6 +269,16 @@ class StrataUi internal constructor(
         label, value, minimum, maximum, step, decimals, onChanged
     )
 
+    fun <T> dropdown(
+        options: Iterable<T>,
+        selected: T,
+        styleName: String = theme.dropdownStyle,
+        displayText: (T) -> String = { it.toString() },
+        onChanged: (T) -> Unit
+    ): StrataDropdown<T> = root.dropdown(
+        options, selected, styleName, displayText, onChanged
+    )
+
     fun stack(
         configure: StrataStack.() -> Unit
     ): StrataStack = root.stack(configure)

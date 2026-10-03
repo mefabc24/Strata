@@ -29,6 +29,7 @@ data class StrataUiTheme(
     val selectableButtonStyle: String = toggleButtonStyle,
     val imageButtonStyle: String = buttonStyle,
     val selectableImageButtonStyle: String = imageButtonStyle,
+    val dropdownStyle: String = "default",
     val panelStyle: String? = null,
     val separatorStyle: String? = null,
     val spacing: Float = 8f
@@ -67,6 +68,10 @@ data class StrataUiTheme(
 
         require(selectableImageButtonStyle.isNotBlank()) {
             "The selectable image button style name must not be blank."
+        }
+
+        require(dropdownStyle.isNotBlank()) {
+            "The dropdown style name must not be blank."
         }
 
         require(panelStyle == null || panelStyle.isNotBlank()) {
