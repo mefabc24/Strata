@@ -123,6 +123,7 @@ internal class DebugPanel(
     private var previewAnchor: Actor? = null
     private var lastMode = DebugToolMode.NONE
     private var appliedWindowVisibility: Pair<Boolean, Boolean>? = null
+    private var buildingDebugSettings = false
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
@@ -222,7 +223,9 @@ internal class DebugPanel(
                     defaults().fillAvailableX()
                     debugTab = column(spacing = 0f) {
                         defaults().fillAvailableX()
+                        buildingDebugSettings = true
                         buildDebug()
+                        buildingDebugSettings = false
                     }
                 }.cell {
                     fillAvailableX()
@@ -540,15 +543,15 @@ internal class DebugPanel(
                 selectedPreset.applyTo(settings)
                 syncControls()
             }.cell { width(58f); height(28f) }
-        }.cell { fillAvailableX(); height(34f) }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(34f) }
         presets.separator()
-        presets.button("Save current configuration as DEFAULT") {
+        presets.compactAction("Save current configuration as DEFAULT") {
             settings.saveDefaultVisualConfiguration()
             settings.notify(
                 "Default debug configuration saved",
                 DebugNotificationSeverity.SUCCESS
             )
-        }.cell { fillAvailableX(); height(32f); pad(4f) }
+        }
 
         general.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
             boundDropdown(
@@ -595,11 +598,11 @@ internal class DebugPanel(
                     { settings.performance.historyMetric },
                     { it.name.toDisplayName() }
                 ) { settings.performance.historyMetric = it }
-                responsiveGrid(105f, 32f, spacing = 4f, maximumColumns = 3) {
-                    button("Start") { settings.performance.startHistoryRecording() }
-                    button("Stop") { settings.performance.stopHistoryRecording() }
-                    button("Clear") { settings.performance.clearHistory() }
-                }.cell { fillAvailableX(); pad(4f) }
+                compactActions(
+                    "Start" to { settings.performance.startHistoryRecording() },
+                    "Stop" to { settings.performance.stopHistoryRecording() },
+                    "Clear" to { settings.performance.clearHistory() }
+                )
         }
         simulationSettings.settingToggleRow(
             "Simulation enabled",
@@ -1220,19 +1223,32 @@ internal class DebugPanel(
         ) {
             label(text).cell { growX(); left() }
             settingToggle(read, write).cell { width(56f); height(26f) }
-        }.cell { fillAvailableX(); height(32f) }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(32f) }
         separator()
     }
 
     private fun StrataColumn.compactAction(
         text: String,
         onClick: () -> Unit
-    ): StrataButton = button(text, onClick = onClick).also { button ->
-        getCell(button).apply {
+    ) {
+        compactActions(text to onClick)
+    }
+
+    private fun StrataColumn.compactActions(
+        vararg actions: Pair<String, () -> Unit>
+    ) {
+        row(
+            spacing = 4f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            actions.forEach { (label, action) ->
+                button(label, onClick = action).cell { growX(); height(28f) }
+            }
+        }.applyDebugSettingBackground().cell {
             fillAvailableX()
             height(32f)
-            pad(4f)
         }
+        separator()
     }
 
     private fun <T> StrataColumn.boundDropdown(
@@ -1254,7 +1270,7 @@ internal class DebugPanel(
                 displayText = displayText,
                 onChanged = write
             ).cell { width(148f); height(28f) }
-        }.cell { fillAvailableX(); height(32f) }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(32f) }
         separator()
         synchronizers += { dropdown.sync(read()) }
         return dropdown
@@ -1287,7 +1303,7 @@ internal class DebugPanel(
     ): StrataNumericStepper {
         val stepper = numericStepper(
             text, read(), minimum, maximum, step, onChanged = write
-        ).cell {
+        ).applyDebugSettingBackground().cell {
             fillAvailableX()
             height(32f)
             padLeft(6f)
@@ -1321,7 +1337,7 @@ internal class DebugPanel(
                 0.05f,
                 onChanged = write
             ).cell { width(120f); height(28f) }
-        }.cell { fillAvailableX(); height(32f) }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(32f) }
         separator()
         synchronizers += {
             val color = read()
@@ -1366,9 +1382,19 @@ internal class DebugPanel(
 
     private fun StrataLayout.diagnosticTable(): DebugDiagnosticTable {
         val table = actor(DebugDiagnosticTable(ui.skin))
+        table.applyDebugSettingBackground()
         val cell = requireNotNull(getCell(table)).apply { fillAvailableX() }
         table.bindLayout(cell)
         return table
+    }
+
+    private fun <T : Table> T.applyDebugSettingBackground(): T = apply {
+        if (buildingDebugSettings) {
+            background = ui.skin.get(
+                "debug-setting-row",
+                StrataPanelStyle::class.java
+            ).background
+        }
     }
 
     private fun <A : Actor> A.previewOnHover(

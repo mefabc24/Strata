@@ -146,6 +146,14 @@ internal object DebugPanelSkin {
             ),
             StrataPanelStyle::class.java
         )
+        skin.add(
+            "debug-setting-row",
+            StrataPanelStyle(
+                background = drawable.tint(Color(0.135f, 0.14f, 0.155f, 0.98f)),
+                padding = StrataInsets.NONE
+            ),
+            StrataPanelStyle::class.java
+        )
         val collapsedChevron = createChevronDrawable(skin, "right", expanded = false)
         val expandedChevron = createChevronDrawable(skin, "down", expanded = true)
         skin.add(
