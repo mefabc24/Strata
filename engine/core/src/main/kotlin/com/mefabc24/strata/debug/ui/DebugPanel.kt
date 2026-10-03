@@ -116,7 +116,6 @@ internal class DebugPanel(
     private lateinit var pickingRows: DebugDiagnosticTable
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
-    private lateinit var contextFooter: StrataColumn
     private lateinit var contextRows: DebugDiagnosticTable
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
@@ -235,8 +234,6 @@ internal class DebugPanel(
         ui.actor(windowLayout).cell { growX(); fillX(); top() }
     }
 
-    private fun windowPadding() = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
-
     private fun buildToolRail() {
         val style = ui.skin.get(
             "debug-tool-rail-button",
@@ -290,7 +287,7 @@ internal class DebugPanel(
                 buildingDebugSettings = true
                 buildToolSettings()
                 buildingDebugSettings = false
-                contextFooter = column(spacing = 0f) {
+                column(spacing = 0f) {
                     defaults().fillAvailableX()
                     separator()
                     label("STATUS").cell {
