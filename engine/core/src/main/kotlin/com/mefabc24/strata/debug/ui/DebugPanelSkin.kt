@@ -81,9 +81,7 @@ internal object DebugPanelSkin {
         skin.add("debug-stepper-value", Label.LabelStyle(
             font,
             Color(0.94f, 0.95f, 0.97f, 1f)
-        ).apply {
-            background = drawable.tint(Color(0.19f, 0.20f, 0.24f, 1f))
-        })
+        ))
         skin.add("debug-selection", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color(0.82f, 0.84f, 0.88f, 1f)
