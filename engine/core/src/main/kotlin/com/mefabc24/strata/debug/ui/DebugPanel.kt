@@ -605,9 +605,6 @@ internal class DebugPanel(
             }
             settingsExpander("History & logging") {
                 toggleRows(
-                    toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
-                        settings.performance.overlayEnabled = it
-                    },
                     toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
                         settings.performance.terminalLoggingEnabled = it
                     }
@@ -655,9 +652,9 @@ internal class DebugPanel(
                 "Freeze visual animations",
                 { settings.simulation.freezeVisualAnimations }
             ) { settings.simulation.freezeVisualAnimations = it }
-            button("Reset to normal speed") {
+            compactAction("Reset to normal speed") {
                 simulation.resetTimeScale()
-            }.cell { height(38f) }
+            }
         }
         registeringDebugSection = DebugPanelSection.VISUALS
         visuals.settingsExpander("World") {
@@ -787,12 +784,12 @@ internal class DebugPanel(
                 25f,
                 1f
             ) { settings.eventBus.maximumVisibleRecords = it.toInt() }
-            button("Clear history") {
+            compactAction("Clear history") {
                 if (eventMonitor.records.isNotEmpty()) {
                     eventMonitor.clear()
                     settings.notify("Event history cleared", DebugNotificationSeverity.INFO)
                 }
-            }.cell { height(38f) }
+            }
         }
         registeringDebugSection = DebugPanelSection.VISUALS
         visuals.settingsExpander("Scene elements") {
@@ -818,9 +815,9 @@ internal class DebugPanel(
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
             )
             pickingRows = diagnosticTable()
-            button("Clear locked target") {
+            compactAction("Clear locked target") {
                 settings.worldState.pickingSelection.clear()
-            }.cell { height(38f) }
+            }
         }
         diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleRows(
@@ -934,9 +931,24 @@ internal class DebugPanel(
         toggleRows(
             toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
             toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
-            toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
             toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
             toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
+            toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
+                settings.entities.currentTileFillColor =
+                    if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
+            }
+        )
+        boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.entities.lineWidth = it
+        }
+        boundColorAlpha("Fill color", { settings.entities.currentTileFillColor }, 0.16f) { alpha ->
+            settings.entities.currentTileFillColor?.let {
+                settings.entities.currentTileFillColor = it.apply { a = alpha }
+            }
+        }
+        settingsExpander("Movement") {
+            toggleRows(
+            toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
             toggle("Movement trail", { settings.entities.showMovementTrail }) {
                 settings.entities.showMovementTrail = it
             },
@@ -951,21 +963,8 @@ internal class DebugPanel(
             },
             toggle("Tile-position offset", { settings.entities.showPositionTileOffset }) {
                 settings.entities.showPositionTileOffset = it
-            },
-            toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
-                settings.entities.currentTileFillColor =
-                    if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
             }
         )
-        boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
-            settings.entities.lineWidth = it
-        }
-        boundColorAlpha("Fill color", { settings.entities.currentTileFillColor }, 0.16f) { alpha ->
-            settings.entities.currentTileFillColor?.let {
-                settings.entities.currentTileFillColor = it.apply { a = alpha }
-            }
-        }
-        label("Movement trail")
         boundStepper(
             "Maximum positions",
             { settings.entities.trailMaxPositions.toFloat() },
@@ -1001,9 +1000,10 @@ internal class DebugPanel(
             5f,
             0.1f
         ) { settings.entities.movementVectorScaleSeconds = it }
-        button("Clear movement trails") {
+        compactAction("Clear movement trails") {
             settings.entities.clearMovementTrails()
-        }.cell { height(38f) }
+        }
+        }
     }
 
     private fun StrataColumn.buildWorldInfoSettings() {
@@ -1067,19 +1067,20 @@ internal class DebugPanel(
         )
         val overlayIds = world.overlayLayerIds
         if (overlayIds.isNotEmpty()) {
-            label("Overlay layers")
-            overlayIds.forEach { layerId ->
-                simpleToggle(
-                    layerId,
-                    { settings.worldVisibility.isOverlayLayerVisible(layerId) }
-                ) { visible ->
-                    settings.worldVisibility.setOverlayLayerVisible(layerId, visible)
+            settingsExpander("Overlay layers") {
+                overlayIds.forEach { layerId ->
+                    simpleToggle(
+                        layerId,
+                        { settings.worldVisibility.isOverlayLayerVisible(layerId) }
+                    ) { visible ->
+                        settings.worldVisibility.setOverlayLayerVisible(layerId, visible)
+                    }
                 }
             }
         }
-        button("Show all categories") {
+        compactAction("Show all categories") {
             settings.worldVisibility.showAll()
-        }.cell { height(38f) }
+        }
     }
 
     private data class ToggleBinding(
@@ -1233,6 +1234,17 @@ internal class DebugPanel(
             settingToggle(read, write).cell { width(56f); height(26f) }
         }.cell { fillAvailableX(); height(32f) }
         separator()
+    }
+
+    private fun StrataColumn.compactAction(
+        text: String,
+        onClick: () -> Unit
+    ): StrataButton = button(text, onClick = onClick).also { button ->
+        getCell(button).apply {
+            fillAvailableX()
+            height(32f)
+            pad(4f)
+        }
     }
 
     private fun <T> StrataColumn.boundDropdown(

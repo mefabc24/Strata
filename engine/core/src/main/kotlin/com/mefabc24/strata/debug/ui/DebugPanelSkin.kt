@@ -155,8 +155,8 @@ internal object DebugPanelSkin {
                 padding = StrataInsets.NONE
             ).apply {
                 headerButtonStyle = "debug-expander-header"
-                headerBackground = drawable.tint(Color(0.145f, 0.15f, 0.17f, 1f))
-                expandedHeaderBackground = drawable.tint(Color(0.18f, 0.19f, 0.22f, 1f))
+                headerBackground = drawable.tint(Color(0.055f, 0.058f, 0.066f, 1f))
+                expandedHeaderBackground = drawable.tint(Color(0.085f, 0.09f, 0.105f, 1f))
                 collapsedIndicator = collapsedChevron
                 expandedIndicator = expandedChevron
                 contentIndent = 12f
@@ -170,7 +170,7 @@ internal object DebugPanelSkin {
         skin.add(
             "debug-separator",
             StrataSeparatorStyle(
-                drawable = drawable.tint(Color(0.35f, 0.35f, 0.38f, 1f)),
+                drawable = drawable.tint(Color(0.25f, 0.26f, 0.29f, 0.85f)),
                 thickness = 1f
             ),
             StrataSeparatorStyle::class.java
