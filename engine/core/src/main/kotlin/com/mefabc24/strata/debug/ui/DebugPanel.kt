@@ -63,13 +63,6 @@ internal class DebugPanel(
     private val synchronizers = DebugControlBindings()
     private val previewState = DebugContentPreviewState()
     private val navigation = DebugPanelNavigation()
-    private val debugSections = ui.selectionGroup(
-        DebugPanelSection.entries,
-        DebugPanelSection.VISUALS
-    ) { section ->
-        navigation.select(section)
-        syncDebugSectionVisibility(resetScroll = true)
-    }
     private val modes = buildList {
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
@@ -226,13 +219,11 @@ internal class DebugPanel(
         }
 
         if (settings.debugWindow.enabled) {
-            debugPanelActor = ui.panel(spacing = 8f, padding = windowPadding()) {
+            debugPanelActor = ui.panel(spacing = 0f, padding = StrataInsets.NONE) {
                 defaults().fillAvailableX()
-                label("DEBUG", "title").cell { height(28f); left() }
-                separator()
-                debugScroll = scrollColumn(spacing = 8f) {
+                debugScroll = scrollColumn(spacing = 0f) {
                     defaults().fillAvailableX()
-                    debugTab = column(spacing = 10f) {
+                    debugTab = column(spacing = 0f) {
                         defaults().fillAvailableX()
                         buildDebug()
                     }
@@ -528,25 +519,31 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
-        responsiveGrid(112f, 36f, maximumColumns = 4) {
-            DebugPanelSection.entries.forEach { section ->
-                selectableButton(section.label, section, debugSections)
+        row(
+            spacing = 4f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 5f)
+        ) {
+            label("DEBUG", "title").cell { growX(); left() }
+            val sectionDropdown = dropdown(
+                DebugPanelSection.entries,
+                navigation.selectedDebugSection,
+                displayText = DebugPanelSection::label
+            ) { section ->
+                navigation.select(section)
+                syncDebugSectionVisibility(resetScroll = true)
+            }.cell { width(122f); height(30f) }
+            synchronizers += {
+                sectionDropdown.sync(navigation.selectedDebugSection)
             }
+            expandAllButton = button("+") { setAllDebugCategoriesExpanded(true) }
+                .cell { width(30f); height(30f) }
+            collapseAllButton = button("-") { setAllDebugCategoriesExpanded(false) }
+                .cell { width(30f); height(30f) }
         }.cell { fillAvailableX() }
-
-        responsiveGrid(120f, 36f, maximumColumns = 2) {
-            expandAllButton = button("Expand all") {
-                setAllDebugCategoriesExpanded(true)
-            }
-            collapseAllButton = button("Collapse all") {
-                setAllDebugCategoriesExpanded(false)
-            }
-        }.cell { fillAvailableX() }
-
         separator()
         stack {
             DebugPanelSection.entries.forEach { section ->
-                debugSectionColumns[section] = column(spacing = 8f) {
+                debugSectionColumns[section] = column(spacing = 0f) {
                     defaults().fillAvailableX()
                 }
             }
@@ -1210,8 +1207,8 @@ internal class DebugPanel(
         val expander = expander(
             title = title,
             expanded = false,
-            spacing = 8f,
-            headerHeight = 36f,
+            spacing = 0f,
+            headerHeight = 34f,
             expandedStyle = debugExpanderStyle(),
             headerContent = {
                 settingToggle(read, write).cell { minWidth(56f); height(28f) }
@@ -1219,7 +1216,6 @@ internal class DebugPanel(
         ) {
             defaults().fillAvailableX()
             configure()
-            separator()
         }
         getCell(expander).fillAvailableX()
         registerDebugCategory(expander)
@@ -1233,13 +1229,12 @@ internal class DebugPanel(
         val expander = expander(
             title = title,
             expanded = false,
-            spacing = 8f,
-            headerHeight = 36f,
+            spacing = 0f,
+            headerHeight = 34f,
             expandedStyle = debugExpanderStyle()
         ) {
             defaults().fillAvailableX()
             configure()
-            separator()
         }
         getCell(expander).fillAvailableX()
         registerDebugCategory(expander)
