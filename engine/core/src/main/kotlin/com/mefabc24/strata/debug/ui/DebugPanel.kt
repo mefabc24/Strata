@@ -512,8 +512,17 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
+        val general = settingsExpander("General") {}.content
+        val worldSettings = settingsExpander("World") {}.content
+        val sceneElements = settingsExpander("Scene elements") {}.content
+        val cameraSettings = settingsExpander("Camera") {}.content
+        val performance = settingsExpander("Performance") {}.content
+        val simulationSettings = settingsExpander("Simulation") {}.content
+        val diagnostics = settingsExpander("Diagnostics") {}.content
+        val presets = settingsExpander("Presets") {}.content
+
         var selectedPreset = DebugPresetSelection.DEFAULT
-        row(
+        presets.row(
             spacing = 6f,
             padding = StrataInsets.symmetric(horizontal = 6f, vertical = 3f)
         ) {
@@ -528,8 +537,8 @@ internal class DebugPanel(
                 syncControls()
             }.cell { width(58f); height(28f) }
         }.cell { fillAvailableX(); height(34f) }
-        separator()
-        button("Save current configuration as DEFAULT") {
+        presets.separator()
+        presets.button("Save current configuration as DEFAULT") {
             settings.saveDefaultVisualConfiguration()
             settings.notify(
                 "Default debug configuration saved",
@@ -537,19 +546,16 @@ internal class DebugPanel(
             )
         }.cell { fillAvailableX(); height(32f); pad(4f) }
 
-        settingsExpander("General") {
-            settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
-                boundDropdown(
-                    "Visualization filter",
-                    DebugVisualizationFilter.entries,
-                    { settings.visualizationFilter },
-                    { it.name.toDisplayName() }
-                ) { settings.visualizationFilter = it }
-            }
+        general.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
+            boundDropdown(
+                "Visualization filter",
+                DebugVisualizationFilter.entries,
+                { settings.visualizationFilter },
+                { it.name.toDisplayName() }
+            ) { settings.visualizationFilter = it }
         }
 
-        settingsExpander("Performance") {
-            settingsExpander("Overlays", DebugVisualCategory.GENERAL) {
+        performance.settingsExpander("Overlays", DebugVisualCategory.GENERAL) {
                 toggleRows(
                     toggle("Performance overlay", { settings.performance.overlayEnabled }) {
                         settings.performance.overlayEnabled = it
@@ -558,8 +564,8 @@ internal class DebugPanel(
                         settings.worldStats.enabled = it
                     }
                 )
-            }
-            settingsExpander("History & logging") {
+        }
+        performance.settingsExpander("History & logging") {
                 toggleRows(
                     toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
                         settings.performance.terminalLoggingEnabled = it
@@ -590,46 +596,42 @@ internal class DebugPanel(
                     button("Stop") { settings.performance.stopHistoryRecording() }
                     button("Clear") { settings.performance.clearHistory() }
                 }.cell { fillAvailableX(); pad(4f) }
-            }
         }
-        featureExpander(
-            "Simulation",
-            read = { settings.simulation.enabled },
-            write = { settings.simulation.enabled = it }
-        ) {
-            boundStepper(
+        simulationSettings.settingToggleRow(
+            "Simulation enabled",
+            { settings.simulation.enabled },
+            { settings.simulation.enabled = it }
+        )
+        simulationSettings.boundStepper(
                 "Custom time scale",
                 { simulation.timeScale },
                 0.05f,
                 16f,
                 0.05f
             ) { simulation.timeScale = it }
-            simpleToggle(
+        simulationSettings.simpleToggle(
                 "Freeze visual animations",
                 { settings.simulation.freezeVisualAnimations }
             ) { settings.simulation.freezeVisualAnimations = it }
-            compactAction("Reset to normal speed") {
+        simulationSettings.compactAction("Reset to normal speed") {
                 simulation.resetTimeScale()
-            }
         }
-        settingsExpander("World") {
-            settingsExpander("Visibility", DebugVisualCategory.WORLD_VISIBILITY) {
+        worldSettings.settingsExpander("Visibility", DebugVisualCategory.WORLD_VISIBILITY) {
                 buildWorldVisibilitySettings()
-            }
-            featureExpander(
+        }
+        worldSettings.featureExpander(
                 "Grid",
                 DebugVisualCategory.GRID,
                 { settings.grid.enabled },
                 { settings.grid.enabled = it }
             ) { buildGridSettings() }
-            featureExpander(
+        worldSettings.featureExpander(
                 "Information",
                 DebugVisualCategory.WORLD_INFORMATION,
                 { settings.worldInfo.enabled },
                 { settings.worldInfo.enabled = it }
             ) { buildWorldInfoSettings() }
-        }
-        settingsExpander("Rendering") {
+        worldSettings.settingsExpander("Rendering") {
             featureExpander(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
@@ -711,7 +713,7 @@ internal class DebugPanel(
             }
             }
         }
-        featureExpander(
+        diagnostics.featureExpander(
             "Event Bus Monitor",
             DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
@@ -745,23 +747,19 @@ internal class DebugPanel(
                 }
             }
         }
-        settingsExpander("Scene elements") {
-            featureExpander(
+        sceneElements.featureExpander(
                 "Objects",
                 DebugVisualCategory.OBJECTS,
                 { settings.objects.enabled },
                 { settings.objects.enabled = it }
             ) { buildObjectSettings() }
-            featureExpander(
+        sceneElements.featureExpander(
                 "Entities",
                 DebugVisualCategory.ENTITIES,
                 { settings.entities.enabled },
                 { settings.entities.enabled = it }
             ) { buildEntitySettings() }
-        }
-
-        settingsExpander("Scene diagnostics") {
-        featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
+        diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleRows(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
@@ -771,7 +769,7 @@ internal class DebugPanel(
                 settings.worldState.pickingSelection.clear()
             }
         }
-        featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
+        diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
             toggleRows(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
@@ -785,7 +783,12 @@ internal class DebugPanel(
             )
             cullingRows = diagnosticTable()
         }
-        featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
+        cameraSettings.settingToggleRow(
+            "Camera diagnostics enabled",
+            { settings.camera.enabled },
+            { settings.camera.enabled = it }
+        )
+        cameraSettings.apply {
             toggleRows(
                 toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
@@ -803,9 +806,8 @@ internal class DebugPanel(
             }
             cameraRows = diagnosticTable()
         }
-        }
 
-        featureExpander(
+        general.featureExpander(
             "Notifications",
             DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
@@ -1081,7 +1083,7 @@ internal class DebugPanel(
         title: String,
         category: DebugVisualCategory? = null,
         configure: StrataColumn.() -> Unit
-    ) {
+    ): StrataExpander {
         val expander = expander(
             title = title,
             expanded = false,
@@ -1093,6 +1095,7 @@ internal class DebugPanel(
             configure()
         }
         getCell(expander).fillAvailableX()
+        return expander
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
