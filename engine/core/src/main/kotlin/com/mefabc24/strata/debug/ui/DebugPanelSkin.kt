@@ -52,13 +52,22 @@ internal object DebugPanelSkin {
         skin.add("default", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color.WHITE
-            up = drawable.tint(Color(0.18f, 0.18f, 0.20f, 1f))
-            over = drawable.tint(Color(0.25f, 0.25f, 0.28f, 1f))
-            down = drawable.tint(Color(0.12f, 0.12f, 0.14f, 1f))
+            up = drawable.tint(Color(0.23f, 0.24f, 0.28f, 1f))
+            over = drawable.tint(Color(0.31f, 0.33f, 0.38f, 1f))
+            down = drawable.tint(Color(0.17f, 0.18f, 0.21f, 1f))
             checked = drawable.tint(Color(0.16f, 0.45f, 0.68f, 1f))
             checkedOver = drawable.tint(Color(0.20f, 0.55f, 0.78f, 1f))
             disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
             disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
+        })
+        skin.add("debug-action-card", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color(0.90f, 0.91f, 0.94f, 1f)
+            up = drawable.tint(Color(0.21f, 0.22f, 0.26f, 1f))
+            over = drawable.tint(Color(0.31f, 0.33f, 0.39f, 1f))
+            down = drawable.tint(Color(0.15f, 0.16f, 0.19f, 1f))
+            disabled = drawable.tint(Color(0.10f, 0.10f, 0.12f, 1f))
+            disabledFontColor = Color(0.46f, 0.47f, 0.50f, 1f)
         })
         skin.add("default", TextField.TextFieldStyle().apply {
             this.font = font
@@ -68,6 +77,12 @@ internal object DebugPanelSkin {
             focusedBackground = drawable.tint(Color(0.18f, 0.22f, 0.27f, 1f))
             cursor = drawable.tint(Color.WHITE)
             selection = drawable.tint(Color(0.16f, 0.45f, 0.68f, 1f))
+        })
+        skin.add("debug-stepper-value", Label.LabelStyle(
+            font,
+            Color(0.94f, 0.95f, 0.97f, 1f)
+        ).apply {
+            background = drawable.tint(Color(0.19f, 0.20f, 0.24f, 1f))
         })
         skin.add("debug-selection", TextButton.TextButtonStyle().apply {
             this.font = font

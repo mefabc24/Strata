@@ -180,9 +180,10 @@ class StrataNumericStepper(
     val maximum: Float,
     val step: Float,
     private val decimals: Int = 2,
-    var onChanged: (Float) -> Unit = {}
+    var onChanged: (Float) -> Unit = {},
+    valueStyleName: String = "default"
 ) : Table(skin) {
-    private val valueLabel = Label("", skin).apply {
+    private val valueLabel = Label("", skin, valueStyleName).apply {
         setAlignment(Align.center)
     }
     private var storedValue = value.coerceIn(minimum, maximum)

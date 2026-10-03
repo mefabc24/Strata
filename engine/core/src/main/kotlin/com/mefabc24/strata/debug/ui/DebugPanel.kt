@@ -1145,12 +1145,15 @@ internal class DebugPanel(
     ) {
         row(
             spacing = 4f,
-            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+            padding = StrataInsets.NONE
         ) {
             actions.forEach { (label, action) ->
-                button(label, onClick = action).cell { growX(); height(28f) }
+                button(label, "debug-action-card", action).cell {
+                    growX()
+                    height(32f)
+                }
             }
-        }.applyDebugSettingBackground().cell {
+        }.cell {
             fillAvailableX()
             height(32f)
         }
@@ -1208,7 +1211,9 @@ internal class DebugPanel(
         write: (Float) -> Unit
     ): StrataNumericStepper {
         val stepper = numericStepper(
-            text, read(), minimum, maximum, step, onChanged = write
+            text, read(), minimum, maximum, step,
+            valueStyleName = "debug-stepper-value",
+            onChanged = write
         ).applyDebugSettingBackground().apply {
             padLeft(6f)
             padRight(6f)
@@ -1242,6 +1247,7 @@ internal class DebugPanel(
                 0f,
                 1f,
                 0.05f,
+                valueStyleName = "debug-stepper-value",
                 onChanged = write
             ).cell { width(120f); height(28f) }
         }.applyDebugSettingBackground().cell { fillAvailableX(); height(32f) }

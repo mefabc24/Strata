@@ -321,11 +321,13 @@ abstract class StrataLayout internal constructor(
         maximum: Float,
         step: Float,
         decimals: Int = 2,
-        onChanged: (Float) -> Unit
+        onChanged: (Float) -> Unit,
+        styleName: String = theme.buttonStyle,
+        valueStyleName: String = theme.labelStyle
     ): StrataNumericStepper = actor(
         StrataNumericStepper(
-            label, context.skin, context.theme.buttonStyle, value,
-            minimum, maximum, step, decimals, onChanged
+            label, context.skin, styleName, value,
+            minimum, maximum, step, decimals, onChanged, valueStyleName
         )
     )
 
