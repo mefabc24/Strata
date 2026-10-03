@@ -117,7 +117,7 @@ class DebugContextStatusTest {
     }
 
     @Test
-    fun `status footer reserves one footprint for changing tool diagnostics`() {
+    fun `status adapts to the diagnostics available for each tool`() {
         val singleRow = requireNotNull(debugContextStatus(DebugContextInputs(
             mode = DebugToolMode.INSPECT,
             inspection = "A very long selected entity name that wraps in the footer"
@@ -136,6 +136,5 @@ class DebugContextStatusTest {
 
         assertEquals(1, singleRow.rows.size)
         assertEquals(4, fourRows.rows.size)
-        assertTrue(DebugContextFooterLayout.reservedHeight > 0f)
     }
 }
