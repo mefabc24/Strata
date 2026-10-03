@@ -243,7 +243,7 @@ internal class DebugPanel(
                 modes.forEachIndexed { index, mode ->
                     val button = DebugToolRailButton(
                         mode = mode,
-                        label = mode.displayName,
+                        label = debugToolRailLabel(mode),
                         icon = ui.skin.getDrawable(debugToolIconName(mode)),
                         skin = ui.skin,
                         style = style,

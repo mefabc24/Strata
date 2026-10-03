@@ -31,6 +31,11 @@ internal fun availableDebugToolModes(
     add(DebugToolMode.FREE_CAMERA)
 }
 
+internal fun debugToolRailLabel(mode: DebugToolMode): String = when (mode) {
+    DebugToolMode.FREE_CAMERA -> "Camera"
+    else -> mode.displayName
+}
+
 internal class DebugToolRailState(
     private val configurableModes: Set<DebugToolMode>
 ) {
@@ -89,7 +94,7 @@ internal class DebugToolRailButton(
         add(Label(label, skin, "debug-tool-label").apply {
             setAlignment(Align.center)
             setEllipsis(true)
-        }).growX().height(18f).center()
+        }).growX().minWidth(0f).height(18f).center()
 
         addListener(object : InputListener() {
             override fun touchDown(
