@@ -625,11 +625,9 @@ internal class DebugPanel(
                 { settings.grid.enabled },
                 { settings.grid.enabled = it }
             ) { buildGridSettings() }
-        worldSettings.featureExpander(
+        worldSettings.settingsExpander(
                 "Information",
-                DebugVisualCategory.WORLD_INFORMATION,
-                { settings.worldInfo.enabled },
-                { settings.worldInfo.enabled = it }
+                DebugVisualCategory.WORLD_INFORMATION
             ) { buildWorldInfoSettings() }
         worldSettings.settingsExpander("Rendering") {
             featureExpander(
@@ -747,17 +745,13 @@ internal class DebugPanel(
                 }
             }
         }
-        sceneElements.featureExpander(
+        sceneElements.settingsExpander(
                 "Objects",
-                DebugVisualCategory.OBJECTS,
-                { settings.objects.enabled },
-                { settings.objects.enabled = it }
+                DebugVisualCategory.OBJECTS
             ) { buildObjectSettings() }
-        sceneElements.featureExpander(
+        sceneElements.settingsExpander(
                 "Entities",
-                DebugVisualCategory.ENTITIES,
-                { settings.entities.enabled },
-                { settings.entities.enabled = it }
+                DebugVisualCategory.ENTITIES
             ) { buildEntitySettings() }
         diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleRows(
@@ -861,11 +855,33 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildObjectSettings() {
+        val feature = GranularDebugFeatureBinding(
+            { settings.objects.enabled },
+            { settings.objects.enabled = it },
+            disableAllOptions = {
+                settings.objects.showOccupiedTiles = false
+                settings.objects.showOriginTile = false
+                settings.objects.showSpriteBounds = false
+                settings.objects.occupiedTileFillColor = null
+            },
+            anyOptionEnabled = {
+                settings.objects.showOccupiedTiles ||
+                    settings.objects.showOriginTile ||
+                    settings.objects.showSpriteBounds ||
+                    settings.objects.occupiedTileFillColor != null
+            }
+        )
         toggleRows(
-            toggle("Occupied tiles", { settings.objects.showOccupiedTiles }) { settings.objects.showOccupiedTiles = it },
-            toggle("Origin tile", { settings.objects.showOriginTile }) { settings.objects.showOriginTile = it },
-            toggle("Sprite bounds", { settings.objects.showSpriteBounds }) { settings.objects.showSpriteBounds = it },
-            toggle("Tile fill", { settings.objects.occupiedTileFillColor != null }) { enabled ->
+            feature.toggle("Occupied tiles", { settings.objects.showOccupiedTiles }) {
+                settings.objects.showOccupiedTiles = it
+            },
+            feature.toggle("Origin tile", { settings.objects.showOriginTile }) {
+                settings.objects.showOriginTile = it
+            },
+            feature.toggle("Sprite bounds", { settings.objects.showSpriteBounds }) {
+                settings.objects.showSpriteBounds = it
+            },
+            feature.toggle("Tile fill", { settings.objects.occupiedTileFillColor != null }) { enabled ->
                 settings.objects.occupiedTileFillColor =
                     if (enabled) Color(0.2f, 0.65f, 1f, 0.18f) else null
             }
@@ -881,12 +897,42 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildEntitySettings() {
+        val feature = GranularDebugFeatureBinding(
+            { settings.entities.enabled },
+            { settings.entities.enabled = it },
+            disableAllOptions = {
+                settings.entities.showCurrentTile = false
+                settings.entities.showPosition = false
+                settings.entities.showPath = false
+                settings.entities.showDirection = false
+                settings.entities.showSpriteBounds = false
+                settings.entities.showMovementTrail = false
+                settings.entities.showMovementVector = false
+                settings.entities.showNextWaypoint = false
+                settings.entities.showMovementSpeed = false
+                settings.entities.showPositionTileOffset = false
+                settings.entities.currentTileFillColor = null
+            },
+            anyOptionEnabled = {
+                settings.entities.showCurrentTile ||
+                    settings.entities.showPosition ||
+                    settings.entities.showPath ||
+                    settings.entities.showDirection ||
+                    settings.entities.showSpriteBounds ||
+                    settings.entities.showMovementTrail ||
+                    settings.entities.showMovementVector ||
+                    settings.entities.showNextWaypoint ||
+                    settings.entities.showMovementSpeed ||
+                    settings.entities.showPositionTileOffset ||
+                    settings.entities.currentTileFillColor != null
+            }
+        )
         toggleRows(
-            toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
-            toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
-            toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
-            toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
-            toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
+            feature.toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
+            feature.toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
+            feature.toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
+            feature.toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
+            feature.toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
                 settings.entities.currentTileFillColor =
                     if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
             }
@@ -901,20 +947,20 @@ internal class DebugPanel(
         }
         settingsExpander("Movement") {
             toggleRows(
-            toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
-            toggle("Movement trail", { settings.entities.showMovementTrail }) {
+            feature.toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
+            feature.toggle("Movement trail", { settings.entities.showMovementTrail }) {
                 settings.entities.showMovementTrail = it
             },
-            toggle("Movement vector", { settings.entities.showMovementVector }) {
+            feature.toggle("Movement vector", { settings.entities.showMovementVector }) {
                 settings.entities.showMovementVector = it
             },
-            toggle("Next waypoint", { settings.entities.showNextWaypoint }) {
+            feature.toggle("Next waypoint", { settings.entities.showNextWaypoint }) {
                 settings.entities.showNextWaypoint = it
             },
-            toggle("Speed labels", { settings.entities.showMovementSpeed }) {
+            feature.toggle("Speed labels", { settings.entities.showMovementSpeed }) {
                 settings.entities.showMovementSpeed = it
             },
-            toggle("Tile-position offset", { settings.entities.showPositionTileOffset }) {
+            feature.toggle("Tile-position offset", { settings.entities.showPositionTileOffset }) {
                 settings.entities.showPositionTileOffset = it
             }
         )
@@ -960,23 +1006,43 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildWorldInfoSettings() {
+        val feature = GranularDebugFeatureBinding(
+            { settings.worldInfo.enabled },
+            { settings.worldInfo.enabled = it },
+            disableAllOptions = {
+                settings.worldInfo.showTileCoordinates = false
+                settings.worldInfo.showTerrainIds = false
+                settings.worldInfo.showOverlayInfo = false
+                settings.worldInfo.showOccupancy = false
+                settings.worldInfo.showMissingTerrainVisuals = false
+                settings.worldInfo.showOrigin = false
+            },
+            anyOptionEnabled = {
+                settings.worldInfo.showTileCoordinates ||
+                    settings.worldInfo.showTerrainIds ||
+                    settings.worldInfo.showOverlayInfo ||
+                    settings.worldInfo.showOccupancy ||
+                    settings.worldInfo.showMissingTerrainVisuals ||
+                    settings.worldInfo.showOrigin
+            }
+        )
         toggleRows(
-            toggle("Tile coordinates", { settings.worldInfo.showTileCoordinates }) {
+            feature.toggle("Tile coordinates", { settings.worldInfo.showTileCoordinates }) {
                 settings.worldInfo.showTileCoordinates = it
             },
-            toggle("Terrain IDs", { settings.worldInfo.showTerrainIds }) {
+            feature.toggle("Terrain IDs", { settings.worldInfo.showTerrainIds }) {
                 settings.worldInfo.showTerrainIds = it
             },
-            toggle("Overlay info", { settings.worldInfo.showOverlayInfo }) {
+            feature.toggle("Overlay info", { settings.worldInfo.showOverlayInfo }) {
                 settings.worldInfo.showOverlayInfo = it
             },
-            toggle("Occupancy", { settings.worldInfo.showOccupancy }) {
+            feature.toggle("Occupancy", { settings.worldInfo.showOccupancy }) {
                 settings.worldInfo.showOccupancy = it
             },
-            toggle("Missing visuals", { settings.worldInfo.showMissingTerrainVisuals }) {
+            feature.toggle("Missing visuals", { settings.worldInfo.showMissingTerrainVisuals }) {
                 settings.worldInfo.showMissingTerrainVisuals = it
             },
-            toggle("World origin", { settings.worldInfo.showOrigin }) {
+            feature.toggle("World origin", { settings.worldInfo.showOrigin }) {
                 settings.worldInfo.showOrigin = it
             }
         )
@@ -1047,6 +1113,16 @@ internal class DebugPanel(
         read: () -> Boolean,
         write: (Boolean) -> Unit
     ) = ToggleBinding(text, read, write)
+
+    private fun GranularDebugFeatureBinding.toggle(
+        text: String,
+        read: () -> Boolean,
+        write: (Boolean) -> Unit
+    ) = ToggleBinding(
+        text,
+        { readOption(read) },
+        { value -> writeOption(value, read, write) }
+    )
 
     private fun StrataColumn.simpleToggle(
         text: String,
