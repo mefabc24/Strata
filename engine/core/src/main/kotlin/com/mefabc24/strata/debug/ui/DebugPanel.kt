@@ -66,16 +66,16 @@ internal class DebugPanel(
         add(DebugToolMode.NONE)
         add(DebugToolMode.INSPECT)
         add(DebugToolMode.MOVE)
-        add(DebugToolMode.FREE_CAMERA)
         if (tools.buildAvailable && buildEntries.isNotEmpty()) add(DebugToolMode.BUILD)
         add(DebugToolMode.DELETE)
         if (painter.entries.isNotEmpty()) add(DebugToolMode.PAINT)
         if (spawner.entries.isNotEmpty()) add(DebugToolMode.SPAWN)
         add(DebugToolMode.PATHFINDING)
+        add(DebugToolMode.FREE_CAMERA)
     }
-    private val modeSelection = ui.selectionGroup(modes, DebugToolMode.NONE) {
-        hidePreview(); tools.select(it); syncVisibility()
-    }
+    private val toolRailState = DebugToolRailState(modes.filterNot {
+        it == DebugToolMode.NONE
+    }.toSet())
     private val buildSelection = buildEntries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { tools.selectBuildEntry(it) }
     }
@@ -97,12 +97,14 @@ internal class DebugPanel(
     }
 
     private lateinit var windowLayout: Table
-    private lateinit var toolsPanelActor: StrataPanel
+    private lateinit var toolRailActor: StrataPanel
+    private lateinit var toolFlyoutActor: StrataPanel
+    private lateinit var toolFlyoutScroll: StrataScrollPane
+    private lateinit var toolFlyoutHeader: Label
     private lateinit var debugPanelActor: StrataPanel
-    private lateinit var toolsScroll: StrataScrollPane
     private lateinit var debugScroll: StrataScrollPane
-    private lateinit var toolsTab: StrataColumn
     private lateinit var debugTab: StrataColumn
+    private val toolButtons = linkedMapOf<DebugToolMode, DebugToolRailButton>()
     private lateinit var buildControls: StrataColumn
     private lateinit var deleteControls: StrataColumn
     private lateinit var paintControls: StrataColumn
@@ -115,13 +117,13 @@ internal class DebugPanel(
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
     private lateinit var contextFooter: StrataColumn
-    private lateinit var contextFooterCell: Cell<StrataColumn>
     private lateinit var contextRows: DebugDiagnosticTable
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
     private var previewAnchor: Actor? = null
     private var lastMode = DebugToolMode.NONE
+    private var appliedFlyoutMode: DebugToolMode? = null
     private var appliedWindowVisibility: Pair<Boolean, Boolean>? = null
     private var buildingDebugSettings = false
 
@@ -131,7 +133,11 @@ internal class DebugPanel(
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
         if (settings.toolsWindow.enabled) buildPreview()
-        synchronizers += { modeSelection.select(tools.mode) }
+        synchronizers += {
+            toolButtons.forEach { (mode, button) ->
+                button.selected = tools.mode == mode
+            }
+        }
         terrainSelection?.let { group ->
             synchronizers += { painter.selectedEntry?.let(group::select) }
         }
@@ -152,7 +158,10 @@ internal class DebugPanel(
     fun setToolsWindowVisible(visible: Boolean) {
         if (!settings.toolsWindow.enabled) return
         settings.toolsWindow.visible = visible
-        if (!visible) hidePreview()
+        if (!visible) {
+            hidePreview()
+            closeToolSettings()
+        }
         syncWindowLayout()
     }
 
@@ -167,6 +176,7 @@ internal class DebugPanel(
         simulationOverlay.setVisible(settings.simulation.enabled)
         simulationOverlay.update(delta)
         syncWindowLayout()
+        positionToolFlyout()
         syncStatsOverlayPosition()
         syncControls()
         syncVisibility()
@@ -175,44 +185,19 @@ internal class DebugPanel(
 
     fun resized() {
         syncWindowLayout(force = true)
+        positionToolFlyout()
         syncStatsOverlayPosition()
         if (!settings.toolsWindow.enabled) return
         val anchor = previewAnchor ?: return
-        if (previewState.current != null) previewPopover.showRightOf(toolsPanelActor, anchor)
+        if (previewState.current != null) previewPopover.showRightOf(toolFlyoutActor, anchor)
     }
 
     private fun buildUi() {
         ui.root.pad(0f)
 
         if (settings.toolsWindow.enabled) {
-            toolsPanelActor = ui.panel(spacing = 8f, padding = windowPadding()) {
-                defaults().fillAvailableX()
-                label("TOOLS", "title").cell { height(28f); left() }
-                separator()
-                toolsScroll = scrollColumn(spacing = 8f) {
-                    defaults().fillAvailableX()
-                    toolsTab = column(spacing = 10f) {
-                        defaults().fillAvailableX()
-                        buildTools()
-                    }
-                }.cell {
-                    fillAvailableX()
-                    minHeight(0f)
-                    prefHeight(Value.prefHeight)
-                    maxHeight(Value.percentHeight(0.70f, ui.root))
-                }
-                contextFooter = column(spacing = 3f) {
-                    defaults().fillAvailableX()
-                    separator()
-                    label("STATUS").cell { height(24f); left() }
-                    contextRows = diagnosticTable()
-                }
-                contextFooterCell = getCell(contextFooter).apply {
-                    height(DebugContextFooterLayout.reservedHeight)
-                    padTop(4f)
-                }
-            }
-            toolsPanelActor.remove()
+            buildToolRail()
+            buildToolFlyout()
         }
 
         if (settings.debugWindow.enabled) {
@@ -252,6 +237,77 @@ internal class DebugPanel(
 
     private fun windowPadding() = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
 
+    private fun buildToolRail() {
+        val style = ui.skin.get(
+            "debug-tool-rail-button",
+            DebugToolRailButtonStyle::class.java
+        )
+        toolRailActor = ui.panel(
+            styleName = null,
+            spacing = 0f,
+            padding = StrataInsets.NONE
+        ) {
+            defaults().fillAvailableX()
+            modes.forEachIndexed { index, mode ->
+                val button = DebugToolRailButton(
+                    mode = mode,
+                    label = mode.displayName,
+                    icon = ui.skin.getDrawable(debugToolIconName(mode)),
+                    skin = ui.skin,
+                    style = style,
+                    onSelected = ::selectTool,
+                    onSettingsRequested = ::toggleToolSettings
+                )
+                toolButtons[mode] = actor(button).cell {
+                    width(DebugWindowLayout.TOOL_RAIL_WIDTH)
+                    height(DebugWindowLayout.TOOL_BUTTON_HEIGHT)
+                }
+                if (index != modes.lastIndex) separator()
+            }
+        }
+        toolRailActor.remove()
+    }
+
+    private fun buildToolFlyout() {
+        toolFlyoutActor = ui.panel(
+            styleName = "debug-panel",
+            spacing = 0f,
+            padding = StrataInsets.NONE
+        ) {
+            defaults().fillAvailableX()
+            toolFlyoutHeader = label("", "title").cell {
+                height(34f)
+                padLeft(10f)
+                padRight(10f)
+                left()
+            }
+            separator()
+            toolFlyoutScroll = scrollColumn(
+                spacing = 0f,
+                padding = StrataInsets.NONE
+            ) {
+                defaults().fillAvailableX()
+                buildToolSettings()
+                contextFooter = column(spacing = 0f) {
+                    defaults().fillAvailableX()
+                    separator()
+                    label("STATUS").cell {
+                        height(28f)
+                        padLeft(8f)
+                        left()
+                    }
+                    contextRows = diagnosticTable()
+                }
+            }.cell {
+                grow()
+                minHeight(0f)
+            }
+        }
+        toolFlyoutActor.remove()
+        toolFlyoutActor.isVisible = false
+        ui.stage.addActor(toolFlyoutActor)
+    }
+
     private fun buildPreview() {
         previewPopover = ui.popover(width = 128f, height = 154f) {
             defaults().fillAvailableX()
@@ -263,17 +319,7 @@ internal class DebugPanel(
         }
     }
 
-    private fun StrataColumn.buildTools() {
-        label("Mode")
-        responsiveGrid(105f, 40f, maximumColumns = 3) {
-            modes.forEach { selectableButton(it.displayName, it, modeSelection) }
-        }.cell { fillAvailableX() }
-        if (!tools.buildAvailable || buildEntries.isEmpty()) {
-            wrappingLabel(
-                if (!tools.buildAvailable) "Build unavailable: no PlacementController"
-                else "Build unavailable: no constructible objects"
-            )
-        }
+    private fun StrataColumn.buildToolSettings() {
         stack {
             buildControls = column(spacing = 8f) {
                 defaults().fillAvailableX()
@@ -1321,7 +1367,7 @@ internal class DebugPanel(
         previewAnchor = anchor
         previewName.setText(preview.name)
         previewImage.drawable = TextureRegionDrawable(preview.texture)
-        previewPopover.showRightOf(toolsPanelActor, anchor)
+        previewPopover.showRightOf(toolFlyoutActor, anchor)
     }
 
     private fun hidePreview(key: Any? = null) {
@@ -1336,10 +1382,67 @@ internal class DebugPanel(
         synchronizers.sync()
     }
 
+    private fun selectTool(mode: DebugToolMode) {
+        hidePreview()
+        tools.select(mode)
+        syncControls()
+        syncVisibility()
+    }
+
+    private fun toggleToolSettings(mode: DebugToolMode) {
+        hidePreview()
+        toolRailState.toggleSettings(mode)
+        syncVisibility()
+        positionToolFlyout()
+    }
+
+    private fun closeToolSettings() {
+        toolRailState.closeSettings()
+        appliedFlyoutMode = null
+        if (::toolFlyoutActor.isInitialized) toolFlyoutActor.isVisible = false
+    }
+
+    private fun positionToolFlyout() {
+        val mode = toolRailState.settingsMode ?: return
+        if (!settings.toolsWindow.visible || !::toolFlyoutActor.isInitialized) return
+        val anchor = toolButtons[mode] ?: return
+        val viewportWidth = ui.stage.viewport.worldWidth
+            .takeIf { it > 0f }
+            ?: Gdx.graphics.width.toFloat()
+        val viewportHeight = ui.stage.viewport.worldHeight
+            .takeIf { it > 0f }
+            ?: Gdx.graphics.height.toFloat()
+        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+            ::debugPanelActor.isInitialized
+        val rightInset = if (debugVisible) {
+            DebugWindowLayout.debugWidth(viewportWidth)
+        } else {
+            0f
+        }
+        toolFlyoutActor.width = DebugWindowLayout.TOOL_FLYOUT_WIDTH
+        toolFlyoutActor.invalidateHierarchy()
+        toolFlyoutActor.validate()
+        val railRight = toolRailActor.localToStageCoordinates(
+            com.badlogic.gdx.math.Vector2(toolRailActor.width, 0f)
+        ).x
+        val bounds = debugToolFlyoutBounds(
+            viewportWidth = viewportWidth,
+            viewportHeight = viewportHeight,
+            railRight = railRight,
+            anchorTop = anchor.topInStage().y,
+            preferredWidth = DebugWindowLayout.TOOL_FLYOUT_WIDTH,
+            preferredHeight = toolFlyoutActor.prefHeight,
+            rightInset = rightInset
+        )
+        toolFlyoutActor.setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
+        toolFlyoutActor.validate()
+        toolFlyoutActor.toFront()
+    }
+
     private fun syncWindowLayout(force: Boolean = false) {
         if (!::windowLayout.isInitialized) return
         val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
-            ::toolsPanelActor.isInitialized
+            ::toolRailActor.isInitialized
         val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
             ::debugPanelActor.isInitialized
         val desired = toolsVisible to debugVisible
@@ -1351,17 +1454,13 @@ internal class DebugPanel(
 
         windowLayout.clearChildren()
         if (toolsVisible) {
-            windowLayout.add(toolsPanelActor)
-                .minWidth(260f)
-                .prefWidth(Value.percentWidth(0.34f, ui.root))
-                .maxWidth(460f)
+            windowLayout.add(toolRailActor)
+                .width(DebugWindowLayout.TOOL_RAIL_WIDTH)
                 .minHeight(0f)
                 .prefHeight(Value.prefHeight)
-                .maxHeight(Value.percentHeight(0.95f, ui.root))
+                .maxHeight(Value.percentHeight(1f, ui.root))
                 .top()
                 .left()
-                .padTop(DebugWindowLayout.TOOLS_MARGIN)
-                .padLeft(DebugWindowLayout.TOOLS_MARGIN)
         }
         windowLayout.add().growX()
         if (debugVisible) {
@@ -1381,51 +1480,51 @@ internal class DebugPanel(
 
     private fun syncStatsOverlayPosition() {
         val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
-            ::toolsPanelActor.isInitialized
-        val stageHeight = ui.stage.viewport.worldHeight
-            .takeIf { it > 0f }
-            ?: Gdx.graphics.height.toFloat()
-        val toolsHeight = if (toolsVisible) {
-            toolsPanelActor.prefHeight.coerceAtMost(stageHeight * 0.95f)
-        } else {
-            0f
-        }
+            ::toolRailActor.isInitialized
         statsOverlay.setTopPadding(
-            DebugWindowLayout.overlayTopPadding(toolsVisible, toolsHeight)
+            DebugWindowLayout.overlayTopPadding(toolsVisible, toolRailActor.prefHeight)
         )
     }
 
     private fun syncVisibility() {
-        if (!settings.toolsWindow.enabled || !::toolsTab.isInitialized) return
-        val mode = tools.mode
+        if (!settings.toolsWindow.enabled || !::toolFlyoutActor.isInitialized) return
+        val activeMode = tools.mode
+        val displayedMode = toolRailState.settingsMode
 
-        val previousMode = lastMode
+        val previousMode = appliedFlyoutMode
         val previousOverlayVisibility = overlayPaintControls.isVisible
 
-        if (mode != lastMode) {
+        if (activeMode != lastMode) {
             hidePreview()
-            toolsScroll.scrollY = 0f
-            lastMode = mode
+            lastMode = activeMode
         }
 
-        buildControls.isVisible = mode == DebugToolMode.BUILD
-        deleteControls.isVisible = mode == DebugToolMode.DELETE
-        paintControls.isVisible = mode == DebugToolMode.PAINT
-        spawnControls.isVisible = mode == DebugToolMode.SPAWN
-        inspectControls.isVisible = mode == DebugToolMode.INSPECT
-        pathControls.isVisible = mode == DebugToolMode.PATHFINDING
+        buildControls.isVisible = displayedMode == DebugToolMode.BUILD
+        deleteControls.isVisible = displayedMode == DebugToolMode.DELETE
+        paintControls.isVisible = displayedMode == DebugToolMode.PAINT
+        spawnControls.isVisible = displayedMode == DebugToolMode.SPAWN
+        inspectControls.isVisible = displayedMode == DebugToolMode.INSPECT
+        pathControls.isVisible = displayedMode == DebugToolMode.PATHFINDING
 
         overlayPaintControls.isVisible =
-            mode == DebugToolMode.PAINT &&
-                    painter.target == DebugPaintTarget.OVERLAY
+            displayedMode == DebugToolMode.PAINT &&
+                painter.target == DebugPaintTarget.OVERLAY
+
+        toolFlyoutActor.isVisible = displayedMode != null && settings.toolsWindow.visible
+        if (displayedMode != null) {
+            toolFlyoutHeader.setText("${displayedMode.displayName} Tool")
+        }
 
         if (
-            mode != previousMode ||
+            displayedMode != previousMode ||
             overlayPaintControls.isVisible != previousOverlayVisibility
         ) {
-            toolsTab.invalidateHierarchy()
-            toolsScroll.content.invalidateHierarchy()
-            toolsScroll.invalidateHierarchy()
+            if (displayedMode != previousMode) toolFlyoutScroll.scrollY = 0f
+            appliedFlyoutMode = displayedMode
+            toolFlyoutScroll.content.invalidateHierarchy()
+            toolFlyoutScroll.invalidateHierarchy()
+            toolFlyoutActor.invalidateHierarchy()
+            positionToolFlyout()
         }
     }
 
@@ -1498,9 +1597,14 @@ internal class DebugPanel(
     }
 
     private fun syncContextFooter() {
+        val displayedMode = toolRailState.settingsMode
+        if (displayedMode == null) {
+            contextRows.show(emptyList())
+            return
+        }
         val status = debugContextStatus(
             DebugContextInputs(
-                mode = tools.mode,
+                mode = displayedMode,
                 buildObject = buildSelection?.selected?.displayName(),
                 placementAvailable = placement != null,
                 placementDiagnostic = placement?.currentDiagnostic,

@@ -2,6 +2,9 @@ package com.mefabc24.strata.debug.ui
 
 internal object DebugWindowLayout {
     const val DEBUG_WIDTH = 372f
+    const val TOOL_RAIL_WIDTH = 68f
+    const val TOOL_BUTTON_HEIGHT = 56f
+    const val TOOL_FLYOUT_WIDTH = 332f
     const val TOOLS_MARGIN = 12f
     const val OVERLAY_GAP = 8f
     const val OVERLAY_MARGIN = 16f

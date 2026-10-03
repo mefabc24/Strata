@@ -70,7 +70,7 @@ internal class DebugToolRailButton(
             .size(22f)
             .center()
         row()
-        add(Label(label, skin).apply {
+        add(Label(label, skin, "debug-tool-label").apply {
             setAlignment(Align.center)
             setEllipsis(true)
         }).growX().height(18f).center()
