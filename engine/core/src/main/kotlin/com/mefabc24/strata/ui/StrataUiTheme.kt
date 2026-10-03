@@ -189,6 +189,11 @@ class StrataExpanderStyle {
     var headerActionSpacing: Float = 6f
     /** Left inset added to the content of each hierarchy level. */
     var contentIndent: Float = 0f
+    /** Overrides the default spacing between content rows when present. */
+    var contentSpacing: Float? = null
+    /** Optional divider rendered directly below every header. */
+    var headerSeparator: Drawable? = null
+    var headerSeparatorThickness: Float = 1f
 
     constructor()
 

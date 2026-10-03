@@ -1,6 +1,7 @@
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
@@ -582,7 +583,7 @@ class StrataExpander internal constructor(
 
     val content = StrataColumn(
         context = context,
-        spacing = context.theme.spacing,
+        spacing = expandedStyle?.contentSpacing ?: context.theme.spacing,
         padding = StrataInsets(
             top = 0f,
             left = expandedStyle?.contentIndent ?: 0f,
@@ -626,6 +627,12 @@ class StrataExpander internal constructor(
         require(headerHeight == null || headerHeight.isFinite() && headerHeight > 0f) {
             "Expander header height must be finite and positive."
         }
+        require(expandedStyle?.contentSpacing == null || expandedStyle.contentSpacing!! >= 0f) {
+            "Expander content spacing must be non-negative."
+        }
+        require(expandedStyle == null || expandedStyle.headerSeparatorThickness > 0f) {
+            "Expander header separator thickness must be positive."
+        }
 
         top().left()
         header.label.setAlignment(Align.left)
@@ -657,6 +664,12 @@ class StrataExpander internal constructor(
             headerHeight?.let(cell::height)
         }
         row()
+        expandedStyle?.headerSeparator?.let { drawable ->
+            add(Image(drawable).apply { touchable = Touchable.disabled })
+                .growX()
+                .height(expandedStyle.headerSeparatorThickness)
+            row()
+        }
         contentCell = add(content).growX().fillX()
         updateExpansion()
     }

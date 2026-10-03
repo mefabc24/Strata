@@ -151,7 +151,7 @@ internal object DebugPanelSkin {
         skin.add(
             "debug-expander",
             StrataExpanderStyle(
-                background = drawable.tint(Color(0.115f, 0.12f, 0.14f, 0.96f)),
+                background = null,
                 padding = StrataInsets.NONE
             ).apply {
                 headerButtonStyle = "debug-expander-header"
@@ -164,6 +164,9 @@ internal object DebugPanelSkin {
                 headerPadLeft = 8f
                 headerPadRight = 6f
                 indicatorSpacing = 5f
+                contentSpacing = 0f
+                headerSeparator = drawable.tint(Color(0.25f, 0.26f, 0.29f, 0.85f))
+                headerSeparatorThickness = 1f
             },
             StrataExpanderStyle::class.java
         )
