@@ -16,8 +16,18 @@ class DebugWindowLayoutTest {
     }
 
     @Test
-    fun `overlay stack clears a visible tools window`() {
-        assertEquals(16f, DebugWindowLayout.overlayTopPadding(false, 420f))
-        assertEquals(440f, DebugWindowLayout.overlayTopPadding(true, 420f))
+    fun `overlay stack clears the rail and visible flyout`() {
+        assertEquals(
+            16f,
+            DebugWindowLayout.overlayLeftPadding(false, false)
+        )
+        assertEquals(
+            76f,
+            DebugWindowLayout.overlayLeftPadding(true, false)
+        )
+        assertEquals(
+            416f,
+            DebugWindowLayout.overlayLeftPadding(true, true)
+        )
     }
 }
