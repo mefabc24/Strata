@@ -1,17 +1,10 @@
 package com.mefabc24.strata.debug.ui
 
-import com.mefabc24.strata.debug.DebugSettings
+internal object DebugWindowLayout {
+    const val DEBUG_WIDTH = 372f
+    const val TOOLS_MARGIN = 12f
+    const val OVERLAY_GAP = 8f
 
-internal enum class DebugWindowKind { TOOLS, DEBUG }
-
-/** Returns visible windows in configured left-to-right order. */
-internal fun orderedVisibleDebugWindows(settings: DebugSettings): List<DebugWindowKind> =
-    buildList {
-        if (settings.toolsWindow.enabled && settings.toolsWindow.visible) {
-            add(settings.toolsWindow.order to DebugWindowKind.TOOLS)
-        }
-        if (settings.debugWindow.enabled && settings.debugWindow.visible) {
-            add(settings.debugWindow.order to DebugWindowKind.DEBUG)
-        }
-    }.sortedWith(compareBy<Pair<Int, DebugWindowKind>> { it.first }.thenBy { it.second.ordinal })
-        .map { it.second }
+    fun overlayRightInset(debugVisible: Boolean): Float =
+        if (debugVisible) DEBUG_WIDTH + OVERLAY_GAP else 0f
+}

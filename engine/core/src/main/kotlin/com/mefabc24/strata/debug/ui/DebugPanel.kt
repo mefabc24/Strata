@@ -135,7 +135,7 @@ internal class DebugPanel(
     private var registeringDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
     private var previewAnchor: Actor? = null
     private var lastMode = DebugToolMode.NONE
-    private var appliedWindowOrder: List<DebugWindowKind> = emptyList()
+    private var appliedWindowVisibility: Pair<Boolean, Boolean>? = null
 
     init {
         buildSelection?.selected?.let(tools::selectBuildEntry)
@@ -192,7 +192,7 @@ internal class DebugPanel(
     }
 
     private fun buildUi() {
-        ui.root.pad(12f)
+        ui.root.pad(0f)
 
         if (settings.toolsWindow.enabled) {
             toolsPanelActor = ui.panel(spacing = 8f, padding = windowPadding()) {
@@ -240,17 +240,17 @@ internal class DebugPanel(
                     fillAvailableX()
                     minHeight(0f)
                     prefHeight(Value.prefHeight)
-                    maxHeight(Value.percentHeight(0.82f, ui.root))
+                    maxHeight(Value.percentHeight(0.90f, ui.root))
                 }
             }
             debugPanelActor.remove()
         }
 
         windowLayout = Table().apply {
-            top().left()
+            top()
             touchable = Touchable.childrenOnly
         }
-        ui.actor(windowLayout).cell { growX(); fillX(); top(); left() }
+        ui.actor(windowLayout).cell { growX(); fillX(); top() }
     }
 
     private fun windowPadding() = StrataInsets(top = 10f, left = 10f, bottom = 10f, right = 10f)
@@ -1410,21 +1410,16 @@ internal class DebugPanel(
 
     private fun syncWindowLayout(force: Boolean = false) {
         if (!::windowLayout.isInitialized) return
-        val desired = orderedVisibleDebugWindows(settings).filter { kind ->
-            when (kind) {
-                DebugWindowKind.TOOLS -> ::toolsPanelActor.isInitialized
-                DebugWindowKind.DEBUG -> ::debugPanelActor.isInitialized
-            }
-        }
-        if (!force && desired == appliedWindowOrder) return
+        val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
+            ::toolsPanelActor.isInitialized
+        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+            ::debugPanelActor.isInitialized
+        val desired = toolsVisible to debugVisible
+        if (!force && desired == appliedWindowVisibility) return
 
         windowLayout.clearChildren()
-        desired.forEachIndexed { index, kind ->
-            val actor = when (kind) {
-                DebugWindowKind.TOOLS -> toolsPanelActor
-                DebugWindowKind.DEBUG -> debugPanelActor
-            }
-            windowLayout.add(actor)
+        if (toolsVisible) {
+            windowLayout.add(toolsPanelActor)
                 .minWidth(260f)
                 .prefWidth(Value.percentWidth(0.34f, ui.root))
                 .maxWidth(460f)
@@ -1433,10 +1428,22 @@ internal class DebugPanel(
                 .maxHeight(Value.percentHeight(0.95f, ui.root))
                 .top()
                 .left()
-                .padRight(if (index < desired.lastIndex) 12f else 0f)
+                .padTop(DebugWindowLayout.TOOLS_MARGIN)
+                .padLeft(DebugWindowLayout.TOOLS_MARGIN)
         }
-        appliedWindowOrder = desired
-        windowLayout.isVisible = desired.isNotEmpty()
+        windowLayout.add().growX()
+        if (debugVisible) {
+            windowLayout.add(debugPanelActor)
+                .width(DebugWindowLayout.DEBUG_WIDTH)
+                .minHeight(0f)
+                .prefHeight(Value.prefHeight)
+                .maxHeight(Value.percentHeight(1f, ui.root))
+                .top()
+                .right()
+        }
+        statsOverlay.setRightInset(DebugWindowLayout.overlayRightInset(debugVisible))
+        appliedWindowVisibility = desired
+        windowLayout.isVisible = toolsVisible || debugVisible
         windowLayout.invalidateHierarchy()
         ui.root.invalidateHierarchy()
     }

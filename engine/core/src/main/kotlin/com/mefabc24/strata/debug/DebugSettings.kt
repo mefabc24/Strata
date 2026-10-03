@@ -24,14 +24,8 @@ enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
 class DebugSettings {
     internal val worldState = DebugWorldState()
     internal val entityFreezeState = DebugEntityFreezeState()
-    val toolsWindow = DebugWindowSettings(
-        defaultToggleKey = Input.Keys.F2,
-        defaultOrder = 0
-    )
-    val debugWindow = DebugWindowSettings(
-        defaultToggleKey = Input.Keys.F3,
-        defaultOrder = 1
-    )
+    val toolsWindow = DebugWindowSettings(defaultToggleKey = Input.Keys.F2)
+    val debugWindow = DebugWindowSettings(defaultToggleKey = Input.Keys.F3)
     val performance = DebugPerformanceSettings()
     val simulation = DebugSimulationSettings()
     val grid = DebugGridSettings()
@@ -230,19 +224,15 @@ class DebugSettings {
         val enabled = listOf(toolsWindow, debugWindow).filter(DebugWindowSettings::enabled)
         if (enabled.size < 2) return
 
-        require(toolsWindow.order != debugWindow.order) {
-            "Enabled debug windows must use unique order values; both use ${toolsWindow.order}."
-        }
         require(toolsWindow.toggleKey != debugWindow.toggleKey) {
             "Enabled debug windows must use different toggle keys; both use ${toolsWindow.toggleKey}."
         }
     }
 }
 
-/** Availability, startup visibility, shortcut, and horizontal order for one debug window. */
+/** Availability, startup visibility, and shortcut for one debug window. */
 class DebugWindowSettings internal constructor(
-    defaultToggleKey: Int,
-    defaultOrder: Int
+    defaultToggleKey: Int
 ) {
     /** Whether this window is available in the current scene. */
     var enabled: Boolean = false
@@ -262,9 +252,6 @@ class DebugWindowSettings internal constructor(
             }
             field = value
         }
-
-    /** Horizontal position; lower values appear further left. */
-    var order: Int = defaultOrder
 }
 
 /** Independent output controls for the shared renderer performance metrics. */

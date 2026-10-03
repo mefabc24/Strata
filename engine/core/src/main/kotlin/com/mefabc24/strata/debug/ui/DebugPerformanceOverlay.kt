@@ -71,6 +71,13 @@ internal class DebugStatsOverlay(
         ui.stage.addActor(root)
     }
 
+    /** Keeps the overlay stack clear of a top-right window. */
+    fun setRightInset(inset: Float) {
+        require(inset.isFinite() && inset >= 0f)
+        root.padRight(16f + inset)
+        root.invalidateHierarchy()
+    }
+
     fun update(delta: Float) {
         val performance = performanceEnabled()
         val worldStats = worldStatsEnabled()
