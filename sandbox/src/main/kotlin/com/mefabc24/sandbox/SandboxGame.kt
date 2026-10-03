@@ -85,7 +85,7 @@ class SandboxGame : StrataGame() {
                     }
 
                     delete {
-                        brushSize = 1
+                        brushSize = 3
                         dragEnabled = true
                         showBrushPreview = true
                     }
