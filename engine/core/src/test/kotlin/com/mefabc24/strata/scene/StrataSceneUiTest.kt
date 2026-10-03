@@ -107,14 +107,17 @@ class StrataSceneUiTest {
     }
 
     @Test
-    fun `enabled debug panel owns an independent automatic ui lifecycle`() {
+    fun `enabled debug windows own an independent automatic ui lifecycle`() {
         val inputState = TestGdxEnvironment.install()
         val stage = TrackingStage()
         val scene = sceneWith(stage, configure = {
             registrations {
                 terrain { register(Terrain.GRASS, "com/badlogic/gdx/utils/lsans-15.png") }
             }
-            debug { panel { enabled = true } }
+            debug {
+                toolsWindow { enabled = true; toggleKey = Input.Keys.F2 }
+                debugWindow { enabled = true; toggleKey = Input.Keys.F3 }
+            }
         })
 
         scene.attachWorld(
@@ -122,9 +125,17 @@ class StrataSceneUiTest {
             terrainFor = { Terrain.GRASS }
         )
         assertTrue(inputState.inputProcessor === scene.input.processor)
-        assertFalse(scene.debug.panel.visible)
+        assertFalse(scene.debug.toolsWindow.visible)
+        assertFalse(scene.debug.debugWindow.visible)
+        assertTrue(scene.input.processor.keyDown(Input.Keys.F2))
+        assertTrue(scene.debug.toolsWindow.visible)
+        assertFalse(scene.debug.debugWindow.visible)
         assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
-        assertTrue(scene.debug.panel.visible)
+        assertTrue(scene.debug.toolsWindow.visible)
+        assertTrue(scene.debug.debugWindow.visible)
+        assertTrue(scene.input.processor.keyDown(Input.Keys.F2))
+        assertFalse(scene.debug.toolsWindow.visible)
+        assertTrue(scene.debug.debugWindow.visible)
 
         scene.update(0.1f)
         scene.render()
@@ -133,6 +144,48 @@ class StrataSceneUiTest {
         assertEquals(1, stage.drawCalls)
         assertEquals(900, stage.viewport.screenWidth)
         assertEquals(700, stage.viewport.screenHeight)
+
+        scene.dispose()
+        assertTrue(stage.disposed)
+        assertNull(inputState.inputProcessor)
+    }
+
+    @Test
+    fun `debug settings window works when tools window is disabled`() {
+        val inputState = TestGdxEnvironment.install()
+        val stage = TrackingStage()
+        val scene = sceneWith(stage, configure = {
+            registrations {
+                terrain { register(Terrain.GRASS, "com/badlogic/gdx/utils/lsans-15.png") }
+            }
+            debug {
+                toolsWindow { enabled = false }
+                debugWindow {
+                    enabled = true
+                    visibleOnStartup = false
+                    toggleKey = Input.Keys.F3
+                    order = -4
+                }
+            }
+        })
+
+        scene.attachWorld(
+            World(2, 2) { _, _ -> TestTile() },
+            terrainFor = { Terrain.GRASS }
+        )
+
+        assertFalse(scene.debug.toolsWindow.visible)
+        assertFalse(scene.debug.debugWindow.visible)
+        assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
+        assertTrue(scene.debug.debugWindow.visible)
+        assertTrue(inputState.inputProcessor === scene.input.processor)
+
+        scene.update(0.1f)
+        scene.render()
+        scene.resize(900, 700)
+
+        assertEquals(listOf(0.1f), stage.actDeltas)
+        assertEquals(1, stage.drawCalls)
 
         scene.dispose()
         assertTrue(stage.disposed)

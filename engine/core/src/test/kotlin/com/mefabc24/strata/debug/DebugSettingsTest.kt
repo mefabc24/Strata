@@ -18,9 +18,14 @@ class DebugSettingsTest {
     @Test
     fun `optional overlays are disabled while tool context defaults are ready`() {
         val settings = DebugSettings()
-        assertFalse(settings.panel.enabled)
-        assertFalse(settings.panel.visible)
-        assertEquals(Input.Keys.F3, settings.panel.toggleKey)
+        assertFalse(settings.toolsWindow.enabled)
+        assertFalse(settings.toolsWindow.visible)
+        assertEquals(Input.Keys.F2, settings.toolsWindow.toggleKey)
+        assertEquals(0, settings.toolsWindow.order)
+        assertFalse(settings.debugWindow.enabled)
+        assertFalse(settings.debugWindow.visible)
+        assertEquals(Input.Keys.F3, settings.debugWindow.toggleKey)
+        assertEquals(1, settings.debugWindow.order)
         assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.performance.terminalLoggingEnabled)
         assertFalse(settings.performance.historyRecording)
@@ -215,13 +220,16 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `panel visibility is independent from feature settings`() {
+    fun `window visibility is independent from feature settings`() {
         val settings = DebugSettings().apply {
-            panel { enabled = true; visible = false }
+            toolsWindow { enabled = true; visible = false }
+            debugWindow { enabled = true; visible = true }
             grid { enabled = true }
         }
-        assertTrue(settings.panel.enabled)
-        assertFalse(settings.panel.visible)
+        assertTrue(settings.toolsWindow.enabled)
+        assertFalse(settings.toolsWindow.visible)
+        assertTrue(settings.debugWindow.enabled)
+        assertTrue(settings.debugWindow.visible)
         assertTrue(settings.grid.enabled)
     }
 
@@ -293,8 +301,10 @@ class DebugSettingsTest {
         val settings = DebugSettings().apply {
             DebugPreset.EVERYTHING.let(::applyPreset)
             simulation.enabled = true
-            panel.enabled = true
-            panel.visible = true
+            toolsWindow.enabled = true
+            toolsWindow.visible = true
+            debugWindow.enabled = true
+            debugWindow.visible = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
@@ -316,8 +326,10 @@ class DebugSettingsTest {
         assertTrue(settings.pathfinding.enabled)
         assertTrue(settings.pathfinding.showExploredNodes)
         assertTrue(settings.pathfinding.showFinalPath)
-        assertTrue(settings.panel.enabled)
-        assertTrue(settings.panel.visible)
+        assertTrue(settings.toolsWindow.enabled)
+        assertTrue(settings.toolsWindow.visible)
+        assertTrue(settings.debugWindow.enabled)
+        assertTrue(settings.debugWindow.visible)
     }
 
     @Test
@@ -457,21 +469,57 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `debug panel startup visibility is independent from runtime visibility`() {
+    fun `debug window startup visibility is independent from runtime visibility`() {
         val settings = DebugSettings()
 
-        assertFalse(settings.panel.visibleOnStartup)
-        assertFalse(settings.panel.visible)
+        assertFalse(settings.debugWindow.visibleOnStartup)
+        assertFalse(settings.debugWindow.visible)
 
-        settings.panel {
+        settings.debugWindow {
             enabled = true
             visibleOnStartup = true
         }
 
-        assertTrue(settings.panel.visibleOnStartup)
+        assertTrue(settings.debugWindow.visibleOnStartup)
 
         // Runtime visibility is not changed by configuration alone.
-        assertFalse(settings.panel.visible)
+        assertFalse(settings.debugWindow.visible)
+    }
+
+    @Test
+    fun `enabled windows require unique order values after configuration`() {
+        val settings = DebugSettings().apply {
+            toolsWindow { enabled = true; order = 7 }
+            debugWindow { enabled = true; order = 7 }
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            settings.validateWindowConfiguration()
+        }
+
+        assertTrue(failure.message.orEmpty().contains("both use 7"))
+    }
+
+    @Test
+    fun `disabled windows do not participate in order validation`() {
+        val settings = DebugSettings().apply {
+            toolsWindow { enabled = true; order = 2 }
+            debugWindow { enabled = false; order = 2 }
+        }
+
+        settings.validateWindowConfiguration()
+    }
+
+    @Test
+    fun `enabled windows require independent shortcuts`() {
+        val settings = DebugSettings().apply {
+            toolsWindow { enabled = true; toggleKey = Input.Keys.F4 }
+            debugWindow { enabled = true; toggleKey = Input.Keys.F4 }
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            settings.validateWindowConfiguration()
+        }
     }
 
     private data object TestTile : Tile
