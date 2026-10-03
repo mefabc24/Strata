@@ -7,7 +7,7 @@ internal enum class DebugPanelSection(val label: String) {
     PRESETS("Presets")
 }
 
-/** Tracks the selected debug-panel tab independently from the active world tool. */
+/** Tracks the Debug window subsection independently from Tools window state. */
 internal class DebugPanelNavigation {
     var selectedDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
         private set
