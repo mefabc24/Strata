@@ -195,9 +195,9 @@ class StrataNumericStepper(
         require(decimals >= 0)
         align(Align.left)
         add(Label(label, skin)).growX().left()
-        add(StrataButton("-", skin, styleName, ::decrement)).minWidth(38f).height(34f)
-        add(valueLabel).minWidth(54f).padLeft(6f).padRight(6f).center()
-        add(StrataButton("+", skin, styleName, ::increment)).minWidth(38f).height(34f)
+        add(StrataButton("-", skin, styleName, ::decrement)).width(30f).height(28f)
+        add(valueLabel).width(52f).padLeft(4f).padRight(4f).center()
+        add(StrataButton("+", skin, styleName, ::increment)).width(30f).height(28f)
         updateLabel()
     }
 

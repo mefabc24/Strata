@@ -1191,10 +1191,7 @@ internal class DebugPanel(
         read: () -> Boolean,
         write: (Boolean) -> Unit
     ) {
-        row(spacing = 8f) {
-            label(text).cell { growX(); left() }
-            settingToggle(read, write).cell { minWidth(64f); height(36f) }
-        }
+        settingToggleRow(text, read, write)
     }
 
     private fun StrataColumn.featureExpander(
@@ -1309,6 +1306,52 @@ internal class DebugPanel(
         }.cell { fillAvailableX() }
     }
 
+    private fun StrataColumn.toggleRows(vararg controls: ToggleBinding) {
+        controls.forEach { binding ->
+            settingToggleRow(binding.text, binding.read, binding.write)
+        }
+    }
+
+    private fun StrataColumn.settingToggleRow(
+        text: String,
+        read: () -> Boolean,
+        write: (Boolean) -> Unit
+    ) {
+        row(
+            spacing = 6f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            label(text).cell { growX(); left() }
+            settingToggle(read, write).cell { width(56f); height(26f) }
+        }.cell { fillAvailableX(); height(32f) }
+        separator()
+    }
+
+    private fun <T> StrataColumn.boundDropdown(
+        text: String,
+        options: Iterable<T>,
+        read: () -> T,
+        displayText: (T) -> String = { it.toString() },
+        write: (T) -> Unit
+    ): StrataDropdown<T> {
+        lateinit var dropdown: StrataDropdown<T>
+        row(
+            spacing = 6f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            label(text).cell { growX(); left() }
+            dropdown = dropdown(
+                options = options,
+                selected = read(),
+                displayText = displayText,
+                onChanged = write
+            ).cell { width(148f); height(28f) }
+        }.cell { fillAvailableX(); height(32f) }
+        separator()
+        synchronizers += { dropdown.sync(read()) }
+        return dropdown
+    }
+
     private fun StrataLayout.settingToggle(
         read: () -> Boolean,
         write: (Boolean) -> Unit
@@ -1326,7 +1369,7 @@ internal class DebugPanel(
         return button
     }
 
-    private fun StrataLayout.boundStepper(
+    private fun StrataColumn.boundStepper(
         text: String,
         read: () -> Float,
         minimum: Float,
@@ -1336,12 +1379,18 @@ internal class DebugPanel(
     ): StrataNumericStepper {
         val stepper = numericStepper(
             text, read(), minimum, maximum, step, onChanged = write
-        ).cell { fillAvailableX(); height(38f) }
+        ).cell {
+            fillAvailableX()
+            height(32f)
+            padLeft(6f)
+            padRight(6f)
+        }
+        separator()
         synchronizers += { stepper.sync(read()) }
         return stepper
     }
 
-    private fun StrataLayout.brushSizeStepper(
+    private fun StrataColumn.brushSizeStepper(
         text: String,
         read: () -> Int,
         write: (Int) -> Unit
@@ -1354,7 +1403,13 @@ internal class DebugPanel(
             2f,
             decimals = 0,
             onChanged = { write(it.toInt()) }
-        ).cell { fillAvailableX(); height(38f) }
+        ).cell {
+            fillAvailableX()
+            height(32f)
+            padLeft(6f)
+            padRight(6f)
+        }
+        separator()
         synchronizers += { stepper.sync(read().toFloat()) }
         return stepper
     }
