@@ -554,51 +554,30 @@ internal class DebugPanel(
         val runtime = debugSectionColumns.getValue(DebugPanelSection.RUNTIME)
         val presets = debugSectionColumns.getValue(DebugPanelSection.PRESETS)
 
-        presets.label("Presets")
-
-        // Disable every visual diagnostic without changing operational state.
-        presets.button("OFF") {
-            settings.applyPreset(DebugPreset.OFF)
-            syncControls()
-        }.cell {
-            fillAvailableX()
-            height(38f)
-        }
-
-        presets.responsiveGrid(
-            minimumItemWidth = 105f,
-            itemHeight = 38f,
-            maximumColumns = 3
+        var selectedPreset = DebugPresetSelection.DEFAULT
+        presets.row(
+            spacing = 6f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 3f)
         ) {
-            button("Default") {
-                settings.applyDefaultVisualConfiguration()
+            label("Preset").cell { growX(); left() }
+            dropdown(
+                DebugPresetSelection.entries,
+                selectedPreset,
+                displayText = DebugPresetSelection::label
+            ) { selectedPreset = it }.cell { width(142f); height(28f) }
+            button("Apply") {
+                selectedPreset.applyTo(settings)
                 syncControls()
-            }
-
-            DebugPreset.entries
-                .filterNot { it == DebugPreset.OFF }
-                .forEach { preset ->
-                    button(preset.name.toDisplayName()) {
-                        settings.applyPreset(preset)
-                        syncControls()
-                    }
-                }
-        }.cell {
-            fillAvailableX()
-        }
-
-        // Replace the previously saved default.
-        presets.button("Save current configuration as default") {
+            }.cell { width(58f); height(28f) }
+        }.cell { fillAvailableX(); height(34f) }
+        presets.separator()
+        presets.button("Save current configuration as DEFAULT") {
             settings.saveDefaultVisualConfiguration()
-
             settings.notify(
                 "Default debug configuration saved",
                 DebugNotificationSeverity.SUCCESS
             )
-        }.cell {
-            fillAvailableX()
-            height(38f)
-        }
+        }.cell { fillAvailableX(); height(32f); pad(4f) }
 
         registeringDebugSection = DebugPanelSection.VISUALS
         visuals.settingsExpander("General") {
