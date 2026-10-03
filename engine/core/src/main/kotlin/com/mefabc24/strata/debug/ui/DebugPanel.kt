@@ -238,23 +238,25 @@ internal class DebugPanel(
             spacing = 0f,
             padding = StrataInsets.NONE
         ) {
-            defaults().fillAvailableX()
-            modes.forEachIndexed { index, mode ->
-                val button = DebugToolRailButton(
-                    mode = mode,
-                    label = mode.displayName,
-                    icon = ui.skin.getDrawable(debugToolIconName(mode)),
-                    skin = ui.skin,
-                    style = style,
-                    onSelected = ::selectTool,
-                    onSettingsRequested = ::toggleToolSettings
-                )
-                toolButtons[mode] = actor(button).cell {
-                    width(DebugWindowLayout.TOOL_RAIL_WIDTH)
-                    height(DebugWindowLayout.TOOL_BUTTON_HEIGHT)
+            scrollColumn(spacing = 0f, padding = StrataInsets.NONE) {
+                defaults().fillAvailableX()
+                modes.forEachIndexed { index, mode ->
+                    val button = DebugToolRailButton(
+                        mode = mode,
+                        label = mode.displayName,
+                        icon = ui.skin.getDrawable(debugToolIconName(mode)),
+                        skin = ui.skin,
+                        style = style,
+                        onSelected = ::selectTool,
+                        onSettingsRequested = ::toggleToolSettings
+                    )
+                    toolButtons[mode] = actor(button).cell {
+                        width(DebugWindowLayout.TOOL_RAIL_WIDTH)
+                        height(DebugWindowLayout.TOOL_BUTTON_HEIGHT)
+                    }
+                    if (index != modes.lastIndex) separator()
                 }
-                if (index != modes.lastIndex) separator()
-            }
+            }.cell { grow(); minHeight(0f) }
         }
         toolRailActor.remove()
     }
