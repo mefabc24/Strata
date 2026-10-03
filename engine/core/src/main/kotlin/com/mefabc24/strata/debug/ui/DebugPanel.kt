@@ -62,17 +62,11 @@ internal class DebugPanel(
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
     private val previewState = DebugContentPreviewState()
-    private val modes = buildList {
-        add(DebugToolMode.NONE)
-        add(DebugToolMode.INSPECT)
-        add(DebugToolMode.MOVE)
-        if (tools.buildAvailable && buildEntries.isNotEmpty()) add(DebugToolMode.BUILD)
-        add(DebugToolMode.DELETE)
-        if (painter.entries.isNotEmpty()) add(DebugToolMode.PAINT)
-        if (spawner.entries.isNotEmpty()) add(DebugToolMode.SPAWN)
-        add(DebugToolMode.PATHFINDING)
-        add(DebugToolMode.FREE_CAMERA)
-    }
+    private val modes = availableDebugToolModes(
+        buildAvailable = tools.buildAvailable && buildEntries.isNotEmpty(),
+        paintAvailable = painter.entries.isNotEmpty(),
+        spawnAvailable = spawner.entries.isNotEmpty()
+    )
     private val toolRailState = DebugToolRailState(modes.filterNot {
         it == DebugToolMode.NONE
     }.toSet())

@@ -15,6 +15,22 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.debug.DebugToolMode
 
+internal fun availableDebugToolModes(
+    buildAvailable: Boolean,
+    paintAvailable: Boolean,
+    spawnAvailable: Boolean
+): List<DebugToolMode> = buildList {
+    add(DebugToolMode.NONE)
+    add(DebugToolMode.INSPECT)
+    add(DebugToolMode.MOVE)
+    if (buildAvailable) add(DebugToolMode.BUILD)
+    add(DebugToolMode.DELETE)
+    if (paintAvailable) add(DebugToolMode.PAINT)
+    if (spawnAvailable) add(DebugToolMode.SPAWN)
+    add(DebugToolMode.PATHFINDING)
+    add(DebugToolMode.FREE_CAMERA)
+}
+
 internal class DebugToolRailState(
     private val configurableModes: Set<DebugToolMode>
 ) {
