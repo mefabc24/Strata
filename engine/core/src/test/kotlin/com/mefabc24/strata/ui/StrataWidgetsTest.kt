@@ -708,6 +708,35 @@ class StrataWidgetsTest {
     }
 
     @Test
+    fun `nested expansion updates the parent preferred height`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        lateinit var nested: StrataExpander
+        val root = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = true,
+            spacing = 0f
+        ) {
+            nested = expander(
+                title = "Rendering",
+                expanded = false,
+                spacing = 0f
+            ) { spacer(height = 48f) }
+        }
+        val collapsedHeight = root.prefHeight
+
+        nested.expanded = true
+
+        assertTrue(root.prefHeight > collapsedHeight)
+        nested.expanded = false
+        assertEquals(collapsedHeight, root.prefHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
     fun `expander applies optional visual treatment only while expanded`() {
         val skin = createSkin()
         val context = StrataUiContext(skin, StrataUiTheme())
