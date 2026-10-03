@@ -5,7 +5,6 @@ internal object DebugWindowLayout {
     const val TOOL_RAIL_WIDTH = 68f
     const val TOOL_BUTTON_HEIGHT = 56f
     const val TOOL_FLYOUT_WIDTH = 332f
-    const val TOOLS_MARGIN = 12f
     const val OVERLAY_GAP = 8f
     const val OVERLAY_MARGIN = 16f
 
@@ -14,12 +13,14 @@ internal object DebugWindowLayout {
         return minOf(DEBUG_WIDTH, availableWidth)
     }
 
-    fun overlayTopPadding(toolsVisible: Boolean, toolsHeight: Float): Float {
-        require(toolsHeight.isFinite() && toolsHeight >= 0f)
-        return if (toolsVisible) {
-            TOOLS_MARGIN + toolsHeight + OVERLAY_GAP
-        } else {
-            OVERLAY_MARGIN
-        }
+    fun overlayLeftPadding(
+        toolsVisible: Boolean,
+        flyoutVisible: Boolean,
+        flyoutWidth: Float = TOOL_FLYOUT_WIDTH
+    ): Float {
+        require(flyoutWidth.isFinite() && flyoutWidth >= 0f)
+        if (!toolsVisible) return OVERLAY_MARGIN
+        return TOOL_RAIL_WIDTH + OVERLAY_GAP +
+            if (flyoutVisible) flyoutWidth + OVERLAY_GAP else 0f
     }
 }

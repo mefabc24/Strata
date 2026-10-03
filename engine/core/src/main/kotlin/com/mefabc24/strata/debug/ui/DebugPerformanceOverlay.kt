@@ -49,6 +49,7 @@ internal class DebugStatsOverlay(
     private var worldElapsed = 0f
     private val root = Table()
     private var topPadding = Float.NaN
+    private var leftPadding = Float.NaN
 
     init {
         root.apply {
@@ -78,6 +79,15 @@ internal class DebugStatsOverlay(
         if (padding == topPadding) return
         topPadding = padding
         root.padTop(padding)
+        root.invalidateHierarchy()
+    }
+
+    /** Keeps the left overlay stack clear of the tool rail and its flyout. */
+    fun setLeftPadding(padding: Float) {
+        require(padding.isFinite() && padding >= 0f)
+        if (padding == leftPadding) return
+        leftPadding = padding
+        root.padLeft(padding)
         root.invalidateHierarchy()
     }
 

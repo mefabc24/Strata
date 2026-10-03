@@ -176,10 +176,10 @@ internal class DebugPanel(
         simulationOverlay.setVisible(settings.simulation.enabled)
         simulationOverlay.update(delta)
         syncWindowLayout()
-        positionToolFlyout()
-        syncStatsOverlayPosition()
         syncControls()
         syncVisibility()
+        positionToolFlyout()
+        syncStatsOverlayPosition()
         syncDiagnostics()
     }
 
@@ -1486,8 +1486,18 @@ internal class DebugPanel(
     private fun syncStatsOverlayPosition() {
         val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
             ::toolRailActor.isInitialized
-        statsOverlay.setTopPadding(
-            DebugWindowLayout.overlayTopPadding(toolsVisible, toolRailActor.prefHeight)
+        statsOverlay.setTopPadding(DebugWindowLayout.OVERLAY_MARGIN)
+        statsOverlay.setLeftPadding(
+            DebugWindowLayout.overlayLeftPadding(
+                toolsVisible = toolsVisible,
+                flyoutVisible = toolsVisible && ::toolFlyoutActor.isInitialized &&
+                    toolFlyoutActor.isVisible,
+                flyoutWidth = if (::toolFlyoutActor.isInitialized) {
+                    toolFlyoutActor.width
+                } else {
+                    DebugWindowLayout.TOOL_FLYOUT_WIDTH
+                }
+            )
         )
     }
 
