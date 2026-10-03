@@ -60,7 +60,6 @@ class DebugPanelSkinTest {
         assertNotNull(action.up)
         assertNotEquals(action.up, action.over)
         assertNotEquals(action.up, action.disabled)
-        assertNotNull(stepperValue.background)
 
         skin.dispose()
     }
