@@ -21,11 +21,9 @@ class DebugSettingsTest {
         assertFalse(settings.toolsWindow.enabled)
         assertFalse(settings.toolsWindow.visible)
         assertEquals(Input.Keys.F2, settings.toolsWindow.toggleKey)
-        assertEquals(0, settings.toolsWindow.order)
         assertFalse(settings.debugWindow.enabled)
         assertFalse(settings.debugWindow.visible)
         assertEquals(Input.Keys.F3, settings.debugWindow.toggleKey)
-        assertEquals(1, settings.debugWindow.order)
         assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.performance.terminalLoggingEnabled)
         assertFalse(settings.performance.historyRecording)
@@ -484,30 +482,6 @@ class DebugSettingsTest {
 
         // Runtime visibility is not changed by configuration alone.
         assertFalse(settings.debugWindow.visible)
-    }
-
-    @Test
-    fun `enabled windows require unique order values after configuration`() {
-        val settings = DebugSettings().apply {
-            toolsWindow { enabled = true; order = 7 }
-            debugWindow { enabled = true; order = 7 }
-        }
-
-        val failure = assertFailsWith<IllegalArgumentException> {
-            settings.validateWindowConfiguration()
-        }
-
-        assertTrue(failure.message.orEmpty().contains("both use 7"))
-    }
-
-    @Test
-    fun `disabled windows do not participate in order validation`() {
-        val settings = DebugSettings().apply {
-            toolsWindow { enabled = true; order = 2 }
-            debugWindow { enabled = false; order = 2 }
-        }
-
-        settings.validateWindowConfiguration()
     }
 
     @Test

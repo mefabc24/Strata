@@ -164,7 +164,6 @@ class StrataSceneUiTest {
                     enabled = true
                     visibleOnStartup = false
                     toggleKey = Input.Keys.F3
-                    order = -4
                 }
             }
         })
