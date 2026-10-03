@@ -287,7 +287,9 @@ internal class DebugPanel(
                 padding = StrataInsets.NONE
             ) {
                 defaults().fillAvailableX()
+                buildingDebugSettings = true
                 buildToolSettings()
+                buildingDebugSettings = false
                 contextFooter = column(spacing = 0f) {
                     defaults().fillAvailableX()
                     separator()
@@ -321,9 +323,9 @@ internal class DebugPanel(
 
     private fun StrataColumn.buildToolSettings() {
         stack {
-            buildControls = column(spacing = 8f) {
+            buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Build object")
+                toolSection("Build object")
                 responsiveGrid(130f, maximumColumns = 2) {
                     buildEntries.forEach { entry ->
                         selectableButton(entry.displayName(), entry, checkNotNull(buildSelection))
@@ -331,9 +333,9 @@ internal class DebugPanel(
                     }
                 }.cell { fillAvailableX() }
             }
-            deleteControls = column(spacing = 8f) {
+            deleteControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Delete brush")
+                toolSection("Delete brush")
                 brushSizeStepper("Brush size", { settings.delete.brushSize }) {
                     settings.delete.brushSize = it
                 }
@@ -344,16 +346,16 @@ internal class DebugPanel(
                     settings.delete.showBrushPreview = it
                 }
             }
-            paintControls = column(spacing = 8f) {
+            paintControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Paint brush")
+                toolSection("Paint brush")
                 brushSizeStepper("Brush size", { settings.paint.brushSize }) {
                     settings.paint.brushSize = it
                 }
                 simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
                     settings.paint.showBrushPreview = it
                 }
-                label("Terrain")
+                toolSection("Terrain")
                 responsiveGrid(130f, maximumColumns = 2) {
                     painter.entries.forEach { entry ->
                         val name = entry.type.toString().toDisplayName()
@@ -361,15 +363,15 @@ internal class DebugPanel(
                             .previewOnHover(entry, DebugContentKind.TERRAIN, name, entry.selectionTexture)
                     }
                 }.cell { fillAvailableX() }
-                label("Terrain target")
+                toolSection("Terrain target")
                 responsiveGrid(130f, maximumColumns = 2) {
                     paintTargets.forEach { target ->
                         selectableButton(target.name.toDisplayName(), target, paintTargetSelection)
                     }
                 }.cell { fillAvailableX() }
-                overlayPaintControls = column(spacing = 6f) {
+                overlayPaintControls = column(spacing = 0f) {
                     defaults().fillAvailableX()
-                    label("Overlay")
+                    toolSection("Overlay")
                     responsiveGrid(130f, maximumColumns = 2) {
                         painter.overlayLayerIds.forEach { id ->
                             selectableButton(id.toDisplayName(), id, checkNotNull(overlaySelection))
@@ -377,9 +379,9 @@ internal class DebugPanel(
                     }.cell { fillAvailableX() }
                 }
             }
-            spawnControls = column(spacing = 8f) {
+            spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Spawn entity")
+                toolSection("Spawn entity")
                 responsiveGrid(130f, maximumColumns = 2) {
                     spawner.entries.forEach { entry ->
                         val name = entry.type.displayName()
@@ -388,9 +390,9 @@ internal class DebugPanel(
                     }
                 }.cell { fillAvailableX() }
             }
-            inspectControls = column(spacing = 8f) {
+            inspectControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Inspector")
+                toolSection("Inspector")
                 inspectorRows = diagnosticTable()
                 simpleToggle(
                     "Frozen",
@@ -415,22 +417,22 @@ internal class DebugPanel(
                     "Freeze animation",
                     { settings.inspect.freezeEntityAnimation }
                 ) { settings.inspect.freezeEntityAnimation = it }
-                button("Unfreeze all entities") {
+                compactAction("Unfreeze all entities") {
                     val count = settings.unfreezeAllEntities()
                     settings.notify(
                         if (count == 0) "No frozen entities" else "Unfroze $count entities",
                         if (count == 0) DebugNotificationSeverity.INFO else DebugNotificationSeverity.SUCCESS
                     )
-                }.cell { height(38f) }
-                label("World visualization")
+                }
+                toolSection("World visualization")
                 label("Tile")
-                toggleGrid(
+                toggleRows(
                     toggle("Selected tile", { settings.inspect.showTile }) {
                         settings.inspect.showTile = it
                     }
                 )
                 label("Object")
-                toggleGrid(
+                toggleRows(
                     toggle("Footprint", { settings.inspect.showObjectFootprint }) {
                         settings.inspect.showObjectFootprint = it
                     },
@@ -442,7 +444,7 @@ internal class DebugPanel(
                     }
                 )
                 label("Entity")
-                toggleGrid(
+                toggleRows(
                     toggle("Current tile", { settings.inspect.showEntityTile }) {
                         settings.inspect.showEntityTile = it
                     },
@@ -459,16 +461,16 @@ internal class DebugPanel(
                         settings.inspect.showEntitySpriteBounds = it
                     }
                 )
-                button("Clear selection") { inspector.clear() }.cell { height(38f) }
+                compactAction("Clear selection") { inspector.clear() }
             }
-            pathControls = column(spacing = 8f) {
+            pathControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                label("Pathfinding")
+                toolSection("Pathfinding")
                 simpleToggle(
                     "World visualization",
                     { settings.pathfinding.enabled }
                 ) { settings.pathfinding.enabled = it }
-                label("Movement")
+                toolSection("Movement")
                 val movementModes = ui.selectionGroup(
                     PathMovementMode.entries,
                     settings.pathfinding.movementMode
@@ -482,7 +484,7 @@ internal class DebugPanel(
                     selectableButton("4-way", PathMovementMode.FOUR_WAY, movementModes)
                     selectableButton("8-way", PathMovementMode.EIGHT_WAY, movementModes)
                 }.cell { fillAvailableX() }
-                toggleGrid(
+                toggleRows(
                     toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) {
                         settings.pathfinding.showExploredNodes = it
                     },
@@ -535,14 +537,16 @@ internal class DebugPanel(
                     8192f,
                     128f
                 ) { settings.pathfinding.maximumRejectedTransitions = it.toInt() }
-                label("Diagnostic search")
-                responsiveGrid(105f, 38f, maximumColumns = 2) {
-                    button("Start") { pathfinding.startDiagnosticSearch() }
-                    button("Step") { pathfinding.stepDiagnosticSearch() }
-                    button("Continue") { pathfinding.continueDiagnosticSearch() }
-                    button("Pause") { pathfinding.pauseDiagnosticSearch() }
-                    button("Reset") { pathfinding.resetDiagnosticSearch() }
-                }.cell { fillAvailableX() }
+                toolSection("Diagnostic search")
+                compactActions(
+                    "Start" to { pathfinding.startDiagnosticSearch() },
+                    "Step" to { pathfinding.stepDiagnosticSearch() }
+                )
+                compactActions(
+                    "Continue" to { pathfinding.continueDiagnosticSearch() },
+                    "Pause" to { pathfinding.pauseDiagnosticSearch() },
+                    "Reset" to { pathfinding.resetDiagnosticSearch() }
+                )
                 boundStepper(
                     "Iterations / update",
                     { settings.pathfinding.automaticIterationsPerUpdate.toFloat() },
@@ -561,11 +565,11 @@ internal class DebugPanel(
                     10f,
                     0.25f
                 ) { settings.pathfinding.entitySpeedMultiplier = it }
-                button("Clear path") {
+                compactAction("Clear path") {
                     if (pathfinding.clear()) {
                         settings.notify("Path cleared", DebugNotificationSeverity.INFO)
                     }
-                }.cell { height(38f) }
+                }
             }
         }.cell { fillAvailableX() }
     }
@@ -1102,6 +1106,20 @@ internal class DebugPanel(
         settingToggleRow(text, read, write)
     }
 
+    private fun StrataColumn.toolSection(text: String) {
+        row(
+            padding = StrataInsets.symmetric(horizontal = 8f, vertical = 3f)
+        ) {
+            label(text).cell { growX(); left() }
+        }.apply {
+            background = ui.skin.get(
+                "debug-expander",
+                StrataExpanderStyle::class.java
+            ).headerBackground
+        }.cell { fillAvailableX(); height(30f) }
+        separator()
+    }
+
     private fun StrataColumn.featureExpander(
         title: String,
         read: () -> Boolean,
@@ -1137,19 +1155,6 @@ internal class DebugPanel(
         "debug-expander",
         StrataExpanderStyle::class.java
     )
-
-    private fun StrataColumn.toggleGrid(vararg controls: ToggleBinding) {
-        responsiveGrid(130f, 36f, maximumColumns = 2) {
-            controls.forEach { binding ->
-                val button = StrataToggleButton(
-                    binding.text, ui.skin, ui.theme.toggleButtonStyle,
-                    binding.read(), binding.write
-                )
-                actor(button)
-                synchronizers += { button.syncChecked(binding.read()) }
-            }
-        }.cell { fillAvailableX() }
-    }
 
     private fun StrataColumn.toggleRows(vararg controls: ToggleBinding) {
         controls.forEach { binding ->
@@ -1317,7 +1322,7 @@ internal class DebugPanel(
             2f,
             decimals = 0,
             onChanged = { write(it.toInt()) }
-        ).cell {
+        ).applyDebugSettingBackground().cell {
             fillAvailableX()
             height(32f)
             padLeft(6f)
