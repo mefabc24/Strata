@@ -679,6 +679,35 @@ class StrataWidgetsTest {
     }
 
     @Test
+    fun `each nested expander level indents its content`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val style = StrataExpanderStyle().apply { contentIndent = 12f }
+        lateinit var nested: StrataExpander
+        val root = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = true,
+            spacing = 0f,
+            expandedStyle = style
+        ) {
+            nested = expander(
+                title = "Rendering",
+                expanded = true,
+                spacing = 0f,
+                expandedStyle = style
+            ) { spacer(height = 20f) }
+        }
+
+        assertEquals(12f, root.content.padLeft)
+        assertEquals(12f, nested.content.padLeft)
+        assertSame(root.content, nested.parent)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
     fun `expander applies optional visual treatment only while expanded`() {
         val skin = createSkin()
         val context = StrataUiContext(skin, StrataUiTheme())
