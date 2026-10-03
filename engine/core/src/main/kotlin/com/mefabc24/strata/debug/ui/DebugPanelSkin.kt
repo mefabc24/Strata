@@ -140,9 +140,18 @@ internal object DebugPanelSkin {
             this.font = font
             fontColor = Color.WHITE
 
-            background = drawable.tint(Color(0.23f, 0.24f, 0.28f, 1f))
-            backgroundOver = drawable.tint(Color(0.31f, 0.33f, 0.38f, 1f))
-            backgroundOpen = drawable.tint(Color(0.18f, 0.20f, 0.24f, 1f))
+            background = drawable.tint(Color(0.23f, 0.24f, 0.28f, 1f)).apply {
+                leftWidth = 8f
+                rightWidth = 8f
+            }
+            backgroundOver = drawable.tint(Color(0.31f, 0.33f, 0.38f, 1f)).apply {
+                leftWidth = 8f
+                rightWidth = 8f
+            }
+            backgroundOpen = drawable.tint(Color(0.18f, 0.20f, 0.24f, 1f)).apply {
+                leftWidth = 8f
+                rightWidth = 8f
+            }
 
             scrollStyle = skin.get("default", ScrollPane.ScrollPaneStyle::class.java)
             listStyle = dropdownListStyle
