@@ -187,6 +187,8 @@ class StrataExpanderStyle {
     var headerPadRight: Float = 8f
     var indicatorSpacing: Float = 7f
     var headerActionSpacing: Float = 6f
+    /** Left inset added to the content of each hierarchy level. */
+    var contentIndent: Float = 0f
 
     constructor()
 

@@ -583,7 +583,12 @@ class StrataExpander internal constructor(
     val content = StrataColumn(
         context = context,
         spacing = context.theme.spacing,
-        padding = StrataInsets.NONE,
+        padding = StrataInsets(
+            top = 0f,
+            left = expandedStyle?.contentIndent ?: 0f,
+            bottom = 0f,
+            right = 0f
+        ),
         alignment = Align.topLeft
     ).apply(configure)
 

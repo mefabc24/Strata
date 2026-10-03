@@ -159,6 +159,11 @@ internal object DebugPanelSkin {
                 expandedHeaderBackground = drawable.tint(Color(0.18f, 0.19f, 0.22f, 1f))
                 collapsedIndicator = collapsedChevron
                 expandedIndicator = expandedChevron
+                contentIndent = 12f
+                indicatorSize = 9f
+                headerPadLeft = 8f
+                headerPadRight = 6f
+                indicatorSpacing = 5f
             },
             StrataExpanderStyle::class.java
         )
