@@ -7,6 +7,9 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
+import com.badlogic.gdx.scenes.scene2d.ui.List
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
@@ -34,6 +37,47 @@ class StrataWidgetsTest {
     private enum class Option {
         FIRST,
         SECOND
+    }
+
+    @Test
+    fun `dropdown exposes domain values and formatted labels`() {
+        val skin = createSkin()
+        var selected = Option.FIRST
+        val dropdown = StrataDropdown(
+            Option.entries,
+            selected,
+            skin,
+            displayText = { it.name.lowercase() }
+        ) { selected = it }
+
+        try {
+            dropdown.value = Option.SECOND
+
+            assertEquals(Option.SECOND, selected)
+            assertEquals("second", dropdown.selected.toString())
+        } finally {
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `dropdown synchronization does not emit a user change`() {
+        val skin = createSkin()
+        var changes = 0
+        val dropdown = StrataDropdown(
+            Option.entries,
+            Option.FIRST,
+            skin
+        ) { changes++ }
+
+        try {
+            dropdown.sync(Option.SECOND)
+
+            assertEquals(Option.SECOND, dropdown.value)
+            assertEquals(0, changes)
+        } finally {
+            skin.dispose()
+        }
     }
 
     @Test
@@ -720,6 +764,21 @@ class StrataWidgetsTest {
             add(
                 "default",
                 ImageButton.ImageButtonStyle()
+            )
+
+            val listStyle = List.ListStyle().apply {
+                this.font = font
+                selection = BaseDrawable()
+            }
+            add("default", listStyle)
+            add("default", ScrollPane.ScrollPaneStyle())
+            add(
+                "default",
+                SelectBox.SelectBoxStyle().apply {
+                    this.font = font
+                    scrollStyle = get("default", ScrollPane.ScrollPaneStyle::class.java)
+                    this.listStyle = listStyle
+                }
             )
         }
     }
