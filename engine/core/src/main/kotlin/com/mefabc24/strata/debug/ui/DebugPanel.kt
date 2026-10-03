@@ -237,6 +237,9 @@ internal class DebugPanel(
             debugPanelActor.remove()
         }
 
+        // Remove empty cells left by the temporarily attached panels.
+        ui.root.clearChildren()
+
         windowLayout = Table().apply {
             top()
             touchable = Touchable.childrenOnly
