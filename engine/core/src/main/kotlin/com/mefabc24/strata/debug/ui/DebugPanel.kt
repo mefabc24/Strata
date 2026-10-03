@@ -601,59 +601,64 @@ internal class DebugPanel(
         }
 
         registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
-            boundDropdown(
-                "Visualization filter",
-                DebugVisualizationFilter.entries,
-                { settings.visualizationFilter },
-                { it.name.toDisplayName() }
-            ) { settings.visualizationFilter = it }
+        visuals.settingsExpander("General") {
+            settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
+                boundDropdown(
+                    "Visualization filter",
+                    DebugVisualizationFilter.entries,
+                    { settings.visualizationFilter },
+                    { it.name.toDisplayName() }
+                ) { settings.visualizationFilter = it }
+            }
         }
 
-        runtime.settingsExpander("Performance", DebugVisualCategory.GENERAL) {
-            toggleRows(
-                toggle("Performance overlay", { settings.performance.overlayEnabled }) {
-                    settings.performance.overlayEnabled = it
-                },
-                toggle("World stats overlay", { settings.worldStats.enabled }) {
-                    settings.worldStats.enabled = it
-                }
-            )
-        }
-        runtime.settingsExpander("Performance history") {
-            toggleRows(
-                toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
-                    settings.performance.overlayEnabled = it
-                },
-                toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
-                    settings.performance.terminalLoggingEnabled = it
-                }
-            )
-            boundStepper(
-                "Terminal interval",
-                { settings.performance.terminalLoggingIntervalSeconds },
-                0.25f,
-                30f,
-                0.25f
-            ) { settings.performance.terminalLoggingIntervalSeconds = it }
-            boundStepper(
-                "History length",
-                { settings.performance.historyLength.toFloat() },
-                30f,
-                2000f,
-                10f
-            ) { settings.performance.historyLength = it.toInt() }
-            boundDropdown(
-                "Graph metric",
-                DebugPerformanceMetric.entries,
-                { settings.performance.historyMetric },
-                { it.name.toDisplayName() }
-            ) { settings.performance.historyMetric = it }
-            responsiveGrid(105f, 38f, maximumColumns = 3) {
-                button("Start") { settings.performance.startHistoryRecording() }
-                button("Stop") { settings.performance.stopHistoryRecording() }
-                button("Clear") { settings.performance.clearHistory() }
-            }.cell { fillAvailableX() }
+        registeringDebugSection = DebugPanelSection.RUNTIME
+        runtime.settingsExpander("Performance") {
+            settingsExpander("Overlays", DebugVisualCategory.GENERAL) {
+                toggleRows(
+                    toggle("Performance overlay", { settings.performance.overlayEnabled }) {
+                        settings.performance.overlayEnabled = it
+                    },
+                    toggle("World stats overlay", { settings.worldStats.enabled }) {
+                        settings.worldStats.enabled = it
+                    }
+                )
+            }
+            settingsExpander("History & logging") {
+                toggleRows(
+                    toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
+                        settings.performance.overlayEnabled = it
+                    },
+                    toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
+                        settings.performance.terminalLoggingEnabled = it
+                    }
+                )
+                boundStepper(
+                    "Terminal interval",
+                    { settings.performance.terminalLoggingIntervalSeconds },
+                    0.25f,
+                    30f,
+                    0.25f
+                ) { settings.performance.terminalLoggingIntervalSeconds = it }
+                boundStepper(
+                    "History length",
+                    { settings.performance.historyLength.toFloat() },
+                    30f,
+                    2000f,
+                    10f
+                ) { settings.performance.historyLength = it.toInt() }
+                boundDropdown(
+                    "Graph metric",
+                    DebugPerformanceMetric.entries,
+                    { settings.performance.historyMetric },
+                    { it.name.toDisplayName() }
+                ) { settings.performance.historyMetric = it }
+                responsiveGrid(105f, 32f, spacing = 4f, maximumColumns = 3) {
+                    button("Start") { settings.performance.startHistoryRecording() }
+                    button("Stop") { settings.performance.stopHistoryRecording() }
+                    button("Clear") { settings.performance.clearHistory() }
+                }.cell { fillAvailableX(); pad(4f) }
+            }
         }
         runtime.featureExpander(
             "Simulation",
@@ -676,8 +681,25 @@ internal class DebugPanel(
             }.cell { height(38f) }
         }
         registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.settingsExpander("World visibility", DebugVisualCategory.WORLD_VISIBILITY) { buildWorldVisibilitySettings() }
-        visuals.featureExpander(
+        visuals.settingsExpander("World") {
+            settingsExpander("Visibility", DebugVisualCategory.WORLD_VISIBILITY) {
+                buildWorldVisibilitySettings()
+            }
+            featureExpander(
+                "Grid",
+                DebugVisualCategory.GRID,
+                { settings.grid.enabled },
+                { settings.grid.enabled = it }
+            ) { buildGridSettings() }
+            featureExpander(
+                "Information",
+                DebugVisualCategory.WORLD_INFORMATION,
+                { settings.worldInfo.enabled },
+                { settings.worldInfo.enabled = it }
+            ) { buildWorldInfoSettings() }
+        }
+        visuals.settingsExpander("Rendering") {
+            featureExpander(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
             { settings.renderOrder.enabled },
@@ -756,6 +778,7 @@ internal class DebugPanel(
             synchronizers += {
                 heatmapSteps.isDisabled = !settings.renderOrder.showTerrainHeatmap
             }
+            }
         }
         registeringDebugSection = DebugPanelSection.DIAGNOSTICS
         diagnostics.featureExpander(
@@ -793,18 +816,24 @@ internal class DebugPanel(
             }.cell { height(38f) }
         }
         registeringDebugSection = DebugPanelSection.VISUALS
-        visuals.featureExpander("Grid", DebugVisualCategory.GRID, { settings.grid.enabled }, { settings.grid.enabled = it }) { buildGridSettings() }
-        visuals.featureExpander(
-            "World information",
-            DebugVisualCategory.WORLD_INFORMATION,
-            { settings.worldInfo.enabled },
-            { settings.worldInfo.enabled = it }
-        ) { buildWorldInfoSettings() }
-        visuals.featureExpander("Objects", DebugVisualCategory.OBJECTS, { settings.objects.enabled }, { settings.objects.enabled = it }) { buildObjectSettings() }
-        visuals.featureExpander("Entities", DebugVisualCategory.ENTITIES, { settings.entities.enabled }, { settings.entities.enabled = it }) { buildEntitySettings() }
+        visuals.settingsExpander("Scene elements") {
+            featureExpander(
+                "Objects",
+                DebugVisualCategory.OBJECTS,
+                { settings.objects.enabled },
+                { settings.objects.enabled = it }
+            ) { buildObjectSettings() }
+            featureExpander(
+                "Entities",
+                DebugVisualCategory.ENTITIES,
+                { settings.entities.enabled },
+                { settings.entities.enabled = it }
+            ) { buildEntitySettings() }
+        }
 
         registeringDebugSection = DebugPanelSection.DIAGNOSTICS
-        diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
+        diagnostics.settingsExpander("Scene diagnostics") {
+        featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
             toggleRows(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
@@ -845,6 +874,7 @@ internal class DebugPanel(
                 )
             }
             cameraRows = diagnosticTable()
+        }
         }
 
         registeringDebugSection = DebugPanelSection.RUNTIME
