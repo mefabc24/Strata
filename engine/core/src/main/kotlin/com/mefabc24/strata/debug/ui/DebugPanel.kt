@@ -707,15 +707,12 @@ internal class DebugPanel(
                 1f,
                 0.05f
             ) { settings.renderOrder.priorityColorAlpha = it }
-            val heatmapSteps = boundDropdown(
+            boundDropdown(
                 "Heatmap color steps",
                 TerrainHeatmapSteps.entries,
                 { settings.renderOrder.terrainHeatmapSteps },
                 { it.name.toDisplayName() }
             ) { settings.renderOrder.terrainHeatmapSteps = it }
-            synchronizers += {
-                heatmapSteps.isDisabled = !settings.renderOrder.showTerrainHeatmap
-            }
             }
         }
         diagnostics.featureExpander(
