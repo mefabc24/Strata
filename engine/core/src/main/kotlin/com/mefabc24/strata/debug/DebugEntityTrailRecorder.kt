@@ -86,7 +86,7 @@ internal class DebugEntityTrailRecorder {
             clear()
             appliedClearGeneration = settings.trailClearGeneration
         }
-        if (!settings.enabled || !settings.showMovementTrail) {
+        if (!settings.showMovementTrail) {
             if (trails.isNotEmpty()) clear()
             return
         }
