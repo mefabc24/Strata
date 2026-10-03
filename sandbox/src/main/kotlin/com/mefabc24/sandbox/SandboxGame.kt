@@ -61,15 +61,15 @@ class SandboxGame : StrataGame() {
 
                     toolsWindow {
                         enabled = true
-                        visibleOnStartup = true
-                        toggleKey = Input.Keys.F2
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.TAB
                         order = 0
                     }
 
                     debugWindow {
                         enabled = true
-                        visibleOnStartup = true
-                        toggleKey = Input.Keys.F3
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.ESCAPE
                         order = 1
                     }
 
