@@ -125,6 +125,7 @@ class DebugToolRailTest {
         )
         return Skin().apply {
             add("default", Label.LabelStyle(font, null))
+            add("debug-tool-label", Label.LabelStyle(font, null))
         }
     }
 }
