@@ -144,6 +144,7 @@ internal class DebugPanel(
         }
         setToolsWindowVisible(settings.toolsWindow.visibleOnStartup)
         setDebugWindowVisible(settings.debugWindow.visibleOnStartup)
+        syncStatsOverlayPosition()
         syncControls()
         syncVisibility()
     }
@@ -166,6 +167,7 @@ internal class DebugPanel(
         simulationOverlay.setVisible(settings.simulation.enabled)
         simulationOverlay.update(delta)
         syncWindowLayout()
+        syncStatsOverlayPosition()
         syncControls()
         syncVisibility()
         syncDiagnostics()
@@ -173,6 +175,7 @@ internal class DebugPanel(
 
     fun resized() {
         syncWindowLayout(force = true)
+        syncStatsOverlayPosition()
         if (!settings.toolsWindow.enabled) return
         val anchor = previewAnchor ?: return
         if (previewState.current != null) previewPopover.showRightOf(toolsPanelActor, anchor)
@@ -1045,16 +1048,6 @@ internal class DebugPanel(
         write: (Boolean) -> Unit
     ) = ToggleBinding(text, read, write)
 
-    private fun GranularDebugFeatureBinding.toggle(
-        text: String,
-        read: () -> Boolean,
-        write: (Boolean) -> Unit
-    ) = ToggleBinding(
-        text,
-        { readOption(read) },
-        { value -> writeOption(value, read, write) }
-    )
-
     private fun StrataColumn.simpleToggle(
         text: String,
         read: () -> Boolean,
@@ -1380,13 +1373,26 @@ internal class DebugPanel(
                 .top()
                 .right()
         }
-        statsOverlay.setRightInset(
-            DebugWindowLayout.overlayRightInset(debugVisible, debugWidth)
-        )
         appliedWindowVisibility = desired
         windowLayout.isVisible = toolsVisible || debugVisible
         windowLayout.invalidateHierarchy()
         ui.root.invalidateHierarchy()
+    }
+
+    private fun syncStatsOverlayPosition() {
+        val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
+            ::toolsPanelActor.isInitialized
+        val stageHeight = ui.stage.viewport.worldHeight
+            .takeIf { it > 0f }
+            ?: Gdx.graphics.height.toFloat()
+        val toolsHeight = if (toolsVisible) {
+            toolsPanelActor.prefHeight.coerceAtMost(stageHeight * 0.95f)
+        } else {
+            0f
+        }
+        statsOverlay.setTopPadding(
+            DebugWindowLayout.overlayTopPadding(toolsVisible, toolsHeight)
+        )
     }
 
     private fun syncVisibility() {

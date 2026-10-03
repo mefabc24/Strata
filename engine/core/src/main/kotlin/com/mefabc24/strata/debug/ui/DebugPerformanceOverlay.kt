@@ -48,33 +48,36 @@ internal class DebugStatsOverlay(
     private val eventMonitorCell: Cell<Table>
     private var worldElapsed = 0f
     private val root = Table()
+    private var topPadding = Float.NaN
 
     init {
         root.apply {
             setFillParent(true)
-            top().right()
+            top().left()
             pad(16f)
             touchable = Touchable.childrenOnly
             isVisible = false
             performanceCell = add(performancePanel)
                 .minWidth(250f).prefWidth(290f).maxWidth(320f)
-                .fillX().right()
+                .fillX().left()
             row()
             worldCell = add(worldPanel)
                 .minWidth(250f).prefWidth(290f).maxWidth(320f)
-                .fillX().right()
+                .fillX().left()
             row()
             eventMonitorCell = add(eventMonitorPanel.panel)
                 .minWidth(250f).prefWidth(290f).maxWidth(320f)
-                .fillX().right()
+                .fillX().left()
         }
         ui.stage.addActor(root)
     }
 
-    /** Keeps the overlay stack clear of a top-right window. */
-    fun setRightInset(inset: Float) {
-        require(inset.isFinite() && inset >= 0f)
-        root.padRight(16f + inset)
+    /** Keeps the left overlay stack below a visible tools window. */
+    fun setTopPadding(padding: Float) {
+        require(padding.isFinite() && padding >= 0f)
+        if (padding == topPadding) return
+        topPadding = padding
+        root.padTop(padding)
         root.invalidateHierarchy()
     }
 
