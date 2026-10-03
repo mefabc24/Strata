@@ -91,6 +91,14 @@ internal object DebugPanelSkin {
             disabled = drawable.tint(Color(0.11f, 0.11f, 0.12f, 1f))
             disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
         })
+        skin.add("debug-expander-header", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color(0.88f, 0.89f, 0.92f, 1f)
+            up = drawable.tint(Color(1f, 1f, 1f, 0f))
+            over = drawable.tint(Color(1f, 1f, 1f, 0.06f))
+            down = drawable.tint(Color(0f, 0f, 0f, 0.12f))
+            disabledFontColor = Color(0.5f, 0.5f, 0.52f, 1f)
+        })
         skin.add("default", ImageButton.ImageButtonStyle().apply {
             up = drawable.tint(Color(0.18f, 0.18f, 0.20f, 1f))
             over = drawable.tint(Color(0.25f, 0.25f, 0.28f, 1f))
@@ -119,12 +127,20 @@ internal object DebugPanelSkin {
             ),
             StrataPanelStyle::class.java
         )
+        val collapsedChevron = createChevronDrawable(skin, "right", expanded = false)
+        val expandedChevron = createChevronDrawable(skin, "down", expanded = true)
         skin.add(
             "debug-expander",
             StrataExpanderStyle(
-                background = drawable.tint(Color(0.16f, 0.16f, 0.19f, 0f)),
+                background = drawable.tint(Color(0.115f, 0.12f, 0.14f, 0.96f)),
                 padding = StrataInsets.NONE
-            ),
+            ).apply {
+                headerButtonStyle = "debug-expander-header"
+                headerBackground = drawable.tint(Color(0.145f, 0.15f, 0.17f, 1f))
+                expandedHeaderBackground = drawable.tint(Color(0.18f, 0.19f, 0.22f, 1f))
+                collapsedIndicator = collapsedChevron
+                expandedIndicator = expandedChevron
+            },
             StrataExpanderStyle::class.java
         )
         skin.add(
@@ -136,5 +152,28 @@ internal object DebugPanelSkin {
             StrataSeparatorStyle::class.java
         )
         return skin
+    }
+
+    private fun createChevronDrawable(
+        skin: Skin,
+        name: String,
+        expanded: Boolean
+    ): TextureRegionDrawable {
+        val pixmap = Pixmap(9, 9, Pixmap.Format.RGBA8888).apply {
+            setColor(Color.CLEAR)
+            fill()
+            setColor(Color(0.72f, 0.76f, 0.82f, 1f))
+            if (expanded) {
+                drawLine(1, 3, 4, 6)
+                drawLine(4, 6, 7, 3)
+            } else {
+                drawLine(2, 1, 6, 4)
+                drawLine(6, 4, 2, 7)
+            }
+        }
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        skin.add("debug-chevron-$name", texture)
+        return TextureRegionDrawable(TextureRegion(texture))
     }
 }

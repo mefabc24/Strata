@@ -2,6 +2,7 @@ package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Stack
@@ -579,9 +580,18 @@ class StrataExpander internal constructor(
     val header = StrataButton(
         text = title,
         skin = context.skin,
-        styleName = context.theme.buttonStyle,
+        styleName = expandedStyle?.headerButtonStyle ?: context.theme.buttonStyle,
         onClick = ::toggle
     )
+
+    /** Container shared by the clickable title and optional header actions. */
+    val headerRow = StrataRow(
+        context, context.theme.spacing, StrataInsets.NONE, Align.left
+    )
+
+    private val indicator = expandedStyle
+        ?.takeIf { it.collapsedIndicator != null || it.expandedIndicator != null }
+        ?.let { Image() }
 
     private val contentCell: Cell<StrataColumn>
 
@@ -603,15 +613,34 @@ class StrataExpander internal constructor(
         }
 
         top().left()
-        val headerRow = StrataRow(
-            context, context.theme.spacing, StrataInsets.NONE, Align.left
-        )
+        header.label.setAlignment(Align.left)
+        indicator?.let { image ->
+            header.clearChildren()
+            header.add(image)
+                .size(expandedStyle!!.indicatorSize)
+                .padLeft(expandedStyle.headerPadLeft)
+                .padRight(expandedStyle.indicatorSpacing)
+            header.add(header.label)
+                .growX()
+                .left()
+                .padRight(expandedStyle.headerPadRight)
+        }
         headerRow.actor(header).cell {
             growX().fillX()
             headerHeight?.let(::height)
         }
-        headerContent?.let(headerRow::apply)
-        add(headerRow).growX().fillX()
+        headerContent?.let { configureHeader ->
+            val actions = StrataRow(
+                context, context.theme.spacing, StrataInsets.NONE, Align.right
+            ).apply(configureHeader)
+            headerRow.actor(actions).cell {
+                padLeft(expandedStyle?.headerActionSpacing ?: context.theme.spacing)
+                padRight(expandedStyle?.headerPadRight ?: 0f)
+            }
+        }
+        add(headerRow).growX().fillX().also { cell ->
+            headerHeight?.let(cell::height)
+        }
         row()
         contentCell = add(content).growX().fillX()
         updateExpansion()
@@ -622,8 +651,19 @@ class StrataExpander internal constructor(
     }
 
     private fun updateExpansion() {
-        @Suppress("UsePropertyAccessSyntax")
-        header.setText("$title  ${if (expanded) "v" else ">"}")
+        val indicatorDrawable = if (expanded) {
+            expandedStyle?.expandedIndicator
+        } else {
+            expandedStyle?.collapsedIndicator
+        }
+        if (indicator != null) {
+            indicator.drawable = indicatorDrawable
+            @Suppress("UsePropertyAccessSyntax")
+            header.setText(title)
+        } else {
+            @Suppress("UsePropertyAccessSyntax")
+            header.setText("${if (expanded) "v" else ">"}  $title")
+        }
         content.isVisible = expanded
 
         if (expanded) {
@@ -650,6 +690,11 @@ class StrataExpander internal constructor(
     private fun applyExpandedStyle() {
         val style = expandedStyle.takeIf { expanded }
         background = style?.background
+        headerRow.background = if (expanded) {
+            expandedStyle?.expandedHeaderBackground ?: expandedStyle?.headerBackground
+        } else {
+            expandedStyle?.headerBackground
+        }
         pad(
             style?.padTop ?: 0f,
             style?.padLeft ?: 0f,

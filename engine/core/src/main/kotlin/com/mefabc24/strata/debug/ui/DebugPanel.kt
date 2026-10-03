@@ -1230,7 +1230,7 @@ internal class DebugPanel(
             headerHeight = 36f,
             expandedStyle = debugExpanderStyle(),
             headerContent = {
-                settingToggle(read, write).cell { minWidth(64f); height(36f) }
+                settingToggle(read, write).cell { minWidth(56f); height(28f) }
             }
         ) {
             defaults().fillAvailableX()

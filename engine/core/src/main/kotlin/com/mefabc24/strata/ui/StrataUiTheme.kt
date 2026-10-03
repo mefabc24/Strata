@@ -158,13 +158,30 @@ class StrataPanelStyle {
     }
 }
 
-/** Optional visual treatment applied only while a [StrataExpander] is open. */
+/** Visual treatment for a [StrataExpander] header and its open content. */
 class StrataExpanderStyle {
+    /** Background shown behind the expander while its content is open. */
     var background: Drawable? = null
     var padTop: Float = 0f
     var padLeft: Float = 0f
     var padBottom: Float = 0f
     var padRight: Float = 0f
+
+    /** Optional button style used by the clickable title area. */
+    var headerButtonStyle: String? = null
+
+    /** Header backgrounds for the closed and open states. */
+    var headerBackground: Drawable? = null
+    var expandedHeaderBackground: Drawable? = null
+
+    /** Optional state-specific indicators placed before the title. */
+    var collapsedIndicator: Drawable? = null
+    var expandedIndicator: Drawable? = null
+    var indicatorSize: Float = 10f
+    var headerPadLeft: Float = 10f
+    var headerPadRight: Float = 8f
+    var indicatorSpacing: Float = 7f
+    var headerActionSpacing: Float = 6f
 
     constructor()
 
