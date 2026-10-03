@@ -4,15 +4,12 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.ui.Value
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
@@ -131,15 +128,11 @@ internal class DebugPanel(
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
-    private lateinit var searchEmptyLabel: Label
     private val debugSectionColumns = linkedMapOf<DebugPanelSection, StrataColumn>()
-    private val debugSectionButtons = linkedMapOf<DebugPanelSection, StrataSelectableButton<DebugPanelSection>>()
     private lateinit var expandAllButton: StrataButton
     private lateinit var collapseAllButton: StrataButton
     private val debugCategories = mutableListOf<DebugCategoryActor>()
-    private var debugSearch: DebugSettingsSearch? = null
     private var registeringDebugSection: DebugPanelSection = DebugPanelSection.VISUALS
-    private var matchingDebugSections: Set<DebugPanelSection> = DebugPanelSection.entries.toSet()
     private var previewAnchor: Actor? = null
     private var lastMode = DebugToolMode.NONE
     private var appliedWindowOrder: List<DebugWindowKind> = emptyList()
@@ -535,29 +528,21 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
-        label("Find settings")
-        actor(TextField("", ui.skin).apply {
-            messageText = "Search by setting name"
-            addListener(object : ChangeListener() {
-                override fun changed(event: ChangeEvent, actor: Actor) {
-                    applyDebugSearch(text)
-                }
-            })
-        }).cell { fillAvailableX(); height(38f) }
         responsiveGrid(112f, 36f, maximumColumns = 4) {
             DebugPanelSection.entries.forEach { section ->
-                debugSectionButtons[section] =
-                    selectableButton(section.label, section, debugSections)
+                selectableButton(section.label, section, debugSections)
             }
         }.cell { fillAvailableX() }
+
         responsiveGrid(120f, 36f, maximumColumns = 2) {
-            expandAllButton = button("Expand all") { setAllDebugCategoriesExpanded(true) }
-            collapseAllButton = button("Collapse all") { setAllDebugCategoriesExpanded(false) }
+            expandAllButton = button("Expand all") {
+                setAllDebugCategoriesExpanded(true)
+            }
+            collapseAllButton = button("Collapse all") {
+                setAllDebugCategoriesExpanded(false)
+            }
         }.cell { fillAvailableX() }
-        searchEmptyLabel = wrappingLabel("No debug settings match this search.").apply {
-            isVisible = false
-        }
-        getCell(searchEmptyLabel).height(0f)
+
         separator()
         stack {
             DebugPanelSection.entries.forEach { section ->
@@ -962,7 +947,6 @@ internal class DebugPanel(
                 )
             }.cell { fillAvailableX() }
         }
-        debugSearch = DebugSettingsSearch(debugCategories.map { it.searchCategory })
     }
 
     private fun StrataColumn.buildGridSettings() {
@@ -1237,8 +1221,8 @@ internal class DebugPanel(
             configure()
             separator()
         }
-        val cell = getCell(expander).apply { fillAvailableX() }
-        registerDebugCategory(expander, cell)
+        getCell(expander).fillAvailableX()
+        registerDebugCategory(expander)
     }
 
     private fun StrataColumn.settingsExpander(
@@ -1257,108 +1241,55 @@ internal class DebugPanel(
             configure()
             separator()
         }
-        val cell = getCell(expander).apply { fillAvailableX() }
-        registerDebugCategory(expander, cell)
+        getCell(expander).fillAvailableX()
+        registerDebugCategory(expander)
     }
 
     private data class DebugCategoryActor(
         val section: DebugPanelSection,
-        val expander: StrataExpander,
-        val cell: Cell<StrataExpander>,
-        val searchCategory: DebugSearchCategory
+        val expander: StrataExpander
     )
 
-    private fun registerDebugCategory(expander: StrataExpander, cell: Cell<StrataExpander>) {
-        val terms = linkedSetOf<String>()
-        collectActorText(expander.content, terms)
+    private fun registerDebugCategory(expander: StrataExpander) {
         debugCategories += DebugCategoryActor(
-            registeringDebugSection,
-            expander,
-            cell,
-            DebugSearchCategory(
-                expander.title,
-                terms,
-                expander.expanded,
-                registeringDebugSection
-            )
+            section = registeringDebugSection,
+            expander = expander
         )
-    }
-
-    private fun collectActorText(actor: Actor, destination: MutableSet<String>) {
-        if (actor is Label) {
-            actor.text.toString().trim().takeIf(String::isNotEmpty)?.let(destination::add)
-        }
-        if (actor is Group) actor.children.forEach { collectActorText(it, destination) }
-    }
-
-    private fun applyDebugSearch(query: String) {
-        val search = debugSearch ?: return
-        debugCategories.forEach { it.searchCategory.expanded = it.expander.expanded }
-        val result = search.update(query)
-        debugCategories.forEachIndexed { index, entry ->
-            val visible = index in result.matchingIndices
-            entry.expander.isVisible = visible
-            entry.cell.height(if (visible) Value.prefHeight else Value.Fixed(0f))
-            entry.cell.space(if (visible) 10f else 0f)
-            entry.expander.expanded = entry.searchCategory.expanded
-        }
-        val presetMatches = query.isBlank() || actorContainsText(
-            debugSectionColumns.getValue(DebugPanelSection.PRESETS),
-            query
-        )
-        matchingDebugSections = buildSet {
-            addAll(result.matchingSections)
-            if (presetMatches) add(DebugPanelSection.PRESETS)
-        }
-        val hasMatches = matchingDebugSections.isNotEmpty()
-        if (query.isNotBlank() && navigation.selectedDebugSection !in matchingDebugSections) {
-            matchingDebugSections.firstOrNull()?.let(debugSections::select)
-        }
-        searchEmptyLabel.isVisible = !hasMatches
-        requireNotNull(debugTab.getCell(searchEmptyLabel)).height(
-            if (hasMatches) Value.Fixed(0f) else Value.prefHeight
-        )
-        syncDebugSectionVisibility(resetScroll = false)
     }
 
     private fun setAllDebugCategoriesExpanded(expanded: Boolean) {
-        val indices = debugCategories.indices.filter {
-            debugCategories[it].section == navigation.selectedDebugSection
-        }.toSet()
-        debugSearch?.setExpanded(indices, expanded)
-        debugCategories.filter { it.section == navigation.selectedDebugSection }.forEach {
-            it.searchCategory.expanded = expanded
-            if (it.expander.isVisible) it.expander.expanded = expanded
-        }
+        debugCategories
+            .filter { it.section == navigation.selectedDebugSection }
+            .forEach { it.expander.expanded = expanded }
+
         debugTab.invalidateHierarchy()
         debugScroll.invalidateHierarchy()
     }
 
-    private fun actorContainsText(actor: Actor, query: String): Boolean {
-        val normalized = query.trim()
-        if (normalized.isEmpty()) return true
-        val terms = linkedSetOf<String>()
-        collectActorText(actor, terms)
-        return terms.any { it.contains(normalized, ignoreCase = true) }
-    }
-
     private fun syncDebugSectionVisibility(resetScroll: Boolean) {
         if (debugSectionColumns.isEmpty()) return
+
         val selected = navigation.selectedDebugSection
-        val searching = debugSearch?.query?.isNotBlank() == true
+
         debugSectionColumns.forEach { (section, column) ->
-            column.isVisible = section == selected && section in matchingDebugSections
+            column.isVisible = section == selected
         }
-        debugSectionButtons.forEach { (section, button) ->
-            button.isDisabled = searching && section !in matchingDebugSections
+
+        val hasExpandableCategories = debugCategories.any {
+            it.section == selected
         }
-        val hasExpandableCategories = debugCategories.any { it.section == selected }
+
         if (::expandAllButton.isInitialized) {
             expandAllButton.isDisabled = !hasExpandableCategories
             collapseAllButton.isDisabled = !hasExpandableCategories
         }
-        if (resetScroll && ::debugScroll.isInitialized) debugScroll.scrollY = 0f
+
+        if (resetScroll && ::debugScroll.isInitialized) {
+            debugScroll.scrollY = 0f
+        }
+
         debugTab.invalidateHierarchy()
+
         if (::debugScroll.isInitialized) {
             debugScroll.content.invalidateHierarchy()
             debugScroll.invalidateHierarchy()
