@@ -519,14 +519,17 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildDebug() {
-        val general = settingsExpander("General") {}.content
-        val worldSettings = settingsExpander("World") {}.content
-        val sceneElements = settingsExpander("Scene elements") {}.content
-        val cameraSettings = settingsExpander("Camera") {}.content
-        val performance = settingsExpander("Performance") {}.content
-        val simulationSettings = settingsExpander("Simulation") {}.content
-        val diagnostics = settingsExpander("Diagnostics") {}.content
-        val presets = settingsExpander("Presets") {}.content
+        val groups = DebugHierarchyGroup.entries.associateWith { group ->
+            settingsExpander(group.label) {}.content
+        }
+        val general = groups.getValue(DebugHierarchyGroup.GENERAL)
+        val worldSettings = groups.getValue(DebugHierarchyGroup.WORLD)
+        val sceneElements = groups.getValue(DebugHierarchyGroup.SCENE_ELEMENTS)
+        val cameraSettings = groups.getValue(DebugHierarchyGroup.CAMERA)
+        val performance = groups.getValue(DebugHierarchyGroup.PERFORMANCE)
+        val simulationSettings = groups.getValue(DebugHierarchyGroup.SIMULATION)
+        val diagnostics = groups.getValue(DebugHierarchyGroup.DIAGNOSTICS)
+        val presets = groups.getValue(DebugHierarchyGroup.PRESETS)
 
         var selectedPreset = DebugPresetSelection.DEFAULT
         presets.row(
