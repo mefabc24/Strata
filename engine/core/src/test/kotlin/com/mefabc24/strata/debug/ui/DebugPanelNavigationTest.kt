@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug.ui
 
 import com.mefabc24.strata.debug.DebugToolMode
 import com.mefabc24.strata.debug.DebugPreset
+import com.mefabc24.strata.debug.DebugSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -33,5 +34,26 @@ class DebugPanelNavigationTest {
             DebugPreset.entries.map(DebugPreset::name)
         )
         assertEquals("Presets", DebugPanelSection.PRESETS.label)
+    }
+
+    @Test
+    fun `preset selector includes off default and every built in preset`() {
+        assertEquals(
+            listOf("OFF", "DEFAULT", "MINIMAL", "PLACEMENT", "ENTITIES", "RENDERING", "EVERYTHING"),
+            DebugPresetSelection.entries.map(DebugPresetSelection::name)
+        )
+    }
+
+    @Test
+    fun `default preset selection restores the persisted default configuration`() {
+        val settings = DebugSettings().apply {
+            grid.enabled = true
+            saveDefaultVisualConfiguration()
+            grid.enabled = false
+        }
+
+        DebugPresetSelection.DEFAULT.applyTo(settings)
+
+        assertEquals(true, settings.grid.enabled)
     }
 }
