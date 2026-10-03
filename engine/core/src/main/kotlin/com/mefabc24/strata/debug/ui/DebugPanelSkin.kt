@@ -123,10 +123,12 @@ internal object DebugPanelSkin {
         skin.add("default", dropdownListStyle)
         skin.add("default", SelectBox.SelectBoxStyle().apply {
             this.font = font
-            fontColor = Color(0.88f, 0.89f, 0.92f, 1f)
-            background = drawable.tint(Color(0.16f, 0.16f, 0.19f, 1f))
-            backgroundOver = drawable.tint(Color(0.22f, 0.23f, 0.27f, 1f))
-            backgroundOpen = drawable.tint(Color(0.12f, 0.12f, 0.14f, 1f))
+            fontColor = Color.WHITE
+
+            background = drawable.tint(Color(0.23f, 0.24f, 0.28f, 1f))
+            backgroundOver = drawable.tint(Color(0.31f, 0.33f, 0.38f, 1f))
+            backgroundOpen = drawable.tint(Color(0.18f, 0.20f, 0.24f, 1f))
+
             scrollStyle = skin.get("default", ScrollPane.ScrollPaneStyle::class.java)
             listStyle = dropdownListStyle
         })
