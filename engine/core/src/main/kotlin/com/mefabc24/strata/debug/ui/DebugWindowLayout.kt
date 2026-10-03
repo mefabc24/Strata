@@ -5,6 +5,11 @@ internal object DebugWindowLayout {
     const val TOOLS_MARGIN = 12f
     const val OVERLAY_GAP = 8f
 
-    fun overlayRightInset(debugVisible: Boolean): Float =
-        if (debugVisible) DEBUG_WIDTH + OVERLAY_GAP else 0f
+    fun debugWidth(availableWidth: Float): Float {
+        require(availableWidth.isFinite() && availableWidth >= 0f)
+        return minOf(DEBUG_WIDTH, availableWidth)
+    }
+
+    fun overlayRightInset(debugVisible: Boolean, debugWidth: Float): Float =
+        if (debugVisible) debugWidth + OVERLAY_GAP else 0f
 }

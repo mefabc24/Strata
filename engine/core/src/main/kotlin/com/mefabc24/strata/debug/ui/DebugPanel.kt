@@ -1416,6 +1416,10 @@ internal class DebugPanel(
             ::debugPanelActor.isInitialized
         val desired = toolsVisible to debugVisible
         if (!force && desired == appliedWindowVisibility) return
+        val availableWidth = ui.stage.viewport.worldWidth
+            .takeIf { it > 0f }
+            ?: Gdx.graphics.width.toFloat()
+        val debugWidth = DebugWindowLayout.debugWidth(availableWidth)
 
         windowLayout.clearChildren()
         if (toolsVisible) {
@@ -1434,14 +1438,16 @@ internal class DebugPanel(
         windowLayout.add().growX()
         if (debugVisible) {
             windowLayout.add(debugPanelActor)
-                .width(DebugWindowLayout.DEBUG_WIDTH)
+                .width(debugWidth)
                 .minHeight(0f)
                 .prefHeight(Value.prefHeight)
                 .maxHeight(Value.percentHeight(1f, ui.root))
                 .top()
                 .right()
         }
-        statsOverlay.setRightInset(DebugWindowLayout.overlayRightInset(debugVisible))
+        statsOverlay.setRightInset(
+            DebugWindowLayout.overlayRightInset(debugVisible, debugWidth)
+        )
         appliedWindowVisibility = desired
         windowLayout.isVisible = toolsVisible || debugVisible
         windowLayout.invalidateHierarchy()
