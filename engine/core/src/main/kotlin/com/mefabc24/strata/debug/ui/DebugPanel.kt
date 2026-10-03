@@ -556,7 +556,7 @@ internal class DebugPanel(
             )
         }
 
-        general.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
+        general.settingsExpander("Target filter") {
             boundDropdown(
                 "Visualization filter",
                 DebugVisualizationFilter.entries,
@@ -565,7 +565,7 @@ internal class DebugPanel(
             ) { settings.visualizationFilter = it }
         }
 
-        performance.settingsExpander("Overlays", DebugVisualCategory.GENERAL) {
+        performance.settingsExpander("Overlays") {
                 toggleRows(
                     toggle("Performance overlay", { settings.performance.overlayEnabled }) {
                         settings.performance.overlayEnabled = it
@@ -626,24 +626,21 @@ internal class DebugPanel(
         simulationSettings.compactAction("Reset to normal speed") {
                 simulation.resetTimeScale()
         }
-        worldSettings.settingsExpander("Visibility", DebugVisualCategory.WORLD_VISIBILITY) {
+        worldSettings.settingsExpander("Visibility") {
                 buildWorldVisibilitySettings()
         }
         worldSettings.featureExpander(
                 "Grid",
-                DebugVisualCategory.GRID,
                 { settings.grid.enabled },
                 { settings.grid.enabled = it },
                 enabledLabel = "Grid visible"
             ) { buildGridSettings() }
         worldSettings.settingsExpander(
-                "Information",
-                DebugVisualCategory.WORLD_INFORMATION
+                "Information"
             ) { buildWorldInfoSettings() }
         worldSettings.settingsExpander("Rendering") {
             featureExpander(
             "Render order",
-            DebugVisualCategory.RENDER_ORDER,
             { settings.renderOrder.enabled },
             { settings.renderOrder.enabled = it },
             enabledLabel = "Render-order diagnostics"
@@ -725,7 +722,6 @@ internal class DebugPanel(
         }
         diagnostics.featureExpander(
             "Event Bus Monitor",
-            DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it },
             enabledLabel = "Monitor visible"
@@ -759,16 +755,13 @@ internal class DebugPanel(
             }
         }
         sceneElements.settingsExpander(
-                "Objects",
-                DebugVisualCategory.OBJECTS
+                "Objects"
             ) { buildObjectSettings() }
         sceneElements.settingsExpander(
-                "Entities",
-                DebugVisualCategory.ENTITIES
+                "Entities"
             ) { buildEntitySettings() }
         diagnostics.featureExpander(
             "Picking",
-            DebugVisualCategory.PICKING,
             { settings.picking.enabled },
             { settings.picking.enabled = it },
             enabledLabel = "Picking diagnostics enabled"
@@ -784,7 +777,6 @@ internal class DebugPanel(
         }
         diagnostics.featureExpander(
             "Culling",
-            DebugVisualCategory.CULLING,
             { settings.culling.enabled },
             { settings.culling.enabled = it },
             enabledLabel = "Culling diagnostics enabled"
@@ -828,7 +820,6 @@ internal class DebugPanel(
 
         general.featureExpander(
             "Notifications",
-            DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
             { settings.notifications.enabled = it },
             enabledLabel = "Notifications enabled"
@@ -1160,13 +1151,12 @@ internal class DebugPanel(
 
     private fun StrataColumn.featureExpander(
         title: String,
-        category: DebugVisualCategory? = null,
         read: () -> Boolean,
         write: (Boolean) -> Unit,
         enabledLabel: String = "$title enabled",
         configure: StrataColumn.() -> Unit
     ) {
-        settingsExpander(title, category) {
+        settingsExpander(title) {
             settingToggleRow(enabledLabel, read, write)
             configure()
         }
@@ -1174,7 +1164,6 @@ internal class DebugPanel(
 
     private fun StrataColumn.settingsExpander(
         title: String,
-        category: DebugVisualCategory? = null,
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
         val expander = expander(
