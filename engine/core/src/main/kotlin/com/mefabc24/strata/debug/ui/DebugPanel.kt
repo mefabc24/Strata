@@ -212,7 +212,11 @@ internal class DebugPanel(
         }
 
         if (settings.debugWindow.enabled) {
-            debugPanelActor = ui.panel(spacing = 0f, padding = StrataInsets.NONE) {
+            debugPanelActor = ui.panel(
+                styleName = null,
+                spacing = 0f,
+                padding = StrataInsets.NONE
+            ) {
                 defaults().fillAvailableX()
                 debugScroll = scrollColumn(spacing = 0f) {
                     defaults().fillAvailableX()
