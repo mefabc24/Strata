@@ -1,7 +1,7 @@
 package com.mefabc24.strata.debug
 
 enum class DebugNotificationSeverity { INFO, SUCCESS, WARNING, ERROR }
-enum class DebugNotificationPosition { TOP_CENTER, BOTTOM_RIGHT }
+enum class DebugNotificationPosition { TOP_CENTER, BOTTOM_RIGHT, BOTTOM_LEFT }
 
 data class DebugNotification(
     val id: Long,
