@@ -623,7 +623,8 @@ internal class DebugPanel(
                 "Grid",
                 DebugVisualCategory.GRID,
                 { settings.grid.enabled },
-                { settings.grid.enabled = it }
+                { settings.grid.enabled = it },
+                enabledLabel = "Grid visible"
             ) { buildGridSettings() }
         worldSettings.settingsExpander(
                 "Information",
@@ -634,7 +635,8 @@ internal class DebugPanel(
             "Render order",
             DebugVisualCategory.RENDER_ORDER,
             { settings.renderOrder.enabled },
-            { settings.renderOrder.enabled = it }
+            { settings.renderOrder.enabled = it },
+            enabledLabel = "Render-order diagnostics"
         ) {
             boundDropdown(
                 "Order",
@@ -715,7 +717,8 @@ internal class DebugPanel(
             "Event Bus Monitor",
             DebugVisualCategory.EVENT_MONITOR,
             { settings.eventBus.enabled },
-            { settings.eventBus.enabled = it }
+            { settings.eventBus.enabled = it },
+            enabledLabel = "Monitor visible"
         ) {
             toggleRows(
                 toggle(
@@ -753,7 +756,13 @@ internal class DebugPanel(
                 "Entities",
                 DebugVisualCategory.ENTITIES
             ) { buildEntitySettings() }
-        diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
+        diagnostics.featureExpander(
+            "Picking",
+            DebugVisualCategory.PICKING,
+            { settings.picking.enabled },
+            { settings.picking.enabled = it },
+            enabledLabel = "Picking diagnostics enabled"
+        ) {
             toggleRows(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
@@ -763,7 +772,13 @@ internal class DebugPanel(
                 settings.worldState.pickingSelection.clear()
             }
         }
-        diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
+        diagnostics.featureExpander(
+            "Culling",
+            DebugVisualCategory.CULLING,
+            { settings.culling.enabled },
+            { settings.culling.enabled = it },
+            enabledLabel = "Culling diagnostics enabled"
+        ) {
             toggleRows(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
@@ -805,7 +820,8 @@ internal class DebugPanel(
             "Notifications",
             DebugVisualCategory.NOTIFICATIONS,
             { settings.notifications.enabled },
-            { settings.notifications.enabled = it }
+            { settings.notifications.enabled = it },
+            enabledLabel = "Notifications enabled"
         ) {
             boundDropdown(
                 "Position",
@@ -1137,10 +1153,11 @@ internal class DebugPanel(
         category: DebugVisualCategory? = null,
         read: () -> Boolean,
         write: (Boolean) -> Unit,
+        enabledLabel: String = "$title enabled",
         configure: StrataColumn.() -> Unit
     ) {
         settingsExpander(title, category) {
-            settingToggleRow("$title enabled", read, write)
+            settingToggleRow(enabledLabel, read, write)
             configure()
         }
     }
