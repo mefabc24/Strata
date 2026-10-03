@@ -5,8 +5,8 @@ import com.mefabc24.strata.desktop.DesktopLauncher
 fun main() {
     DesktopLauncher.launch(SandboxGame()) {
         title = "Sandbox"
-        width = 1280
-        height = 720
+        width = 1920
+        height = 1080
         vsync = false
         foregroundFps = 0
     }
