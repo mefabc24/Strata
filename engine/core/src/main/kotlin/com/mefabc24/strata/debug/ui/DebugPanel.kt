@@ -602,26 +602,16 @@ internal class DebugPanel(
 
         registeringDebugSection = DebugPanelSection.VISUALS
         visuals.settingsExpander("Target filter", DebugVisualCategory.GENERAL) {
-            label("Visualization filter")
-            val visualizationFilters = ui.selectionGroup(
+            boundDropdown(
+                "Visualization filter",
                 DebugVisualizationFilter.entries,
-                settings.visualizationFilter
-            ) {
-                settings.visualizationFilter = it
-            }
-            synchronizers += {
-                visualizationFilters.select(settings.visualizationFilter)
-            }
-            responsiveGrid(105f, 36f, maximumColumns = 4) {
-                selectableButton("All", DebugVisualizationFilter.ALL, visualizationFilters)
-                selectableButton("Selected", DebugVisualizationFilter.SELECTED, visualizationFilters)
-                selectableButton("Hovered", DebugVisualizationFilter.HOVERED, visualizationFilters)
-                selectableButton("Visible", DebugVisualizationFilter.VISIBLE, visualizationFilters)
-            }.cell { fillAvailableX() }
+                { settings.visualizationFilter },
+                { it.name.toDisplayName() }
+            ) { settings.visualizationFilter = it }
         }
 
         runtime.settingsExpander("Performance", DebugVisualCategory.GENERAL) {
-            toggleGrid(
+            toggleRows(
                 toggle("Performance overlay", { settings.performance.overlayEnabled }) {
                     settings.performance.overlayEnabled = it
                 },
@@ -631,7 +621,7 @@ internal class DebugPanel(
             )
         }
         runtime.settingsExpander("Performance history") {
-            toggleGrid(
+            toggleRows(
                 toggle("On-screen overlay", { settings.performance.overlayEnabled }) {
                     settings.performance.overlayEnabled = it
                 },
@@ -653,18 +643,12 @@ internal class DebugPanel(
                 2000f,
                 10f
             ) { settings.performance.historyLength = it.toInt() }
-            label("Graph metric")
-            val metrics = ui.selectionGroup(
+            boundDropdown(
+                "Graph metric",
                 DebugPerformanceMetric.entries,
-                settings.performance.historyMetric
+                { settings.performance.historyMetric },
+                { it.name.toDisplayName() }
             ) { settings.performance.historyMetric = it }
-            synchronizers += { metrics.select(settings.performance.historyMetric) }
-            responsiveGrid(105f, 36f, maximumColumns = 2) {
-                selectableButton("Frame", DebugPerformanceMetric.FRAME_TIME, metrics)
-                selectableButton("Render", DebugPerformanceMetric.RENDER_TIME, metrics)
-                selectableButton("Static plan", DebugPerformanceMetric.STATIC_PLAN_TIME, metrics)
-                selectableButton("Dynamic plan", DebugPerformanceMetric.DYNAMIC_PLAN_TIME, metrics)
-            }.cell { fillAvailableX() }
             responsiveGrid(105f, 38f, maximumColumns = 3) {
                 button("Start") { settings.performance.startHistoryRecording() }
                 button("Stop") { settings.performance.stopHistoryRecording() }
@@ -699,19 +683,13 @@ internal class DebugPanel(
             { settings.renderOrder.enabled },
             { settings.renderOrder.enabled = it }
         ) {
-            label("Order")
-            val modes = ui.selectionGroup(
+            boundDropdown(
+                "Order",
                 RenderOrderDebugMode.entries,
-                settings.renderOrder.mode
-            ) {
-                settings.renderOrder.mode = it
-            }
-            synchronizers += { modes.select(settings.renderOrder.mode) }
-            responsiveGrid(130f, 36f, maximumColumns = 2) {
-                selectableButton("Calculated", RenderOrderDebugMode.CALCULATED, modes)
-                selectableButton("Actual", RenderOrderDebugMode.ACTUAL, modes)
-            }.cell { fillAvailableX() }
-            toggleGrid(
+                { settings.renderOrder.mode },
+                { it.name.toDisplayName() }
+            ) { settings.renderOrder.mode = it }
+            toggleRows(
                 toggle("Order labels", { settings.renderOrder.showLabels }) {
                     settings.renderOrder.showLabels = it
                 },
@@ -728,8 +706,7 @@ internal class DebugPanel(
                     settings.renderOrder.showTerrainHeatmap = it
                 }
             )
-            label("Sort geometry")
-            toggleGrid(
+            toggleRows(
                 toggle("Sort volumes", { settings.renderOrder.showSortVolumes }) {
                     settings.renderOrder.showSortVolumes = it
                 },
@@ -750,21 +727,12 @@ internal class DebugPanel(
                 8f,
                 0.25f
             ) { settings.renderOrder.sortGeometryLineWidth = it }
-            label("Priority focus")
-            val priorityFocus = ui.selectionGroup(
+            boundDropdown(
+                "Priority focus",
                 RenderPriorityFocusMode.entries,
-                settings.renderOrder.priorityFocusMode
-            ) {
-                settings.renderOrder.priorityFocusMode = it
-            }
-            synchronizers += {
-                priorityFocus.select(settings.renderOrder.priorityFocusMode)
-            }
-            responsiveGrid(90f, 36f, maximumColumns = 3) {
-                selectableButton("Off", RenderPriorityFocusMode.OFF, priorityFocus)
-                selectableButton("Highlight", RenderPriorityFocusMode.HIGHLIGHT, priorityFocus)
-                selectableButton("Isolate", RenderPriorityFocusMode.ISOLATE, priorityFocus)
-            }.cell { fillAvailableX() }
+                { settings.renderOrder.priorityFocusMode },
+                { it.name.toDisplayName() }
+            ) { settings.renderOrder.priorityFocusMode = it }
             boundStepper(
                 "Selected priority",
                 { settings.renderOrder.selectedPriority.toFloat() },
@@ -779,44 +747,14 @@ internal class DebugPanel(
                 1f,
                 0.05f
             ) { settings.renderOrder.priorityColorAlpha = it }
-            label("Heatmap color steps")
-            val heatmapSteps = ui.selectionGroup(
+            val heatmapSteps = boundDropdown(
+                "Heatmap color steps",
                 TerrainHeatmapSteps.entries,
-                settings.renderOrder.terrainHeatmapSteps
-            ) {
-                settings.renderOrder.terrainHeatmapSteps = it
-            }
+                { settings.renderOrder.terrainHeatmapSteps },
+                { it.name.toDisplayName() }
+            ) { settings.renderOrder.terrainHeatmapSteps = it }
             synchronizers += {
-                heatmapSteps.select(settings.renderOrder.terrainHeatmapSteps)
-            }
-            val heatmapStepButtons =
-                mutableListOf<StrataSelectableButton<TerrainHeatmapSteps>>()
-            responsiveGrid(64f, 36f, maximumColumns = 4) {
-                heatmapStepButtons += selectableButton(
-                    "Per tile",
-                    TerrainHeatmapSteps.PER_TILE,
-                    heatmapSteps
-                )
-                heatmapStepButtons += selectableButton(
-                    "32",
-                    TerrainHeatmapSteps.STEPS_32,
-                    heatmapSteps
-                )
-                heatmapStepButtons += selectableButton(
-                    "16",
-                    TerrainHeatmapSteps.STEPS_16,
-                    heatmapSteps
-                )
-                heatmapStepButtons += selectableButton(
-                    "8",
-                    TerrainHeatmapSteps.STEPS_8,
-                    heatmapSteps
-                )
-            }.cell { fillAvailableX() }
-            synchronizers += {
-                heatmapStepButtons.forEach { button ->
-                    button.isDisabled = !settings.renderOrder.showTerrainHeatmap
-                }
+                heatmapSteps.isDisabled = !settings.renderOrder.showTerrainHeatmap
             }
         }
         registeringDebugSection = DebugPanelSection.DIAGNOSTICS
@@ -826,7 +764,7 @@ internal class DebugPanel(
             { settings.eventBus.enabled },
             { settings.eventBus.enabled = it }
         ) {
-            toggleGrid(
+            toggleRows(
                 toggle(
                     "Capture",
                     { settings.eventBus.captureEnabled }
@@ -867,7 +805,7 @@ internal class DebugPanel(
 
         registeringDebugSection = DebugPanelSection.DIAGNOSTICS
         diagnostics.featureExpander("Picking", DebugVisualCategory.PICKING, { settings.picking.enabled }, { settings.picking.enabled = it }) {
-            toggleGrid(
+            toggleRows(
                 toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
             )
@@ -877,7 +815,7 @@ internal class DebugPanel(
             }.cell { height(38f) }
         }
         diagnostics.featureExpander("Culling", DebugVisualCategory.CULLING, { settings.culling.enabled }, { settings.culling.enabled = it }) {
-            toggleGrid(
+            toggleRows(
                 toggle("Render check area", { settings.culling.showVisibleArea }) {
                     settings.culling.showVisibleArea = it
                 },
@@ -891,7 +829,7 @@ internal class DebugPanel(
             cullingRows = diagnosticTable()
         }
         diagnostics.featureExpander("Camera", DebugVisualCategory.CAMERA, { settings.camera.enabled }, { settings.camera.enabled = it }) {
-            toggleGrid(
+            toggleRows(
                 toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
                 toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
                 toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
@@ -916,56 +854,29 @@ internal class DebugPanel(
             { settings.notifications.enabled },
             { settings.notifications.enabled = it }
         ) {
-            val positions = ui.selectionGroup(
+            boundDropdown(
+                "Position",
                 DebugNotificationPosition.entries,
-                settings.notifications.position
-            ) {
-                settings.notifications.position = it
-            }
-
-            synchronizers += {
-                positions.select(settings.notifications.position)
-            }
-
-            responsiveGrid(
-                minimumItemWidth = 130f,
-                maximumColumns = 2
-            ) {
-                selectableButton(
-                    "Center top",
-                    DebugNotificationPosition.TOP_CENTER,
-                    positions
-                )
-
-                selectableButton(
-                    "Bottom right",
-                    DebugNotificationPosition.BOTTOM_RIGHT,
-                    positions
-                )
-            }.cell { fillAvailableX() }
+                { settings.notifications.position },
+                { it.name.toDisplayName() }
+            ) { settings.notifications.position = it }
         }
     }
 
     private fun StrataColumn.buildGridSettings() {
-        label("Layer")
-        val layers = ui.selectionGroup(DebugGridRenderLayer.entries, settings.grid.renderLayer) {
-            settings.grid.renderLayer = it
-        }
-        synchronizers += { layers.select(settings.grid.renderLayer) }
-        responsiveGrid(130f, maximumColumns = 2) {
-            selectableButton("Below objects", DebugGridRenderLayer.BELOW_OBJECTS, layers)
-            selectableButton("Above objects", DebugGridRenderLayer.ABOVE_OBJECTS, layers)
-        }.cell { fillAvailableX() }
-        label("Extent")
-        val extents = ui.selectionGroup(DebugGridExtent.entries, settings.grid.extent) {
-            settings.grid.extent = it
-        }
-        synchronizers += { extents.select(settings.grid.extent) }
-        responsiveGrid(130f, maximumColumns = 2) {
-            selectableButton("World", DebugGridExtent.WORLD, extents)
-            selectableButton("Visible", DebugGridExtent.VISIBLE, extents)
-        }.cell { fillAvailableX() }
-        toggleGrid(
+        boundDropdown(
+            "Layer",
+            DebugGridRenderLayer.entries,
+            { settings.grid.renderLayer },
+            { it.name.toDisplayName() }
+        ) { settings.grid.renderLayer = it }
+        boundDropdown(
+            "Extent",
+            DebugGridExtent.entries,
+            { settings.grid.extent },
+            { it.name.toDisplayName() }
+        ) { settings.grid.extent = it }
+        toggleRows(
             toggle("Background", { settings.grid.backgroundColor != null }) { enabled ->
                 settings.grid.backgroundColor = if (enabled) Color(1f, 1f, 1f, 0.2f) else null
             },
@@ -991,7 +902,7 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildObjectSettings() {
-        toggleGrid(
+        toggleRows(
             toggle("Occupied tiles", { settings.objects.showOccupiedTiles }) { settings.objects.showOccupiedTiles = it },
             toggle("Origin tile", { settings.objects.showOriginTile }) { settings.objects.showOriginTile = it },
             toggle("Sprite bounds", { settings.objects.showSpriteBounds }) { settings.objects.showSpriteBounds = it },
@@ -1011,7 +922,7 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildEntitySettings() {
-        toggleGrid(
+        toggleRows(
             toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
             toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
             toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
@@ -1087,7 +998,7 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildWorldInfoSettings() {
-        toggleGrid(
+        toggleRows(
             toggle("Tile coordinates", { settings.worldInfo.showTileCoordinates }) {
                 settings.worldInfo.showTileCoordinates = it
             },
@@ -1143,7 +1054,7 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.buildWorldVisibilitySettings() {
-        toggleGrid(
+        toggleRows(
             toggle("Ground terrain", { settings.worldVisibility.groundTerrainVisible }) {
                 settings.worldVisibility.groundTerrainVisible = it
             },
