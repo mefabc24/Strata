@@ -89,6 +89,12 @@ class DebugToolRailTest {
     }
 
     @Test
+    fun `long tool names use compact rail labels`() {
+        assertEquals("Camera", debugToolRailLabel(DebugToolMode.FREE_CAMERA))
+        assertEquals("Inspect", debugToolRailLabel(DebugToolMode.INSPECT))
+    }
+
+    @Test
     fun `supported mouse presses are consumed before world input`() {
         val skin = skin()
         val button = button(skin, {}, {}).apply { setSize(68f, 56f) }
