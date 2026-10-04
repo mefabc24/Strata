@@ -7,7 +7,8 @@ enum class DebugBrushPreviewKind { PAINT, DELETE }
 
 data class DebugBrushPreview(
     val kind: DebugBrushPreviewKind,
-    val tiles: List<TilePosition>
+    val tiles: List<TilePosition>,
+    val showTileBorders: Boolean = false
 )
 
 /** Shared square-brush geometry clipped to finite world bounds. */

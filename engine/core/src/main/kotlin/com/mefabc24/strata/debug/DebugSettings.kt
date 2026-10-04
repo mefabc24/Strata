@@ -313,6 +313,9 @@ open class DebugBrushSettings {
 
     /** Whether the current affected tile area is drawn under the cursor. */
     var showBrushPreview: Boolean = true
+
+    /** Whether the affected-area preview draws an outline around each tile. */
+    var showTileBorders: Boolean = false
 }
 
 /** Brush options for the terrain Paint tool. */

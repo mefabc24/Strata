@@ -350,6 +350,9 @@ internal class DebugPanel(
                     simpleToggle("Show affected area", { settings.delete.showBrushPreview }) {
                         settings.delete.showBrushPreview = it
                     }
+                    simpleToggle("Show tile borders", { settings.delete.showTileBorders }) {
+                        settings.delete.showTileBorders = it
+                    }
                 }
                 toolStatus(DebugToolMode.DELETE)
             }
@@ -361,6 +364,9 @@ internal class DebugPanel(
                     }
                     simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
                         settings.paint.showBrushPreview = it
+                    }
+                    simpleToggle("Show tile borders", { settings.paint.showTileBorders }) {
+                        settings.paint.showTileBorders = it
                     }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Terrain") {

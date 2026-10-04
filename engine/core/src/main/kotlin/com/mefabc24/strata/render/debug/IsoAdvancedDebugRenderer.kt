@@ -823,7 +823,7 @@ internal class IsoAdvancedDebugRenderer(
             shapes.color = MOVE_ORIGIN_OUTLINE
             drawTileOutline(preview.target)
         }
-        state.brushPreview?.let { preview ->
+        state.brushPreview?.takeIf { it.showTileBorders }?.let { preview ->
             shapes.color = when (preview.kind) {
                 DebugBrushPreviewKind.PAINT -> BRUSH_PAINT_OUTLINE
                 DebugBrushPreviewKind.DELETE -> BRUSH_DELETE_OUTLINE

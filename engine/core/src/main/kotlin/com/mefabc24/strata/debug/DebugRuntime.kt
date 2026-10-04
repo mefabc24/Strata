@@ -469,7 +469,8 @@ internal class DebugRuntime(
         if (!brushSettings.showBrushPreview) return null
         return DebugBrushPreview(
             kind,
-            DebugBrush.tiles(position, brushSettings.brushSize, world.width, world.height)
+            DebugBrush.tiles(position, brushSettings.brushSize, world.width, world.height),
+            brushSettings.showTileBorders
         )
     }
 }
