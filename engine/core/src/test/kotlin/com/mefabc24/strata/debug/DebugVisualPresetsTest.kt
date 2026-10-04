@@ -66,7 +66,7 @@ class DebugVisualPresetsTest {
         val settings = DebugSettings().apply {
             grid.enabled = true
             grid.lineWidth = 4f
-            entities.enabled = true
+            entities.showCurrentTile = true
             entities.showPath = false
             performance.terminalLoggingEnabled = true
         }
@@ -75,7 +75,7 @@ class DebugVisualPresetsTest {
 
         assertFalse(settings.grid.enabled)
         assertEquals(1f, settings.grid.lineWidth)
-        assertTrue(settings.entities.enabled)
+        assertTrue(settings.entities.showCurrentTile)
         assertFalse(settings.entities.showPath)
         assertTrue(settings.performance.terminalLoggingEnabled)
     }
@@ -93,8 +93,8 @@ class DebugVisualPresetsTest {
         settings.resetVisualConfiguration()
 
         assertFalse(settings.grid.enabled)
-        assertFalse(settings.entities.enabled)
-        assertFalse(settings.renderOrder.enabled)
+        assertFalse(settings.entities.hasActiveVisuals)
+        assertFalse(settings.renderOrder.hasActiveVisuals)
         assertTrue(settings.worldVisibility.entitiesVisible)
         assertTrue(settings.performance.terminalLoggingEnabled)
         assertTrue(settings.camera.disableRestrictions)

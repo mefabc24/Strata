@@ -32,7 +32,7 @@ class DebugSettingsTest {
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.simulation.freezeVisualAnimations)
         assertFalse(settings.grid.enabled)
-        assertFalse(settings.worldInfo.enabled)
+        assertFalse(settings.worldInfo.hasActiveVisuals)
         assertFalse(settings.worldInfo.showTileCoordinates)
         assertFalse(settings.worldInfo.showTerrainIds)
         assertFalse(settings.worldInfo.showOverlayInfo)
@@ -45,8 +45,8 @@ class DebugSettingsTest {
         assertTrue(settings.worldVisibility.terrainOverlaysVisible)
         assertTrue(settings.worldVisibility.placedObjectsVisible)
         assertTrue(settings.worldVisibility.entitiesVisible)
-        assertFalse(settings.objects.enabled)
-        assertFalse(settings.entities.enabled)
+        assertFalse(settings.objects.hasActiveVisuals)
+        assertFalse(settings.entities.hasActiveVisuals)
         assertFalse(settings.entities.showMovementTrail)
         assertFalse(settings.entities.showMovementVector)
         assertFalse(settings.entities.showNextWaypoint)
@@ -56,8 +56,8 @@ class DebugSettingsTest {
         assertEquals(5f, settings.entities.trailHistoryDurationSeconds)
         assertEquals(0.02f, settings.entities.trailMinimumDistance)
         assertEquals(0.65f, settings.entities.trailOpacity)
-        assertFalse(settings.picking.enabled)
-        assertFalse(settings.renderOrder.enabled)
+        assertFalse(settings.picking.hasActiveVisuals)
+        assertFalse(settings.renderOrder.hasActiveVisuals)
         assertEquals(RenderOrderDebugMode.CALCULATED, settings.renderOrder.mode)
         assertEquals(DebugVisualizationFilter.ALL, settings.visualizationFilter)
         assertFalse(settings.renderOrder.showPriorityLabels)
@@ -72,8 +72,8 @@ class DebugSettingsTest {
             TerrainHeatmapSteps.PER_TILE,
             settings.renderOrder.terrainHeatmapSteps
         )
-        assertFalse(settings.culling.enabled)
-        assertFalse(settings.camera.enabled)
+        assertFalse(settings.culling.hasActiveVisuals)
+        assertFalse(settings.camera.hasActiveVisuals)
         assertFalse(settings.worldStats.enabled)
         assertFalse(settings.eventBus.enabled)
         assertFalse(settings.camera.disableRestrictions)
@@ -195,12 +195,12 @@ class DebugSettingsTest {
             worldVisibility.placedObjectsVisible = false
             worldVisibility.entitiesVisible = false
             worldVisibility.setOverlayLayerVisible("roads", false)
-            worldInfo.enabled = true
+            worldInfo.showOrigin = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertFalse(settings.worldInfo.enabled)
+        assertFalse(settings.worldInfo.hasActiveVisuals)
         assertTrue(settings.worldVisibility.groundTerrainVisible)
         assertTrue(settings.worldVisibility.terrainOverlaysVisible)
         assertTrue(settings.worldVisibility.placedObjectsVisible)
@@ -231,6 +231,27 @@ class DebugSettingsTest {
         assertTrue(settings.debugWindow.enabled)
         assertTrue(settings.debugWindow.visible)
         assertTrue(settings.grid.enabled)
+    }
+
+    @Test
+    fun `individual visualization controls activate their category independently`() {
+        val settings = DebugSettings().apply {
+            worldInfo.showOrigin = true
+            objects.showSpriteBounds = true
+            entities.showDirection = true
+            picking.showCursorHit = true
+            renderOrder.showSortAnchors = true
+            culling.showObjectBounds = true
+            camera.showWorldBounds = true
+        }
+
+        assertTrue(settings.worldInfo.hasActiveVisuals)
+        assertTrue(settings.objects.hasActiveVisuals)
+        assertTrue(settings.entities.hasActiveVisuals)
+        assertTrue(settings.picking.hasActiveVisuals)
+        assertTrue(settings.renderOrder.hasActiveVisuals)
+        assertTrue(settings.culling.hasActiveVisuals)
+        assertTrue(settings.camera.hasActiveVisuals)
     }
 
     @Test
@@ -312,13 +333,13 @@ class DebugSettingsTest {
         assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
-        assertFalse(settings.worldInfo.enabled)
-        assertFalse(settings.objects.enabled)
-        assertFalse(settings.entities.enabled)
-        assertFalse(settings.picking.enabled)
-        assertFalse(settings.renderOrder.enabled)
-        assertFalse(settings.culling.enabled)
-        assertFalse(settings.camera.enabled)
+        assertFalse(settings.worldInfo.hasActiveVisuals)
+        assertFalse(settings.objects.hasActiveVisuals)
+        assertFalse(settings.entities.hasActiveVisuals)
+        assertFalse(settings.picking.hasActiveVisuals)
+        assertFalse(settings.renderOrder.hasActiveVisuals)
+        assertFalse(settings.culling.hasActiveVisuals)
+        assertFalse(settings.camera.hasActiveVisuals)
         assertFalse(settings.worldStats.enabled)
         assertFalse(settings.eventBus.enabled)
         assertFalse(settings.notifications.enabled)
