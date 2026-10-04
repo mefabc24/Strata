@@ -350,35 +350,55 @@ internal class DebugPanel(
             }
             paintControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSection("Paint brush")
-                brushSizeStepper("Brush size", { settings.paint.brushSize }) {
-                    settings.paint.brushSize = it
-                }
-                simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
-                    settings.paint.showBrushPreview = it
-                }
-                toolSection("Terrain")
-                responsiveGrid(130f, maximumColumns = 2) {
-                    painter.entries.forEach { entry ->
-                        val name = entry.type.toString().toDisplayName()
-                        selectableButton(name, entry, checkNotNull(terrainSelection))
-                            .previewOnHover(entry, DebugContentKind.TERRAIN, name, entry.selectionTexture)
+                toolSettingsExpander("Brush") {
+                    brushSizeStepper("Brush size", { settings.paint.brushSize }) {
+                        settings.paint.brushSize = it
                     }
-                }.cell { fillAvailableX() }
-                toolSection("Terrain target")
-                responsiveGrid(130f, maximumColumns = 2) {
-                    paintTargets.forEach { target ->
-                        selectableButton(target.name.toDisplayName(), target, paintTargetSelection)
+                    simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
+                        settings.paint.showBrushPreview = it
                     }
-                }.cell { fillAvailableX() }
-                overlayPaintControls = column(spacing = 0f) {
-                    defaults().fillAvailableX()
-                    toolSection("Overlay")
+                }
+                toolSettingsExpander("Terrain") {
                     responsiveGrid(130f, maximumColumns = 2) {
-                        painter.overlayLayerIds.forEach { id ->
-                            selectableButton(id.toDisplayName(), id, checkNotNull(overlaySelection))
+                        painter.entries.forEach { entry ->
+                            val name = entry.type.toString().toDisplayName()
+                            selectableButton(name, entry, checkNotNull(terrainSelection))
+                                .previewOnHover(
+                                    entry,
+                                    DebugContentKind.TERRAIN,
+                                    name,
+                                    entry.selectionTexture
+                                )
                         }
                     }.cell { fillAvailableX() }
+                }
+                toolSettingsExpander("Target") {
+                    responsiveGrid(130f, maximumColumns = 2) {
+                        paintTargets.forEach { target ->
+                            selectableButton(
+                                target.name.toDisplayName(),
+                                target,
+                                paintTargetSelection
+                            )
+                        }
+                    }.cell { fillAvailableX() }
+                    overlayPaintControls = column(spacing = 0f) {
+                        defaults().fillAvailableX()
+                        row(
+                            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 3f)
+                        ) {
+                            label("Overlay layer").cell { growX(); left() }
+                        }.cell { fillAvailableX(); height(30f) }
+                        responsiveGrid(130f, maximumColumns = 2) {
+                            painter.overlayLayerIds.forEach { id ->
+                                selectableButton(
+                                    id.toDisplayName(),
+                                    id,
+                                    checkNotNull(overlaySelection)
+                                )
+                            }
+                        }.cell { fillAvailableX() }
+                    }
                 }
             }
             spawnControls = column(spacing = 0f) {
