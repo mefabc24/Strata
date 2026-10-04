@@ -1128,20 +1128,42 @@ internal class DebugPanel(
 
     private fun StrataColumn.settingsExpander(
         title: String,
+        expanded: Boolean = false,
+        onExpandedChanged: (Boolean) -> Unit = {},
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
         val expander = expander(
             title = title,
-            expanded = false,
+            expanded = expanded,
             spacing = 0f,
             headerHeight = 34f,
-            expandedStyle = debugExpanderStyle()
+            expandedStyle = debugExpanderStyle(),
+            onExpandedChanged = onExpandedChanged
         ) {
             defaults().fillAvailableX()
             configure()
         }
         getCell(expander).fillAvailableX()
         return expander
+    }
+
+    private fun StrataColumn.toolSettingsExpander(
+        title: String,
+        expanded: Boolean = true,
+        configure: StrataColumn.() -> Unit
+    ): StrataExpander = settingsExpander(
+        title = title,
+        expanded = expanded,
+        onExpandedChanged = { invalidateToolFlyoutLayout() },
+        configure = configure
+    )
+
+    private fun invalidateToolFlyoutLayout() {
+        if (!::toolFlyoutScroll.isInitialized) return
+        toolFlyoutScroll.content.invalidateHierarchy()
+        toolFlyoutScroll.invalidateHierarchy()
+        toolFlyoutActor.invalidateHierarchy()
+        positionToolFlyout()
     }
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
