@@ -1717,7 +1717,13 @@ internal class DebugPanel(
             syncContextFooter()
         }
         if (settings.debugWindow.enabled) {
-            pickingRows.show(if (settings.picking.hasActiveVisuals) formatPicking() else emptyList())
+            pickingRows.show(
+                if (settings.picking.hasActiveVisuals && view.pickingAvailable) {
+                    formatPicking()
+                } else {
+                    emptyList()
+                }
+            )
             cameraRows.show(if (settings.camera.hasActiveVisuals) formatCamera() else emptyList())
             cullingRows.show(if (settings.culling.hasActiveVisuals) formatCulling() else emptyList())
         }

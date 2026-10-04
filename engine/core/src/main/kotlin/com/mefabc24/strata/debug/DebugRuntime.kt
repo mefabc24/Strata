@@ -150,13 +150,15 @@ internal class DebugRuntime(
         toggleProcessor
     )
 
-    val worldInputProcessor: InputProcessor = WorldInputProcessor(
+    private val debugWorldInputProcessor = WorldInputProcessor(
         bindings = bindings(world, view),
         pickTile = view::pickTile,
         pickGrid = view::pickGrid,
         pickObject = view::pickObject,
         pickEntity = view::pickEntity
     )
+
+    val worldInputProcessor: InputProcessor = debugWorldInputProcessor
 
     private fun syncCameraRestrictions() {
         val disabled = cameraRestrictionsDisabled(
@@ -389,6 +391,7 @@ internal class DebugRuntime(
     }
 
     fun update(delta: Float, simulationDelta: Float = delta) {
+        debugWorldInputProcessor.enabled = view.pickingAvailable
         syncCameraRestrictions()
         settings.worldState.entityTrails.update(
             entities = world.getEntities(),
@@ -407,7 +410,10 @@ internal class DebugRuntime(
         val pickingVisuals = settings.picking.hasActiveVisuals
         settings.worldState.pickingSelection.syncEnabled(pickingVisuals)
 
-        if (pickingVisuals || settings.needsHoveredVisualizationTarget()) {
+        if (
+            view.pickingAvailable &&
+            (pickingVisuals || settings.needsHoveredVisualizationTarget())
+        ) {
             val screenX = Gdx.input.x.toFloat()
             val screenY = Gdx.input.y.toFloat()
             val picking = view.pickingDebugSnapshot(screenX, screenY)
@@ -431,6 +437,7 @@ internal class DebugRuntime(
     }
     fun render() = ui.render()
     fun resize(width: Int, height: Int) {
+        debugWorldInputProcessor.enabled = view.pickingAvailable
         ui.resize(width, height)
         panel.resized()
     }
