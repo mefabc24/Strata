@@ -303,7 +303,7 @@ class DebugSimulationSettings : DebugFeatureSettings() {
 }
 
 /** Information drawn directly over visible world tiles. */
-class DebugWorldInfoSettings : DebugFeatureSettings() {
+class DebugWorldInfoSettings {
     var showTileCoordinates: Boolean = false
     var showTerrainIds: Boolean = false
     var showOverlayInfo: Boolean = false
@@ -383,12 +383,12 @@ class DebugWorldVisibilitySettings {
     }
 }
 
-class DebugPickingSettings : DebugFeatureSettings() {
+class DebugPickingSettings {
     var showSpriteBounds: Boolean = false
     var showCursorHit: Boolean = false
 }
 
-class DebugRenderOrderSettings : DebugFeatureSettings() {
+class DebugRenderOrderSettings {
     var mode: RenderOrderDebugMode = RenderOrderDebugMode.CALCULATED
     var showLabels: Boolean = false
     var showPriorityLabels: Boolean = false
@@ -454,7 +454,7 @@ class DebugRenderOrderSettings : DebugFeatureSettings() {
         set(value) { storedTerrainHeatmapEndColor = value.cpy() }
 }
 
-class DebugCullingSettings : DebugFeatureSettings() {
+class DebugCullingSettings {
     var showVisibleArea: Boolean = false
     var showObjectBounds: Boolean = false
     var showEntityBounds: Boolean = false
@@ -485,7 +485,7 @@ class DebugCullingSettings : DebugFeatureSettings() {
         set(value) { storedEntityCulledColor = value.cpy() }
 }
 
-class DebugCameraSettings : DebugFeatureSettings() {
+class DebugCameraSettings {
     var showVisibleArea: Boolean = false
     var showWorldBounds: Boolean = false
     var showClampBounds: Boolean = false
@@ -582,7 +582,7 @@ class DebugEventMonitorSettings : DebugFeatureSettings() {
 }
 
 /** Runtime configuration for placed-object diagnostics. */
-class DebugObjectSettings : DebugFeatureSettings() {
+class DebugObjectSettings {
     var showOccupiedTiles: Boolean = false
     var showOriginTile: Boolean = false
     var showSpriteBounds: Boolean = false
@@ -617,7 +617,7 @@ class DebugObjectSettings : DebugFeatureSettings() {
 }
 
 /** Runtime configuration for world-entity diagnostics. */
-class DebugEntitySettings : DebugFeatureSettings() {
+class DebugEntitySettings {
     var showCurrentTile: Boolean = false
     var showPosition: Boolean = false
     var showPath: Boolean = false
@@ -894,7 +894,6 @@ internal object DebugPresets {
         settings.performance.overlayEnabled = false
         settings.simulation.enabled = false
         settings.grid.enabled = false
-        settings.worldInfo.enabled = false
         settings.worldInfo.showTileCoordinates = false
         settings.worldInfo.showTerrainIds = false
         settings.worldInfo.showOverlayInfo = false
@@ -902,12 +901,10 @@ internal object DebugPresets {
         settings.worldInfo.showMissingTerrainVisuals = false
         settings.worldInfo.showOrigin = false
         settings.worldVisibility.showAll()
-        settings.objects.enabled = false
         settings.objects.showOccupiedTiles = false
         settings.objects.showOriginTile = false
         settings.objects.showSpriteBounds = false
         settings.objects.occupiedTileFillColor = null
-        settings.entities.enabled = false
         settings.entities.showCurrentTile = false
         settings.entities.showPosition = false
         settings.entities.showPath = false
@@ -919,10 +916,8 @@ internal object DebugPresets {
         settings.entities.showMovementSpeed = false
         settings.entities.showPositionTileOffset = false
         settings.entities.currentTileFillColor = null
-        settings.picking.enabled = false
         settings.picking.showSpriteBounds = false
         settings.picking.showCursorHit = false
-        settings.renderOrder.enabled = false
         settings.renderOrder.showLabels = false
         settings.renderOrder.showPriorityLabels = false
         settings.renderOrder.colorByPriority = false
@@ -932,11 +927,9 @@ internal object DebugPresets {
         settings.renderOrder.showProjectedSortPositions = false
         settings.renderOrder.showTerrainIndices = false
         settings.renderOrder.showTerrainHeatmap = false
-        settings.culling.enabled = false
         settings.culling.showVisibleArea = false
         settings.culling.showObjectBounds = false
         settings.culling.showEntityBounds = false
-        settings.camera.enabled = false
         settings.camera.showVisibleArea = false
         settings.camera.showWorldBounds = false
         settings.camera.showClampBounds = false

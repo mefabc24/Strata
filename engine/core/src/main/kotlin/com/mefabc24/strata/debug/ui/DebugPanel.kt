@@ -695,10 +695,6 @@ internal class DebugPanel(
                     ) { settings.camera.disableRestrictions = it }
                 }
                 toolSettingsExpander(DebugToolMode.FREE_CAMERA, "Visualization") {
-                    simpleToggle(
-                        "World visualization",
-                        { settings.camera.enabled }
-                    ) { settings.camera.enabled = it }
                     toggleRows(
                         toggle("Visible area", { settings.camera.showVisibleArea }) {
                             settings.camera.showVisibleArea = it
