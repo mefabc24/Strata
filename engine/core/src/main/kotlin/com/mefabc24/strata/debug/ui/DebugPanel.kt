@@ -1397,10 +1397,19 @@ internal class DebugPanel(
         vararg actions: Pair<String, () -> Unit>
     ) {
         row(
-            spacing = 4f,
+            spacing = 0f,
             padding = StrataInsets.NONE
         ) {
-            actions.forEach { (label, action) ->
+            actions.forEachIndexed { index, (label, action) ->
+                if (index > 0) {
+                    actor(StrataSeparator(
+                        StrataSeparatorOrientation.VERTICAL,
+                        ui.skin.get("debug-separator", StrataSeparatorStyle::class.java)
+                    )).cell {
+                        width(1f)
+                        height(32f)
+                    }
+                }
                 button(label, "debug-action-card", action).cell {
                     growX()
                     height(32f)
