@@ -95,6 +95,42 @@ class DebugToolRailTest {
     }
 
     @Test
+    fun `configurable tools expose concise ordered flyout sections`() {
+        assertEquals(emptyList(), debugToolFlyoutSectionTitles(DebugToolMode.NONE))
+        assertEquals(
+            listOf("Selection", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.BUILD)
+        )
+        assertEquals(
+            listOf("Brush", "Terrain", "Target", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.PAINT)
+        )
+        assertEquals(
+            listOf("Selection", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.SPAWN)
+        )
+        assertEquals(
+            listOf("Search", "Visualization", "Diagnostic search", "Traversal", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.PATHFINDING)
+        )
+        assertEquals(
+            listOf("Movement", "Visualization", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.FREE_CAMERA)
+        )
+    }
+
+    @Test
+    fun `every configurable flyout has unique sections ending in status`() {
+        DebugToolMode.entries.filterNot { it == DebugToolMode.NONE }.forEach { mode ->
+            val sections = debugToolFlyoutSectionTitles(mode)
+
+            assertTrue(sections.isNotEmpty(), "$mode should expose settings content")
+            assertEquals(sections.distinct(), sections, "$mode section names should be unique")
+            assertEquals("Status", sections.last(), "$mode should finish with contextual status")
+        }
+    }
+
+    @Test
     fun `supported mouse presses are consumed before world input`() {
         val skin = skin()
         val button = button(skin, {}, {}).apply { setSize(68f, 56f) }
