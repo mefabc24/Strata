@@ -403,14 +403,20 @@ internal class DebugPanel(
             }
             spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSection("Spawn entity")
-                responsiveGrid(130f, maximumColumns = 2) {
-                    spawner.entries.forEach { entry ->
-                        val name = entry.type.displayName()
-                        selectableButton(name, entry, checkNotNull(spawnSelection))
-                            .previewOnHover(entry, DebugContentKind.ENTITY, name, entry.selectionVisual.texture)
-                    }
-                }.cell { fillAvailableX() }
+                toolSettingsExpander("Selection") {
+                    responsiveGrid(130f, maximumColumns = 2) {
+                        spawner.entries.forEach { entry ->
+                            val name = entry.type.displayName()
+                            selectableButton(name, entry, checkNotNull(spawnSelection))
+                                .previewOnHover(
+                                    entry,
+                                    DebugContentKind.ENTITY,
+                                    name,
+                                    entry.selectionVisual.texture
+                                )
+                        }
+                    }.cell { fillAvailableX() }
+                }
             }
             inspectControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
