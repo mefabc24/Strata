@@ -20,6 +20,8 @@ class DebugVisualPresetsTest {
             worldVisibility.setOverlayLayerVisible("roads", false)
             entities.showMovementTrail = true
             renderOrder.showSortVolumes = true
+            eventBus.enabled = true
+            notifications.enabled = true
             notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
         }
         val captured = settings.captureVisualConfiguration()
@@ -32,6 +34,8 @@ class DebugVisualPresetsTest {
             worldVisibility.showAll()
             entities.showMovementTrail = false
             renderOrder.showSortVolumes = false
+            eventBus.enabled = false
+            notifications.enabled = false
             notifications.position = DebugNotificationPosition.TOP_CENTER
             performance.terminalLoggingEnabled = true
             performance.historyRecording = true
@@ -51,6 +55,8 @@ class DebugVisualPresetsTest {
         assertFalse(settings.worldVisibility.isOverlayLayerVisible("roads"))
         assertTrue(settings.entities.showMovementTrail)
         assertTrue(settings.renderOrder.showSortVolumes)
+        assertFalse(settings.eventBus.enabled)
+        assertFalse(settings.notifications.enabled)
         assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.notifications.position)
 
         assertTrue(settings.performance.terminalLoggingEnabled)

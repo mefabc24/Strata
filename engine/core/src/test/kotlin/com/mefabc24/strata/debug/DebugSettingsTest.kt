@@ -209,14 +209,14 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `off preset resets camera restriction override`() {
+    fun `off preset preserves camera restriction override`() {
         val settings = DebugSettings().apply {
             camera.disableRestrictions = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertFalse(settings.camera.disableRestrictions)
+        assertTrue(settings.camera.disableRestrictions)
     }
 
     @Test
@@ -286,9 +286,9 @@ class DebugSettingsTest {
         assertTrue(settings.culling.hasActiveVisuals)
         assertTrue(settings.camera.hasActiveVisuals)
         assertTrue(settings.worldStats.enabled)
-        assertTrue(settings.eventBus.enabled)
+        assertFalse(settings.eventBus.enabled)
         assertTrue(settings.notifications.enabled)
-        assertTrue(settings.camera.disableRestrictions)
+        assertFalse(settings.camera.disableRestrictions)
         assertNotNull(settings.grid.backgroundColor)
         assertNotNull(settings.grid.hoverBackgroundColor)
         assertTrue(settings.objects.showOccupiedTiles)
@@ -342,7 +342,7 @@ class DebugSettingsTest {
         assertFalse(settings.camera.hasActiveVisuals)
         assertFalse(settings.worldStats.enabled)
         assertFalse(settings.eventBus.enabled)
-        assertFalse(settings.notifications.enabled)
+        assertTrue(settings.notifications.enabled)
         assertFalse(settings.camera.disableRestrictions)
         assertTrue(settings.pathfinding.enabled)
         assertTrue(settings.pathfinding.showExploredNodes)
@@ -375,6 +375,25 @@ class DebugSettingsTest {
     }
 
     @Test
+    fun `every preset preserves operational switches`() {
+        DebugPreset.entries.forEach { preset ->
+            val settings = DebugSettings().apply {
+                eventBus.enabled = true
+                eventBus.captureEnabled = false
+                notifications.enabled = false
+                camera.disableRestrictions = true
+            }
+
+            settings.applyPreset(preset)
+
+            assertTrue(settings.eventBus.enabled, preset.name)
+            assertFalse(settings.eventBus.captureEnabled, preset.name)
+            assertFalse(settings.notifications.enabled, preset.name)
+            assertTrue(settings.camera.disableRestrictions, preset.name)
+        }
+    }
+
+    @Test
     fun `every preset starts from a disabled diagnostic state`() {
         val settings = DebugSettings()
         DebugPreset.entries.forEach { preset ->
@@ -398,17 +417,15 @@ class DebugSettingsTest {
     }
 
     @Test
-    fun `only everything disables camera restrictions`() {
+    fun `presets preserve camera restriction configuration`() {
         DebugPreset.entries.forEach { preset ->
-            val settings = DebugSettings()
+            val settings = DebugSettings().apply {
+                camera.disableRestrictions = true
+            }
 
             settings.applyPreset(preset)
 
-            assertEquals(
-                preset == DebugPreset.EVERYTHING,
-                settings.camera.disableRestrictions,
-                preset.name
-            )
+            assertTrue(settings.camera.disableRestrictions, preset.name)
         }
     }
 
