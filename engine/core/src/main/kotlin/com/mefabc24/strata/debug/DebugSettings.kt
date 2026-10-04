@@ -7,7 +7,6 @@ import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import com.mefabc24.strata.world.WorldEntity
-import com.badlogic.gdx.Gdx
 
 enum class DebugGridRenderLayer { BELOW_OBJECTS, ABOVE_OBJECTS }
 enum class DebugGridExtent { WORLD, VISIBLE }
@@ -44,6 +43,7 @@ class DebugSettings {
     val pathfinding = DebugPathfindingSettings()
     val eventBus = DebugEventMonitorSettings()
     val notifications = DebugNotifications()
+    val presets = DebugPresetSettings()
 
     /** Target subset shared by object, entity, culling, and render-order visuals. */
     var visualizationFilter: DebugVisualizationFilter = DebugVisualizationFilter.ALL
@@ -51,8 +51,6 @@ class DebugSettings {
     /** Currently stored default visual configuration. */
     private var defaultVisualConfiguration: DebugVisualConfiguration =
         captureVisualConfiguration()
-
-    private var defaultPresetPreferencesName: String? = null
 
     internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
     internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
@@ -79,6 +77,7 @@ class DebugSettings {
     fun delete(configure: DebugDeleteToolSettings.() -> Unit) = delete.apply(configure)
     fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
     fun eventBus(configure: DebugEventMonitorSettings.() -> Unit) = eventBus.apply(configure)
+    fun presets(configure: DebugPresetSettings.() -> Unit) = presets.apply(configure)
 
     /** Returns whether debug controls have frozen engine movement for [entity]. */
     fun isEntityFrozen(entity: WorldEntity): Boolean =
@@ -144,12 +143,12 @@ class DebugSettings {
      *
      * The game owns the preferences namespace.
      */
+    @Deprecated(
+        message = "Configure debug preset persistence through presets { storage(...) }.",
+        replaceWith = ReplaceWith("presets { storage(preferencesName) }")
+    )
     fun defaultPresetStorage(preferencesName: String) {
-        require(preferencesName.isNotBlank()) {
-            "Debug preset preferences name must not be blank."
-        }
-
-        defaultPresetPreferencesName = preferencesName
+        presets.storage(preferencesName)
     }
 
     /**
@@ -157,29 +156,10 @@ class DebugSettings {
      */
     internal fun initializeDefaultVisualConfiguration() {
         val configuredDefault = captureVisualConfiguration()
-
-        val name = defaultPresetPreferencesName
-
-        if (name == null) {
-            defaultVisualConfiguration = configuredDefault
-            return
-        }
-
-        val preferences = Gdx.app.getPreferences(name)
-        val storedJson = preferences.getString(DEFAULT_PRESET_KEY, "")
-
-        defaultVisualConfiguration = if (storedJson.isBlank()) {
-            configuredDefault
-        } else {
-            runCatching {
-                DebugVisualConfigurationCodec.decode(storedJson)
-            }.onFailure { error ->
-                Gdx.app.error(
-                    "Strata Debug",
-                    "Failed to load default debug preset.",
-                    error
-                )
-            }.getOrNull() ?: configuredDefault
+        val savedDefault = presets.loadDefault()
+        defaultVisualConfiguration = savedDefault ?: configuredDefault
+        if (savedDefault != null && presets.applySavedDefaultOnStartup) {
+            applyVisualConfiguration(savedDefault)
         }
     }
 
@@ -187,27 +167,13 @@ class DebugSettings {
     fun saveDefaultVisualConfiguration() {
         val configuration = captureVisualConfiguration()
 
-        defaultPresetPreferencesName?.let { name ->
-            val preferences = Gdx.app.getPreferences(name)
-
-            preferences.putString(
-                DEFAULT_PRESET_KEY,
-                DebugVisualConfigurationCodec.encode(configuration)
-            )
-
-            preferences.flush()
-        }
-
+        presets.saveDefault(configuration)
         defaultVisualConfiguration = configuration
     }
 
     /** Applies the last saved default visual configuration. */
     fun applyDefaultVisualConfiguration() {
         applyVisualConfiguration(defaultVisualConfiguration)
-    }
-
-    private companion object {
-        const val DEFAULT_PRESET_KEY = "default-visual-configuration"
     }
 
     /** Restores every visual diagnostic to its engine default. */
