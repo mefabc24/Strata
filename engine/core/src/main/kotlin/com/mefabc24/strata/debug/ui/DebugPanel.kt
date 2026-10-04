@@ -286,8 +286,10 @@ internal class DebugPanel(
                 buildToolSettings()
                 buildingDebugSettings = false
             }.cell {
-                grow()
+                growX()
+                fillX()
                 minHeight(0f)
+                prefHeight(Value.prefHeight)
             }
         }
         toolFlyoutActor.remove()
@@ -1210,6 +1212,7 @@ internal class DebugPanel(
     private fun StrataColumn.settingsExpander(
         title: String,
         expanded: Boolean = false,
+        style: StrataExpanderStyle = debugExpanderStyle(),
         onExpandedChanged: (Boolean) -> Unit = {},
         configure: StrataColumn.() -> Unit
     ): StrataExpander {
@@ -1218,7 +1221,7 @@ internal class DebugPanel(
             expanded = expanded,
             spacing = 0f,
             headerHeight = 34f,
-            expandedStyle = debugExpanderStyle(),
+            expandedStyle = style,
             onExpandedChanged = onExpandedChanged
         ) {
             defaults().fillAvailableX()
@@ -1240,6 +1243,7 @@ internal class DebugPanel(
         return settingsExpander(
             title = title,
             expanded = expanded,
+            style = toolExpanderStyle(),
             onExpandedChanged = { invalidateToolFlyoutLayout() },
             configure = configure
         )
@@ -1261,6 +1265,11 @@ internal class DebugPanel(
 
     private fun debugExpanderStyle(): StrataExpanderStyle = ui.skin.get(
         "debug-expander",
+        StrataExpanderStyle::class.java
+    )
+
+    private fun toolExpanderStyle(): StrataExpanderStyle = ui.skin.get(
+        "debug-tool-expander",
         StrataExpanderStyle::class.java
     )
 

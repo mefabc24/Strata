@@ -257,6 +257,28 @@ internal object DebugPanelSkin {
             StrataExpanderStyle::class.java
         )
         skin.add(
+            "debug-tool-expander",
+            StrataExpanderStyle(
+                background = null,
+                padding = StrataInsets.NONE
+            ).apply {
+                headerButtonStyle = "debug-expander-header"
+                headerBackground = drawable.tint(Color(0.055f, 0.058f, 0.066f, 1f))
+                expandedHeaderBackground = drawable.tint(Color(0.085f, 0.09f, 0.105f, 1f))
+                collapsedIndicator = collapsedChevron
+                expandedIndicator = expandedChevron
+                contentIndent = 0f
+                indicatorSize = 9f
+                headerPadLeft = 8f
+                headerPadRight = 6f
+                indicatorSpacing = 5f
+                contentSpacing = 0f
+                headerSeparator = drawable.tint(Color(0.25f, 0.26f, 0.29f, 0.85f))
+                headerSeparatorThickness = 1f
+            },
+            StrataExpanderStyle::class.java
+        )
+        skin.add(
             "debug-separator",
             StrataSeparatorStyle(
                 drawable = drawable.tint(Color(0.25f, 0.26f, 0.29f, 0.85f)),
