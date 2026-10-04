@@ -398,31 +398,21 @@ internal class DebugPanel(
                     )).cell { fillAvailableX() }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Target") {
-                    responsiveGrid(130f, maximumColumns = 2) {
-                        paintTargets.forEach { target ->
-                            selectableButton(
-                                target.name.toDisplayName(),
-                                target,
-                                paintTargetSelection
-                            )
-                        }
-                    }.cell { fillAvailableX() }
+                    selectionSettingRow(
+                        "Paint layer",
+                        paintTargets,
+                        paintTargetSelection
+                    ) { it.name.toDisplayName() }
                     overlayPaintControls = column(spacing = 0f) {
                         defaults().fillAvailableX()
-                        row(
-                            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 3f)
-                        ) {
-                            label("Overlay layer").cell { growX(); left() }
-                        }.cell { fillAvailableX(); height(30f) }
-                        responsiveGrid(130f, maximumColumns = 2) {
-                            painter.overlayLayerIds.forEach { id ->
-                                selectableButton(
-                                    id.toDisplayName(),
-                                    id,
-                                    checkNotNull(overlaySelection)
-                                )
-                            }
-                        }.cell { fillAvailableX() }
+                        val group = checkNotNull(overlaySelection)
+                        boundDropdown(
+                            "Overlay layer",
+                            painter.overlayLayerIds,
+                            { checkNotNull(group.selected) },
+                            String::toDisplayName,
+                            group::select
+                        )
                     }
                 }
                 toolStatus(DebugToolMode.PAINT)
@@ -576,10 +566,16 @@ internal class DebugPanel(
                     movementModes.select(settings.pathfinding.movementMode)
                 }
                 toolSettingsExpander(DebugToolMode.PATHFINDING, "Search") {
-                    responsiveGrid(105f, 36f, maximumColumns = 2) {
-                        selectableButton("4-way", PathMovementMode.FOUR_WAY, movementModes)
-                        selectableButton("8-way", PathMovementMode.EIGHT_WAY, movementModes)
-                    }.cell { fillAvailableX() }
+                    selectionSettingRow(
+                        "Movement",
+                        PathMovementMode.entries,
+                        movementModes
+                    ) {
+                        when (it) {
+                            PathMovementMode.FOUR_WAY -> "4-way"
+                            PathMovementMode.EIGHT_WAY -> "8-way"
+                        }
+                    }
                 }
                 toolSettingsExpander(DebugToolMode.PATHFINDING, "Visualization") {
                     simpleToggle(
@@ -1355,6 +1351,28 @@ internal class DebugPanel(
         separator()
     }
 
+    private fun <T> StrataColumn.selectionSettingRow(
+        text: String,
+        options: Iterable<T>,
+        group: StrataSelectionGroup<T>,
+        displayText: (T) -> String
+    ) {
+        row(
+            spacing = 3f,
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            label(text).cell { growX(); left() }
+            options.forEach { option ->
+                selectableButton(
+                    displayText(option),
+                    option,
+                    group
+                ).cell { width(70f); height(26f) }
+            }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(32f) }
+        separator()
+    }
+
     private fun StrataColumn.compactAction(
         text: String,
         onClick: () -> Unit
@@ -1503,6 +1521,7 @@ internal class DebugPanel(
         ).applyDebugSettingBackground().cell {
             fillAvailableX()
             height(32f)
+        }.apply {
             padLeft(6f)
             padRight(6f)
         }
