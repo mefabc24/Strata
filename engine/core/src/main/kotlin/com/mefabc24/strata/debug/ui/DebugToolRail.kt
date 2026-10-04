@@ -50,8 +50,10 @@ internal fun debugToolFlyoutSectionTitles(mode: DebugToolMode): List<String> = w
 }
 
 internal class DebugToolRailState(
-    private val configurableModes: Set<DebugToolMode>
+    private val configurableModes: Set<DebugToolMode>,
+    activeMode: DebugToolMode = DebugToolMode.NONE
 ) {
+    private var activeMode = activeMode
     var settingsMode: DebugToolMode? = null
         private set
 
@@ -66,6 +68,13 @@ internal class DebugToolRailState(
 
     fun closeSettings() {
         settingsMode = null
+    }
+
+    fun syncActiveTool(mode: DebugToolMode): Boolean {
+        if (mode == activeMode) return false
+        activeMode = mode
+        closeSettings()
+        return true
     }
 }
 

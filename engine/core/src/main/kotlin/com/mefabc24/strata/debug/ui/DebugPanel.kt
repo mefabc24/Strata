@@ -1680,6 +1680,7 @@ internal class DebugPanel(
     }
 
     private fun syncVisibility() {
+        if (toolRailState.syncActiveTool(tools.mode)) appliedFlyoutMode = null
         if (!settings.toolsWindow.enabled || !::toolFlyoutActor.isInitialized) return
         val displayedMode = toolRailState.settingsMode
 
