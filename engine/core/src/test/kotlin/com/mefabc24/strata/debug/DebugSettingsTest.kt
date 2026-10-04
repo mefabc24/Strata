@@ -315,10 +315,6 @@ class DebugSettingsTest {
         assertTrue(settings.pathfinding.showFinalPath)
         assertFalse(settings.inspect.showEntityPath)
         assertFalse(settings.inspect.showObjectOrigin)
-        assertFalse(settings.grid.showBackground)
-        assertFalse(settings.grid.showHoverBackground)
-        assertFalse(settings.objects.showOccupiedTileFill)
-        assertFalse(settings.entities.showCurrentTileFill)
     }
 
     @Test
@@ -337,9 +333,13 @@ class DebugSettingsTest {
         assertFalse(settings.performance.overlayEnabled)
         assertFalse(settings.simulation.enabled)
         assertFalse(settings.grid.enabled)
+        assertFalse(settings.grid.showBackground)
+        assertFalse(settings.grid.showHoverBackground)
         assertFalse(settings.worldInfo.hasActiveVisuals)
         assertFalse(settings.objects.hasActiveVisuals)
+        assertFalse(settings.objects.showOccupiedTileFill)
         assertFalse(settings.entities.hasActiveVisuals)
+        assertFalse(settings.entities.showCurrentTileFill)
         assertFalse(settings.picking.hasActiveVisuals)
         assertFalse(settings.renderOrder.hasActiveVisuals)
         assertFalse(settings.culling.hasActiveVisuals)
