@@ -1407,7 +1407,7 @@ internal class DebugPanel(
                         StrataSeparatorOrientation.VERTICAL,
                         ui.skin.get("debug-separator", StrataSeparatorStyle::class.java)
                     )).cell {
-                        width(1f)
+                        width(2f)
                         height(32f)
                     }
                 }
