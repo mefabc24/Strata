@@ -105,9 +105,11 @@ class DebugSettingsTest {
         assertNull(settings.worldState.pickingSelection.lockedTarget)
         assertEquals(1, settings.paint.brushSize)
         assertTrue(settings.paint.showBrushPreview)
+        assertFalse(settings.paint.showTileBorders)
         assertEquals(1, settings.delete.brushSize)
         assertTrue(settings.delete.dragEnabled)
         assertTrue(settings.delete.showBrushPreview)
+        assertFalse(settings.delete.showTileBorders)
     }
 
     @Test

@@ -8,6 +8,17 @@ import kotlin.test.assertTrue
 
 class DebugBrushTest {
     @Test
+    fun `brush previews omit tile borders by default`() {
+        val preview = DebugBrushPreview(
+            DebugBrushPreviewKind.PAINT,
+            listOf(TilePosition(2, 2))
+        )
+
+        assertFalse(preview.showTileBorders)
+        assertTrue(preview.copy(showTileBorders = true).showTileBorders)
+    }
+
+    @Test
     fun `odd square brushes use consistent centered geometry`() {
         assertEquals(
             listOf(TilePosition(2, 2)),
