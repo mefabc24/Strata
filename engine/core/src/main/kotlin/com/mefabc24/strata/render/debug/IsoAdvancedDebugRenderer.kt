@@ -602,14 +602,20 @@ internal class IsoAdvancedDebugRenderer(
         when {
             inspection is DebugInspection.EntityTarget &&
                 DebugInspectionVisual.ENTITY_TILE in inspectionVisuals -> {
-                shapes.color = settings.entities.currentTileFillColor
-                    ?: settings.entities.currentTileColor.cpy().apply { a = 0.16f }
+                shapes.color = if (settings.entities.showCurrentTileFill) {
+                    settings.entities.currentTileFillColor
+                } else {
+                    settings.entities.currentTileColor.cpy().apply { a = 0.16f }
+                }
                 drawTileFill(inspection.entity.currentTile)
             }
             inspection is DebugInspection.ObjectTarget &&
                 DebugInspectionVisual.OBJECT_FOOTPRINT in inspectionVisuals -> {
-                shapes.color = settings.objects.occupiedTileFillColor
-                    ?: settings.objects.occupiedTileColor.cpy().apply { a = 0.18f }
+                shapes.color = if (settings.objects.showOccupiedTileFill) {
+                    settings.objects.occupiedTileFillColor
+                } else {
+                    settings.objects.occupiedTileColor.cpy().apply { a = 0.18f }
+                }
                 inspection.placedObject.occupiedTiles().forEach(::drawTileFill)
             }
             inspection is DebugInspection.TileTarget &&

@@ -21,10 +21,15 @@ class DebugObjectSettings {
         get() = storedOccupiedTileColor.cpy()
         set(value) { storedOccupiedTileColor = value.cpy() }
 
-    private var storedOccupiedTileFillColor: Color? = null
-    var occupiedTileFillColor: Color?
-        get() = storedOccupiedTileFillColor?.cpy()
-        set(value) { storedOccupiedTileFillColor = value?.cpy() }
+    /** Whether occupied tiles receive a translucent fill. */
+    var showOccupiedTileFill: Boolean = false
+
+    /** Fill color retained independently of visibility. */
+    private var storedOccupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
+
+    var occupiedTileFillColor: Color
+        get() = storedOccupiedTileFillColor.cpy()
+        set(value) { storedOccupiedTileFillColor = value.cpy() }
 
     private var storedOriginTileColor = Color(1f, 0.35f, 0.2f, 1f)
     var originTileColor: Color
@@ -112,10 +117,15 @@ class DebugEntitySettings {
         get() = storedCurrentTileColor.cpy()
         set(value) { storedCurrentTileColor = value.cpy() }
 
-    private var storedCurrentTileFillColor: Color? = null
-    var currentTileFillColor: Color?
-        get() = storedCurrentTileFillColor?.cpy()
-        set(value) { storedCurrentTileFillColor = value?.cpy() }
+    /** Whether the entity's current tile receives a translucent fill. */
+    var showCurrentTileFill: Boolean = false
+
+    /** Fill color retained independently of visibility. */
+    private var storedCurrentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
+
+    var currentTileFillColor: Color
+        get() = storedCurrentTileFillColor.cpy()
+        set(value) { storedCurrentTileFillColor = value.cpy() }
 
     private var storedPositionColor = Color(1f, 0.3f, 0.2f, 1f)
     var positionColor: Color
@@ -160,10 +170,10 @@ class DebugEntitySettings {
 
 internal val DebugObjectSettings.hasActiveVisuals: Boolean
     get() = showOccupiedTiles || showOriginTile || showSpriteBounds ||
-        occupiedTileFillColor != null
+            showOccupiedTileFill
 
 internal val DebugEntitySettings.hasActiveVisuals: Boolean
     get() = showCurrentTile || showPosition || showPath || showDirection ||
         showSpriteBounds || showMovementTrail || showMovementVector ||
         showNextWaypoint || showMovementSpeed || showPositionTileOffset ||
-        currentTileFillColor != null
+            showCurrentTileFill

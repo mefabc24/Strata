@@ -109,15 +109,23 @@ class DebugGridSettings : DebugFeatureSettings() {
             field = value
         }
 
-    private var storedBackgroundColor: Color? = null
-    var backgroundColor: Color?
-        get() = storedBackgroundColor?.cpy()
-        set(value) { storedBackgroundColor = value?.cpy() }
+    /** Whether regular grid tiles receive a background fill. */
+    var showBackground: Boolean = false
 
-    private var storedHoverBackgroundColor: Color? = null
-    var hoverBackgroundColor: Color?
-        get() = storedHoverBackgroundColor?.cpy()
-        set(value) { storedHoverBackgroundColor = value?.cpy() }
+    /** Whether the hovered tile receives a background fill. */
+    var showHoverBackground: Boolean = false
+
+    private var storedBackgroundColor = Color(1f, 1f, 1f, 0.2f)
+
+    var backgroundColor: Color
+        get() = storedBackgroundColor.cpy()
+        set(value) { storedBackgroundColor = value.cpy() }
+
+    private var storedHoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
+
+    var hoverBackgroundColor: Color
+        get() = storedHoverBackgroundColor.cpy()
+        set(value) { storedHoverBackgroundColor = value.cpy() }
 
     internal fun copy(): DebugGridSettings = DebugGridSettings().also {
         it.enabled = enabled
@@ -126,6 +134,8 @@ class DebugGridSettings : DebugFeatureSettings() {
         it.color = color
         it.hoverColor = hoverColor
         it.lineWidth = lineWidth
+        it.showBackground = showBackground
+        it.showHoverBackground = showHoverBackground
         it.backgroundColor = backgroundColor
         it.hoverBackgroundColor = hoverBackgroundColor
     }
