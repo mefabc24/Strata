@@ -88,7 +88,7 @@ internal class DebugToolRailButton(
         background = style.normal
         pad(5f, 3f, 4f, 3f)
         add(Image(icon).apply { setScaling(Scaling.fit) })
-            .size(22f)
+            .size(28f)
             .center()
         row()
         add(Label(label, skin, "debug-tool-label").apply {

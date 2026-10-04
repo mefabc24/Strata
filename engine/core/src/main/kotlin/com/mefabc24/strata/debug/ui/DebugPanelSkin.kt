@@ -3,6 +3,7 @@ package com.mefabc24.strata.debug.ui
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
@@ -197,9 +198,37 @@ internal object DebugPanelSkin {
         )
         DebugToolMode.entries.forEach { mode ->
             val name = debugToolIconName(mode)
+
+            val fileName = when (mode) {
+                DebugToolMode.NONE -> "none.png"
+                DebugToolMode.INSPECT -> "inspect.png"
+                DebugToolMode.MOVE -> "move.png"
+                DebugToolMode.BUILD -> "build.png"
+                DebugToolMode.DELETE -> "delete.png"
+                DebugToolMode.PAINT -> "paint.png"
+                DebugToolMode.SPAWN -> "spawn.png"
+                DebugToolMode.PATHFINDING -> "path.png"
+                DebugToolMode.FREE_CAMERA -> "camera.png"
+            }
+
+            val file = Gdx.files.classpath("strata/debug/icons/$fileName")
+
+            require(file.exists()) {
+                "Missing engine tool icon: ${file.path()}"
+            }
+
+            val iconTexture = Texture(file).apply {
+                setFilter(
+                    Texture.TextureFilter.Nearest,
+                    Texture.TextureFilter.Nearest
+                )
+            }
+
+            skin.add("$name-texture", iconTexture, Texture::class.java)
+
             skin.add(
                 name,
-                createToolIconDrawable(skin, name, mode),
+                TextureRegionDrawable(TextureRegion(iconTexture)),
                 Drawable::class.java
             )
         }
@@ -258,70 +287,6 @@ internal object DebugPanelSkin {
         val texture = Texture(pixmap)
         pixmap.dispose()
         skin.add("debug-chevron-$name", texture)
-        return TextureRegionDrawable(TextureRegion(texture))
-    }
-
-    private fun createToolIconDrawable(
-        skin: Skin,
-        name: String,
-        mode: DebugToolMode
-    ): TextureRegionDrawable {
-        val pixmap = Pixmap(20, 20, Pixmap.Format.RGBA8888).apply {
-            setColor(Color.CLEAR)
-            fill()
-            setColor(Color(0.88f, 0.90f, 0.94f, 1f))
-            when (mode) {
-                DebugToolMode.NONE -> {
-                    drawCircle(10, 10, 7)
-                    drawLine(5, 15, 15, 5)
-                }
-                DebugToolMode.INSPECT -> {
-                    drawCircle(8, 12, 5)
-                    drawLine(12, 8, 17, 3)
-                    drawLine(13, 8, 18, 3)
-                }
-                DebugToolMode.MOVE -> {
-                    drawLine(3, 10, 17, 10)
-                    drawLine(10, 3, 10, 17)
-                    drawLine(3, 10, 6, 7); drawLine(3, 10, 6, 13)
-                    drawLine(17, 10, 14, 7); drawLine(17, 10, 14, 13)
-                    drawLine(10, 3, 7, 6); drawLine(10, 3, 13, 6)
-                    drawLine(10, 17, 7, 14); drawLine(10, 17, 13, 14)
-                }
-                DebugToolMode.BUILD -> {
-                    drawRectangle(4, 5, 12, 10)
-                    drawLine(4, 15, 10, 18); drawLine(10, 18, 16, 15)
-                    drawLine(10, 18, 10, 8)
-                }
-                DebugToolMode.DELETE -> {
-                    drawRectangle(6, 4, 8, 11)
-                    drawLine(4, 16, 16, 16)
-                    drawLine(8, 18, 12, 18)
-                }
-                DebugToolMode.PAINT -> {
-                    drawLine(4, 4, 15, 15); drawLine(5, 4, 16, 15)
-                    drawLine(3, 3, 7, 4); drawLine(15, 16, 17, 18)
-                }
-                DebugToolMode.SPAWN -> {
-                    drawCircle(10, 14, 3)
-                    drawLine(5, 4, 15, 4)
-                    drawLine(5, 4, 6, 9); drawLine(15, 4, 14, 9)
-                    drawLine(6, 9, 14, 9)
-                }
-                DebugToolMode.PATHFINDING -> {
-                    fillCircle(4, 15, 2); fillCircle(10, 10, 2); fillCircle(16, 5, 2)
-                    drawLine(5, 14, 9, 11); drawLine(11, 9, 15, 6)
-                }
-                DebugToolMode.FREE_CAMERA -> {
-                    drawRectangle(3, 5, 14, 10)
-                    drawRectangle(7, 15, 6, 2)
-                    drawCircle(10, 10, 4)
-                }
-            }
-        }
-        val texture = Texture(pixmap)
-        pixmap.dispose()
-        skin.add("$name-texture", texture)
         return TextureRegionDrawable(TextureRegion(texture))
     }
 }
