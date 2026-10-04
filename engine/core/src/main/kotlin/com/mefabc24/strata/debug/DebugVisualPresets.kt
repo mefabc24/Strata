@@ -27,7 +27,7 @@ class DebugVisualConfiguration internal constructor(
 )
 
 internal object DebugVisualSettings {
-    private const val VERSION = 2
+    internal const val VERSION = 3
 
     private interface Binding {
         val key: String
@@ -160,10 +160,8 @@ internal object DebugVisualSettings {
         binding("camera.world", DebugVisualCategory.CAMERA, { it.camera.showWorldBounds }, { s, v -> s.camera.showWorldBounds = v }),
         binding("camera.clamp", DebugVisualCategory.CAMERA, { it.camera.showClampBounds }, { s, v -> s.camera.showClampBounds = v }),
         binding("worldStats.enabled", DebugVisualCategory.GENERAL, { it.worldStats.enabled }, { s, v -> s.worldStats.enabled = v }),
-        binding("events.enabled", DebugVisualCategory.EVENT_MONITOR, { it.eventBus.enabled }, { s, v -> s.eventBus.enabled = v }),
         binding("events.records", DebugVisualCategory.EVENT_MONITOR, { it.eventBus.maximumVisibleRecords }, { s, v -> s.eventBus.maximumVisibleRecords = v }),
         binding("events.order", DebugVisualCategory.EVENT_MONITOR, { it.eventBus.newestFirst }, { s, v -> s.eventBus.newestFirst = v }),
-        binding("notifications.enabled", DebugVisualCategory.NOTIFICATIONS, { it.notifications.enabled }, { s, v -> s.notifications.enabled = v }),
         binding("notifications.position", DebugVisualCategory.NOTIFICATIONS, { it.notifications.position }, { s, v -> s.notifications.position = v })
     )
 

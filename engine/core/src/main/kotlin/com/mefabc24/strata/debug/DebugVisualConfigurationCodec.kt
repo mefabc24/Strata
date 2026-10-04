@@ -32,7 +32,7 @@ internal object DebugVisualConfigurationCodec {
         val root = JsonReader().parse(json)
 
         val version = root.getInt("version")
-        require(version in 1..2) {
+        require(version in 1..DebugVisualSettings.VERSION) {
             "Unsupported debug configuration version: $version"
         }
 
