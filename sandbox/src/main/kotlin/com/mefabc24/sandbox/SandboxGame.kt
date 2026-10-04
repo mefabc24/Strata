@@ -84,6 +84,8 @@ class SandboxGame : StrataGame() {
 
                     grid {
                         enabled = false
+                        showBackground = true
+                        showHoverBackground = true
                         color = Color(1f, 1f, 1f, 0.4f)
                         hoverColor = Color(1f, 0f, 0f, 1f)
                         backgroundColor =
@@ -95,6 +97,7 @@ class SandboxGame : StrataGame() {
                     objects {
                         showOccupiedTiles = true
                         showOriginTile = true
+                        showOccupiedTileFill = true
                         occupiedTileFillColor =
                             Color(0.2f, 0.65f, 1f, 0.2f)
                     }
@@ -103,6 +106,7 @@ class SandboxGame : StrataGame() {
                         showCurrentTile = true
                         showPosition = true
                         showPath = true
+                        showCurrentTileFill = true
                         currentTileFillColor =
                             Color(0.3f, 1f, 0.3f, 0.18f)
                     }
