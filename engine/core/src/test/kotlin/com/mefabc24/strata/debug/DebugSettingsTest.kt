@@ -18,110 +18,110 @@ class DebugSettingsTest {
     @Test
     fun `optional overlays are disabled while tool context defaults are ready`() {
         val settings = DebugSettings()
-        assertFalse(settings.toolsWindow.enabled)
-        assertFalse(settings.toolsWindow.visible)
-        assertEquals(Input.Keys.F2, settings.toolsWindow.toggleKey)
-        assertFalse(settings.debugWindow.enabled)
-        assertFalse(settings.debugWindow.visible)
-        assertEquals(Input.Keys.F3, settings.debugWindow.toggleKey)
-        assertFalse(settings.performance.overlayEnabled)
-        assertFalse(settings.performance.terminalLoggingEnabled)
-        assertFalse(settings.performance.historyRecording)
-        assertEquals(240, settings.performance.historyLength)
-        assertEquals(DebugPerformanceMetric.FRAME_TIME, settings.performance.historyMetric)
-        assertFalse(settings.simulation.enabled)
-        assertFalse(settings.simulation.freezeVisualAnimations)
-        assertFalse(settings.grid.enabled)
-        assertFalse(settings.worldInfo.hasActiveVisuals)
-        assertFalse(settings.worldInfo.showTileCoordinates)
-        assertFalse(settings.worldInfo.showTerrainIds)
-        assertFalse(settings.worldInfo.showOverlayInfo)
-        assertFalse(settings.worldInfo.showOccupancy)
-        assertFalse(settings.worldInfo.showMissingTerrainVisuals)
-        assertFalse(settings.worldInfo.showOrigin)
-        assertEquals(1.5f, settings.worldInfo.maximumLabelZoom)
-        assertEquals(256, settings.worldInfo.maximumVisibleLabels)
-        assertTrue(settings.worldVisibility.groundTerrainVisible)
-        assertTrue(settings.worldVisibility.terrainOverlaysVisible)
-        assertTrue(settings.worldVisibility.placedObjectsVisible)
-        assertTrue(settings.worldVisibility.entitiesVisible)
-        assertFalse(settings.objects.hasActiveVisuals)
-        assertFalse(settings.entities.hasActiveVisuals)
-        assertFalse(settings.entities.showMovementTrail)
-        assertFalse(settings.entities.showMovementVector)
-        assertFalse(settings.entities.showNextWaypoint)
-        assertFalse(settings.entities.showMovementSpeed)
-        assertFalse(settings.entities.showPositionTileOffset)
-        assertEquals(120, settings.entities.trailMaxPositions)
-        assertEquals(5f, settings.entities.trailHistoryDurationSeconds)
-        assertEquals(0.02f, settings.entities.trailMinimumDistance)
-        assertEquals(0.65f, settings.entities.trailOpacity)
-        assertFalse(settings.picking.hasActiveVisuals)
-        assertFalse(settings.renderOrder.hasActiveVisuals)
-        assertEquals(RenderOrderDebugMode.CALCULATED, settings.renderOrder.mode)
-        assertEquals(DebugVisualizationFilter.ALL, settings.visualizationFilter)
-        assertFalse(settings.renderOrder.showPriorityLabels)
-        assertFalse(settings.renderOrder.colorByPriority)
-        assertEquals(RenderPriorityFocusMode.OFF, settings.renderOrder.priorityFocusMode)
-        assertFalse(settings.renderOrder.showSortVolumes)
-        assertFalse(settings.renderOrder.showSortAnchors)
-        assertFalse(settings.renderOrder.showProjectedSortPositions)
-        assertFalse(settings.renderOrder.showTerrainIndices)
-        assertFalse(settings.renderOrder.showTerrainHeatmap)
+        assertFalse(settings.ui.toolRail.enabled)
+        assertFalse(settings.ui.toolRail.isVisible)
+        assertEquals(Input.Keys.F2, settings.ui.toolRail.toggleKey)
+        assertFalse(settings.ui.settingsWindow.enabled)
+        assertFalse(settings.ui.settingsWindow.isVisible)
+        assertEquals(Input.Keys.F3, settings.ui.settingsWindow.toggleKey)
+        assertFalse(settings.operations.performance.overlayEnabled)
+        assertFalse(settings.operations.performance.terminalLoggingEnabled)
+        assertFalse(settings.operations.performance.historyRecording)
+        assertEquals(240, settings.operations.performance.historyLength)
+        assertEquals(DebugPerformanceMetric.FRAME_TIME, settings.operations.performance.historyMetric)
+        assertFalse(settings.operations.simulation.enabled)
+        assertFalse(settings.operations.simulation.freezeVisualAnimations)
+        assertFalse(settings.visuals.grid.enabled)
+        assertFalse(settings.visuals.worldInfo.hasActiveVisuals)
+        assertFalse(settings.visuals.worldInfo.showTileCoordinates)
+        assertFalse(settings.visuals.worldInfo.showTerrainIds)
+        assertFalse(settings.visuals.worldInfo.showOverlayInfo)
+        assertFalse(settings.visuals.worldInfo.showOccupancy)
+        assertFalse(settings.visuals.worldInfo.showMissingTerrainVisuals)
+        assertFalse(settings.visuals.worldInfo.showOrigin)
+        assertEquals(1.5f, settings.visuals.worldInfo.maximumLabelZoom)
+        assertEquals(256, settings.visuals.worldInfo.maximumVisibleLabels)
+        assertTrue(settings.visuals.worldVisibility.groundTerrainVisible)
+        assertTrue(settings.visuals.worldVisibility.terrainOverlaysVisible)
+        assertTrue(settings.visuals.worldVisibility.placedObjectsVisible)
+        assertTrue(settings.visuals.worldVisibility.entitiesVisible)
+        assertFalse(settings.visuals.objects.hasActiveVisuals)
+        assertFalse(settings.visuals.entities.hasActiveVisuals)
+        assertFalse(settings.visuals.entities.showMovementTrail)
+        assertFalse(settings.visuals.entities.showMovementVector)
+        assertFalse(settings.visuals.entities.showNextWaypoint)
+        assertFalse(settings.visuals.entities.showMovementSpeed)
+        assertFalse(settings.visuals.entities.showPositionTileOffset)
+        assertEquals(120, settings.visuals.entities.trailMaxPositions)
+        assertEquals(5f, settings.visuals.entities.trailHistoryDurationSeconds)
+        assertEquals(0.02f, settings.visuals.entities.trailMinimumDistance)
+        assertEquals(0.65f, settings.visuals.entities.trailOpacity)
+        assertFalse(settings.visuals.picking.hasActiveVisuals)
+        assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
+        assertEquals(RenderOrderDebugMode.CALCULATED, settings.visuals.renderOrder.mode)
+        assertEquals(DebugVisualizationFilter.ALL, settings.visuals.filter)
+        assertFalse(settings.visuals.renderOrder.showPriorityLabels)
+        assertFalse(settings.visuals.renderOrder.colorByPriority)
+        assertEquals(RenderPriorityFocusMode.OFF, settings.visuals.renderOrder.priorityFocusMode)
+        assertFalse(settings.visuals.renderOrder.showSortVolumes)
+        assertFalse(settings.visuals.renderOrder.showSortAnchors)
+        assertFalse(settings.visuals.renderOrder.showProjectedSortPositions)
+        assertFalse(settings.visuals.renderOrder.showTerrainIndices)
+        assertFalse(settings.visuals.renderOrder.showTerrainHeatmap)
         assertEquals(
             TerrainHeatmapSteps.PER_TILE,
-            settings.renderOrder.terrainHeatmapSteps
+            settings.visuals.renderOrder.terrainHeatmapSteps
         )
-        assertFalse(settings.culling.hasActiveVisuals)
-        assertFalse(settings.camera.hasActiveVisuals)
-        assertFalse(settings.worldStats.enabled)
-        assertFalse(settings.eventBus.enabled)
-        assertFalse(settings.camera.disableRestrictions)
-        assertTrue(settings.inspect.showTile)
-        assertTrue(settings.inspect.showObjectFootprint)
-        assertTrue(settings.inspect.showObjectOrigin)
-        assertTrue(settings.inspect.showObjectSpriteBounds)
-        assertTrue(settings.inspect.showEntityTile)
-        assertTrue(settings.inspect.showEntityPosition)
-        assertTrue(settings.inspect.showEntityPath)
-        assertTrue(settings.inspect.showEntityDirection)
-        assertTrue(settings.inspect.showEntitySpriteBounds)
-        assertTrue(settings.pathfinding.enabled)
-        assertEquals(PathMovementMode.FOUR_WAY, settings.pathfinding.movementMode)
-        assertEquals(1f, settings.pathfinding.entitySpeedMultiplier)
-        assertFalse(settings.pathfinding.showOpenSet)
-        assertFalse(settings.pathfinding.showClosedSet)
-        assertFalse(settings.pathfinding.showGCost)
-        assertFalse(settings.pathfinding.showHCost)
-        assertFalse(settings.pathfinding.showFCost)
-        assertFalse(settings.pathfinding.showParentDirections)
-        assertFalse(settings.pathfinding.showExplorationOrder)
-        assertFalse(settings.pathfinding.showRejectedTransitions)
-        assertEquals(1.5f, settings.pathfinding.maximumLabelZoom)
-        assertEquals(128, settings.pathfinding.maximumVisibleLabels)
-        assertEquals(2048, settings.pathfinding.maximumRejectedTransitions)
-        assertEquals(1, settings.pathfinding.automaticIterationsPerUpdate)
-        assertTrue(settings.notifications.enabled)
+        assertFalse(settings.visuals.culling.hasActiveVisuals)
+        assertFalse(settings.visuals.camera.hasActiveVisuals)
+        assertFalse(settings.operations.worldStats.enabled)
+        assertFalse(settings.operations.eventBus.enabled)
+        assertFalse(settings.operations.disableCameraRestrictions)
+        assertTrue(settings.tools.inspect.showTile)
+        assertTrue(settings.tools.inspect.showObjectFootprint)
+        assertTrue(settings.tools.inspect.showObjectOrigin)
+        assertTrue(settings.tools.inspect.showObjectSpriteBounds)
+        assertTrue(settings.tools.inspect.showEntityTile)
+        assertTrue(settings.tools.inspect.showEntityPosition)
+        assertTrue(settings.tools.inspect.showEntityPath)
+        assertTrue(settings.tools.inspect.showEntityDirection)
+        assertTrue(settings.tools.inspect.showEntitySpriteBounds)
+        assertTrue(settings.tools.pathfinding.enabled)
+        assertEquals(PathMovementMode.FOUR_WAY, settings.tools.pathfinding.movementMode)
+        assertEquals(1f, settings.tools.pathfinding.entitySpeedMultiplier)
+        assertFalse(settings.tools.pathfinding.showOpenSet)
+        assertFalse(settings.tools.pathfinding.showClosedSet)
+        assertFalse(settings.tools.pathfinding.showGCost)
+        assertFalse(settings.tools.pathfinding.showHCost)
+        assertFalse(settings.tools.pathfinding.showFCost)
+        assertFalse(settings.tools.pathfinding.showParentDirections)
+        assertFalse(settings.tools.pathfinding.showExplorationOrder)
+        assertFalse(settings.tools.pathfinding.showRejectedTransitions)
+        assertEquals(1.5f, settings.tools.pathfinding.maximumLabelZoom)
+        assertEquals(128, settings.tools.pathfinding.maximumVisibleLabels)
+        assertEquals(2048, settings.tools.pathfinding.maximumRejectedTransitions)
+        assertEquals(1, settings.tools.pathfinding.automaticIterationsPerUpdate)
+        assertTrue(settings.operations.notifications.enabled)
         assertNull(settings.worldState.pickingSelection.lockedTarget)
-        assertEquals(1, settings.paint.brushSize)
-        assertTrue(settings.paint.showBrushPreview)
-        assertFalse(settings.paint.showTileBorders)
-        assertEquals(1, settings.delete.brushSize)
-        assertTrue(settings.delete.dragEnabled)
-        assertTrue(settings.delete.showBrushPreview)
-        assertFalse(settings.delete.showTileBorders)
+        assertEquals(1, settings.tools.paint.brushSize)
+        assertTrue(settings.tools.paint.showBrushPreview)
+        assertFalse(settings.tools.paint.showTileBorders)
+        assertEquals(1, settings.tools.delete.brushSize)
+        assertTrue(settings.tools.delete.dragEnabled)
+        assertTrue(settings.tools.delete.showBrushPreview)
+        assertFalse(settings.tools.delete.showTileBorders)
     }
 
     @Test
     fun `editing brush sizes require supported odd values`() {
         val settings = DebugSettings()
         for (size in listOf(1, 3, 5, 7, 9)) {
-            settings.paint.brushSize = size
-            settings.delete.brushSize = size
+            settings.tools.paint.brushSize = size
+            settings.tools.delete.brushSize = size
         }
         for (size in listOf(-1, 0, 2, 10, 11)) {
-            assertFailsWith<IllegalArgumentException> { settings.paint.brushSize = size }
-            assertFailsWith<IllegalArgumentException> { settings.delete.brushSize = size }
+            assertFailsWith<IllegalArgumentException> { settings.tools.paint.brushSize = size }
+            assertFailsWith<IllegalArgumentException> { settings.tools.delete.brushSize = size }
         }
     }
 
@@ -190,191 +190,191 @@ class DebugSettingsTest {
     @Test
     fun `off preset restores normal world visibility`() {
         val settings = DebugSettings().apply {
-            worldVisibility.groundTerrainVisible = false
-            worldVisibility.terrainOverlaysVisible = false
-            worldVisibility.placedObjectsVisible = false
-            worldVisibility.entitiesVisible = false
-            worldVisibility.setOverlayLayerVisible("roads", false)
-            worldInfo.showOrigin = true
+            visuals.worldVisibility.groundTerrainVisible = false
+            visuals.worldVisibility.terrainOverlaysVisible = false
+            visuals.worldVisibility.placedObjectsVisible = false
+            visuals.worldVisibility.entitiesVisible = false
+            visuals.worldVisibility.setOverlayLayerVisible("roads", false)
+            visuals.worldInfo.showOrigin = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertFalse(settings.worldInfo.hasActiveVisuals)
-        assertTrue(settings.worldVisibility.groundTerrainVisible)
-        assertTrue(settings.worldVisibility.terrainOverlaysVisible)
-        assertTrue(settings.worldVisibility.placedObjectsVisible)
-        assertTrue(settings.worldVisibility.entitiesVisible)
-        assertTrue(settings.worldVisibility.isOverlayLayerVisible("roads"))
+        assertFalse(settings.visuals.worldInfo.hasActiveVisuals)
+        assertTrue(settings.visuals.worldVisibility.groundTerrainVisible)
+        assertTrue(settings.visuals.worldVisibility.terrainOverlaysVisible)
+        assertTrue(settings.visuals.worldVisibility.placedObjectsVisible)
+        assertTrue(settings.visuals.worldVisibility.entitiesVisible)
+        assertTrue(settings.visuals.worldVisibility.isOverlayLayerVisible("roads"))
     }
 
     @Test
     fun `off preset preserves camera restriction override`() {
         val settings = DebugSettings().apply {
-            camera.disableRestrictions = true
+            operations.disableCameraRestrictions = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertTrue(settings.camera.disableRestrictions)
+        assertTrue(settings.operations.disableCameraRestrictions)
     }
 
     @Test
     fun `window visibility is independent from feature settings`() {
         val settings = DebugSettings().apply {
-            toolsWindow { enabled = true; visible = false }
-            debugWindow { enabled = true; visible = true }
-            grid { enabled = true }
+            ui.toolRail.apply { enabled = true; isVisible = false }
+            ui.settingsWindow.apply { enabled = true; isVisible = true }
+            visuals.grid.apply { enabled = true }
         }
-        assertTrue(settings.toolsWindow.enabled)
-        assertFalse(settings.toolsWindow.visible)
-        assertTrue(settings.debugWindow.enabled)
-        assertTrue(settings.debugWindow.visible)
-        assertTrue(settings.grid.enabled)
+        assertTrue(settings.ui.toolRail.enabled)
+        assertFalse(settings.ui.toolRail.isVisible)
+        assertTrue(settings.ui.settingsWindow.enabled)
+        assertTrue(settings.ui.settingsWindow.isVisible)
+        assertTrue(settings.visuals.grid.enabled)
     }
 
     @Test
     fun `individual visualization controls activate their category independently`() {
         val settings = DebugSettings().apply {
-            worldInfo.showOrigin = true
-            objects.showSpriteBounds = true
-            entities.showDirection = true
-            picking.showCursorHit = true
-            renderOrder.showSortAnchors = true
-            culling.showObjectBounds = true
-            camera.showWorldBounds = true
+            visuals.worldInfo.showOrigin = true
+            visuals.objects.showSpriteBounds = true
+            visuals.entities.showDirection = true
+            visuals.picking.showCursorHit = true
+            visuals.renderOrder.showSortAnchors = true
+            visuals.culling.showObjectBounds = true
+            visuals.camera.showWorldBounds = true
         }
 
-        assertTrue(settings.worldInfo.hasActiveVisuals)
-        assertTrue(settings.objects.hasActiveVisuals)
-        assertTrue(settings.entities.hasActiveVisuals)
-        assertTrue(settings.picking.hasActiveVisuals)
-        assertTrue(settings.renderOrder.hasActiveVisuals)
-        assertTrue(settings.culling.hasActiveVisuals)
-        assertTrue(settings.camera.hasActiveVisuals)
+        assertTrue(settings.visuals.worldInfo.hasActiveVisuals)
+        assertTrue(settings.visuals.objects.hasActiveVisuals)
+        assertTrue(settings.visuals.entities.hasActiveVisuals)
+        assertTrue(settings.visuals.picking.hasActiveVisuals)
+        assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
+        assertTrue(settings.visuals.culling.hasActiveVisuals)
+        assertTrue(settings.visuals.camera.hasActiveVisuals)
     }
 
     @Test
     fun `presets only change diagnostic settings`() {
         val settings = DebugSettings().apply {
-            pathfinding.enabled = false
-            pathfinding.showExploredNodes = false
-            pathfinding.showFinalPath = true
-            inspect.showEntityPath = false
-            inspect.showObjectOrigin = false
+            tools.pathfinding.enabled = false
+            tools.pathfinding.showExploredNodes = false
+            tools.pathfinding.showFinalPath = true
+            tools.inspect.showEntityPath = false
+            tools.inspect.showObjectOrigin = false
         }
         settings.applyPreset(DebugPreset.PLACEMENT)
-        assertTrue(settings.grid.enabled)
-        assertTrue(settings.objects.showOccupiedTiles)
-        assertFalse(settings.entities.hasActiveVisuals)
+        assertTrue(settings.visuals.grid.enabled)
+        assertTrue(settings.visuals.objects.showOccupiedTiles)
+        assertFalse(settings.visuals.entities.hasActiveVisuals)
 
         settings.applyPreset(DebugPreset.EVERYTHING)
-        assertTrue(settings.performance.overlayEnabled)
-        assertFalse(settings.performance.terminalLoggingEnabled)
-        assertTrue(settings.simulation.enabled)
-        assertTrue(settings.grid.enabled)
-        assertTrue(settings.worldInfo.hasActiveVisuals)
-        assertTrue(settings.worldInfo.showTileCoordinates)
-        assertTrue(settings.worldInfo.showTerrainIds)
-        assertTrue(settings.worldInfo.showOverlayInfo)
-        assertTrue(settings.worldInfo.showOccupancy)
-        assertTrue(settings.worldInfo.showMissingTerrainVisuals)
-        assertTrue(settings.objects.hasActiveVisuals)
-        assertTrue(settings.entities.hasActiveVisuals)
-        assertTrue(settings.picking.hasActiveVisuals)
-        assertTrue(settings.renderOrder.hasActiveVisuals)
-        assertTrue(settings.culling.hasActiveVisuals)
-        assertTrue(settings.camera.hasActiveVisuals)
-        assertTrue(settings.worldStats.enabled)
-        assertFalse(settings.eventBus.enabled)
-        assertTrue(settings.notifications.enabled)
-        assertFalse(settings.camera.disableRestrictions)
-        assertTrue(settings.grid.showBackground)
-        assertTrue(settings.grid.showHoverBackground)
-        assertTrue(settings.objects.showOccupiedTiles)
-        assertTrue(settings.objects.showOriginTile)
-        assertTrue(settings.objects.showSpriteBounds)
-        assertTrue(settings.objects.showOccupiedTileFill)
-        assertTrue(settings.entities.showCurrentTile)
-        assertTrue(settings.entities.showPosition)
-        assertTrue(settings.entities.showPath)
-        assertTrue(settings.entities.showDirection)
-        assertTrue(settings.entities.showSpriteBounds)
-        assertTrue(settings.entities.showCurrentTileFill)
-        assertTrue(settings.picking.showSpriteBounds)
-        assertTrue(settings.picking.showCursorHit)
-        assertTrue(settings.renderOrder.showLabels)
-        assertTrue(settings.culling.showVisibleArea)
-        assertTrue(settings.culling.showObjectBounds)
-        assertTrue(settings.culling.showEntityBounds)
-        assertTrue(settings.camera.showVisibleArea)
-        assertTrue(settings.camera.showWorldBounds)
-        assertTrue(settings.camera.showClampBounds)
-        assertFalse(settings.pathfinding.enabled)
-        assertFalse(settings.pathfinding.showExploredNodes)
-        assertTrue(settings.pathfinding.showFinalPath)
-        assertFalse(settings.inspect.showEntityPath)
-        assertFalse(settings.inspect.showObjectOrigin)
+        assertTrue(settings.operations.performance.overlayEnabled)
+        assertFalse(settings.operations.performance.terminalLoggingEnabled)
+        assertTrue(settings.operations.simulation.enabled)
+        assertTrue(settings.visuals.grid.enabled)
+        assertTrue(settings.visuals.worldInfo.hasActiveVisuals)
+        assertTrue(settings.visuals.worldInfo.showTileCoordinates)
+        assertTrue(settings.visuals.worldInfo.showTerrainIds)
+        assertTrue(settings.visuals.worldInfo.showOverlayInfo)
+        assertTrue(settings.visuals.worldInfo.showOccupancy)
+        assertTrue(settings.visuals.worldInfo.showMissingTerrainVisuals)
+        assertTrue(settings.visuals.objects.hasActiveVisuals)
+        assertTrue(settings.visuals.entities.hasActiveVisuals)
+        assertTrue(settings.visuals.picking.hasActiveVisuals)
+        assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
+        assertTrue(settings.visuals.culling.hasActiveVisuals)
+        assertTrue(settings.visuals.camera.hasActiveVisuals)
+        assertTrue(settings.operations.worldStats.enabled)
+        assertFalse(settings.operations.eventBus.enabled)
+        assertTrue(settings.operations.notifications.enabled)
+        assertFalse(settings.operations.disableCameraRestrictions)
+        assertTrue(settings.visuals.grid.showBackground)
+        assertTrue(settings.visuals.grid.showHoverBackground)
+        assertTrue(settings.visuals.objects.showOccupiedTiles)
+        assertTrue(settings.visuals.objects.showOriginTile)
+        assertTrue(settings.visuals.objects.showSpriteBounds)
+        assertTrue(settings.visuals.objects.showOccupiedTileFill)
+        assertTrue(settings.visuals.entities.showCurrentTile)
+        assertTrue(settings.visuals.entities.showPosition)
+        assertTrue(settings.visuals.entities.showPath)
+        assertTrue(settings.visuals.entities.showDirection)
+        assertTrue(settings.visuals.entities.showSpriteBounds)
+        assertTrue(settings.visuals.entities.showCurrentTileFill)
+        assertTrue(settings.visuals.picking.showSpriteBounds)
+        assertTrue(settings.visuals.picking.showCursorHit)
+        assertTrue(settings.visuals.renderOrder.showLabels)
+        assertTrue(settings.visuals.culling.showVisibleArea)
+        assertTrue(settings.visuals.culling.showObjectBounds)
+        assertTrue(settings.visuals.culling.showEntityBounds)
+        assertTrue(settings.visuals.camera.showVisibleArea)
+        assertTrue(settings.visuals.camera.showWorldBounds)
+        assertTrue(settings.visuals.camera.showClampBounds)
+        assertFalse(settings.tools.pathfinding.enabled)
+        assertFalse(settings.tools.pathfinding.showExploredNodes)
+        assertTrue(settings.tools.pathfinding.showFinalPath)
+        assertFalse(settings.tools.inspect.showEntityPath)
+        assertFalse(settings.tools.inspect.showObjectOrigin)
     }
 
     @Test
     fun `off preset disables every optional diagnostic overlay`() {
         val settings = DebugSettings().apply {
             DebugPreset.EVERYTHING.let(::applyPreset)
-            simulation.enabled = true
-            toolsWindow.enabled = true
-            toolsWindow.visible = true
-            debugWindow.enabled = true
-            debugWindow.visible = true
+            operations.simulation.enabled = true
+            ui.toolRail.enabled = true
+            ui.toolRail.isVisible = true
+            ui.settingsWindow.enabled = true
+            ui.settingsWindow.isVisible = true
         }
 
         settings.applyPreset(DebugPreset.OFF)
 
-        assertFalse(settings.performance.overlayEnabled)
-        assertFalse(settings.simulation.enabled)
-        assertFalse(settings.grid.enabled)
-        assertFalse(settings.grid.showBackground)
-        assertFalse(settings.grid.showHoverBackground)
-        assertFalse(settings.worldInfo.hasActiveVisuals)
-        assertFalse(settings.objects.hasActiveVisuals)
-        assertFalse(settings.objects.showOccupiedTileFill)
-        assertFalse(settings.entities.hasActiveVisuals)
-        assertFalse(settings.entities.showCurrentTileFill)
-        assertFalse(settings.picking.hasActiveVisuals)
-        assertFalse(settings.renderOrder.hasActiveVisuals)
-        assertFalse(settings.culling.hasActiveVisuals)
-        assertFalse(settings.camera.hasActiveVisuals)
-        assertFalse(settings.worldStats.enabled)
-        assertFalse(settings.eventBus.enabled)
-        assertTrue(settings.notifications.enabled)
-        assertFalse(settings.camera.disableRestrictions)
-        assertTrue(settings.pathfinding.enabled)
-        assertTrue(settings.pathfinding.showExploredNodes)
-        assertTrue(settings.pathfinding.showFinalPath)
-        assertTrue(settings.toolsWindow.enabled)
-        assertTrue(settings.toolsWindow.visible)
-        assertTrue(settings.debugWindow.enabled)
-        assertTrue(settings.debugWindow.visible)
+        assertFalse(settings.operations.performance.overlayEnabled)
+        assertFalse(settings.operations.simulation.enabled)
+        assertFalse(settings.visuals.grid.enabled)
+        assertFalse(settings.visuals.grid.showBackground)
+        assertFalse(settings.visuals.grid.showHoverBackground)
+        assertFalse(settings.visuals.worldInfo.hasActiveVisuals)
+        assertFalse(settings.visuals.objects.hasActiveVisuals)
+        assertFalse(settings.visuals.objects.showOccupiedTileFill)
+        assertFalse(settings.visuals.entities.hasActiveVisuals)
+        assertFalse(settings.visuals.entities.showCurrentTileFill)
+        assertFalse(settings.visuals.picking.hasActiveVisuals)
+        assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
+        assertFalse(settings.visuals.culling.hasActiveVisuals)
+        assertFalse(settings.visuals.camera.hasActiveVisuals)
+        assertFalse(settings.operations.worldStats.enabled)
+        assertFalse(settings.operations.eventBus.enabled)
+        assertTrue(settings.operations.notifications.enabled)
+        assertFalse(settings.operations.disableCameraRestrictions)
+        assertTrue(settings.tools.pathfinding.enabled)
+        assertTrue(settings.tools.pathfinding.showExploredNodes)
+        assertTrue(settings.tools.pathfinding.showFinalPath)
+        assertTrue(settings.ui.toolRail.enabled)
+        assertTrue(settings.ui.toolRail.isVisible)
+        assertTrue(settings.ui.settingsWindow.enabled)
+        assertTrue(settings.ui.settingsWindow.isVisible)
     }
 
     @Test
     fun `every preset preserves tool visualization settings`() {
         DebugPreset.entries.forEach { preset ->
             val settings = DebugSettings().apply {
-                pathfinding.enabled = false
-                pathfinding.showExploredNodes = false
-                pathfinding.showFinalPath = true
-                inspect.showTile = false
-                inspect.showEntityDirection = false
+                tools.pathfinding.enabled = false
+                tools.pathfinding.showExploredNodes = false
+                tools.pathfinding.showFinalPath = true
+                tools.inspect.showTile = false
+                tools.inspect.showEntityDirection = false
             }
 
             settings.applyPreset(preset)
 
-            assertFalse(settings.pathfinding.enabled, preset.name)
-            assertFalse(settings.pathfinding.showExploredNodes, preset.name)
-            assertTrue(settings.pathfinding.showFinalPath, preset.name)
-            assertFalse(settings.inspect.showTile, preset.name)
-            assertFalse(settings.inspect.showEntityDirection, preset.name)
+            assertFalse(settings.tools.pathfinding.enabled, preset.name)
+            assertFalse(settings.tools.pathfinding.showExploredNodes, preset.name)
+            assertTrue(settings.tools.pathfinding.showFinalPath, preset.name)
+            assertFalse(settings.tools.inspect.showTile, preset.name)
+            assertFalse(settings.tools.inspect.showEntityDirection, preset.name)
         }
     }
 
@@ -382,18 +382,18 @@ class DebugSettingsTest {
     fun `every preset preserves operational switches`() {
         DebugPreset.entries.forEach { preset ->
             val settings = DebugSettings().apply {
-                eventBus.enabled = true
-                eventBus.captureEnabled = false
-                notifications.enabled = false
-                camera.disableRestrictions = true
+                operations.eventBus.enabled = true
+                operations.eventBus.captureEnabled = false
+                operations.notifications.enabled = false
+                operations.disableCameraRestrictions = true
             }
 
             settings.applyPreset(preset)
 
-            assertTrue(settings.eventBus.enabled, preset.name)
-            assertFalse(settings.eventBus.captureEnabled, preset.name)
-            assertFalse(settings.notifications.enabled, preset.name)
-            assertTrue(settings.camera.disableRestrictions, preset.name)
+            assertTrue(settings.operations.eventBus.enabled, preset.name)
+            assertFalse(settings.operations.eventBus.captureEnabled, preset.name)
+            assertFalse(settings.operations.notifications.enabled, preset.name)
+            assertTrue(settings.operations.disableCameraRestrictions, preset.name)
         }
     }
 
@@ -402,34 +402,34 @@ class DebugSettingsTest {
         val settings = DebugSettings()
         DebugPreset.entries.forEach { preset ->
             settings.applyPreset(DebugPreset.EVERYTHING)
-            settings.simulation.enabled = true
+            settings.operations.simulation.enabled = true
             settings.applyPreset(preset)
             assertEquals(
                 preset == DebugPreset.EVERYTHING,
-                settings.simulation.enabled,
+                settings.operations.simulation.enabled,
                 preset.name
             )
         }
         settings.applyPreset(DebugPreset.MINIMAL)
-        assertTrue(settings.performance.overlayEnabled)
-        assertTrue(settings.grid.enabled)
-        assertFalse(settings.worldStats.enabled)
+        assertTrue(settings.operations.performance.overlayEnabled)
+        assertTrue(settings.visuals.grid.enabled)
+        assertFalse(settings.operations.worldStats.enabled)
         settings.applyPreset(DebugPreset.RENDERING)
-        assertTrue(settings.renderOrder.hasActiveVisuals)
-        assertTrue(settings.culling.hasActiveVisuals)
-        assertTrue(settings.camera.hasActiveVisuals)
+        assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
+        assertTrue(settings.visuals.culling.hasActiveVisuals)
+        assertTrue(settings.visuals.camera.hasActiveVisuals)
     }
 
     @Test
     fun `presets preserve camera restriction configuration`() {
         DebugPreset.entries.forEach { preset ->
             val settings = DebugSettings().apply {
-                camera.disableRestrictions = true
+                operations.disableCameraRestrictions = true
             }
 
             settings.applyPreset(preset)
 
-            assertTrue(settings.camera.disableRestrictions, preset.name)
+            assertTrue(settings.operations.disableCameraRestrictions, preset.name)
         }
     }
 
@@ -439,14 +439,14 @@ class DebugSettingsTest {
         val world = World(2, 1) { _, _ -> TestTile }
         val from = TilePosition(0, 0)
         val to = TilePosition(1, 0)
-        settings.pathCost { suppliedWorld, suppliedFrom, suppliedTo ->
+        settings.tools.pathCost { suppliedWorld, suppliedFrom, suppliedTo ->
             assertTrue(suppliedWorld === world)
             assertEquals(from, suppliedFrom)
             assertEquals(to, suppliedTo)
             2.5f
         }
 
-        assertEquals(2.5f, settings.pathCost?.invoke(world, from, to))
+        assertEquals(2.5f, settings.tools.pathCost?.invoke(world, from, to))
     }
 
     @Test
@@ -455,7 +455,7 @@ class DebugSettingsTest {
 
         listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalid ->
             assertFailsWith<IllegalArgumentException> {
-                settings.pathfinding.entitySpeedMultiplier = invalid
+                settings.tools.pathfinding.entitySpeedMultiplier = invalid
             }
         }
     }
@@ -514,25 +514,25 @@ class DebugSettingsTest {
     fun `debug window startup visibility is independent from runtime visibility`() {
         val settings = DebugSettings()
 
-        assertFalse(settings.debugWindow.visibleOnStartup)
-        assertFalse(settings.debugWindow.visible)
+        assertFalse(settings.ui.settingsWindow.visibleOnStartup)
+        assertFalse(settings.ui.settingsWindow.isVisible)
 
-        settings.debugWindow {
+        settings.ui.settingsWindow {
             enabled = true
             visibleOnStartup = true
         }
 
-        assertTrue(settings.debugWindow.visibleOnStartup)
+        assertTrue(settings.ui.settingsWindow.visibleOnStartup)
 
         // Runtime visibility is not changed by configuration alone.
-        assertFalse(settings.debugWindow.visible)
+        assertFalse(settings.ui.settingsWindow.isVisible)
     }
 
     @Test
     fun `enabled windows require independent shortcuts`() {
         val settings = DebugSettings().apply {
-            toolsWindow { enabled = true; toggleKey = Input.Keys.F4 }
-            debugWindow { enabled = true; toggleKey = Input.Keys.F4 }
+            ui.toolRail.apply { enabled = true; toggleKey = Input.Keys.F4 }
+            ui.settingsWindow.apply { enabled = true; toggleKey = Input.Keys.F4 }
         }
 
         assertFailsWith<IllegalArgumentException> {

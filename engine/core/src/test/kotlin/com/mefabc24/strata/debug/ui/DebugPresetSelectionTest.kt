@@ -21,13 +21,13 @@ class DebugPresetSelectionTest {
     @Test
     fun `default preset selection restores the persisted default configuration`() {
         val settings = DebugSettings().apply {
-            grid.enabled = true
+            visuals.grid.enabled = true
             saveDefaultVisualConfiguration()
-            grid.enabled = false
+            visuals.grid.enabled = false
         }
 
         DebugPresetSelection.DEFAULT.applyTo(settings)
 
-        assertEquals(true, settings.grid.enabled)
+        assertEquals(true, settings.visuals.grid.enabled)
     }
 }

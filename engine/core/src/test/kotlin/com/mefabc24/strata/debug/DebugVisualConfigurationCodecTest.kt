@@ -11,15 +11,15 @@ class DebugVisualConfigurationCodecTest {
     @Test
     fun `visual configuration survives json round trip`() {
         val original = DebugSettings().apply {
-            grid.enabled = true
-            grid.lineWidth = 3f
-            grid.color = Color.CYAN
+            visuals.grid.enabled = true
+            visuals.grid.lineWidth = 3f
+            visuals.grid.color = Color.CYAN
 
-            entities.showPath = true
+            visuals.entities.showPath = true
 
-            visualizationFilter = DebugVisualizationFilter.HOVERED
+            visuals.filter = DebugVisualizationFilter.HOVERED
 
-            worldVisibility.setOverlayLayerVisible(
+            visuals.worldVisibility.setOverlayLayerVisible(
                 "roads",
                 false
             )
@@ -34,19 +34,19 @@ class DebugVisualConfigurationCodecTest {
         val target = DebugSettings()
         target.applyVisualConfiguration(restored)
 
-        assertTrue(target.grid.enabled)
-        assertEquals(3f, target.grid.lineWidth)
-        assertEquals(Color.CYAN, target.grid.color)
+        assertTrue(target.visuals.grid.enabled)
+        assertEquals(3f, target.visuals.grid.lineWidth)
+        assertEquals(Color.CYAN, target.visuals.grid.color)
 
-        assertTrue(target.entities.showPath)
+        assertTrue(target.visuals.entities.showPath)
 
         assertEquals(
             DebugVisualizationFilter.HOVERED,
-            target.visualizationFilter
+            target.visuals.filter
         )
 
         assertFalse(
-            target.worldVisibility.isOverlayLayerVisible("roads")
+            target.visuals.worldVisibility.isOverlayLayerVisible("roads")
         )
     }
 
@@ -59,8 +59,8 @@ class DebugVisualConfigurationCodecTest {
 
         target.applyVisualConfiguration(legacy)
 
-        assertFalse(target.entities.showPath)
-        assertFalse(target.entities.hasActiveVisuals)
+        assertFalse(target.visuals.entities.showPath)
+        assertFalse(target.visuals.entities.hasActiveVisuals)
     }
 
     @Test
@@ -82,10 +82,10 @@ class DebugVisualConfigurationCodecTest {
 
         settings.applyVisualConfiguration(legacy)
 
-        assertFalse(settings.objects.showOccupiedTileFill)
-        assertFalse(settings.grid.showBackground)
+        assertFalse(settings.visuals.objects.showOccupiedTileFill)
+        assertFalse(settings.visuals.grid.showBackground)
 
-        assertTrue(settings.entities.showCurrentTileFill)
-        assertEquals(0.4f, settings.entities.currentTileFillColor.a)
+        assertTrue(settings.visuals.entities.showCurrentTileFill)
+        assertEquals(0.4f, settings.visuals.entities.currentTileFillColor.a)
     }
 }
