@@ -58,6 +58,12 @@ internal class DebugPanel(
     private val toolRailState = DebugToolRailState(modes.filter {
         debugToolFlyoutSectionTitles(it).isNotEmpty()
     }.toSet())
+    private val toolWindowBuilder = DebugToolWindowBuilder(
+        ui = ui,
+        modes = modes,
+        onToolSelected = ::selectTool,
+        onSettingsRequested = ::toggleToolSettings
+    )
     private val buildSelection = buildEntries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { tools.selectBuildEntry(it) }
     }
@@ -226,70 +232,21 @@ internal class DebugPanel(
     }
 
     private fun buildToolRail() {
-        val style = ui.skin.get(
-            "debug-tool-rail-button",
-            DebugToolRailButtonStyle::class.java
-        )
-        toolRailActor = ui.panel(
-            styleName = null,
-            spacing = 0f,
-            padding = StrataInsets.NONE
-        ) {
-            scrollColumn(spacing = 0f, padding = StrataInsets.NONE) {
-                defaults().fillAvailableX()
-                modes.forEachIndexed { index, mode ->
-                    val button = DebugToolRailButton(
-                        mode = mode,
-                        label = debugToolRailLabel(mode),
-                        icon = ui.skin.getDrawable(debugToolIconName(mode)),
-                        skin = ui.skin,
-                        style = style,
-                        onSelected = ::selectTool,
-                        onSettingsRequested = ::toggleToolSettings
-                    )
-                    toolButtons[mode] = actor(button).cell {
-                        width(DebugWindowLayout.TOOL_RAIL_WIDTH)
-                        height(DebugWindowLayout.TOOL_BUTTON_HEIGHT)
-                    }
-                    if (index != modes.lastIndex) separator()
-                }
-            }.cell { grow(); minHeight(0f) }
-        }
-        toolRailActor.remove()
+        val rail = toolWindowBuilder.buildRail()
+        toolRailActor = rail.actor
+        toolButtons.putAll(rail.buttons)
     }
 
     private fun buildToolFlyout() {
-        toolFlyoutActor = ui.panel(
-            styleName = "debug-panel",
-            spacing = 0f,
-            padding = StrataInsets.NONE
-        ) {
+        val flyout = toolWindowBuilder.buildFlyout {
             defaults().fillAvailableX()
-            toolFlyoutHeader = label("", "title").cell {
-                height(34f)
-                padLeft(10f)
-                padRight(10f)
-                left()
-            }
-            separator()
-            toolFlyoutScroll = scrollColumn(
-                spacing = 0f,
-                padding = StrataInsets.NONE
-            ) {
-                defaults().fillAvailableX()
-                buildingDebugSettings = true
-                buildToolSettings()
-                buildingDebugSettings = false
-            }.cell {
-                growX()
-                fillX()
-                minHeight(0f)
-                prefHeight(Value.prefHeight)
-            }
+            buildingDebugSettings = true
+            buildToolSettings()
+            buildingDebugSettings = false
         }
-        toolFlyoutActor.remove()
-        toolFlyoutActor.isVisible = false
-        ui.stage.addActor(toolFlyoutActor)
+        toolFlyoutActor = flyout.actor
+        toolFlyoutScroll = flyout.scroll
+        toolFlyoutHeader = flyout.header
     }
 
     private fun StrataColumn.buildToolSettings() {
