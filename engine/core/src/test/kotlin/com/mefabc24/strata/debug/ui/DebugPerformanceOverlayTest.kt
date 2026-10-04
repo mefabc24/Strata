@@ -30,7 +30,7 @@ class DebugPerformanceOverlayTest {
     }
 
     @Test
-    fun `diagnostic sections retain their left stack order without gaps`() {
+    fun `diagnostic sections retain their vertical stack order without gaps`() {
         val state = DebugStatsOverlayState()
         state.sync(false, false, false)
         assertFalse(state.visible)
