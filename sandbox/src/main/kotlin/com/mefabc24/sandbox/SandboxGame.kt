@@ -57,7 +57,10 @@ class SandboxGame : StrataGame() {
                 }
 
                 debug {
-                    defaultPresetStorage("strata.sandbox.debug")
+                    presets {
+                        storage("strata.sandbox.debug")
+                        applySavedDefaultOnStartup = true
+                    }
 
                     toolsWindow {
                         enabled = true
@@ -72,27 +75,17 @@ class SandboxGame : StrataGame() {
                     }
 
                     performance {
-                        overlayEnabled = false
-                        terminalLoggingEnabled = false
                         terminalLoggingIntervalSeconds = 2f
-                    }
-
-                    paint {
-                        brushSize = 1
-                        showBrushPreview = true
                     }
 
                     delete {
                         brushSize = 3
-                        dragEnabled = true
-                        showBrushPreview = true
                     }
 
                     grid {
                         enabled = false
                         color = Color(1f, 1f, 1f, 0.4f)
                         hoverColor = Color(1f, 0f, 0f, 1f)
-                        lineWidth = 1f
                         backgroundColor =
                             Color(1f, 1f, 1f, 0.2f)
                         hoverBackgroundColor =
@@ -100,39 +93,18 @@ class SandboxGame : StrataGame() {
                     }
 
                     objects {
-                        enabled = false
                         showOccupiedTiles = true
                         showOriginTile = true
-                        showSpriteBounds = false
-                        occupiedTileColor =
-                            Color(0.2f, 0.85f, 1f, 1f)
                         occupiedTileFillColor =
                             Color(0.2f, 0.65f, 1f, 0.2f)
-                        originTileColor =
-                            Color(1f, 0.35f, 0.2f, 1f)
-                        spriteBoundsColor =
-                            Color(1f, 0.2f, 0.75f, 1f)
                     }
 
                     entities {
-                        enabled = false
                         showCurrentTile = true
                         showPosition = true
                         showPath = true
-                        showDirection = false
-                        showSpriteBounds = false
-                        currentTileColor =
-                            Color(0.4f, 1f, 0.3f, 1f)
                         currentTileFillColor =
                             Color(0.3f, 1f, 0.3f, 0.18f)
-                        positionColor =
-                            Color(1f, 0.3f, 0.2f, 1f)
-                        pathColor =
-                            Color(1f, 0.85f, 0.2f, 1f)
-                        directionColor =
-                            Color(0.3f, 0.75f, 1f, 1f)
-                        spriteBoundsColor =
-                            Color(1f, 0.3f, 0.9f, 1f)
                     }
 
                     onEntitySpawned { entity ->
