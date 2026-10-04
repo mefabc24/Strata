@@ -208,10 +208,10 @@ internal class DebugPanel(
         ui.root.clearChildren()
 
         windowLayout = Table().apply {
-            top()
+            center()
             touchable = Touchable.childrenOnly
         }
-        ui.actor(windowLayout).cell { growX(); fillX(); top() }
+        ui.actor(windowLayout).cell { grow(); fill() }
     }
 
     private fun buildToolRail() {
@@ -1635,10 +1635,11 @@ internal class DebugPanel(
                 .minHeight(0f)
                 .prefHeight(Value.prefHeight)
                 .maxHeight(Value.percentHeight(1f, ui.root))
-                .top()
+                .padLeft(DebugWindowLayout.TOOL_RAIL_MARGIN)
+                .center()
                 .left()
         }
-        windowLayout.add().growX()
+        windowLayout.add().grow()
         if (debugVisible) {
             windowLayout.add(debugPanelActor)
                 .width(debugWidth)
