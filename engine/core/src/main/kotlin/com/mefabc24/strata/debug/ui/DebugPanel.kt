@@ -382,18 +382,20 @@ internal class DebugPanel(
                     }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Terrain") {
-                    responsiveGrid(130f, maximumColumns = 2) {
-                        painter.entries.forEach { entry ->
-                            val name = entry.type.toString().toDisplayName()
-                            selectableButton(name, entry, checkNotNull(terrainSelection))
-                                .previewOnHover(
-                                    entry,
-                                    DebugContentKind.TERRAIN,
-                                    name,
-                                    entry.selectionTexture
-                                )
-                        }
-                    }.cell { fillAvailableX() }
+                    actor(DebugToolSelectionList(
+                        items = painter.entries.map { entry ->
+                            DebugToolSelectionItem(
+                                value = entry,
+                                displayName = entry.type.toString().toDisplayName(),
+                                texture = entry.selectionTexture
+                            )
+                        },
+                        selectionGroup = checkNotNull(terrainSelection),
+                        skin = ui.skin,
+                        searchHint = "Search terrain...",
+                        showSearch = false,
+                        onLayoutChanged = ::invalidateToolFlyoutLayout
+                    )).cell { fillAvailableX() }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Target") {
                     responsiveGrid(130f, maximumColumns = 2) {
