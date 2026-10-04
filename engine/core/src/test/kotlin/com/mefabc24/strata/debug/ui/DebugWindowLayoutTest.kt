@@ -17,16 +17,17 @@ class DebugWindowLayoutTest {
 
     @Test
     fun `overlay stack clears the rail and visible flyout`() {
+        assertEquals(10f, DebugWindowLayout.TOOL_RAIL_MARGIN)
         assertEquals(
             16f,
             DebugWindowLayout.overlayLeftPadding(false, false)
         )
         assertEquals(
-            76f,
+            86f,
             DebugWindowLayout.overlayLeftPadding(true, false)
         )
         assertEquals(
-            416f,
+            426f,
             DebugWindowLayout.overlayLeftPadding(true, true)
         )
     }
