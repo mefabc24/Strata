@@ -36,6 +36,19 @@ internal fun debugToolRailLabel(mode: DebugToolMode): String = when (mode) {
     else -> mode.displayName
 }
 
+internal fun debugToolFlyoutSectionTitles(mode: DebugToolMode): List<String> = when (mode) {
+    DebugToolMode.NONE -> emptyList()
+    DebugToolMode.BUILD -> listOf("Selection", "Status")
+    DebugToolMode.DELETE -> listOf("Brush", "Status")
+    DebugToolMode.PAINT -> listOf("Brush", "Terrain", "Target", "Status")
+    DebugToolMode.SPAWN -> listOf("Selection", "Status")
+    DebugToolMode.INSPECT -> listOf("Selection", "Entity control", "Visualization", "Status")
+    DebugToolMode.MOVE -> listOf("Status")
+    DebugToolMode.PATHFINDING ->
+        listOf("Search", "Visualization", "Diagnostic search", "Traversal", "Status")
+    DebugToolMode.FREE_CAMERA -> listOf("Movement", "Visualization", "Status")
+}
+
 internal class DebugToolRailState(
     private val configurableModes: Set<DebugToolMode>
 ) {

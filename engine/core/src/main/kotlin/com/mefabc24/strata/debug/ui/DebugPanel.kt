@@ -67,8 +67,8 @@ internal class DebugPanel(
         paintAvailable = painter.entries.isNotEmpty(),
         spawnAvailable = spawner.entries.isNotEmpty()
     )
-    private val toolRailState = DebugToolRailState(modes.filterNot {
-        it == DebugToolMode.NONE
+    private val toolRailState = DebugToolRailState(modes.filter {
+        debugToolFlyoutSectionTitles(it).isNotEmpty()
     }.toSet())
     private val buildSelection = buildEntries.takeIf { it.isNotEmpty() }?.let { entries ->
         ui.selectionGroup(entries, entries.first()) { tools.selectBuildEntry(it) }
@@ -310,7 +310,7 @@ internal class DebugPanel(
         stack {
             buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Selection") {
+                toolSettingsExpander(DebugToolMode.BUILD, "Selection") {
                     responsiveGrid(130f, maximumColumns = 2) {
                         buildEntries.forEach { entry ->
                             selectableButton(
@@ -330,7 +330,7 @@ internal class DebugPanel(
             }
             deleteControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Brush") {
+                toolSettingsExpander(DebugToolMode.DELETE, "Brush") {
                     brushSizeStepper("Brush size", { settings.delete.brushSize }) {
                         settings.delete.brushSize = it
                     }
@@ -345,7 +345,7 @@ internal class DebugPanel(
             }
             paintControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Brush") {
+                toolSettingsExpander(DebugToolMode.PAINT, "Brush") {
                     brushSizeStepper("Brush size", { settings.paint.brushSize }) {
                         settings.paint.brushSize = it
                     }
@@ -353,7 +353,7 @@ internal class DebugPanel(
                         settings.paint.showBrushPreview = it
                     }
                 }
-                toolSettingsExpander("Terrain") {
+                toolSettingsExpander(DebugToolMode.PAINT, "Terrain") {
                     responsiveGrid(130f, maximumColumns = 2) {
                         painter.entries.forEach { entry ->
                             val name = entry.type.toString().toDisplayName()
@@ -367,7 +367,7 @@ internal class DebugPanel(
                         }
                     }.cell { fillAvailableX() }
                 }
-                toolSettingsExpander("Target") {
+                toolSettingsExpander(DebugToolMode.PAINT, "Target") {
                     responsiveGrid(130f, maximumColumns = 2) {
                         paintTargets.forEach { target ->
                             selectableButton(
@@ -399,7 +399,7 @@ internal class DebugPanel(
             }
             spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Selection") {
+                toolSettingsExpander(DebugToolMode.SPAWN, "Selection") {
                     responsiveGrid(130f, maximumColumns = 2) {
                         spawner.entries.forEach { entry ->
                             val name = entry.type.displayName()
@@ -417,11 +417,11 @@ internal class DebugPanel(
             }
             inspectControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Selection") {
+                toolSettingsExpander(DebugToolMode.INSPECT, "Selection") {
                     inspectorRows = diagnosticTable()
                     compactAction("Clear selection") { inspector.clear() }
                 }
-                toolSettingsExpander("Entity control") {
+                toolSettingsExpander(DebugToolMode.INSPECT, "Entity control") {
                 simpleToggle(
                     "Frozen",
                     {
@@ -453,7 +453,11 @@ internal class DebugPanel(
                     )
                 }
                 }
-                toolSettingsExpander("Visualization", expanded = false) {
+                toolSettingsExpander(
+                    DebugToolMode.INSPECT,
+                    "Visualization",
+                    expanded = false
+                ) {
                 settingGroupLabel("Tile")
                 toggleRows(
                     toggle("Selected tile", { settings.inspect.showTile }) {
@@ -508,13 +512,13 @@ internal class DebugPanel(
                 synchronizers += {
                     movementModes.select(settings.pathfinding.movementMode)
                 }
-                toolSettingsExpander("Search") {
+                toolSettingsExpander(DebugToolMode.PATHFINDING, "Search") {
                     responsiveGrid(105f, 36f, maximumColumns = 2) {
                         selectableButton("4-way", PathMovementMode.FOUR_WAY, movementModes)
                         selectableButton("8-way", PathMovementMode.EIGHT_WAY, movementModes)
                     }.cell { fillAvailableX() }
                 }
-                toolSettingsExpander("Visualization") {
+                toolSettingsExpander(DebugToolMode.PATHFINDING, "Visualization") {
                     simpleToggle(
                         "World visualization",
                         { settings.pathfinding.enabled }
@@ -573,7 +577,11 @@ internal class DebugPanel(
                         128f
                     ) { settings.pathfinding.maximumRejectedTransitions = it.toInt() }
                 }
-                toolSettingsExpander("Diagnostic search", expanded = false) {
+                toolSettingsExpander(
+                    DebugToolMode.PATHFINDING,
+                    "Diagnostic search",
+                    expanded = false
+                ) {
                     compactActions(
                         "Start" to { pathfinding.startDiagnosticSearch() },
                         "Step" to { pathfinding.stepDiagnosticSearch() }
@@ -591,7 +599,11 @@ internal class DebugPanel(
                         1f
                     ) { settings.pathfinding.automaticIterationsPerUpdate = it.toInt() }
                 }
-                toolSettingsExpander("Traversal", expanded = false) {
+                toolSettingsExpander(
+                    DebugToolMode.PATHFINDING,
+                    "Traversal",
+                    expanded = false
+                ) {
                     simpleToggle(
                         "Consume reached nodes",
                         { settings.pathfinding.consumeReachedWaypoints }
@@ -613,13 +625,13 @@ internal class DebugPanel(
             }
             cameraControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSettingsExpander("Movement") {
+                toolSettingsExpander(DebugToolMode.FREE_CAMERA, "Movement") {
                     simpleToggle(
                         "Disable restrictions",
                         { settings.camera.disableRestrictions }
                     ) { settings.camera.disableRestrictions = it }
                 }
-                toolSettingsExpander("Visualization") {
+                toolSettingsExpander(DebugToolMode.FREE_CAMERA, "Visualization") {
                     simpleToggle(
                         "World visualization",
                         { settings.camera.enabled }
@@ -1217,18 +1229,24 @@ internal class DebugPanel(
     }
 
     private fun StrataColumn.toolSettingsExpander(
+        mode: DebugToolMode,
         title: String,
         expanded: Boolean = true,
         configure: StrataColumn.() -> Unit
-    ): StrataExpander = settingsExpander(
-        title = title,
-        expanded = expanded,
-        onExpandedChanged = { invalidateToolFlyoutLayout() },
-        configure = configure
-    )
+    ): StrataExpander {
+        require(title in debugToolFlyoutSectionTitles(mode)) {
+            "Unknown $mode tool flyout section: $title"
+        }
+        return settingsExpander(
+            title = title,
+            expanded = expanded,
+            onExpandedChanged = { invalidateToolFlyoutLayout() },
+            configure = configure
+        )
+    }
 
     private fun StrataColumn.toolStatus(mode: DebugToolMode) {
-        toolSettingsExpander("Status") {
+        toolSettingsExpander(mode, "Status") {
             toolStatusRows[mode] = diagnosticTable()
         }
     }
