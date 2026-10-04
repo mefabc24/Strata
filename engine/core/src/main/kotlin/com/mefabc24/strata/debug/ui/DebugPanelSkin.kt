@@ -200,6 +200,14 @@ internal object DebugPanelSkin {
             StrataPanelStyle::class.java
         )
         skin.add(
+            "debug-tool-preview",
+            StrataPanelStyle(
+                background = drawable.tint(Color(0.115f, 0.12f, 0.135f, 0.98f)),
+                padding = StrataInsets.NONE
+            ),
+            StrataPanelStyle::class.java
+        )
+        skin.add(
             "debug-tool-rail-button",
             DebugToolRailButtonStyle(
                 normal = drawable.tint(Color(0.07f, 0.075f, 0.085f, 0.98f)),

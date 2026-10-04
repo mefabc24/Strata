@@ -330,6 +330,30 @@ internal class DebugPanel(
                         onLayoutChanged = ::invalidateToolFlyoutLayout
                     )).cell { fillAvailableX() }
                 }
+                toolSettingsExpander(DebugToolMode.BUILD, "Preview") {
+                    val preview = DebugToolPreviewCard(ui.skin)
+                    fun updatePreview(entry: ObjectEntry?) {
+                        if (entry == null) return
+                        val footprint = entry.create().footprint
+                        val visual = entry.selectionVisual
+                        val texture = visual.texture
+                        preview.show(DebugToolPreview(
+                            key = entry,
+                            displayName = entry.displayName(),
+                            texture = texture,
+                            details = listOf(
+                                "Footprint" to footprint.dimensionsText(),
+                                "Occupied" to "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
+                                "Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px",
+                                "Frames" to visual.sprite.frameCount.toString()
+                            )
+                        ))
+                    }
+                    actor(preview).cell { fillAvailableX(); height(110f) }
+                    val group = checkNotNull(buildSelection)
+                    ui.root.context.own(group.onSelectionChanged(::updatePreview))
+                    updatePreview(group.selected)
+                }
                 toolStatus(DebugToolMode.BUILD)
             }
             deleteControls = column(spacing = 0f) {
