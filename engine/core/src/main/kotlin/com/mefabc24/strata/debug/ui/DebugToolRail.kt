@@ -148,7 +148,11 @@ internal class DebugToolRailButton(
                 if (!accepted) return
                 when (button) {
                     Input.Buttons.LEFT -> onSelected(mode)
-                    Input.Buttons.RIGHT -> onSettingsRequested(mode)
+
+                    Input.Buttons.RIGHT -> {
+                        onSelected(mode)
+                        onSettingsRequested(mode)
+                    }
                 }
             }
 
