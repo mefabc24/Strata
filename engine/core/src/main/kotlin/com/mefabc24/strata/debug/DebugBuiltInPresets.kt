@@ -85,6 +85,8 @@ internal object DebugPresets {
         settings.performance.overlayEnabled = false
         settings.simulation.enabled = false
         settings.grid.enabled = false
+        settings.grid.showBackground = false
+        settings.grid.showHoverBackground = false
         settings.worldInfo.showTileCoordinates = false
         settings.worldInfo.showTerrainIds = false
         settings.worldInfo.showOverlayInfo = false
