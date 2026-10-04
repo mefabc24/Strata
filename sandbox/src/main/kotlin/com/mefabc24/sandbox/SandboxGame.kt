@@ -62,80 +62,88 @@ class SandboxGame : StrataGame() {
                         applySavedDefaultOnStartup = true
                     }
 
-                    toolsWindow {
-                        enabled = true
-                        visibleOnStartup = false
-                        toggleKey = Input.Keys.TAB
-                    }
-
-                    debugWindow {
-                        enabled = true
-                        visibleOnStartup = false
-                        toggleKey = Input.Keys.ESCAPE
-                    }
-
-                    performance {
-                        terminalLoggingIntervalSeconds = 2f
-                    }
-
-                    delete {
-                        brushSize = 3
-                    }
-
-                    grid {
-                        enabled = false
-                        showBackground = true
-                        showHoverBackground = true
-                        color = Color(1f, 1f, 1f, 0.4f)
-                        hoverColor = Color(1f, 0f, 0f, 1f)
-                        backgroundColor =
-                            Color(1f, 1f, 1f, 0.2f)
-                        hoverBackgroundColor =
-                            Color(1f, 0f, 0f, 0.5f)
-                    }
-
-                    objects {
-                        showOccupiedTiles = true
-                        showOriginTile = true
-                        showOccupiedTileFill = true
-                        occupiedTileFillColor =
-                            Color(0.2f, 0.65f, 1f, 0.2f)
-                    }
-
-                    entities {
-                        showCurrentTile = true
-                        showPosition = true
-                        showPath = true
-                        showCurrentTileFill = true
-                        currentTileFillColor =
-                            Color(0.3f, 1f, 0.3f, 0.18f)
-                    }
-
-                    onEntitySpawned { entity ->
-                        roaming.control(entity)
-                        strata.events.publish(
-                            SandboxDebugEntitySpawned(
-                                entityType = entity.entity::class.simpleName ?: "Entity",
-                                position = entity.currentTile
-                            )
-                        )
-                    }
-
-                    onObjectsPlaced { placed ->
-                        if (placed.isNotEmpty()) {
-                            playBuildingSound()
+                    ui {
+                        toolRail {
+                            enabled = true
+                            visibleOnStartup = false
+                            toggleKey = Input.Keys.TAB
                         }
-                        placed.forEach { objectInWorld ->
+
+                        settingsWindow {
+                            enabled = true
+                            visibleOnStartup = false
+                            toggleKey = Input.Keys.ESCAPE
+                        }
+                    }
+
+                    visuals {
+                        grid {
+                            enabled = false
+                            showBackground = true
+                            showHoverBackground = true
+                            color = Color(1f, 1f, 1f, 0.4f)
+                            hoverColor = Color(1f, 0f, 0f, 1f)
+                            backgroundColor =
+                                Color(1f, 1f, 1f, 0.2f)
+                            hoverBackgroundColor =
+                                Color(1f, 0f, 0f, 0.5f)
+                        }
+
+                        objects {
+                            showOccupiedTiles = true
+                            showOriginTile = true
+                            showOccupiedTileFill = true
+                            occupiedTileFillColor =
+                                Color(0.2f, 0.65f, 1f, 0.2f)
+                        }
+
+                        entities {
+                            showCurrentTile = true
+                            showPosition = true
+                            showPath = true
+                            showCurrentTileFill = true
+                            currentTileFillColor =
+                                Color(0.3f, 1f, 0.3f, 0.18f)
+                        }
+                    }
+
+                    tools {
+                        delete {
+                            brushSize = 3
+                        }
+
+                        onEntitySpawned { entity ->
+                            roaming.control(entity)
                             strata.events.publish(
-                                SandboxDebugObjectPlaced(
-                                    objectType = objectInWorld.placeable::class.simpleName
-                                        ?: "Object",
-                                    position = com.mefabc24.strata.world.TilePosition(
-                                        objectInWorld.x,
-                                        objectInWorld.y
-                                    )
+                                SandboxDebugEntitySpawned(
+                                    entityType = entity.entity::class.simpleName ?: "Entity",
+                                    position = entity.currentTile
                                 )
                             )
+                        }
+
+                        onObjectsPlaced { placed ->
+                            if (placed.isNotEmpty()) {
+                                playBuildingSound()
+                            }
+                            placed.forEach { objectInWorld ->
+                                strata.events.publish(
+                                    SandboxDebugObjectPlaced(
+                                        objectType = objectInWorld.placeable::class.simpleName
+                                            ?: "Object",
+                                        position = com.mefabc24.strata.world.TilePosition(
+                                            objectInWorld.x,
+                                            objectInWorld.y
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    operations {
+                        performance {
+                            terminalLoggingIntervalSeconds = 2f
                         }
                     }
                 }
