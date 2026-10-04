@@ -2,6 +2,7 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -36,6 +37,12 @@ internal fun <T> filterDebugToolSelectionItems(
     return items.filter { it.displayName.lowercase(Locale.ROOT).contains(normalized) }
 }
 
+internal fun debugToolSelectionListHeight(itemCount: Int): Float {
+    require(itemCount >= 0) { "Item count must not be negative." }
+    val contentHeight = if (itemCount == 0) 42f else itemCount * 56f + itemCount - 1f
+    return min(contentHeight, MAX_TOOL_SELECTION_LIST_HEIGHT)
+}
+
 internal class DebugToolSelectionList<T>(
     items: List<DebugToolSelectionItem<T>>,
     private val selectionGroup: StrataSelectionGroup<T>,
@@ -47,7 +54,7 @@ internal class DebugToolSelectionList<T>(
     private val allItems = items.toList()
     private val rows = Table(skin)
     private val scroll = ScrollPane(rows, skin)
-    private val scrollCell = add(scroll)
+    private val scrollCell: Cell<ScrollPane>
     private val visibleButtons = mutableListOf<StrataSelectableButton<T>>()
     private val separator = skin.get(
         "debug-separator",
@@ -80,6 +87,7 @@ internal class DebugToolSelectionList<T>(
         scroll.setScrollingDisabled(true, false)
         scroll.setFadeScrollBars(false)
         scroll.setOverscroll(false, false)
+        scrollCell = add(scroll)
         scrollCell.growX().fillX().minHeight(0f)
         showItems(allItems)
     }
@@ -107,8 +115,7 @@ internal class DebugToolSelectionList<T>(
             }
         }
 
-        val contentHeight = if (items.isEmpty()) 42f else items.size * 56f + items.lastIndex
-        scrollCell.height(min(contentHeight, MAX_LIST_HEIGHT))
+        scrollCell.height(debugToolSelectionListHeight(items.size))
         rows.invalidateHierarchy()
         scroll.invalidateHierarchy()
         invalidateHierarchy()
@@ -152,8 +159,6 @@ internal class DebugToolSelectionList<T>(
         }
         return button
     }
-
-    private companion object {
-        const val MAX_LIST_HEIGHT = 228f
-    }
 }
+
+private const val MAX_TOOL_SELECTION_LIST_HEIGHT = 228f
