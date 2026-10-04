@@ -2,7 +2,6 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.mefabc24.strata.testing.TestGdxEnvironment
@@ -78,13 +77,22 @@ class DebugToolSelectionListTest {
         list.validate()
         val scroll = list.children.first { it is ScrollPane } as ScrollPane
         scroll.validate()
-
-        scroll.listeners.filterIsInstance<InputListener>().forEach {
-            it.enter(InputEvent(), 10f, 10f, -1, null)
-        }
+        val point = scroll.localToStageCoordinates(
+            com.badlogic.gdx.math.Vector2(10f, 10f)
+        )
+        val target = checkNotNull(stage.hit(point.x, point.y, true))
+        target.fire(InputEvent().apply {
+            type = InputEvent.Type.enter
+            this.stage = stage
+            stageX = point.x
+            stageY = point.y
+            pointer = -1
+        })
 
         assertSame(scroll, stage.scrollFocus)
         val before = scroll.scrollY
+        val screen = stage.stageToScreenCoordinates(point.cpy())
+        stage.mouseMoved(screen.x.toInt(), screen.y.toInt())
         assertTrue(stage.scrolled(0f, 1f))
         assertNotEquals(before, scroll.scrollY)
 
