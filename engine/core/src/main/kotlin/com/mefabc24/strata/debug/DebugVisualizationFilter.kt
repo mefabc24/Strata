@@ -115,7 +115,7 @@ internal class DebugVisualizationFilterContext {
 }
 
 internal fun DebugSettings.needsHoveredVisualizationTarget(): Boolean =
-    visualizationFilter == DebugVisualizationFilter.HOVERED &&
-        (objects.hasActiveVisuals || entities.hasActiveVisuals ||
-            renderOrder.hasActiveVisuals || culling.hasActiveVisuals ||
-            worldInfo.hasActiveVisuals)
+    visuals.filter == DebugVisualizationFilter.HOVERED &&
+        (visuals.objects.hasActiveVisuals || visuals.entities.hasActiveVisuals ||
+            visuals.renderOrder.hasActiveVisuals || visuals.culling.hasActiveVisuals ||
+            visuals.worldInfo.hasActiveVisuals)

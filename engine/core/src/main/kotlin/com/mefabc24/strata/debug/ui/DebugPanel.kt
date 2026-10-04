@@ -43,8 +43,8 @@ internal class DebugPanel(
     private val entities: EntityRegistry
 ) {
     private val statsOverlay = DebugStatsOverlay(
-        ui, { view.renderStats }, settings.performance, { settings.performance.overlayEnabled },
-        { settings.worldStats.enabled }, world, placement, eventMonitor, settings.eventBus
+        ui, { view.renderStats }, settings.operations.performance, { settings.operations.performance.overlayEnabled },
+        { settings.operations.worldStats.enabled }, world, placement, eventMonitor, settings.operations.eventBus
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
@@ -145,16 +145,16 @@ internal class DebugPanel(
         overlaySelection?.let { group ->
             synchronizers += { painter.selectedOverlayLayerId?.let(group::select) }
         }
-        setToolsWindowVisible(settings.toolsWindow.visibleOnStartup)
-        setDebugWindowVisible(settings.debugWindow.visibleOnStartup)
+        setToolsWindowVisible(settings.ui.toolRail.visibleOnStartup)
+        setDebugWindowVisible(settings.ui.settingsWindow.visibleOnStartup)
         syncStatsOverlayPosition()
         syncControls()
         syncVisibility()
     }
 
     fun setToolsWindowVisible(visible: Boolean) {
-        if (!settings.toolsWindow.enabled) return
-        settings.toolsWindow.visible = visible
+        if (!settings.ui.toolRail.enabled) return
+        settings.ui.toolRail.isVisible = visible
         if (!visible) {
             closeToolSettings()
         }
@@ -162,15 +162,15 @@ internal class DebugPanel(
     }
 
     fun setDebugWindowVisible(visible: Boolean) {
-        if (!settings.debugWindow.enabled) return
-        settings.debugWindow.visible = visible
+        if (!settings.ui.settingsWindow.enabled) return
+        settings.ui.settingsWindow.isVisible = visible
         syncWindowLayout()
         syncStatsOverlayPosition()
     }
 
     fun update(delta: Float) {
         statsOverlay.update(delta)
-        simulationOverlay.setVisible(settings.simulation.enabled)
+        simulationOverlay.setVisible(settings.operations.simulation.enabled)
         simulationOverlay.update(delta)
         syncWindowLayout()
         syncControls()
@@ -189,12 +189,12 @@ internal class DebugPanel(
     private fun buildUi() {
         ui.root.pad(0f)
 
-        if (settings.toolsWindow.enabled) {
+        if (settings.ui.toolRail.enabled) {
             buildToolRail()
             buildToolFlyout()
         }
 
-        if (settings.debugWindow.enabled) {
+        if (settings.ui.settingsWindow.enabled) {
             debugPanelActor = ui.panel(
                 styleName = null,
                 spacing = 0f,
@@ -326,7 +326,7 @@ internal class DebugPanel(
 
     private fun positionToolFlyout() {
         val mode = toolRailState.settingsMode ?: return
-        if (!settings.toolsWindow.visible || !::toolFlyoutActor.isInitialized) return
+        if (!settings.ui.toolRail.isVisible || !::toolFlyoutActor.isInitialized) return
         val anchor = toolButtons[mode] ?: return
         val viewportWidth = ui.stage.viewport.worldWidth
             .takeIf { it > 0f }
@@ -334,7 +334,7 @@ internal class DebugPanel(
         val viewportHeight = ui.stage.viewport.worldHeight
             .takeIf { it > 0f }
             ?: Gdx.graphics.height.toFloat()
-        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+        val debugVisible = settings.ui.settingsWindow.enabled && settings.ui.settingsWindow.isVisible &&
             ::debugPanelActor.isInitialized
         val rightInset = if (debugVisible) {
             DebugWindowLayout.debugWidth(viewportWidth)
@@ -363,9 +363,9 @@ internal class DebugPanel(
 
     private fun syncWindowLayout(force: Boolean = false) {
         if (!::windowLayout.isInitialized) return
-        val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
+        val toolsVisible = settings.ui.toolRail.enabled && settings.ui.toolRail.isVisible &&
             ::toolRailActor.isInitialized
-        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+        val debugVisible = settings.ui.settingsWindow.enabled && settings.ui.settingsWindow.isVisible &&
             ::debugPanelActor.isInitialized
         val desired = toolsVisible to debugVisible
         if (!force && desired == appliedWindowVisibility) return
@@ -402,7 +402,7 @@ internal class DebugPanel(
     }
 
     private fun syncStatsOverlayPosition() {
-        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+        val debugVisible = settings.ui.settingsWindow.enabled && settings.ui.settingsWindow.isVisible &&
             ::debugPanelActor.isInitialized
         val availableWidth = ui.stage.viewport.worldWidth
             .takeIf { it > 0f }
@@ -418,7 +418,7 @@ internal class DebugPanel(
 
     private fun syncVisibility() {
         if (toolRailState.syncActiveTool(tools.mode)) appliedFlyoutMode = null
-        if (!settings.toolsWindow.enabled || !::toolFlyoutActor.isInitialized) return
+        if (!settings.ui.toolRail.enabled || !::toolFlyoutActor.isInitialized) return
         val displayedMode = toolRailState.settingsMode
 
         val previousMode = appliedFlyoutMode
@@ -437,7 +437,7 @@ internal class DebugPanel(
             displayedMode == DebugToolMode.PAINT &&
                 painter.target == DebugPaintTarget.OVERLAY
 
-        toolFlyoutActor.isVisible = displayedMode != null && settings.toolsWindow.visible
+        toolFlyoutActor.isVisible = displayedMode != null && settings.ui.toolRail.isVisible
         if (displayedMode != null) {
             toolFlyoutHeader.setText("${displayedMode.displayName} Tool")
         }

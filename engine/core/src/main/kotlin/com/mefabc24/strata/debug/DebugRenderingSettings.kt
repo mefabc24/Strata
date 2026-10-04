@@ -116,14 +116,11 @@ class DebugCullingSettings {
         set(value) { storedEntityCulledColor = value.cpy() }
 }
 
-/** Camera-bound diagnostics and the operational restriction override. */
+/** Camera-bound visual diagnostics. */
 class DebugCameraSettings {
     var showVisibleArea: Boolean = false
     var showWorldBounds: Boolean = false
     var showClampBounds: Boolean = false
-
-    /** Whether debug controls temporarily bypass configured camera restrictions. */
-    var disableRestrictions: Boolean = false
 }
 
 internal val DebugPickingSettings.hasActiveVisuals: Boolean

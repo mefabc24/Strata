@@ -136,17 +136,17 @@ internal class DebugToolSettingsBuilder(
             deleteControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.DELETE, "Brush") {
-                    brushSizeStepper("Brush size", { settings.delete.brushSize }) {
-                        settings.delete.brushSize = it
+                    brushSizeStepper("Brush size", { settings.tools.delete.brushSize }) {
+                        settings.tools.delete.brushSize = it
                     }
-                    simpleToggle("Drag deletion", { settings.delete.dragEnabled }) {
-                        settings.delete.dragEnabled = it
+                    simpleToggle("Drag deletion", { settings.tools.delete.dragEnabled }) {
+                        settings.tools.delete.dragEnabled = it
                     }
-                    simpleToggle("Show affected area", { settings.delete.showBrushPreview }) {
-                        settings.delete.showBrushPreview = it
+                    simpleToggle("Show affected area", { settings.tools.delete.showBrushPreview }) {
+                        settings.tools.delete.showBrushPreview = it
                     }
-                    simpleToggle("Show tile borders", { settings.delete.showTileBorders }) {
-                        settings.delete.showTileBorders = it
+                    simpleToggle("Show tile borders", { settings.tools.delete.showTileBorders }) {
+                        settings.tools.delete.showTileBorders = it
                     }
                 }
                 toolStatus(DebugToolMode.DELETE)
@@ -154,14 +154,14 @@ internal class DebugToolSettingsBuilder(
             paintControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.PAINT, "Brush") {
-                    brushSizeStepper("Brush size", { settings.paint.brushSize }) {
-                        settings.paint.brushSize = it
+                    brushSizeStepper("Brush size", { settings.tools.paint.brushSize }) {
+                        settings.tools.paint.brushSize = it
                     }
-                    simpleToggle("Show affected area", { settings.paint.showBrushPreview }) {
-                        settings.paint.showBrushPreview = it
+                    simpleToggle("Show affected area", { settings.tools.paint.showBrushPreview }) {
+                        settings.tools.paint.showBrushPreview = it
                     }
-                    simpleToggle("Show tile borders", { settings.paint.showTileBorders }) {
-                        settings.paint.showTileBorders = it
+                    simpleToggle("Show tile borders", { settings.tools.paint.showTileBorders }) {
+                        settings.tools.paint.showTileBorders = it
                     }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Terrain") {
@@ -294,8 +294,8 @@ internal class DebugToolSettingsBuilder(
                 }
                 simpleToggle(
                     "Freeze animation",
-                    { settings.inspect.freezeEntityAnimation }
-                ) { settings.inspect.freezeEntityAnimation = it }
+                    { settings.tools.inspect.freezeEntityAnimation }
+                ) { settings.tools.inspect.freezeEntityAnimation = it }
                 compactAction("Unfreeze all entities") {
                     val count = settings.unfreezeAllEntities()
                     settings.notify(
@@ -311,38 +311,38 @@ internal class DebugToolSettingsBuilder(
                 ) {
                 settingGroupLabel("Tile")
                 toggleRows(
-                    toggle("Selected tile", { settings.inspect.showTile }) {
-                        settings.inspect.showTile = it
+                    toggle("Selected tile", { settings.tools.inspect.showTile }) {
+                        settings.tools.inspect.showTile = it
                     }
                 )
                 settingGroupLabel("Object")
                 toggleRows(
-                    toggle("Footprint", { settings.inspect.showObjectFootprint }) {
-                        settings.inspect.showObjectFootprint = it
+                    toggle("Footprint", { settings.tools.inspect.showObjectFootprint }) {
+                        settings.tools.inspect.showObjectFootprint = it
                     },
-                    toggle("Origin", { settings.inspect.showObjectOrigin }) {
-                        settings.inspect.showObjectOrigin = it
+                    toggle("Origin", { settings.tools.inspect.showObjectOrigin }) {
+                        settings.tools.inspect.showObjectOrigin = it
                     },
-                    toggle("Sprite bounds", { settings.inspect.showObjectSpriteBounds }) {
-                        settings.inspect.showObjectSpriteBounds = it
+                    toggle("Sprite bounds", { settings.tools.inspect.showObjectSpriteBounds }) {
+                        settings.tools.inspect.showObjectSpriteBounds = it
                     }
                 )
                 settingGroupLabel("Entity")
                 toggleRows(
-                    toggle("Current tile", { settings.inspect.showEntityTile }) {
-                        settings.inspect.showEntityTile = it
+                    toggle("Current tile", { settings.tools.inspect.showEntityTile }) {
+                        settings.tools.inspect.showEntityTile = it
                     },
-                    toggle("Position", { settings.inspect.showEntityPosition }) {
-                        settings.inspect.showEntityPosition = it
+                    toggle("Position", { settings.tools.inspect.showEntityPosition }) {
+                        settings.tools.inspect.showEntityPosition = it
                     },
-                    toggle("Path", { settings.inspect.showEntityPath }) {
-                        settings.inspect.showEntityPath = it
+                    toggle("Path", { settings.tools.inspect.showEntityPath }) {
+                        settings.tools.inspect.showEntityPath = it
                     },
-                    toggle("Direction", { settings.inspect.showEntityDirection }) {
-                        settings.inspect.showEntityDirection = it
+                    toggle("Direction", { settings.tools.inspect.showEntityDirection }) {
+                        settings.tools.inspect.showEntityDirection = it
                     },
-                    toggle("Sprite bounds", { settings.inspect.showEntitySpriteBounds }) {
-                        settings.inspect.showEntitySpriteBounds = it
+                    toggle("Sprite bounds", { settings.tools.inspect.showEntitySpriteBounds }) {
+                        settings.tools.inspect.showEntitySpriteBounds = it
                     }
                 )
                 }
@@ -356,12 +356,12 @@ internal class DebugToolSettingsBuilder(
                 defaults().fillAvailableX()
                 val movementModes = ui.selectionGroup(
                     PathMovementMode.entries,
-                    settings.pathfinding.movementMode
+                    settings.tools.pathfinding.movementMode
                 ) {
-                    settings.pathfinding.movementMode = it
+                    settings.tools.pathfinding.movementMode = it
                 }
                 synchronizers += {
-                    movementModes.select(settings.pathfinding.movementMode)
+                    movementModes.select(settings.tools.pathfinding.movementMode)
                 }
                 toolSettingsExpander(DebugToolMode.PATHFINDING, "Search") {
                     selectionSettingRow(
@@ -378,61 +378,61 @@ internal class DebugToolSettingsBuilder(
                 toolSettingsExpander(DebugToolMode.PATHFINDING, "Visualization") {
                     simpleToggle(
                         "World visualization",
-                        { settings.pathfinding.enabled }
-                    ) { settings.pathfinding.enabled = it }
+                        { settings.tools.pathfinding.enabled }
+                    ) { settings.tools.pathfinding.enabled = it }
                     toggleRows(
-                        toggle("Explored nodes", { settings.pathfinding.showExploredNodes }) {
-                            settings.pathfinding.showExploredNodes = it
+                        toggle("Explored nodes", { settings.tools.pathfinding.showExploredNodes }) {
+                            settings.tools.pathfinding.showExploredNodes = it
                         },
-                        toggle("Final path", { settings.pathfinding.showFinalPath }) {
-                            settings.pathfinding.showFinalPath = it
+                        toggle("Final path", { settings.tools.pathfinding.showFinalPath }) {
+                            settings.tools.pathfinding.showFinalPath = it
                         },
-                        toggle("Open set", { settings.pathfinding.showOpenSet }) {
-                            settings.pathfinding.showOpenSet = it
+                        toggle("Open set", { settings.tools.pathfinding.showOpenSet }) {
+                            settings.tools.pathfinding.showOpenSet = it
                         },
-                        toggle("Closed set", { settings.pathfinding.showClosedSet }) {
-                            settings.pathfinding.showClosedSet = it
+                        toggle("Closed set", { settings.tools.pathfinding.showClosedSet }) {
+                            settings.tools.pathfinding.showClosedSet = it
                         },
-                        toggle("G cost", { settings.pathfinding.showGCost }) {
-                            settings.pathfinding.showGCost = it
+                        toggle("G cost", { settings.tools.pathfinding.showGCost }) {
+                            settings.tools.pathfinding.showGCost = it
                         },
-                        toggle("H cost", { settings.pathfinding.showHCost }) {
-                            settings.pathfinding.showHCost = it
+                        toggle("H cost", { settings.tools.pathfinding.showHCost }) {
+                            settings.tools.pathfinding.showHCost = it
                         },
-                        toggle("F cost", { settings.pathfinding.showFCost }) {
-                            settings.pathfinding.showFCost = it
+                        toggle("F cost", { settings.tools.pathfinding.showFCost }) {
+                            settings.tools.pathfinding.showFCost = it
                         },
-                        toggle("Parent direction", { settings.pathfinding.showParentDirections }) {
-                            settings.pathfinding.showParentDirections = it
+                        toggle("Parent direction", { settings.tools.pathfinding.showParentDirections }) {
+                            settings.tools.pathfinding.showParentDirections = it
                         },
-                        toggle("Exploration order", { settings.pathfinding.showExplorationOrder }) {
-                            settings.pathfinding.showExplorationOrder = it
+                        toggle("Exploration order", { settings.tools.pathfinding.showExplorationOrder }) {
+                            settings.tools.pathfinding.showExplorationOrder = it
                         },
-                        toggle("Rejected transitions", { settings.pathfinding.showRejectedTransitions }) {
-                            settings.pathfinding.showRejectedTransitions = it
+                        toggle("Rejected transitions", { settings.tools.pathfinding.showRejectedTransitions }) {
+                            settings.tools.pathfinding.showRejectedTransitions = it
                         }
                     )
                     boundStepper(
                         "Maximum label zoom",
-                        { settings.pathfinding.maximumLabelZoom },
+                        { settings.tools.pathfinding.maximumLabelZoom },
                         0.25f,
                         8f,
                         0.25f
-                    ) { settings.pathfinding.maximumLabelZoom = it }
+                    ) { settings.tools.pathfinding.maximumLabelZoom = it }
                     boundStepper(
                         "Maximum labels",
-                        { settings.pathfinding.maximumVisibleLabels.toFloat() },
+                        { settings.tools.pathfinding.maximumVisibleLabels.toFloat() },
                         16f,
                         1024f,
                         16f
-                    ) { settings.pathfinding.maximumVisibleLabels = it.toInt() }
+                    ) { settings.tools.pathfinding.maximumVisibleLabels = it.toInt() }
                     boundStepper(
                         "Recorded rejections",
-                        { settings.pathfinding.maximumRejectedTransitions.toFloat() },
+                        { settings.tools.pathfinding.maximumRejectedTransitions.toFloat() },
                         0f,
                         8192f,
                         128f
-                    ) { settings.pathfinding.maximumRejectedTransitions = it.toInt() }
+                    ) { settings.tools.pathfinding.maximumRejectedTransitions = it.toInt() }
                 }
                 toolSettingsExpander(
                     DebugToolMode.PATHFINDING,
@@ -450,11 +450,11 @@ internal class DebugToolSettingsBuilder(
                     )
                     boundStepper(
                         "Iterations / update",
-                        { settings.pathfinding.automaticIterationsPerUpdate.toFloat() },
+                        { settings.tools.pathfinding.automaticIterationsPerUpdate.toFloat() },
                         1f,
                         64f,
                         1f
-                    ) { settings.pathfinding.automaticIterationsPerUpdate = it.toInt() }
+                    ) { settings.tools.pathfinding.automaticIterationsPerUpdate = it.toInt() }
                 }
                 toolSettingsExpander(
                     DebugToolMode.PATHFINDING,
@@ -463,15 +463,15 @@ internal class DebugToolSettingsBuilder(
                 ) {
                     simpleToggle(
                         "Consume reached nodes",
-                        { settings.pathfinding.consumeReachedWaypoints }
-                    ) { settings.pathfinding.consumeReachedWaypoints = it }
+                        { settings.tools.pathfinding.consumeReachedWaypoints }
+                    ) { settings.tools.pathfinding.consumeReachedWaypoints = it }
                     boundStepper(
                         "Entity speed multiplier",
-                        { settings.pathfinding.entitySpeedMultiplier },
+                        { settings.tools.pathfinding.entitySpeedMultiplier },
                         0.25f,
                         10f,
                         0.25f
-                    ) { settings.pathfinding.entitySpeedMultiplier = it }
+                    ) { settings.tools.pathfinding.entitySpeedMultiplier = it }
                     compactAction("Clear path") {
                         if (pathfinding.clear()) {
                             settings.notify("Path cleared", DebugNotificationSeverity.INFO)
@@ -485,19 +485,19 @@ internal class DebugToolSettingsBuilder(
                 toolSettingsExpander(DebugToolMode.FREE_CAMERA, "Movement") {
                     simpleToggle(
                         "Disable restrictions",
-                        { settings.camera.disableRestrictions }
-                    ) { settings.camera.disableRestrictions = it }
+                        { settings.operations.disableCameraRestrictions }
+                    ) { settings.operations.disableCameraRestrictions = it }
                 }
                 toolSettingsExpander(DebugToolMode.FREE_CAMERA, "Visualization") {
                     toggleRows(
-                        toggle("Visible area", { settings.camera.showVisibleArea }) {
-                            settings.camera.showVisibleArea = it
+                        toggle("Visible area", { settings.visuals.camera.showVisibleArea }) {
+                            settings.visuals.camera.showVisibleArea = it
                         },
-                        toggle("World bounds", { settings.camera.showWorldBounds }) {
-                            settings.camera.showWorldBounds = it
+                        toggle("World bounds", { settings.visuals.camera.showWorldBounds }) {
+                            settings.visuals.camera.showWorldBounds = it
                         },
-                        toggle("Clamp bounds", { settings.camera.showClampBounds }) {
-                            settings.camera.showClampBounds = it
+                        toggle("Clamp bounds", { settings.visuals.camera.showClampBounds }) {
+                            settings.visuals.camera.showClampBounds = it
                         }
                     )
                 }

@@ -53,20 +53,20 @@ internal class DebugPanelDiagnostics(
         cullingRows: DebugDiagnosticTable?,
         toolStatusRows: Map<DebugToolMode, DebugDiagnosticTable>
     ) {
-        if (settings.toolsWindow.enabled) {
+        if (settings.ui.toolRail.enabled) {
             inspectorRows?.show(formatInspection())
             syncContextFooter(toolStatusRows)
         }
-        if (settings.debugWindow.enabled) {
+        if (settings.ui.settingsWindow.enabled) {
             pickingRows?.show(
-                if (settings.picking.hasActiveVisuals && view.pickingAvailable) {
+                if (settings.visuals.picking.hasActiveVisuals && view.pickingAvailable) {
                     formatPicking()
                 } else {
                     emptyList()
                 }
             )
-            cameraRows?.show(if (settings.camera.hasActiveVisuals) formatCamera() else emptyList())
-            cullingRows?.show(if (settings.culling.hasActiveVisuals) formatCulling() else emptyList())
+            cameraRows?.show(if (settings.visuals.camera.hasActiveVisuals) formatCamera() else emptyList())
+            cullingRows?.show(if (settings.visuals.culling.hasActiveVisuals) formatCulling() else emptyList())
         }
     }
 
@@ -93,7 +93,7 @@ internal class DebugPanelDiagnostics(
             "Screen" to "${diagnostics.screen.x.format()}, ${diagnostics.screen.y.format()}",
             "World" to "${diagnostics.world.x.format()}, ${diagnostics.world.y.format()}",
             "Grid" to formatTilePosition(diagnostics.grid),
-            "Tile" to (diagnostics.tile?.let(::formatTilePosition) ?: "—"),
+            "Tile" to (diagnostics.tile?.let(::formatTilePosition) ?: "â€”"),
             "Object" to display(diagnostics.placedObject?.placeable?.javaClass?.simpleName),
             "Entity" to display(entityNames.takeIf { it.isNotEmpty() }),
             "Alpha" to alphaText(diagnostics.alphaAccepted),
@@ -174,7 +174,7 @@ internal class DebugPanelDiagnostics(
         } ?: return emptyList()
         val sort = item.sort
         return listOf(
-            "Render index" to when (settings.renderOrder.mode) {
+            "Render index" to when (settings.visuals.renderOrder.mode) {
                 RenderOrderDebugMode.CALCULATED -> item.index.toString()
                 RenderOrderDebugMode.ACTUAL -> item.actualIndex?.toString() ?: "not drawn"
             },
@@ -203,7 +203,7 @@ internal class DebugPanelDiagnostics(
                 "Direction" to entity.direction.toString(),
                 "Frozen" to settings.isEntityFrozen(entity).toString(),
                 "Animation frozen" to (
-                    settings.isEntityFrozen(entity) && settings.inspect.freezeEntityAnimation
+                    settings.isEntityFrozen(entity) && settings.tools.inspect.freezeEntityAnimation
                     ).toString(),
                 "Moving" to entity.isMoving.toString(),
                 "Waypoints" to entity.remainingWaypoints.size.toString(),
@@ -269,7 +269,7 @@ internal fun diagnosticRows(
     vararg rows: Pair<String, String>
 ): List<DebugDiagnosticRow> = rows.map { (key, value) -> DebugDiagnosticRow(key, value) }
 
-private fun display(value: Any?): String = value?.toString() ?: "—"
+private fun display(value: Any?): String = value?.toString() ?: "â€”"
 private fun Float.format() = String.format(Locale.ROOT, "%.2f", this)
 private fun Double.format() = String.format(Locale.ROOT, "%.2f", this)
 private fun String.toDisplayName() = replace('_', ' ').replace('-', ' ')

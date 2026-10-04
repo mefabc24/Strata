@@ -2,9 +2,17 @@ package com.mefabc24.strata.debug
 
 import com.badlogic.gdx.Gdx
 
-/** Persistence and startup behavior for the developer-defined DEFAULT visual preset. */
+/**
+ * Persistence and startup behavior for the developer-defined DEFAULT visual preset.
+ *
+ * A saved DEFAULT is applied after engine defaults and the game's [DebugSettings]
+ * configuration. When no saved value exists, the game-defined visuals remain active.
+ */
 class DebugPresetSettings internal constructor() {
-    /** Whether a saved DEFAULT replaces game-defined visual settings during scene setup. */
+    /**
+     * Whether a saved DEFAULT overrides game-defined visual settings during scene setup.
+     * This has no effect when [storage] has not configured a preferences namespace.
+     */
     var applySavedDefaultOnStartup: Boolean = true
 
     internal var storageNamespace: String? = null

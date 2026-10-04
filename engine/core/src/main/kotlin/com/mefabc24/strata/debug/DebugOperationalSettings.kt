@@ -1,6 +1,98 @@
 package com.mefabc24.strata.debug
 
 import com.mefabc24.strata.pathfinding.PathMovementMode
+import com.mefabc24.strata.world.PlacedObject
+import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.World
+import com.mefabc24.strata.world.WorldEntity
+
+/** Configures interactive tools exposed through the Tool Rail. */
+class DebugToolSettings internal constructor() {
+    /** Inspect tool selection and visualization behavior. */
+    val inspect = DebugInspectSettings()
+
+    /** Terrain Paint tool brush behavior. */
+    val paint = DebugPaintToolSettings()
+
+    /** Delete tool brush and stroke behavior. */
+    val delete = DebugDeleteToolSettings()
+
+    /** Pathfinding tool availability, search, and visualization behavior. */
+    val pathfinding = DebugPathfindingSettings()
+
+    internal var entitySpawnedCallback: ((WorldEntity) -> Unit)? = null
+    internal var objectsPlacedCallback: ((List<PlacedObject>) -> Unit)? = null
+    internal var pathTraversal: ((World, TilePosition) -> Boolean)? = null
+    internal var pathCost: ((World, TilePosition, TilePosition) -> Float)? = null
+
+    /** Configures Inspect tool selection visuals. */
+    fun inspect(configure: DebugInspectSettings.() -> Unit) = inspect.apply(configure)
+
+    /** Configures the Terrain Paint tool. */
+    fun paint(configure: DebugPaintToolSettings.() -> Unit) = paint.apply(configure)
+
+    /** Configures the Delete tool. */
+    fun delete(configure: DebugDeleteToolSettings.() -> Unit) = delete.apply(configure)
+
+    /** Configures the Pathfinding tool. */
+    fun pathfinding(configure: DebugPathfindingSettings.() -> Unit) = pathfinding.apply(configure)
+
+    /** Called after an entity was created by the Spawn tool. */
+    fun onEntitySpawned(callback: (WorldEntity) -> Unit) {
+        entitySpawnedCallback = callback
+    }
+
+    /** Called after a Build drag placed one or more objects. */
+    fun onObjectsPlaced(callback: (List<PlacedObject>) -> Unit) {
+        objectsPlacedCallback = callback
+    }
+
+    /** Supplies optional game traversal rules for pathfinding tool searches. */
+    fun pathTraversal(canEnter: (World, TilePosition) -> Boolean) {
+        pathTraversal = canEnter
+    }
+
+    /** Supplies optional game movement costs for pathfinding tool searches. */
+    fun pathCost(cost: (World, from: TilePosition, to: TilePosition) -> Float) {
+        pathCost = cost
+    }
+}
+
+/** Configures Debug services whose behavior extends beyond visual rendering. */
+class DebugOperationalSettings internal constructor() {
+    /** Performance collection, overlay, history, and terminal logging. */
+    val performance = DebugPerformanceSettings()
+
+    /** Simulation control availability and animation-freeze behavior. */
+    val simulation = DebugSimulationSettings()
+
+    /** World statistics collection and overlay availability. */
+    val worldStats = DebugWorldStatsSettings()
+
+    /** Event Bus monitoring and presentation. */
+    val eventBus = DebugEventMonitorSettings()
+
+    /** Developer notification delivery and presentation. */
+    val notifications = DebugNotifications()
+
+    /** Whether Debug controls bypass the game's configured camera restrictions. */
+    var disableCameraRestrictions: Boolean = false
+
+    /** Configures performance collection and output. */
+    fun performance(configure: DebugPerformanceSettings.() -> Unit) = performance.apply(configure)
+
+    /** Configures simulation controls. */
+    fun simulation(configure: DebugSimulationSettings.() -> Unit) = simulation.apply(configure)
+
+    /** Configures world statistics collection and display. */
+    fun worldStats(configure: DebugWorldStatsSettings.() -> Unit) = worldStats.apply(configure)
+
+    /** Configures Event Bus monitoring. */
+    fun eventBus(configure: DebugEventMonitorSettings.() -> Unit) = eventBus.apply(configure)
+
+    /** Configures developer notifications. */
+    fun notifications(configure: DebugNotifications.() -> Unit) = notifications.apply(configure)
+}
 
 /** Common square-brush options for debug world editing tools. */
 open class DebugBrushSettings {

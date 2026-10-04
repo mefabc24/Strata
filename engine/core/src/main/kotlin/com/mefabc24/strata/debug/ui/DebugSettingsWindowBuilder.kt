@@ -74,57 +74,57 @@ internal class DebugSettingsWindowBuilder(
             boundDropdown(
                 "Visualization filter",
                 DebugVisualizationFilter.entries,
-                { settings.visualizationFilter },
+                { settings.visuals.filter },
                 { it.name.toDisplayName() }
-            ) { settings.visualizationFilter = it }
+            ) { settings.visuals.filter = it }
         }
 
         performance.settingsExpander("Overlays") {
                 toggleRows(
-                    toggle("Performance overlay", { settings.performance.overlayEnabled }) {
-                        settings.performance.overlayEnabled = it
+                    toggle("Performance overlay", { settings.operations.performance.overlayEnabled }) {
+                        settings.operations.performance.overlayEnabled = it
                     },
-                    toggle("World stats overlay", { settings.worldStats.enabled }) {
-                        settings.worldStats.enabled = it
+                    toggle("World stats overlay", { settings.operations.worldStats.enabled }) {
+                        settings.operations.worldStats.enabled = it
                     }
                 )
         }
         performance.settingsExpander("History & logging") {
                 toggleRows(
-                    toggle("Terminal logging", { settings.performance.terminalLoggingEnabled }) {
-                        settings.performance.terminalLoggingEnabled = it
+                    toggle("Terminal logging", { settings.operations.performance.terminalLoggingEnabled }) {
+                        settings.operations.performance.terminalLoggingEnabled = it
                     }
                 )
                 boundStepper(
                     "Terminal interval",
-                    { settings.performance.terminalLoggingIntervalSeconds },
+                    { settings.operations.performance.terminalLoggingIntervalSeconds },
                     0.25f,
                     30f,
                     0.25f
-                ) { settings.performance.terminalLoggingIntervalSeconds = it }
+                ) { settings.operations.performance.terminalLoggingIntervalSeconds = it }
                 boundStepper(
                     "History length",
-                    { settings.performance.historyLength.toFloat() },
+                    { settings.operations.performance.historyLength.toFloat() },
                     30f,
                     2000f,
                     10f
-                ) { settings.performance.historyLength = it.toInt() }
+                ) { settings.operations.performance.historyLength = it.toInt() }
                 boundDropdown(
                     "Graph metric",
                     DebugPerformanceMetric.entries,
-                    { settings.performance.historyMetric },
+                    { settings.operations.performance.historyMetric },
                     { it.name.toDisplayName() }
-                ) { settings.performance.historyMetric = it }
+                ) { settings.operations.performance.historyMetric = it }
                 compactActions(
-                    "Start" to { settings.performance.startHistoryRecording() },
-                    "Stop" to { settings.performance.stopHistoryRecording() },
-                    "Clear" to { settings.performance.clearHistory() }
+                    "Start" to { settings.operations.performance.startHistoryRecording() },
+                    "Stop" to { settings.operations.performance.stopHistoryRecording() },
+                    "Clear" to { settings.operations.performance.clearHistory() }
                 )
         }
         simulationSettings.settingToggleRow(
             "Simulation enabled",
-            { settings.simulation.enabled },
-            { settings.simulation.enabled = it }
+            { settings.operations.simulation.enabled },
+            { settings.operations.simulation.enabled = it }
         )
         simulationSettings.boundStepper(
                 "Custom time scale",
@@ -135,8 +135,8 @@ internal class DebugSettingsWindowBuilder(
             ) { simulation.timeScale = it }
         simulationSettings.simpleToggle(
                 "Freeze visual animations",
-                { settings.simulation.freezeVisualAnimations }
-            ) { settings.simulation.freezeVisualAnimations = it }
+                { settings.operations.simulation.freezeVisualAnimations }
+            ) { settings.operations.simulation.freezeVisualAnimations = it }
         simulationSettings.compactAction("Reset to normal speed") {
                 simulation.resetTimeScale()
         }
@@ -145,8 +145,8 @@ internal class DebugSettingsWindowBuilder(
         }
         worldSettings.featureExpander(
                 "Grid",
-                { settings.grid.enabled },
-                { settings.grid.enabled = it },
+                { settings.visuals.grid.enabled },
+                { settings.visuals.grid.enabled = it },
                 enabledLabel = "Grid visible"
             ) { buildGridSettings() }
         worldSettings.settingsExpander(
@@ -157,102 +157,102 @@ internal class DebugSettingsWindowBuilder(
             boundDropdown(
                 "Order",
                 RenderOrderDebugMode.entries,
-                { settings.renderOrder.mode },
+                { settings.visuals.renderOrder.mode },
                 { it.name.toDisplayName() }
-            ) { settings.renderOrder.mode = it }
+            ) { settings.visuals.renderOrder.mode = it }
             toggleRows(
-                toggle("Order labels", { settings.renderOrder.showLabels }) {
-                    settings.renderOrder.showLabels = it
+                toggle("Order labels", { settings.visuals.renderOrder.showLabels }) {
+                    settings.visuals.renderOrder.showLabels = it
                 },
-                toggle("Priority labels", { settings.renderOrder.showPriorityLabels }) {
-                    settings.renderOrder.showPriorityLabels = it
+                toggle("Priority labels", { settings.visuals.renderOrder.showPriorityLabels }) {
+                    settings.visuals.renderOrder.showPriorityLabels = it
                 },
-                toggle("Priority colors", { settings.renderOrder.colorByPriority }) {
-                    settings.renderOrder.colorByPriority = it
+                toggle("Priority colors", { settings.visuals.renderOrder.colorByPriority }) {
+                    settings.visuals.renderOrder.colorByPriority = it
                 },
-                toggle("Terrain indices", { settings.renderOrder.showTerrainIndices }) {
-                    settings.renderOrder.showTerrainIndices = it
+                toggle("Terrain indices", { settings.visuals.renderOrder.showTerrainIndices }) {
+                    settings.visuals.renderOrder.showTerrainIndices = it
                 },
-                toggle("Terrain heatmap", { settings.renderOrder.showTerrainHeatmap }) {
-                    settings.renderOrder.showTerrainHeatmap = it
+                toggle("Terrain heatmap", { settings.visuals.renderOrder.showTerrainHeatmap }) {
+                    settings.visuals.renderOrder.showTerrainHeatmap = it
                 }
             )
             toggleRows(
-                toggle("Sort volumes", { settings.renderOrder.showSortVolumes }) {
-                    settings.renderOrder.showSortVolumes = it
+                toggle("Sort volumes", { settings.visuals.renderOrder.showSortVolumes }) {
+                    settings.visuals.renderOrder.showSortVolumes = it
                 },
-                toggle("Sort anchors", { settings.renderOrder.showSortAnchors }) {
-                    settings.renderOrder.showSortAnchors = it
+                toggle("Sort anchors", { settings.visuals.renderOrder.showSortAnchors }) {
+                    settings.visuals.renderOrder.showSortAnchors = it
                 },
                 toggle(
                     "Projected positions",
-                    { settings.renderOrder.showProjectedSortPositions }
+                    { settings.visuals.renderOrder.showProjectedSortPositions }
                 ) {
-                    settings.renderOrder.showProjectedSortPositions = it
+                    settings.visuals.renderOrder.showProjectedSortPositions = it
                 }
             )
             boundStepper(
                 "Geometry line width",
-                { settings.renderOrder.sortGeometryLineWidth },
+                { settings.visuals.renderOrder.sortGeometryLineWidth },
                 0.25f,
                 8f,
                 0.25f
-            ) { settings.renderOrder.sortGeometryLineWidth = it }
+            ) { settings.visuals.renderOrder.sortGeometryLineWidth = it }
             boundDropdown(
                 "Priority focus",
                 RenderPriorityFocusMode.entries,
-                { settings.renderOrder.priorityFocusMode },
+                { settings.visuals.renderOrder.priorityFocusMode },
                 { it.name.toDisplayName() }
-            ) { settings.renderOrder.priorityFocusMode = it }
+            ) { settings.visuals.renderOrder.priorityFocusMode = it }
             boundStepper(
                 "Selected priority",
-                { settings.renderOrder.selectedPriority.toFloat() },
+                { settings.visuals.renderOrder.selectedPriority.toFloat() },
                 -100f,
                 100f,
                 1f
-            ) { settings.renderOrder.selectedPriority = it.toInt() }
+            ) { settings.visuals.renderOrder.selectedPriority = it.toInt() }
             boundStepper(
                 "Priority color alpha",
-                { settings.renderOrder.priorityColorAlpha },
+                { settings.visuals.renderOrder.priorityColorAlpha },
                 0f,
                 1f,
                 0.05f
-            ) { settings.renderOrder.priorityColorAlpha = it }
+            ) { settings.visuals.renderOrder.priorityColorAlpha = it }
             boundDropdown(
                 "Heatmap color steps",
                 TerrainHeatmapSteps.entries,
-                { settings.renderOrder.terrainHeatmapSteps },
+                { settings.visuals.renderOrder.terrainHeatmapSteps },
                 { it.name.toDisplayName() }
-            ) { settings.renderOrder.terrainHeatmapSteps = it }
+            ) { settings.visuals.renderOrder.terrainHeatmapSteps = it }
             }
         }
         diagnostics.featureExpander(
             "Event Bus Monitor",
-            { settings.eventBus.enabled },
-            { settings.eventBus.enabled = it },
+            { settings.operations.eventBus.enabled },
+            { settings.operations.eventBus.enabled = it },
             enabledLabel = "Monitor visible"
         ) {
             toggleRows(
                 toggle(
                     "Capture",
-                    { settings.eventBus.captureEnabled }
+                    { settings.operations.eventBus.captureEnabled }
                 ) {
-                    settings.eventBus.captureEnabled = it
+                    settings.operations.eventBus.captureEnabled = it
                 },
                 toggle(
                     "Newest first",
-                    { settings.eventBus.newestFirst }
+                    { settings.operations.eventBus.newestFirst }
                 ) {
-                    settings.eventBus.newestFirst = it
+                    settings.operations.eventBus.newestFirst = it
                 }
             )
             boundStepper(
                 "Visible records",
-                { settings.eventBus.maximumVisibleRecords.toFloat() },
+                { settings.operations.eventBus.maximumVisibleRecords.toFloat() },
                 1f,
                 25f,
                 1f
-            ) { settings.eventBus.maximumVisibleRecords = it.toInt() }
+            ) { settings.operations.eventBus.maximumVisibleRecords = it.toInt() }
             compactAction("Clear history") {
                 if (eventMonitor.records.isNotEmpty()) {
                     eventMonitor.clear()
@@ -268,8 +268,8 @@ internal class DebugSettingsWindowBuilder(
             ) { buildEntitySettings() }
         diagnostics.settingsExpander("Picking") {
             toggleRows(
-                toggle("Sprite bounds", { settings.picking.showSpriteBounds }) { settings.picking.showSpriteBounds = it },
-                toggle("Cursor marker", { settings.picking.showCursorHit }) { settings.picking.showCursorHit = it }
+                toggle("Sprite bounds", { settings.visuals.picking.showSpriteBounds }) { settings.visuals.picking.showSpriteBounds = it },
+                toggle("Cursor marker", { settings.visuals.picking.showCursorHit }) { settings.visuals.picking.showCursorHit = it }
             )
             pickingRows = diagnosticTable()
             compactAction("Clear locked target") {
@@ -278,29 +278,29 @@ internal class DebugSettingsWindowBuilder(
         }
         diagnostics.settingsExpander("Culling") {
             toggleRows(
-                toggle("Render check area", { settings.culling.showVisibleArea }) {
-                    settings.culling.showVisibleArea = it
+                toggle("Render check area", { settings.visuals.culling.showVisibleArea }) {
+                    settings.visuals.culling.showVisibleArea = it
                 },
-                toggle("Object culling bounds", { settings.culling.showObjectBounds }) {
-                    settings.culling.showObjectBounds = it
+                toggle("Object culling bounds", { settings.visuals.culling.showObjectBounds }) {
+                    settings.visuals.culling.showObjectBounds = it
                 },
-                toggle("Entity culling bounds", { settings.culling.showEntityBounds }) {
-                    settings.culling.showEntityBounds = it
+                toggle("Entity culling bounds", { settings.visuals.culling.showEntityBounds }) {
+                    settings.visuals.culling.showEntityBounds = it
                 }
             )
             cullingRows = diagnosticTable()
         }
         cameraSettings.apply {
             toggleRows(
-                toggle("Visible area", { settings.camera.showVisibleArea }) { settings.camera.showVisibleArea = it },
-                toggle("World bounds", { settings.camera.showWorldBounds }) { settings.camera.showWorldBounds = it },
-                toggle("Clamp bounds", { settings.camera.showClampBounds }) { settings.camera.showClampBounds = it }
+                toggle("Visible area", { settings.visuals.camera.showVisibleArea }) { settings.visuals.camera.showVisibleArea = it },
+                toggle("World bounds", { settings.visuals.camera.showWorldBounds }) { settings.visuals.camera.showWorldBounds = it },
+                toggle("Clamp bounds", { settings.visuals.camera.showClampBounds }) { settings.visuals.camera.showClampBounds = it }
             )
             simpleToggle(
                 "Disable restrictions",
-                { settings.camera.disableRestrictions }
+                { settings.operations.disableCameraRestrictions }
             ) {
-                settings.camera.disableRestrictions = it
+                settings.operations.disableCameraRestrictions = it
                 settings.notify(
                     if (it) "Camera restrictions disabled" else "Camera restrictions enabled",
                     DebugNotificationSeverity.INFO
@@ -311,16 +311,16 @@ internal class DebugSettingsWindowBuilder(
 
         general.featureExpander(
             "Notifications",
-            { settings.notifications.enabled },
-            { settings.notifications.enabled = it },
+            { settings.operations.notifications.enabled },
+            { settings.operations.notifications.enabled = it },
             enabledLabel = "Notifications enabled"
         ) {
             boundDropdown(
                 "Position",
                 DebugNotificationPosition.entries,
-                { settings.notifications.position },
+                { settings.operations.notifications.position },
                 { it.name.toDisplayName() }
-            ) { settings.notifications.position = it }
+            ) { settings.operations.notifications.position = it }
         }
     }
 
@@ -328,199 +328,199 @@ internal class DebugSettingsWindowBuilder(
         boundDropdown(
             "Layer",
             DebugGridRenderLayer.entries,
-            { settings.grid.renderLayer },
+            { settings.visuals.grid.renderLayer },
             { it.name.toDisplayName() }
-        ) { settings.grid.renderLayer = it }
+        ) { settings.visuals.grid.renderLayer = it }
         boundDropdown(
             "Extent",
             DebugGridExtent.entries,
-            { settings.grid.extent },
+            { settings.visuals.grid.extent },
             { it.name.toDisplayName() }
-        ) { settings.grid.extent = it }
+        ) { settings.visuals.grid.extent = it }
         toggleRows(
-            toggle("Background", { settings.grid.showBackground }) {
-                settings.grid.showBackground = it
+            toggle("Background", { settings.visuals.grid.showBackground }) {
+                settings.visuals.grid.showBackground = it
             },
-            toggle("Hover background", { settings.grid.showHoverBackground }) {
-                settings.grid.showHoverBackground = it
+            toggle("Hover background", { settings.visuals.grid.showHoverBackground }) {
+                settings.visuals.grid.showHoverBackground = it
             }
         )
-        boundStepper("Line width", { settings.grid.lineWidth }, 0.25f, 8f, 0.25f) {
-            settings.grid.lineWidth = it
+        boundStepper("Line width", { settings.visuals.grid.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.visuals.grid.lineWidth = it
         }
-        boundColorAlpha("Grid color", { settings.grid.color }, 0.2f) { alpha ->
-            settings.grid.color = settings.grid.color.apply { a = alpha }
+        boundColorAlpha("Grid color", { settings.visuals.grid.color }, 0.2f) { alpha ->
+            settings.visuals.grid.color = settings.visuals.grid.color.apply { a = alpha }
         }
-        boundColorAlpha("Hover color", { settings.grid.hoverColor }, 0.5f) { alpha ->
-            settings.grid.hoverColor = settings.grid.hoverColor.apply { a = alpha }
+        boundColorAlpha("Hover color", { settings.visuals.grid.hoverColor }, 0.5f) { alpha ->
+            settings.visuals.grid.hoverColor = settings.visuals.grid.hoverColor.apply { a = alpha }
         }
-        boundColorAlpha("Background color", { settings.grid.backgroundColor }, 0.2f) { alpha ->
-            settings.grid.backgroundColor = settings.grid.backgroundColor.apply { a = alpha }
+        boundColorAlpha("Background color", { settings.visuals.grid.backgroundColor }, 0.2f) { alpha ->
+            settings.visuals.grid.backgroundColor = settings.visuals.grid.backgroundColor.apply { a = alpha }
         }
 
-        boundColorAlpha("Hover background", { settings.grid.hoverBackgroundColor }, 0.5f) { alpha ->
-            settings.grid.hoverBackgroundColor = settings.grid.hoverBackgroundColor.apply { a = alpha }
+        boundColorAlpha("Hover background", { settings.visuals.grid.hoverBackgroundColor }, 0.5f) { alpha ->
+            settings.visuals.grid.hoverBackgroundColor = settings.visuals.grid.hoverBackgroundColor.apply { a = alpha }
         }
     }
 
     private fun StrataColumn.buildObjectSettings() {
         toggleRows(
-            toggle("Occupied tiles", { settings.objects.showOccupiedTiles }) {
-                settings.objects.showOccupiedTiles = it
+            toggle("Occupied tiles", { settings.visuals.objects.showOccupiedTiles }) {
+                settings.visuals.objects.showOccupiedTiles = it
             },
-            toggle("Origin tile", { settings.objects.showOriginTile }) {
-                settings.objects.showOriginTile = it
+            toggle("Origin tile", { settings.visuals.objects.showOriginTile }) {
+                settings.visuals.objects.showOriginTile = it
             },
-            toggle("Sprite bounds", { settings.objects.showSpriteBounds }) {
-                settings.objects.showSpriteBounds = it
+            toggle("Sprite bounds", { settings.visuals.objects.showSpriteBounds }) {
+                settings.visuals.objects.showSpriteBounds = it
             },
-            toggle("Tile fill", { settings.objects.showOccupiedTileFill }) {
-                settings.objects.showOccupiedTileFill = it
+            toggle("Tile fill", { settings.visuals.objects.showOccupiedTileFill }) {
+                settings.visuals.objects.showOccupiedTileFill = it
             }
         )
-        boundStepper("Line width", { settings.objects.lineWidth }, 0.25f, 8f, 0.25f) {
-            settings.objects.lineWidth = it
+        boundStepper("Line width", { settings.visuals.objects.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.visuals.objects.lineWidth = it
         }
-        boundColorAlpha("Fill color", { settings.objects.occupiedTileFillColor }, 0.18f) { alpha ->
-            settings.objects.occupiedTileFillColor =
-                settings.objects.occupiedTileFillColor.apply { a = alpha }
+        boundColorAlpha("Fill color", { settings.visuals.objects.occupiedTileFillColor }, 0.18f) { alpha ->
+            settings.visuals.objects.occupiedTileFillColor =
+                settings.visuals.objects.occupiedTileFillColor.apply { a = alpha }
         }
     }
 
     private fun StrataColumn.buildEntitySettings() {
         toggleRows(
-            toggle("Current tile", { settings.entities.showCurrentTile }) { settings.entities.showCurrentTile = it },
-            toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
-            toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
-            toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
-            toggle("Tile fill", { settings.entities.showCurrentTileFill }) {
-                settings.entities.showCurrentTileFill = it
+            toggle("Current tile", { settings.visuals.entities.showCurrentTile }) { settings.visuals.entities.showCurrentTile = it },
+            toggle("Position", { settings.visuals.entities.showPosition }) { settings.visuals.entities.showPosition = it },
+            toggle("Direction", { settings.visuals.entities.showDirection }) { settings.visuals.entities.showDirection = it },
+            toggle("Sprite bounds", { settings.visuals.entities.showSpriteBounds }) { settings.visuals.entities.showSpriteBounds = it },
+            toggle("Tile fill", { settings.visuals.entities.showCurrentTileFill }) {
+                settings.visuals.entities.showCurrentTileFill = it
             }
         )
-        boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
-            settings.entities.lineWidth = it
+        boundStepper("Line width", { settings.visuals.entities.lineWidth }, 0.25f, 8f, 0.25f) {
+            settings.visuals.entities.lineWidth = it
         }
-        boundColorAlpha("Fill color", { settings.entities.currentTileFillColor }, 0.16f) { alpha ->
-            settings.entities.currentTileFillColor =
-                settings.entities.currentTileFillColor.apply { a = alpha }
+        boundColorAlpha("Fill color", { settings.visuals.entities.currentTileFillColor }, 0.16f) { alpha ->
+            settings.visuals.entities.currentTileFillColor =
+                settings.visuals.entities.currentTileFillColor.apply { a = alpha }
         }
         settingsExpander("Movement") {
             toggleRows(
-            toggle("Path", { settings.entities.showPath }) { settings.entities.showPath = it },
-            toggle("Movement trail", { settings.entities.showMovementTrail }) {
-                settings.entities.showMovementTrail = it
+            toggle("Path", { settings.visuals.entities.showPath }) { settings.visuals.entities.showPath = it },
+            toggle("Movement trail", { settings.visuals.entities.showMovementTrail }) {
+                settings.visuals.entities.showMovementTrail = it
             },
-            toggle("Movement vector", { settings.entities.showMovementVector }) {
-                settings.entities.showMovementVector = it
+            toggle("Movement vector", { settings.visuals.entities.showMovementVector }) {
+                settings.visuals.entities.showMovementVector = it
             },
-            toggle("Next waypoint", { settings.entities.showNextWaypoint }) {
-                settings.entities.showNextWaypoint = it
+            toggle("Next waypoint", { settings.visuals.entities.showNextWaypoint }) {
+                settings.visuals.entities.showNextWaypoint = it
             },
-            toggle("Speed labels", { settings.entities.showMovementSpeed }) {
-                settings.entities.showMovementSpeed = it
+            toggle("Speed labels", { settings.visuals.entities.showMovementSpeed }) {
+                settings.visuals.entities.showMovementSpeed = it
             },
-            toggle("Tile-position offset", { settings.entities.showPositionTileOffset }) {
-                settings.entities.showPositionTileOffset = it
+            toggle("Tile-position offset", { settings.visuals.entities.showPositionTileOffset }) {
+                settings.visuals.entities.showPositionTileOffset = it
             }
         )
         boundStepper(
             "Maximum positions",
-            { settings.entities.trailMaxPositions.toFloat() },
+            { settings.visuals.entities.trailMaxPositions.toFloat() },
             2f,
             1000f,
             10f
-        ) { settings.entities.trailMaxPositions = it.toInt() }
+        ) { settings.visuals.entities.trailMaxPositions = it.toInt() }
         boundStepper(
             "History seconds",
-            { settings.entities.trailHistoryDurationSeconds },
+            { settings.visuals.entities.trailHistoryDurationSeconds },
             0.25f,
             60f,
             0.25f
-        ) { settings.entities.trailHistoryDurationSeconds = it }
+        ) { settings.visuals.entities.trailHistoryDurationSeconds = it }
         boundStepper(
             "Sample distance",
-            { settings.entities.trailMinimumDistance },
+            { settings.visuals.entities.trailMinimumDistance },
             0f,
             1f,
             0.01f
-        ) { settings.entities.trailMinimumDistance = it }
+        ) { settings.visuals.entities.trailMinimumDistance = it }
         boundStepper(
             "Trail opacity",
-            { settings.entities.trailOpacity },
+            { settings.visuals.entities.trailOpacity },
             0f,
             1f,
             0.05f
-        ) { settings.entities.trailOpacity = it }
+        ) { settings.visuals.entities.trailOpacity = it }
         boundStepper(
             "Vector seconds",
-            { settings.entities.movementVectorScaleSeconds },
+            { settings.visuals.entities.movementVectorScaleSeconds },
             0.1f,
             5f,
             0.1f
-        ) { settings.entities.movementVectorScaleSeconds = it }
+        ) { settings.visuals.entities.movementVectorScaleSeconds = it }
         compactAction("Clear movement trails") {
-            settings.entities.clearMovementTrails()
+            settings.visuals.entities.clearMovementTrails()
         }
         }
     }
 
     private fun StrataColumn.buildWorldInfoSettings() {
         toggleRows(
-            toggle("Tile coordinates", { settings.worldInfo.showTileCoordinates }) {
-                settings.worldInfo.showTileCoordinates = it
+            toggle("Tile coordinates", { settings.visuals.worldInfo.showTileCoordinates }) {
+                settings.visuals.worldInfo.showTileCoordinates = it
             },
-            toggle("Terrain IDs", { settings.worldInfo.showTerrainIds }) {
-                settings.worldInfo.showTerrainIds = it
+            toggle("Terrain IDs", { settings.visuals.worldInfo.showTerrainIds }) {
+                settings.visuals.worldInfo.showTerrainIds = it
             },
-            toggle("Overlay info", { settings.worldInfo.showOverlayInfo }) {
-                settings.worldInfo.showOverlayInfo = it
+            toggle("Overlay info", { settings.visuals.worldInfo.showOverlayInfo }) {
+                settings.visuals.worldInfo.showOverlayInfo = it
             },
-            toggle("Occupancy", { settings.worldInfo.showOccupancy }) {
-                settings.worldInfo.showOccupancy = it
+            toggle("Occupancy", { settings.visuals.worldInfo.showOccupancy }) {
+                settings.visuals.worldInfo.showOccupancy = it
             },
-            toggle("Missing visuals", { settings.worldInfo.showMissingTerrainVisuals }) {
-                settings.worldInfo.showMissingTerrainVisuals = it
+            toggle("Missing visuals", { settings.visuals.worldInfo.showMissingTerrainVisuals }) {
+                settings.visuals.worldInfo.showMissingTerrainVisuals = it
             },
-            toggle("World origin", { settings.worldInfo.showOrigin }) {
-                settings.worldInfo.showOrigin = it
+            toggle("World origin", { settings.visuals.worldInfo.showOrigin }) {
+                settings.visuals.worldInfo.showOrigin = it
             }
         )
         boundStepper(
             "Maximum label zoom",
-            { settings.worldInfo.maximumLabelZoom },
+            { settings.visuals.worldInfo.maximumLabelZoom },
             0.25f,
             8f,
             0.25f
-        ) { settings.worldInfo.maximumLabelZoom = it }
+        ) { settings.visuals.worldInfo.maximumLabelZoom = it }
         boundStepper(
             "Maximum labels",
-            { settings.worldInfo.maximumVisibleLabels.toFloat() },
+            { settings.visuals.worldInfo.maximumVisibleLabels.toFloat() },
             16f,
             1024f,
             16f
-        ) { settings.worldInfo.maximumVisibleLabels = it.toInt() }
-        boundColorAlpha("Occupancy color", { settings.worldInfo.occupancyColor }, 0.5f) { alpha ->
-            settings.worldInfo.occupancyColor = settings.worldInfo.occupancyColor.apply { a = alpha }
+        ) { settings.visuals.worldInfo.maximumVisibleLabels = it.toInt() }
+        boundColorAlpha("Occupancy color", { settings.visuals.worldInfo.occupancyColor }, 0.5f) { alpha ->
+            settings.visuals.worldInfo.occupancyColor = settings.visuals.worldInfo.occupancyColor.apply { a = alpha }
         }
-        boundColorAlpha("Missing visual color", { settings.worldInfo.missingVisualColor }, 0.5f) { alpha ->
-            settings.worldInfo.missingVisualColor =
-                settings.worldInfo.missingVisualColor.apply { a = alpha }
+        boundColorAlpha("Missing visual color", { settings.visuals.worldInfo.missingVisualColor }, 0.5f) { alpha ->
+            settings.visuals.worldInfo.missingVisualColor =
+                settings.visuals.worldInfo.missingVisualColor.apply { a = alpha }
         }
     }
 
     private fun StrataColumn.buildWorldVisibilitySettings() {
         toggleRows(
-            toggle("Ground terrain", { settings.worldVisibility.groundTerrainVisible }) {
-                settings.worldVisibility.groundTerrainVisible = it
+            toggle("Ground terrain", { settings.visuals.worldVisibility.groundTerrainVisible }) {
+                settings.visuals.worldVisibility.groundTerrainVisible = it
             },
-            toggle("Terrain overlays", { settings.worldVisibility.terrainOverlaysVisible }) {
-                settings.worldVisibility.terrainOverlaysVisible = it
+            toggle("Terrain overlays", { settings.visuals.worldVisibility.terrainOverlaysVisible }) {
+                settings.visuals.worldVisibility.terrainOverlaysVisible = it
             },
-            toggle("Placed objects", { settings.worldVisibility.placedObjectsVisible }) {
-                settings.worldVisibility.placedObjectsVisible = it
+            toggle("Placed objects", { settings.visuals.worldVisibility.placedObjectsVisible }) {
+                settings.visuals.worldVisibility.placedObjectsVisible = it
             },
-            toggle("Entities", { settings.worldVisibility.entitiesVisible }) {
-                settings.worldVisibility.entitiesVisible = it
+            toggle("Entities", { settings.visuals.worldVisibility.entitiesVisible }) {
+                settings.visuals.worldVisibility.entitiesVisible = it
             }
         )
         val overlayIds = world.overlayLayerIds
@@ -529,15 +529,15 @@ internal class DebugSettingsWindowBuilder(
                 overlayIds.forEach { layerId ->
                     simpleToggle(
                         layerId,
-                        { settings.worldVisibility.isOverlayLayerVisible(layerId) }
+                        { settings.visuals.worldVisibility.isOverlayLayerVisible(layerId) }
                     ) { visible ->
-                        settings.worldVisibility.setOverlayLayerVisible(layerId, visible)
+                        settings.visuals.worldVisibility.setOverlayLayerVisible(layerId, visible)
                     }
                 }
             }
         }
         compactAction("Show all categories") {
-            settings.worldVisibility.showAll()
+            settings.visuals.worldVisibility.showAll()
         }
     }
 

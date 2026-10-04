@@ -54,29 +54,29 @@ internal class DebugRuntime(
     terrainFor: (Tile) -> TerrainId
 ) {
     private val eventMonitor = DebugEventMonitor(events).apply {
-        enabled = settings.eventBus.enabled
-        paused = !settings.eventBus.captureEnabled
+        enabled = settings.operations.eventBus.enabled
+        paused = !settings.operations.eventBus.captureEnabled
     }
-    private val notificationOverlay = DebugNotificationOverlay(ui, settings.notifications)
+    private val notificationOverlay = DebugNotificationOverlay(ui, settings.operations.notifications)
     private val inspector = DebugInspector(settings.worldState)
     private val pathfinding = DebugPathfindingTool(
         world = world,
         state = settings.worldState,
         canEnter = { position ->
-            settings.pathTraversal?.invoke(world, position) ?: true
+            settings.tools.pathTraversal?.invoke(world, position) ?: true
         },
-        movementCost = settings.pathCost?.let { cost ->
+        movementCost = settings.tools.pathCost?.let { cost ->
             { from, to -> cost(world, from, to) }
         },
-        movementMode = { settings.pathfinding.movementMode },
-        entitySpeedMultiplier = { settings.pathfinding.entitySpeedMultiplier },
-        consumeReachedWaypoints = { settings.pathfinding.consumeReachedWaypoints },
-        maximumRejectedTransitions = { settings.pathfinding.maximumRejectedTransitions },
-        automaticIterationsPerUpdate = { settings.pathfinding.automaticIterationsPerUpdate },
+        movementMode = { settings.tools.pathfinding.movementMode },
+        entitySpeedMultiplier = { settings.tools.pathfinding.entitySpeedMultiplier },
+        consumeReachedWaypoints = { settings.tools.pathfinding.consumeReachedWaypoints },
+        maximumRejectedTransitions = { settings.tools.pathfinding.maximumRejectedTransitions },
+        automaticIterationsPerUpdate = { settings.tools.pathfinding.automaticIterationsPerUpdate },
         entityFreezeState = settings.entityFreezeState
     )
-    private val painter = DebugTerrainPainter(world, terrain.paintableEntries, settings.paint)
-    private val remover = DebugWorldRemover(world, settings.delete)
+    private val painter = DebugTerrainPainter(world, terrain.paintableEntries, settings.tools.paint)
+    private val remover = DebugWorldRemover(world, settings.tools.delete)
     private val buildDrag = placement?.let(::DebugBuildDragController)
     private val move = DebugMoveTool(
         world,
@@ -107,7 +107,7 @@ internal class DebugRuntime(
         isActive = { tools.mode == DebugToolMode.SPAWN },
         previewSettings = placement?.entityPreviewSettings
             ?: com.mefabc24.strata.placement.PlacementEntityPreviewSettings(),
-        onSpawned = { settings.entitySpawnedCallback?.invoke(it) }
+        onSpawned = { settings.tools.entitySpawnedCallback?.invoke(it) }
     )
 
     private val panel = DebugPanel(
@@ -132,12 +132,12 @@ internal class DebugRuntime(
     private val toggleProcessor = object : InputAdapter() {
         override fun keyDown(keycode: Int): Boolean {
             return when {
-                settings.toolsWindow.enabled && keycode == settings.toolsWindow.toggleKey -> {
-                    panel.setToolsWindowVisible(!settings.toolsWindow.visible)
+                settings.ui.toolRail.enabled && keycode == settings.ui.toolRail.toggleKey -> {
+                    panel.setToolsWindowVisible(!settings.ui.toolRail.isVisible)
                     true
                 }
-                settings.debugWindow.enabled && keycode == settings.debugWindow.toggleKey -> {
-                    panel.setDebugWindowVisible(!settings.debugWindow.visible)
+                settings.ui.settingsWindow.enabled && keycode == settings.ui.settingsWindow.toggleKey -> {
+                    panel.setDebugWindowVisible(!settings.ui.settingsWindow.isVisible)
                     true
                 }
                 else -> false
@@ -163,7 +163,7 @@ internal class DebugRuntime(
     private fun syncCameraRestrictions() {
         val disabled = cameraRestrictionsDisabled(
             freeCameraToolActive = freeCameraToolActive,
-            persistentOverride = settings.camera.disableRestrictions
+            persistentOverride = settings.operations.disableCameraRestrictions
         )
 
         if (appliedCameraRestrictionsDisabled == disabled) return
@@ -175,7 +175,7 @@ internal class DebugRuntime(
     private fun bindings(world: World, view: IsoWorldView): List<WorldInputBinding> = listOf(
         WorldInputBinding.Pointer(
             WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-            { settings.picking.hasActiveVisuals }
+            { settings.visuals.picking.hasActiveVisuals }
         ) { screenX, screenY ->
             settings.worldState.pickingSelection.selectFromClick(
                 view.pickingDebugSnapshot(screenX, screenY).picked
@@ -193,7 +193,7 @@ internal class DebugRuntime(
             WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.DELETE }
         ) { x, y ->
-            if (settings.delete.dragEnabled) {
+            if (settings.tools.delete.dragEnabled) {
                 notifyRemovals(remover.dragDelete(TilePosition(x, y)))
             }
             true
@@ -287,7 +287,7 @@ internal class DebugRuntime(
                 val diagnostic = placement?.currentDiagnostic
                 val placed = drag.finish(TilePosition(x, y))
                 if (placed.isNotEmpty()) {
-                    settings.objectsPlacedCallback?.invoke(placed)
+                    settings.tools.objectsPlacedCallback?.invoke(placed)
                     settings.notify(
                         DebugActionMessages.placedObjects(placed.size),
                         DebugNotificationSeverity.SUCCESS
@@ -396,18 +396,18 @@ internal class DebugRuntime(
         settings.worldState.entityTrails.update(
             entities = world.getEntities(),
             simulationDelta = simulationDelta,
-            settings = settings.entities
+            settings = settings.visuals.entities
         )
         pathfinding.update()
         spawner.update(view.hoveredGridPosition)
         settings.worldState.spawnPreview = spawner.preview
         settings.worldState.brushPreview = brushPreview(world, view.hoveredGridPosition)
-        eventMonitor.enabled = settings.eventBus.enabled
-        eventMonitor.paused = !settings.eventBus.captureEnabled
-        settings.notifications.update(delta)
+        eventMonitor.enabled = settings.operations.eventBus.enabled
+        eventMonitor.paused = !settings.operations.eventBus.captureEnabled
+        settings.operations.notifications.update(delta)
         notificationOverlay.sync()
 
-        val pickingVisuals = settings.picking.hasActiveVisuals
+        val pickingVisuals = settings.visuals.picking.hasActiveVisuals
         settings.worldState.pickingSelection.syncEnabled(pickingVisuals)
 
         if (
@@ -418,7 +418,7 @@ internal class DebugRuntime(
             val screenY = Gdx.input.y.toFloat()
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.hoveredTarget = picking.picked
-            settings.worldState.cursorWorld = if (settings.picking.showCursorHit) {
+            settings.worldState.cursorWorld = if (settings.visuals.picking.showCursorHit) {
                 view.screenToWorld(screenX, screenY)
             } else {
                 null
@@ -462,8 +462,8 @@ internal class DebugRuntime(
     private fun brushPreview(world: World, center: TilePosition?): DebugBrushPreview? {
         val position = center ?: return null
         val (kind, brushSettings) = when (tools.mode) {
-            DebugToolMode.PAINT -> DebugBrushPreviewKind.PAINT to settings.paint
-            DebugToolMode.DELETE -> DebugBrushPreviewKind.DELETE to settings.delete
+            DebugToolMode.PAINT -> DebugBrushPreviewKind.PAINT to settings.tools.paint
+            DebugToolMode.DELETE -> DebugBrushPreviewKind.DELETE to settings.tools.delete
             else -> return null
         }
         if (!brushSettings.showBrushPreview) return null

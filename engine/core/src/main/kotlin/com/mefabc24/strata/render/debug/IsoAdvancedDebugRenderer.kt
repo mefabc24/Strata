@@ -186,20 +186,20 @@ internal class IsoAdvancedDebugRenderer(
         val inspectionVisuals = inspectionVisuals(
             inspection,
             state.inspectionHighlightVisible,
-            settings.inspect
+            settings.tools.inspect
         )
         val pickingVisuals = pickingVisualTargets(
-            settings.picking.hasActiveVisuals,
+            settings.visuals.picking.hasActiveVisuals,
             state.picking?.picked,
             state.pickingSelection.lockedTarget
         )
         val path = state.pathfinding
-        val drawPath = settings.pathfinding.enabled &&
+        val drawPath = settings.tools.pathfinding.enabled &&
             (state.pathfindingWaypoints.isNotEmpty() || path != null)
-        val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
+        val renderOrderLayers = renderOrderDebugLayers(settings.visuals.renderOrder)
         val drawShapes = inspectionVisuals.isNotEmpty() || drawPath ||
-            settings.picking.hasActiveVisuals || settings.culling.hasActiveVisuals ||
-            settings.camera.hasActiveVisuals || settings.worldInfo.hasActiveVisuals ||
+            settings.visuals.picking.hasActiveVisuals || settings.visuals.culling.hasActiveVisuals ||
+            settings.visuals.camera.hasActiveVisuals || settings.visuals.worldInfo.hasActiveVisuals ||
             state.movePreview != null || state.brushPreview != null ||
             renderOrderLayers.terrainHeatmap || renderOrderLayers.priorityColors ||
             renderOrderLayers.priorityFocus || renderOrderLayers.sortVolumes ||
@@ -216,7 +216,7 @@ internal class IsoAdvancedDebugRenderer(
             drawFills(
                 inspection,
                 inspectionVisuals,
-                if (settings.pathfinding.enabled) path else null,
+                if (settings.tools.pathfinding.enabled) path else null,
                 camera,
                 cameraSnapshot,
                 renderSnapshot,
@@ -242,11 +242,11 @@ internal class IsoAdvancedDebugRenderer(
             if (renderSnapshot != null &&
                 (renderOrderLayers.objectEntityLabels || renderOrderLayers.priorityLabels)
             ) {
-                val highlightColor = settings.renderOrder.priorityHighlightColor
+                val highlightColor = settings.visuals.renderOrder.priorityHighlightColor
                 for (item in renderSnapshot.items) {
                     if (!item.drawn || item.terrain != null) continue
-                    if (!filterContext.matches(settings.visualizationFilter, item)) continue
-                    if (!renderPriorityFocusAllows(settings.renderOrder, item)) continue
+                    if (!filterContext.matches(settings.visuals.filter, item)) continue
+                    if (!renderPriorityFocusAllows(settings.visuals.renderOrder, item)) continue
                     val bounds = item.bounds ?: continue
                     val text = buildRenderLabel(
                         item,
@@ -254,9 +254,9 @@ internal class IsoAdvancedDebugRenderer(
                         renderOrderLayers
                     ) ?: continue
                     font.color = if (
-                        settings.renderOrder.priorityFocusMode ==
+                        settings.visuals.renderOrder.priorityFocusMode ==
                         RenderPriorityFocusMode.HIGHLIGHT &&
-                        item.sort?.renderPriority == settings.renderOrder.selectedPriority
+                        item.sort?.renderPriority == settings.visuals.renderOrder.selectedPriority
                     ) {
                         highlightColor
                     } else {
@@ -274,12 +274,12 @@ internal class IsoAdvancedDebugRenderer(
                 font.withRelativeScale(TERRAIN_INDEX_FONT_SCALE) {
                     for (item in renderSnapshot.items) {
                         if (!item.drawn) continue
-                        if (!filterContext.matches(settings.visualizationFilter, item)) continue
+                        if (!filterContext.matches(settings.visuals.filter, item)) continue
                         val terrain = item.terrain ?: continue
                         val metadata = renderOrderDebugMetadata(
                             item,
                             renderSnapshot,
-                            settings.renderOrder.mode
+                            settings.visuals.renderOrder.mode
                         ) ?: continue
                         val center = projection.tileToWorld(
                             terrain.position.x + 0.5f,
@@ -314,7 +314,7 @@ internal class IsoAdvancedDebugRenderer(
             renderOrderDebugMetadata(
                 item,
                 snapshot,
-                settings.renderOrder.mode
+                settings.visuals.renderOrder.mode
             )?.let { "#${it.index}" }
         } else {
             null
@@ -326,7 +326,7 @@ internal class IsoAdvancedDebugRenderer(
     }
 
     private fun worldInfoLabelsEnabled(cameraZoom: Float): Boolean {
-        val info = settings.worldInfo
+        val info = settings.visuals.worldInfo
         return (info.showTileCoordinates || info.showTerrainIds || info.showOverlayInfo) &&
             worldDebugLabelsVisible(cameraZoom, info.maximumLabelZoom)
     }
@@ -335,7 +335,7 @@ internal class IsoAdvancedDebugRenderer(
         cameraZoom: Float,
         result: PathfindingDiagnosticResult?
     ): Boolean {
-        val path = settings.pathfinding
+        val path = settings.tools.pathfinding
         return path.enabled && result != null && result.nodes.isNotEmpty() &&
             (path.showGCost || path.showHCost || path.showFCost || path.showExplorationOrder) &&
             worldDebugLabelsVisible(cameraZoom, path.maximumLabelZoom)
@@ -347,16 +347,16 @@ internal class IsoAdvancedDebugRenderer(
     ) {
         if (!pathfindingLabelsEnabled(cameraZoom, result)) return
         val nodes = requireNotNull(result).nodes
-        val stride = worldDebugLabelStride(nodes.size, settings.pathfinding.maximumVisibleLabels)
+        val stride = worldDebugLabelStride(nodes.size, settings.tools.pathfinding.maximumVisibleLabels)
         font.color = PATH_LABEL_COLOR
         font.withRelativeScale(PATH_LABEL_FONT_SCALE) {
             nodes.forEachIndexed { index, node ->
                 if (index % stride != 0) return@forEachIndexed
                 worldLabel.setLength(0)
-                if (settings.pathfinding.showGCost) appendWorldLabelLine("G=${costLabel(node.gCost)}")
-                if (settings.pathfinding.showHCost) appendWorldLabelLine("H=${costLabel(node.hCost)}")
-                if (settings.pathfinding.showFCost) appendWorldLabelLine("F=${costLabel(node.fCost)}")
-                if (settings.pathfinding.showExplorationOrder) {
+                if (settings.tools.pathfinding.showGCost) appendWorldLabelLine("G=${costLabel(node.gCost)}")
+                if (settings.tools.pathfinding.showHCost) appendWorldLabelLine("H=${costLabel(node.hCost)}")
+                if (settings.tools.pathfinding.showFCost) appendWorldLabelLine("F=${costLabel(node.fCost)}")
+                if (settings.tools.pathfinding.showExplorationOrder) {
                     node.explorationOrder?.let { appendWorldLabelLine("#${it + 1}") }
                 }
                 if (worldLabel.isEmpty()) return@forEachIndexed
@@ -387,21 +387,21 @@ internal class IsoAdvancedDebugRenderer(
         val range = visibleWorldTileRange(world, camera) ?: return
         val count = range.x.count() * range.y.count()
         val stride = if (
-            settings.visualizationFilter == DebugVisualizationFilter.SELECTED ||
-            settings.visualizationFilter == DebugVisualizationFilter.HOVERED
-        ) 1 else worldDebugLabelStride(count, settings.worldInfo.maximumVisibleLabels)
-        val overlayIds = if (settings.worldInfo.showOverlayInfo) world.overlayLayerIds else emptyList()
-        font.color = settings.worldInfo.labelColor
+            settings.visuals.filter == DebugVisualizationFilter.SELECTED ||
+            settings.visuals.filter == DebugVisualizationFilter.HOVERED
+        ) 1 else worldDebugLabelStride(count, settings.visuals.worldInfo.maximumVisibleLabels)
+        val overlayIds = if (settings.visuals.worldInfo.showOverlayInfo) world.overlayLayerIds else emptyList()
+        font.color = settings.visuals.worldInfo.labelColor
         font.withRelativeScale(WORLD_INFO_FONT_SCALE) {
             for (y in range.y step stride) {
                 for (x in range.x step stride) {
-                    if (!filterContext.matches(settings.visualizationFilter, x, y)) continue
+                    if (!filterContext.matches(settings.visuals.filter, x, y)) continue
                     val tile = world.getTile(x, y) ?: continue
                     worldLabel.setLength(0)
-                    if (settings.worldInfo.showTileCoordinates) {
+                    if (settings.visuals.worldInfo.showTileCoordinates) {
                         worldLabel.append(x).append(',').append(y)
                     }
-                    if (settings.worldInfo.showTerrainIds && terrainIdFor != null) {
+                    if (settings.visuals.worldInfo.showTerrainIds && terrainIdFor != null) {
                         appendWorldLabelLine("terrain=${terrainIdFor(tile)}")
                     }
                     for (layerId in overlayIds) {
@@ -435,19 +435,19 @@ internal class IsoAdvancedDebugRenderer(
         terrainVisualFor: (Tile, Float) -> TextureRegion?
     ) {
         val range = visibleWorldTileRange(world, camera) ?: return
-        val overlayIds = if (settings.worldInfo.showMissingTerrainVisuals) {
+        val overlayIds = if (settings.visuals.worldInfo.showMissingTerrainVisuals) {
             world.overlayLayerIds
         } else {
             emptyList()
         }
         for (y in range.y) {
             for (x in range.x) {
-                if (!filterContext.matches(settings.visualizationFilter, x, y)) continue
-                if (settings.worldInfo.showOccupancy && world.getObjectAt(x, y) != null) {
-                    shapes.color = settings.worldInfo.occupancyColor
+                if (!filterContext.matches(settings.visuals.filter, x, y)) continue
+                if (settings.visuals.worldInfo.showOccupancy && world.getObjectAt(x, y) != null) {
+                    shapes.color = settings.visuals.worldInfo.occupancyColor
                     drawTileFill(x, y)
                 }
-                if (settings.worldInfo.showMissingTerrainVisuals) {
+                if (settings.visuals.worldInfo.showMissingTerrainVisuals) {
                     val ground = world.getTile(x, y)
                     var missing = ground != null && terrainVisualFor(ground, animationTime) == null
                     if (!missing) {
@@ -460,7 +460,7 @@ internal class IsoAdvancedDebugRenderer(
                         }
                     }
                     if (missing) {
-                        shapes.color = settings.worldInfo.missingVisualColor
+                        shapes.color = settings.visuals.worldInfo.missingVisualColor
                         drawTileFill(x, y)
                     }
                 }
@@ -501,26 +501,26 @@ internal class IsoAdvancedDebugRenderer(
         terrainVisualFor: (Tile, Float) -> TextureRegion?
     ) {
         val explored = path?.explored.orEmpty()
-        val shouldDrawExplored = settings.pathfinding.showExploredNodes && explored.isNotEmpty()
-        val drawOpenSet = settings.pathfinding.enabled && settings.pathfinding.showOpenSet &&
+        val shouldDrawExplored = settings.tools.pathfinding.showExploredNodes && explored.isNotEmpty()
+        val drawOpenSet = settings.tools.pathfinding.enabled && settings.tools.pathfinding.showOpenSet &&
             path?.nodes?.any { it.status == PathfindingNodeStatus.OPEN } == true
-        val drawClosedSet = settings.pathfinding.enabled && settings.pathfinding.showClosedSet &&
+        val drawClosedSet = settings.tools.pathfinding.enabled && settings.tools.pathfinding.showClosedSet &&
             path?.nodes?.any { it.status == PathfindingNodeStatus.CLOSED } == true
         val pathWaypoints = state.pathfindingWaypoints.takeIf {
-            settings.pathfinding.enabled
+            settings.tools.pathfinding.enabled
         }.orEmpty()
-        val drawCullingArea = settings.culling.showVisibleArea && renderSnapshot != null
-        val drawCameraArea = settings.camera.showVisibleArea
+        val drawCullingArea = settings.visuals.culling.showVisibleArea && renderSnapshot != null
+        val drawCameraArea = settings.visuals.camera.showVisibleArea
         val drawPickingTiles = pickingVisuals.hover is PickedTarget.Tile ||
             pickingVisuals.locked is PickedTarget.Tile
         val movePreview = state.movePreview?.takeIf { it.visible }
         val brushPreview = state.brushPreview
-        val drawTerrainHeatmap = renderOrderDebugLayers(settings.renderOrder).terrainHeatmap &&
+        val drawTerrainHeatmap = renderOrderDebugLayers(settings.visuals.renderOrder).terrainHeatmap &&
             renderSnapshot != null
-        val drawPriorityColors = renderOrderDebugLayers(settings.renderOrder).priorityColors &&
+        val drawPriorityColors = renderOrderDebugLayers(settings.visuals.renderOrder).priorityColors &&
             renderSnapshot != null
-        val drawWorldFills = settings.worldInfo.showOccupancy ||
-            settings.worldInfo.showMissingTerrainVisuals
+        val drawWorldFills = settings.visuals.worldInfo.showOccupancy ||
+            settings.visuals.worldInfo.showMissingTerrainVisuals
         if (!shouldDrawExplored && !drawOpenSet && !drawClosedSet &&
             inspectionVisuals.isEmpty() && pathWaypoints.isEmpty() &&
             !drawCullingArea && !drawCameraArea && !drawPickingTiles && movePreview == null &&
@@ -534,12 +534,12 @@ internal class IsoAdvancedDebugRenderer(
             val snapshot = requireNotNull(renderSnapshot)
             snapshot.items.forEach { item ->
                 if (!item.drawn || item.terrain != null) return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
-                if (!renderPriorityFocusAllows(settings.renderOrder, item)) return@forEach
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
+                if (!renderPriorityFocusAllows(settings.visuals.renderOrder, item)) return@forEach
                 val bounds = item.bounds ?: return@forEach
                 shapes.color = renderPriorityColor(
                     priority = item.sort?.renderPriority ?: return@forEach,
-                    alpha = settings.renderOrder.priorityColorAlpha,
+                    alpha = settings.visuals.renderOrder.priorityColorAlpha,
                     result = priorityColor
                 )
                 shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
@@ -547,16 +547,16 @@ internal class IsoAdvancedDebugRenderer(
         }
         if (drawTerrainHeatmap) {
             val snapshot = requireNotNull(renderSnapshot)
-            val startColor = settings.renderOrder.terrainHeatmapStartColor
-            val endColor = settings.renderOrder.terrainHeatmapEndColor
+            val startColor = settings.visuals.renderOrder.terrainHeatmapStartColor
+            val endColor = settings.visuals.renderOrder.terrainHeatmapEndColor
             snapshot.items.forEach { item ->
                 val terrain = item.terrain ?: return@forEach
                 if (!item.drawn) return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
                 val metadata = renderOrderDebugMetadata(
                     item,
                     snapshot,
-                    settings.renderOrder.mode
+                    settings.visuals.renderOrder.mode
                 ) ?: return@forEach
                 val rank = metadata.terrainRank ?: return@forEach
                 shapes.color = terrainHeatmapColor(
@@ -564,7 +564,7 @@ internal class IsoAdvancedDebugRenderer(
                     end = endColor,
                     rank = rank,
                     terrainCount = metadata.terrainCount,
-                    steps = settings.renderOrder.terrainHeatmapSteps,
+                    steps = settings.visuals.renderOrder.terrainHeatmapSteps,
                     result = heatmapColor
                 )
                 drawTileFill(terrain.position)
@@ -602,19 +602,19 @@ internal class IsoAdvancedDebugRenderer(
         when {
             inspection is DebugInspection.EntityTarget &&
                 DebugInspectionVisual.ENTITY_TILE in inspectionVisuals -> {
-                shapes.color = if (settings.entities.showCurrentTileFill) {
-                    settings.entities.currentTileFillColor
+                shapes.color = if (settings.visuals.entities.showCurrentTileFill) {
+                    settings.visuals.entities.currentTileFillColor
                 } else {
-                    settings.entities.currentTileColor.cpy().apply { a = 0.16f }
+                    settings.visuals.entities.currentTileColor.cpy().apply { a = 0.16f }
                 }
                 drawTileFill(inspection.entity.currentTile)
             }
             inspection is DebugInspection.ObjectTarget &&
                 DebugInspectionVisual.OBJECT_FOOTPRINT in inspectionVisuals -> {
-                shapes.color = if (settings.objects.showOccupiedTileFill) {
-                    settings.objects.occupiedTileFillColor
+                shapes.color = if (settings.visuals.objects.showOccupiedTileFill) {
+                    settings.visuals.objects.occupiedTileFillColor
                 } else {
-                    settings.objects.occupiedTileColor.cpy().apply { a = 0.18f }
+                    settings.visuals.objects.occupiedTileColor.cpy().apply { a = 0.18f }
                 }
                 inspection.placedObject.occupiedTiles().forEach(::drawTileFill)
             }
@@ -627,7 +627,7 @@ internal class IsoAdvancedDebugRenderer(
         if (inspection is DebugInspection.EntityTarget &&
             DebugInspectionVisual.ENTITY_POSITION in inspectionVisuals
         ) {
-            shapes.color = settings.entities.positionColor
+            shapes.color = settings.visuals.entities.positionColor
             val point = projection.tileToWorld(
                 inspection.entity.position.x,
                 inspection.entity.position.y
@@ -643,7 +643,7 @@ internal class IsoAdvancedDebugRenderer(
             drawTileFill(target.position)
         }
         if (drawCullingArea) {
-            shapes.color = settings.culling.visibleAreaColor
+            shapes.color = settings.visuals.culling.visibleAreaColor
             drawPixelRectOutline(
                 requireNotNull(renderSnapshot).visibleArea,
                 camera.zoom,
@@ -677,15 +677,15 @@ internal class IsoAdvancedDebugRenderer(
             is DebugInspection.ObjectTarget -> {
                 val placed = inspection.placedObject
                 if (DebugInspectionVisual.OBJECT_FOOTPRINT in visuals) {
-                    shapes.color = settings.objects.occupiedTileColor
+                    shapes.color = settings.visuals.objects.occupiedTileColor
                     placed.occupiedTiles().forEach(::drawTileOutline)
                 }
                 if (DebugInspectionVisual.OBJECT_ORIGIN in visuals) {
-                    shapes.color = settings.objects.originTileColor
+                    shapes.color = settings.visuals.objects.originTileColor
                     drawTileOutline(objectDebugOrigin(placed))
                 }
                 if (DebugInspectionVisual.OBJECT_SPRITE_BOUNDS in visuals) {
-                    shapes.color = settings.objects.spriteBoundsColor
+                    shapes.color = settings.visuals.objects.spriteBoundsColor
                     renderSnapshot?.items
                         ?.firstOrNull { it.placedObject === placed }
                         ?.bounds
@@ -695,11 +695,11 @@ internal class IsoAdvancedDebugRenderer(
             is DebugInspection.EntityTarget -> {
                 val entity = inspection.entity
                 if (DebugInspectionVisual.ENTITY_TILE in visuals) {
-                    shapes.color = settings.entities.currentTileColor
+                    shapes.color = settings.visuals.entities.currentTileColor
                     drawTileOutline(entity.currentTile)
                 }
                 if (DebugInspectionVisual.ENTITY_PATH in visuals) {
-                    shapes.color = settings.entities.pathColor
+                    shapes.color = settings.visuals.entities.pathColor
                     val markerRadius = 2f * camera.zoom
                     forEachEntityDebugPathSegment(entity) { from, to ->
                         val fromWorld = projection.tileToWorld(from.x, from.y)
@@ -709,14 +709,14 @@ internal class IsoAdvancedDebugRenderer(
                     }
                 }
                 if (DebugInspectionVisual.ENTITY_DIRECTION in visuals) {
-                    shapes.color = settings.entities.directionColor
+                    shapes.color = settings.visuals.entities.directionColor
                     val target = entityDebugDirectionTarget(entity)
                     val start = projection.tileToWorld(entity.position.x, entity.position.y)
                     val end = projection.tileToWorld(target.x, target.y)
                     shapes.line(start.x, start.y, end.x, end.y)
                 }
                 if (DebugInspectionVisual.ENTITY_SPRITE_BOUNDS in visuals) {
-                    shapes.color = settings.entities.spriteBoundsColor
+                    shapes.color = settings.visuals.entities.spriteBoundsColor
                     renderSnapshot?.items
                         ?.firstOrNull { it.entity === entity }
                         ?.bounds
@@ -736,7 +736,7 @@ internal class IsoAdvancedDebugRenderer(
             shapes.color = PICKING_LOCKED_OUTLINE
             drawTileOutline(target.position)
         }
-        if (!settings.picking.showSpriteBounds) return
+        if (!settings.visuals.picking.showSpriteBounds) return
         targets.hover?.takeUnless { it is PickedTarget.Tile }?.bounds?.let { bounds ->
             shapes.color = PICKING_HOVER_OUTLINE
             drawRect(bounds)
@@ -755,23 +755,23 @@ internal class IsoAdvancedDebugRenderer(
         pickingVisuals: DebugPickingVisualTargets
     ) {
         shapes.begin(ShapeRenderer.ShapeType.Line)
-        if (settings.worldInfo.showOrigin) {
+        if (settings.visuals.worldInfo.showOrigin) {
             Gdx.gl.glLineWidth(3f)
-            shapes.color = settings.worldInfo.originColor
+            shapes.color = settings.visuals.worldInfo.originColor
             drawTileOutline(0, 0)
         }
-        val renderOrderLayers = renderOrderDebugLayers(settings.renderOrder)
+        val renderOrderLayers = renderOrderDebugLayers(settings.visuals.renderOrder)
         if (renderOrderLayers.terrainHeatmapGrid && renderSnapshot != null) {
             Gdx.gl.glLineWidth(1f)
             shapes.color = TERRAIN_HEATMAP_GRID_COLOR
             renderSnapshot.items.forEach { item ->
                 val terrain = item.terrain ?: return@forEach
                 if (!item.drawn) return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
                 if (renderOrderDebugMetadata(
                         item,
                         renderSnapshot,
-                        settings.renderOrder.mode
+                        settings.visuals.renderOrder.mode
                     ) != null
                 ) {
                     drawTileOutline(terrain.position)
@@ -785,17 +785,17 @@ internal class IsoAdvancedDebugRenderer(
                 )
         ) {
             Gdx.gl.glLineWidth(
-                (settings.renderOrder.sortGeometryLineWidth / camera.zoom)
+                (settings.visuals.renderOrder.sortGeometryLineWidth / camera.zoom)
                     .coerceAtLeast(1f)
             )
-            val volumeColor = settings.renderOrder.sortVolumeColor
-            val backAnchorColor = settings.renderOrder.sortBackAnchorColor
-            val frontAnchorColor = settings.renderOrder.sortFrontAnchorColor
-            val projectedPositionColor = settings.renderOrder.projectedSortPositionColor
+            val volumeColor = settings.visuals.renderOrder.sortVolumeColor
+            val backAnchorColor = settings.visuals.renderOrder.sortBackAnchorColor
+            val frontAnchorColor = settings.visuals.renderOrder.sortFrontAnchorColor
+            val projectedPositionColor = settings.visuals.renderOrder.projectedSortPositionColor
             renderSnapshot.items.forEach { item ->
                 if (item.terrain != null || item.sort == null) return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
-                if (!renderPriorityFocusAllows(settings.renderOrder, item)) return@forEach
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
+                if (!renderPriorityFocusAllows(settings.visuals.renderOrder, item)) return@forEach
                 drawSortGeometry(
                     item = item,
                     layers = renderOrderLayers,
@@ -809,12 +809,12 @@ internal class IsoAdvancedDebugRenderer(
         }
         if (renderOrderLayers.priorityFocus && renderSnapshot != null) {
             Gdx.gl.glLineWidth(3f)
-            val highlightColor = settings.renderOrder.priorityHighlightColor
+            val highlightColor = settings.visuals.renderOrder.priorityHighlightColor
             shapes.color = highlightColor
             renderSnapshot.items.forEach { item ->
                 if (!item.drawn || item.terrain != null) return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
-                if (item.sort?.renderPriority != settings.renderOrder.selectedPriority) {
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
+                if (item.sort?.renderPriority != settings.visuals.renderOrder.selectedPriority) {
                     return@forEach
                 }
                 item.bounds?.let(::drawRect)
@@ -838,7 +838,7 @@ internal class IsoAdvancedDebugRenderer(
         }
 
         val visiblePath = state.pathfinding?.path
-        if (settings.pathfinding.enabled && settings.pathfinding.showFinalPath && visiblePath != null) {
+        if (settings.tools.pathfinding.enabled && settings.tools.pathfinding.showFinalPath && visiblePath != null) {
             shapes.color = Color(0.2f, 1f, 0.35f, 1f)
             visiblePath.zipWithNext().forEach { (from, to) ->
                 val a = projection.tileToWorld(from.x + 0.5f, from.y + 0.5f)
@@ -846,7 +846,7 @@ internal class IsoAdvancedDebugRenderer(
                 shapes.line(a.x, a.y, b.x, b.y)
             }
         }
-        if (settings.pathfinding.enabled && state.pathfindingWaypoints.isNotEmpty()) {
+        if (settings.tools.pathfinding.enabled && state.pathfindingWaypoints.isNotEmpty()) {
             shapes.color = Color(1f, 0.75f, 0.15f, 1f)
             val markerRadius = 4f * camera.zoom
             state.pathfindingWaypoints.forEach { waypoint ->
@@ -857,7 +857,7 @@ internal class IsoAdvancedDebugRenderer(
         }
         val pathfindingResult = state.pathfinding
         if (
-            settings.pathfinding.enabled && settings.pathfinding.showParentDirections &&
+            settings.tools.pathfinding.enabled && settings.tools.pathfinding.showParentDirections &&
             pathfindingResult != null
         ) {
             shapes.color = PATH_PARENT_LINE
@@ -870,7 +870,7 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
         if (
-            settings.pathfinding.enabled && settings.pathfinding.showRejectedTransitions &&
+            settings.tools.pathfinding.enabled && settings.tools.pathfinding.showRejectedTransitions &&
             pathfindingResult != null
         ) {
             shapes.color = PATH_REJECTED_LINE
@@ -890,7 +890,7 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
 
-        if (settings.picking.showCursorHit) {
+        if (settings.visuals.picking.showCursorHit) {
                 state.cursorWorld?.let { cursor ->
                     shapes.color = Color.YELLOW
                     val radius = 5f * camera.zoom
@@ -899,17 +899,17 @@ internal class IsoAdvancedDebugRenderer(
                 }
         }
 
-        if (settings.culling.hasActiveVisuals && renderSnapshot != null) {
-            val objectDrawnColor = settings.culling.objectDrawnColor
-            val objectCulledColor = settings.culling.objectCulledColor
-            val entityDrawnColor = settings.culling.entityDrawnColor
-            val entityCulledColor = settings.culling.entityCulledColor
+        if (settings.visuals.culling.hasActiveVisuals && renderSnapshot != null) {
+            val objectDrawnColor = settings.visuals.culling.objectDrawnColor
+            val objectCulledColor = settings.visuals.culling.objectCulledColor
+            val entityDrawnColor = settings.visuals.culling.entityDrawnColor
+            val entityCulledColor = settings.visuals.culling.entityCulledColor
             renderSnapshot.items.forEach { item ->
                 val classification = classifyCullingItem(item) ?: return@forEach
-                if (!filterContext.matches(settings.visualizationFilter, item)) return@forEach
+                if (!filterContext.matches(settings.visuals.filter, item)) return@forEach
                 val show = when (classification.kind) {
-                    CullingDebugItemKind.OBJECT -> settings.culling.showObjectBounds
-                    CullingDebugItemKind.ENTITY -> settings.culling.showEntityBounds
+                    CullingDebugItemKind.OBJECT -> settings.visuals.culling.showObjectBounds
+                    CullingDebugItemKind.ENTITY -> settings.visuals.culling.showEntityBounds
                 }
                 if (show) item.bounds?.let { bounds ->
                     shapes.color = when (classification.kind) {
@@ -925,12 +925,12 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
 
-        if (settings.camera.hasActiveVisuals) {
-            if (settings.camera.showWorldBounds) {
+        if (settings.visuals.camera.hasActiveVisuals) {
+            if (settings.visuals.camera.showWorldBounds) {
                 shapes.color = Color(0.3f, 1f, 0.3f, 1f)
                 drawRect(camera.worldBounds)
             }
-            if (settings.camera.showClampBounds) {
+            if (settings.visuals.camera.showClampBounds) {
                 shapes.color = Color(1f, 0.4f, 0.2f, 1f)
                 drawRect(camera.clampBounds)
             }

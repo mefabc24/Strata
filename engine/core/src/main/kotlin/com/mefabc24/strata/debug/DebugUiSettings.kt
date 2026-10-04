@@ -1,26 +1,54 @@
 package com.mefabc24.strata.debug
 
+import com.badlogic.gdx.Input
 import com.mefabc24.strata.render.RenderStats
 
-/** Availability, startup visibility, and shortcut for one debug window. */
-class DebugWindowSettings internal constructor(
+/** Configures the Debug System's optional user interfaces. */
+class DebugUiSettings internal constructor() {
+    /** Tool Rail availability, startup visibility, and keyboard shortcut. */
+    val toolRail = DebugUiComponentSettings(defaultToggleKey = Input.Keys.F2)
+
+    /** Settings Window availability, startup visibility, and keyboard shortcut. */
+    val settingsWindow = DebugUiComponentSettings(defaultToggleKey = Input.Keys.F3)
+
+    /** Configures the Tool Rail without affecting Debug rendering or runtime features. */
+    fun toolRail(configure: DebugUiComponentSettings.() -> Unit) = toolRail.apply(configure)
+
+    /** Configures the Settings Window without affecting Debug rendering or runtime features. */
+    fun settingsWindow(configure: DebugUiComponentSettings.() -> Unit) =
+        settingsWindow.apply(configure)
+
+    internal fun validate() {
+        val enabledComponents = listOf(toolRail, settingsWindow)
+            .filter(DebugUiComponentSettings::enabled)
+        if (enabledComponents.size < 2) return
+
+        require(toolRail.toggleKey != settingsWindow.toggleKey) {
+            "Enabled debug interfaces must use different toggle keys; " +
+                "both use ${toolRail.toggleKey}."
+        }
+    }
+}
+
+/** Startup configuration and current visibility for one Debug UI component. */
+class DebugUiComponentSettings internal constructor(
     defaultToggleKey: Int
 ) {
-    /** Whether this window is available in the current scene. */
+    /** Whether this interface can be opened in the current scene. */
     var enabled: Boolean = false
 
-    /** Whether this window is displayed when a debug runtime is initialized. */
+    /** Whether this interface is shown when the Debug runtime is initialized. */
     var visibleOnStartup: Boolean = false
 
-    /** Current runtime visibility. Hidden windows retain their UI and engine state. */
-    var visible: Boolean = false
+    /** Whether this interface is currently visible. */
+    var isVisible: Boolean = false
         internal set
 
-    /** Keyboard shortcut that toggles only this window. */
+    /** Keyboard shortcut that toggles only this interface. */
     var toggleKey: Int = defaultToggleKey
         set(value) {
             require(value >= 0) {
-                "Debug window toggle key must be non-negative."
+                "Debug interface toggle key must be non-negative."
             }
             field = value
         }

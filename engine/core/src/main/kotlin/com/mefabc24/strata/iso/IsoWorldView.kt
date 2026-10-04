@@ -168,17 +168,17 @@ class IsoWorldView(
         lighting = lighting,
         collectDebugSnapshot = {
             debugSettings?.let { settings ->
-                settings.picking.hasActiveVisuals ||
-                        settings.renderOrder.hasActiveVisuals ||
-                        settings.culling.hasActiveVisuals ||
-                        settings.visualizationFilter == DebugVisualizationFilter.VISIBLE &&
-                        (settings.objects.hasActiveVisuals || settings.entities.hasActiveVisuals) ||
+                settings.visuals.picking.hasActiveVisuals ||
+                        settings.visuals.renderOrder.hasActiveVisuals ||
+                        settings.visuals.culling.hasActiveVisuals ||
+                        settings.visuals.filter == DebugVisualizationFilter.VISIBLE &&
+                        (settings.visuals.objects.hasActiveVisuals || settings.visuals.entities.hasActiveVisuals) ||
                         settings.worldState.inspectionHighlightVisible
             } ?: false
         },
         objectPriorityFor = objectPriorityFor,
         entityPriorityFor = entityPriorityFor,
-        visibility = debugSettings?.worldVisibility
+        visibility = debugSettings?.visuals?.worldVisibility
             ?: com.mefabc24.strata.debug.DebugWorldVisibilitySettings()
     )
 
@@ -234,7 +234,7 @@ class IsoWorldView(
             debugSettings?.entityFreezeState?.resolveAnimation(
                 entity = entity,
                 animationTime = time,
-                freezeAnimation = debugSettings.inspect.freezeEntityAnimation,
+                freezeAnimation = debugSettings.tools.inspect.freezeEntityAnimation,
                 resolve = resolve
             ) ?: resolve(time)
         }
@@ -400,7 +400,7 @@ class IsoWorldView(
             "Simulation delta must be finite and non-negative."
         }
 
-        val freezeVisualAnimations = debugSettings?.simulation?.let {
+        val freezeVisualAnimations = debugSettings?.operations?.simulation?.let {
             it.enabled && it.freezeVisualAnimations
         } == true
         if (!freezeVisualAnimations) {
@@ -479,7 +479,7 @@ class IsoWorldView(
             }
         }
 
-        val visualizationFilter = debugSettings?.visualizationFilter
+        val visualizationFilter = debugSettings?.visuals?.filter
             ?: DebugVisualizationFilter.ALL
         debugFilterContext.update(
             inspection = debugSettings?.worldState?.inspection,
@@ -501,12 +501,12 @@ class IsoWorldView(
             val state = settings.worldState
             val inspectionActive = state.inspectionHighlightVisible &&
                 state.inspection != null
-            val pathActive = settings.pathfinding.enabled &&
+            val pathActive = settings.tools.pathfinding.enabled &&
                 (state.pathfindingWaypoints.isNotEmpty() || state.pathfinding != null)
             val active = inspectionActive || pathActive ||
-                settings.picking.hasActiveVisuals ||
-                settings.renderOrder.hasActiveVisuals || settings.culling.hasActiveVisuals ||
-                settings.camera.hasActiveVisuals || settings.worldInfo.hasActiveVisuals ||
+                settings.visuals.picking.hasActiveVisuals ||
+                settings.visuals.renderOrder.hasActiveVisuals || settings.visuals.culling.hasActiveVisuals ||
+                settings.visuals.camera.hasActiveVisuals || settings.visuals.worldInfo.hasActiveVisuals ||
                 state.movePreview?.visible == true
                 || state.brushPreview != null
             if (active) {
