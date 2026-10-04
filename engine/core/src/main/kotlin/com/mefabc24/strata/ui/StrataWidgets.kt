@@ -3,6 +3,7 @@ package com.mefabc24.strata.ui
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -411,48 +412,99 @@ internal fun ScrollPane.useHoverScrollFocus() {
 
     blockScrollInput()
 
-    addListener(
-        object : InputListener() {
-            override fun enter(
-                event: InputEvent,
-                x: Float,
-                y: Float,
-                pointer: Int,
-                fromActor: Actor?
-            ) {
-                if (
-                    pointer == -1 &&
-                    !containsActor(fromActor)
-                ) {
-                    stage?.setScrollFocus(this@useHoverScrollFocus)
-                }
-            }
-
-            override fun exit(
-                event: InputEvent,
-                x: Float,
-                y: Float,
-                pointer: Int,
-                toActor: Actor?
-            ) {
-                if (
-                    pointer == -1 &&
-                    !containsActor(toActor) &&
-                    stage?.scrollFocus === this@useHoverScrollFocus
-                ) {
-                    stage?.setScrollFocus(null)
-                }
-            }
-        }
-    )
+    addListener(HoverScrollFocusListener)
 }
 
 /** Image created by Strata's resource-path UI API. */
 class StrataImage internal constructor(drawable: Drawable) : Image(drawable)
 
-private fun ScrollPane.containsActor(actor: Actor?): Boolean {
-    return actor === this ||
-            actor?.isDescendantOf(this) == true
+private object HoverScrollFocusListener : InputListener() {
+    override fun enter(
+        event: InputEvent,
+        x: Float,
+        y: Float,
+        pointer: Int,
+        fromActor: Actor?
+    ) {
+        if (pointer == -1) updateHoverScrollFocus(event)
+    }
+
+    override fun exit(
+        event: InputEvent,
+        x: Float,
+        y: Float,
+        pointer: Int,
+        toActor: Actor?
+    ) {
+        if (pointer == -1) updateHoverScrollFocus(event)
+    }
+}
+
+private class HoverScrollFocusRouter : InputListener() {
+    override fun scrolled(
+        event: InputEvent,
+        x: Float,
+        y: Float,
+        amountX: Float,
+        amountY: Float
+    ): Boolean {
+        val stage = event.stage ?: return false
+        val target = stage.hoverScrollPaneAt(event.stageX, event.stageY)
+        val currentTarget = event.target
+
+        if (target == null) {
+            if (currentTarget.isHoverScrollPane()) {
+                stage.setScrollFocus(null)
+                event.stop()
+            }
+            return false
+        }
+
+        stage.setScrollFocus(target)
+        if (currentTarget === target) return false
+
+        event.stop()
+        val redirected = InputEvent().apply {
+            type = InputEvent.Type.scrolled
+            this.stage = stage
+            stageX = event.stageX
+            stageY = event.stageY
+            scrollAmountX = amountX
+            scrollAmountY = amountY
+        }
+        target.fire(redirected)
+        if (redirected.isHandled) event.handle()
+        return redirected.isHandled
+    }
+}
+
+private fun updateHoverScrollFocus(event: InputEvent) {
+    val stage = event.stage ?: return
+    stage.installHoverScrollFocusRouter()
+    val target = stage.hoverScrollPaneAt(event.stageX, event.stageY)
+    if (target != null) {
+        stage.setScrollFocus(target)
+    } else if (stage.scrollFocus.isHoverScrollPane()) {
+        stage.setScrollFocus(null)
+    }
+}
+
+private fun Stage.installHoverScrollFocusRouter() {
+    if (root.captureListeners.any { it is HoverScrollFocusRouter }) return
+    root.addCaptureListener(HoverScrollFocusRouter())
+}
+
+private fun Stage.hoverScrollPaneAt(stageX: Float, stageY: Float): ScrollPane? {
+    var actor: Actor? = hit(stageX, stageY, true)
+    while (actor != null) {
+        if (actor.isHoverScrollPane()) return actor as ScrollPane
+        actor = actor.parent
+    }
+    return null
+}
+
+private fun Actor?.isHoverScrollPane(): Boolean {
+    return this is ScrollPane && listeners.contains(HoverScrollFocusListener, true)
 }
 
 /** Invokes callbacks when the pointer enters or leaves this actor. */
