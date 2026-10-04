@@ -17,6 +17,7 @@ import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataSelectableButton
 import com.mefabc24.strata.ui.StrataSelectionGroup
 import com.mefabc24.strata.ui.StrataSeparatorStyle
+import com.mefabc24.strata.ui.useHoverScrollFocus
 import java.util.Locale
 import kotlin.math.min
 
@@ -87,6 +88,7 @@ internal class DebugToolSelectionList<T>(
         scroll.setScrollingDisabled(true, false)
         scroll.setFadeScrollBars(false)
         scroll.setOverscroll(false, false)
+        scroll.useHoverScrollFocus()
         scrollCell = add(scroll)
         scrollCell.growX().fillX().minHeight(0f)
         showItems(allItems)
