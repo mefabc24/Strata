@@ -27,7 +27,7 @@ class DebugVisualConfiguration internal constructor(
 )
 
 internal object DebugVisualSettings {
-    internal const val VERSION = 3
+    internal const val VERSION = 4
 
     private interface Binding {
         val key: String
@@ -60,7 +60,6 @@ internal object DebugVisualSettings {
     ): Binding = TypedBinding(key, category, read, write, copy)
 
     private val colorCopy: (Color) -> Color = { it.cpy() }
-    private val nullableColorCopy: (Color?) -> Color? = { it?.cpy() }
     private val setCopy: (Set<String>) -> Set<String> = { it.toSet() }
 
     private val bindings = listOf(
@@ -72,8 +71,10 @@ internal object DebugVisualSettings {
         binding("grid.color", DebugVisualCategory.GRID, { it.grid.color }, { s, v -> s.grid.color = v }, colorCopy),
         binding("grid.hoverColor", DebugVisualCategory.GRID, { it.grid.hoverColor }, { s, v -> s.grid.hoverColor = v }, colorCopy),
         binding("grid.lineWidth", DebugVisualCategory.GRID, { it.grid.lineWidth }, { s, v -> s.grid.lineWidth = v }),
-        binding("grid.background", DebugVisualCategory.GRID, { it.grid.backgroundColor }, { s, v -> s.grid.backgroundColor = v }, nullableColorCopy),
-        binding("grid.hoverBackground", DebugVisualCategory.GRID, { it.grid.hoverBackgroundColor }, { s, v -> s.grid.hoverBackgroundColor = v }, nullableColorCopy),
+        binding("grid.backgroundEnabled", DebugVisualCategory.GRID, { it.grid.showBackground }, { s, v -> s.grid.showBackground = v }),
+        binding("grid.background", DebugVisualCategory.GRID, { it.grid.backgroundColor }, { s, v -> s.grid.backgroundColor = v }, colorCopy),
+        binding("grid.hoverBackgroundEnabled", DebugVisualCategory.GRID, { it.grid.showHoverBackground }, { s, v -> s.grid.showHoverBackground = v }),
+        binding("grid.hoverBackground", DebugVisualCategory.GRID, { it.grid.hoverBackgroundColor }, { s, v -> s.grid.hoverBackgroundColor = v }, colorCopy),
         binding("worldInfo.coordinates", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showTileCoordinates }, { s, v -> s.worldInfo.showTileCoordinates = v }),
         binding("worldInfo.terrainIds", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showTerrainIds }, { s, v -> s.worldInfo.showTerrainIds = v }),
         binding("worldInfo.overlays", DebugVisualCategory.WORLD_INFORMATION, { it.worldInfo.showOverlayInfo }, { s, v -> s.worldInfo.showOverlayInfo = v }),
@@ -96,7 +97,8 @@ internal object DebugVisualSettings {
         binding("objects.bounds", DebugVisualCategory.OBJECTS, { it.objects.showSpriteBounds }, { s, v -> s.objects.showSpriteBounds = v }),
         binding("objects.width", DebugVisualCategory.OBJECTS, { it.objects.lineWidth }, { s, v -> s.objects.lineWidth = v }),
         binding("objects.tileColor", DebugVisualCategory.OBJECTS, { it.objects.occupiedTileColor }, { s, v -> s.objects.occupiedTileColor = v }, colorCopy),
-        binding("objects.fill", DebugVisualCategory.OBJECTS, { it.objects.occupiedTileFillColor }, { s, v -> s.objects.occupiedTileFillColor = v }, nullableColorCopy),
+        binding("objects.fillEnabled", DebugVisualCategory.OBJECTS, { it.objects.showOccupiedTileFill }, { s, v -> s.objects.showOccupiedTileFill = v }),
+        binding("objects.fill", DebugVisualCategory.OBJECTS, { it.objects.occupiedTileFillColor }, { s, v -> s.objects.occupiedTileFillColor = v }, colorCopy),
         binding("objects.originColor", DebugVisualCategory.OBJECTS, { it.objects.originTileColor }, { s, v -> s.objects.originTileColor = v }, colorCopy),
         binding("objects.boundsColor", DebugVisualCategory.OBJECTS, { it.objects.spriteBoundsColor }, { s, v -> s.objects.spriteBoundsColor = v }, colorCopy),
         binding("entities.tile", DebugVisualCategory.ENTITIES, { it.entities.showCurrentTile }, { s, v -> s.entities.showCurrentTile = v }),
@@ -116,7 +118,8 @@ internal object DebugVisualSettings {
         binding("entities.vectorScale", DebugVisualCategory.ENTITIES, { it.entities.movementVectorScaleSeconds }, { s, v -> s.entities.movementVectorScaleSeconds = v }),
         binding("entities.width", DebugVisualCategory.ENTITIES, { it.entities.lineWidth }, { s, v -> s.entities.lineWidth = v }),
         binding("entities.tileColor", DebugVisualCategory.ENTITIES, { it.entities.currentTileColor }, { s, v -> s.entities.currentTileColor = v }, colorCopy),
-        binding("entities.fill", DebugVisualCategory.ENTITIES, { it.entities.currentTileFillColor }, { s, v -> s.entities.currentTileFillColor = v }, nullableColorCopy),
+        binding("entities.fillEnabled", DebugVisualCategory.ENTITIES, { it.entities.showCurrentTileFill }, { s, v -> s.entities.showCurrentTileFill = v }),
+        binding("entities.fill", DebugVisualCategory.ENTITIES, { it.entities.currentTileFillColor }, { s, v -> s.entities.currentTileFillColor = v }, colorCopy),
         binding("entities.positionColor", DebugVisualCategory.ENTITIES, { it.entities.positionColor }, { s, v -> s.entities.positionColor = v }, colorCopy),
         binding("entities.pathColor", DebugVisualCategory.ENTITIES, { it.entities.pathColor }, { s, v -> s.entities.pathColor = v }, colorCopy),
         binding("entities.directionColor", DebugVisualCategory.ENTITIES, { it.entities.directionColor }, { s, v -> s.entities.directionColor = v }, colorCopy),
@@ -174,12 +177,68 @@ internal object DebugVisualSettings {
         require(configuration.version in 1..VERSION) {
             "Unsupported debug visual configuration version ${configuration.version}."
         }
+
+        val values = if (configuration.version < 4) {
+            migrateLegacyFillValues(configuration.values)
+        } else {
+            configuration.values
+        }
+
         bindings.forEach { binding ->
-            if (configuration.values.containsKey(binding.key)) {
-                binding.write(settings, configuration.values[binding.key])
+            if (values.containsKey(binding.key)) {
+                binding.write(settings, values[binding.key])
             }
         }
-        if (configuration.version == 1) migrateLegacyFeatureGates(settings, configuration)
+
+        if (configuration.version == 1) {
+            migrateLegacyFeatureGates(settings, configuration)
+        }
+    }
+
+    private fun migrateLegacyFillValues(
+        values: Map<String, Any?>
+    ): Map<String, Any?> {
+        val migrated = values.toMutableMap()
+        val defaults = DebugSettings()
+
+        fun migrate(
+            colorKey: String,
+            enabledKey: String,
+            defaultColor: Color
+        ) {
+            if (!migrated.containsKey(colorKey)) return
+
+            val legacyColor = migrated[colorKey] as Color?
+
+            migrated[enabledKey] = legacyColor != null
+            migrated[colorKey] = legacyColor ?: defaultColor
+        }
+
+        migrate(
+            "grid.background",
+            "grid.backgroundEnabled",
+            defaults.grid.backgroundColor
+        )
+
+        migrate(
+            "grid.hoverBackground",
+            "grid.hoverBackgroundEnabled",
+            defaults.grid.hoverBackgroundColor
+        )
+
+        migrate(
+            "objects.fill",
+            "objects.fillEnabled",
+            defaults.objects.occupiedTileFillColor
+        )
+
+        migrate(
+            "entities.fill",
+            "entities.fillEnabled",
+            defaults.entities.currentTileFillColor
+        )
+
+        return migrated
     }
 
     fun reset(settings: DebugSettings, category: DebugVisualCategory? = null) {
@@ -207,7 +266,7 @@ internal object DebugVisualSettings {
             settings.objects.showOccupiedTiles = false
             settings.objects.showOriginTile = false
             settings.objects.showSpriteBounds = false
-            settings.objects.occupiedTileFillColor = null
+            settings.objects.showOccupiedTileFill = false
         }
         if (disabled("entities.enabled")) {
             settings.entities.showCurrentTile = false
@@ -220,7 +279,7 @@ internal object DebugVisualSettings {
             settings.entities.showNextWaypoint = false
             settings.entities.showMovementSpeed = false
             settings.entities.showPositionTileOffset = false
-            settings.entities.currentTileFillColor = null
+            settings.entities.showCurrentTileFill = false
         }
         if (disabled("picking.enabled")) {
             settings.picking.showSpriteBounds = false

@@ -18,6 +18,7 @@ internal object DebugPresets {
                 settings.grid.enabled = true
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
+                settings.objects.showOccupiedTileFill = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
             }
             DebugPreset.ENTITIES -> {
@@ -26,6 +27,7 @@ internal object DebugPresets {
                 settings.entities.showPath = true
                 settings.entities.showDirection = true
                 settings.entities.showSpriteBounds = true
+                settings.entities.showCurrentTileFill = true
                 settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
             }
             DebugPreset.RENDERING -> {
@@ -44,6 +46,8 @@ internal object DebugPresets {
                 settings.performance.overlayEnabled = true
                 settings.simulation.enabled = true
                 settings.grid.enabled = true
+                settings.grid.showBackground = true
+                settings.grid.showHoverBackground = true
                 settings.grid.backgroundColor = Color(1f, 1f, 1f, 0.2f)
                 settings.grid.hoverBackgroundColor = Color(1f, 0f, 0f, 0.5f)
                 settings.worldInfo.showTileCoordinates = true
@@ -54,6 +58,7 @@ internal object DebugPresets {
                 settings.objects.showOccupiedTiles = true
                 settings.objects.showOriginTile = true
                 settings.objects.showSpriteBounds = true
+                settings.objects.showOccupiedTileFill = true
                 settings.objects.occupiedTileFillColor = Color(0.2f, 0.65f, 1f, 0.18f)
                 settings.entities.showCurrentTile = true
                 settings.entities.showPosition = true
@@ -61,6 +66,7 @@ internal object DebugPresets {
                 settings.entities.showDirection = true
                 settings.entities.showSpriteBounds = true
                 settings.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
+                settings.entities.showCurrentTileFill = true
                 settings.picking.showSpriteBounds = true
                 settings.picking.showCursorHit = true
                 settings.renderOrder.showLabels = true
@@ -89,7 +95,7 @@ internal object DebugPresets {
         settings.objects.showOccupiedTiles = false
         settings.objects.showOriginTile = false
         settings.objects.showSpriteBounds = false
-        settings.objects.occupiedTileFillColor = null
+        settings.objects.showOccupiedTileFill = false
         settings.entities.showCurrentTile = false
         settings.entities.showPosition = false
         settings.entities.showPath = false
@@ -100,7 +106,7 @@ internal object DebugPresets {
         settings.entities.showNextWaypoint = false
         settings.entities.showMovementSpeed = false
         settings.entities.showPositionTileOffset = false
-        settings.entities.currentTileFillColor = null
+        settings.entities.showCurrentTileFill = false
         settings.picking.showSpriteBounds = false
         settings.picking.showCursorHit = false
         settings.renderOrder.showLabels = false
