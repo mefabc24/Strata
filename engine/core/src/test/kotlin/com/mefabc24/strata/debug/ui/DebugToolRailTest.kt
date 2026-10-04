@@ -25,7 +25,7 @@ class DebugToolRailTest {
     }
 
     @Test
-    fun `left and right clicks remain independent`() {
+    fun `right click selects and opens settings while left click only selects`() {
         val selected = mutableListOf<DebugToolMode>()
         val settings = mutableListOf<DebugToolMode>()
         val skin = skin()
@@ -35,11 +35,11 @@ class DebugToolRailTest {
         val listener = button.listeners.filterIsInstance<InputListener>().single()
 
         click(listener, button, Input.Buttons.RIGHT)
-        assertEquals(emptyList(), selected)
+        assertEquals(listOf(DebugToolMode.PAINT), selected)
         assertEquals(listOf(DebugToolMode.PAINT), settings)
 
         click(listener, button, Input.Buttons.LEFT)
-        assertEquals(listOf(DebugToolMode.PAINT), selected)
+        assertEquals(listOf(DebugToolMode.PAINT, DebugToolMode.PAINT), selected)
         assertEquals(listOf(DebugToolMode.PAINT), settings)
         skin.dispose()
     }
