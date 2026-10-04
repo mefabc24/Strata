@@ -60,6 +60,21 @@ class DebugToolRailTest {
     }
 
     @Test
+    fun `active tool changes close settings without coupling right click state`() {
+        val state = DebugToolRailState(
+            setOf(DebugToolMode.PAINT, DebugToolMode.PATHFINDING),
+            activeMode = DebugToolMode.PAINT
+        )
+
+        assertEquals(DebugToolMode.PATHFINDING, state.toggleSettings(DebugToolMode.PATHFINDING))
+        assertFalse(state.syncActiveTool(DebugToolMode.PAINT))
+        assertEquals(DebugToolMode.PATHFINDING, state.settingsMode)
+
+        assertTrue(state.syncActiveTool(DebugToolMode.MOVE))
+        assertNull(state.settingsMode)
+    }
+
+    @Test
     fun `availability keeps universal tools and filters content tools`() {
         assertEquals(
             listOf(
