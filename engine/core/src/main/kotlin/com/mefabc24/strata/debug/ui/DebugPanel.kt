@@ -420,8 +420,11 @@ internal class DebugPanel(
             }
             inspectControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSection("Inspector")
-                inspectorRows = diagnosticTable()
+                toolSettingsExpander("Selection") {
+                    inspectorRows = diagnosticTable()
+                    compactAction("Clear selection") { inspector.clear() }
+                }
+                toolSettingsExpander("Entity control") {
                 simpleToggle(
                     "Frozen",
                     {
@@ -452,14 +455,15 @@ internal class DebugPanel(
                         if (count == 0) DebugNotificationSeverity.INFO else DebugNotificationSeverity.SUCCESS
                     )
                 }
-                toolSection("World visualization")
-                label("Tile")
+                }
+                toolSettingsExpander("Visualization") {
+                settingGroupLabel("Tile")
                 toggleRows(
                     toggle("Selected tile", { settings.inspect.showTile }) {
                         settings.inspect.showTile = it
                     }
                 )
-                label("Object")
+                settingGroupLabel("Object")
                 toggleRows(
                     toggle("Footprint", { settings.inspect.showObjectFootprint }) {
                         settings.inspect.showObjectFootprint = it
@@ -471,7 +475,7 @@ internal class DebugPanel(
                         settings.inspect.showObjectSpriteBounds = it
                     }
                 )
-                label("Entity")
+                settingGroupLabel("Entity")
                 toggleRows(
                     toggle("Current tile", { settings.inspect.showEntityTile }) {
                         settings.inspect.showEntityTile = it
@@ -489,7 +493,7 @@ internal class DebugPanel(
                         settings.inspect.showEntitySpriteBounds = it
                     }
                 )
-                compactAction("Clear selection") { inspector.clear() }
+                }
             }
             pathControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
@@ -1150,6 +1154,15 @@ internal class DebugPanel(
                 StrataExpanderStyle::class.java
             ).headerBackground
         }.cell { fillAvailableX(); height(30f) }
+        separator()
+    }
+
+    private fun StrataColumn.settingGroupLabel(text: String) {
+        row(
+            padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
+        ) {
+            label(text, "title").cell { growX(); left() }
+        }.applyDebugSettingBackground().cell { fillAvailableX(); height(28f) }
         separator()
     }
 
