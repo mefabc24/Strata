@@ -41,7 +41,7 @@ internal fun debugToolFlyoutSectionTitles(mode: DebugToolMode): List<String> = w
     DebugToolMode.BUILD -> listOf("Selection", "Preview", "Status")
     DebugToolMode.DELETE -> listOf("Brush", "Status")
     DebugToolMode.PAINT -> listOf("Brush", "Terrain", "Target", "Status")
-    DebugToolMode.SPAWN -> listOf("Selection", "Status")
+    DebugToolMode.SPAWN -> listOf("Selection", "Preview", "Status")
     DebugToolMode.INSPECT -> listOf("Selection", "Entity control", "Visualization", "Status")
     DebugToolMode.MOVE -> listOf("Status")
     DebugToolMode.PATHFINDING ->

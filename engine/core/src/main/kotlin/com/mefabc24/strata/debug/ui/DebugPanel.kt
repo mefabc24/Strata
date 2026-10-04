@@ -430,18 +430,51 @@ internal class DebugPanel(
             spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.SPAWN, "Selection") {
-                    responsiveGrid(130f, maximumColumns = 2) {
-                        spawner.entries.forEach { entry ->
-                            val name = entry.type.displayName()
-                            selectableButton(name, entry, checkNotNull(spawnSelection))
-                                .previewOnHover(
-                                    entry,
-                                    DebugContentKind.ENTITY,
-                                    name,
-                                    entry.selectionVisual.texture
-                                )
-                        }
-                    }.cell { fillAvailableX() }
+                    actor(DebugToolSelectionList(
+                        items = spawner.entries.map { entry ->
+                            val visual = entry.selectionVisual
+                            val frames = visual.sprite.frameCount
+                            DebugToolSelectionItem(
+                                value = entry,
+                                displayName = entry.type.displayName(),
+                                texture = visual.texture,
+                                secondaryText = if (frames == 1) {
+                                    "Static sprite"
+                                } else {
+                                    "$frames animation frames"
+                                }
+                            )
+                        },
+                        selectionGroup = checkNotNull(spawnSelection),
+                        skin = ui.skin,
+                        searchHint = "Search entities...",
+                        onLayoutChanged = ::invalidateToolFlyoutLayout
+                    )).cell { fillAvailableX() }
+                }
+                toolSettingsExpander(DebugToolMode.SPAWN, "Preview") {
+                    val preview = DebugToolPreviewCard(ui.skin)
+                    fun updatePreview(entry: EntityEntry?) {
+                        if (entry == null) return
+                        val visual = entry.selectionVisual
+                        val texture = visual.texture
+                        preview.show(DebugToolPreview(
+                            key = entry,
+                            displayName = entry.type.displayName(),
+                            texture = texture,
+                            details = buildList {
+                                add("Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px")
+                                add("Frames" to visual.sprite.frameCount.toString())
+                                if (visual.width != null && visual.height != null) {
+                                    add("Size" to "${visual.width} × ${visual.height}")
+                                }
+                                add("Scale" to visual.scale.toString())
+                            }
+                        ))
+                    }
+                    actor(preview).cell { fillAvailableX(); height(110f) }
+                    val group = checkNotNull(spawnSelection)
+                    ui.root.context.own(group.onSelectionChanged(::updatePreview))
+                    updatePreview(group.selected)
                 }
                 toolStatus(DebugToolMode.SPAWN)
             }
