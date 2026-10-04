@@ -318,13 +318,22 @@ internal class DebugPanel(
         stack {
             buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSection("Build object")
-                responsiveGrid(130f, maximumColumns = 2) {
-                    buildEntries.forEach { entry ->
-                        selectableButton(entry.displayName(), entry, checkNotNull(buildSelection))
-                            .previewOnHover(entry, DebugContentKind.OBJECT, entry.displayName(), entry.selectionVisual.texture)
-                    }
-                }.cell { fillAvailableX() }
+                toolSettingsExpander("Selection") {
+                    responsiveGrid(130f, maximumColumns = 2) {
+                        buildEntries.forEach { entry ->
+                            selectableButton(
+                                entry.displayName(),
+                                entry,
+                                checkNotNull(buildSelection)
+                            ).previewOnHover(
+                                entry,
+                                DebugContentKind.OBJECT,
+                                entry.displayName(),
+                                entry.selectionVisual.texture
+                            )
+                        }
+                    }.cell { fillAvailableX() }
+                }
             }
             deleteControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
