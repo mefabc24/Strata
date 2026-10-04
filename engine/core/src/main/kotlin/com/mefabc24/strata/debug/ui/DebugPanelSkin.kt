@@ -101,6 +101,20 @@ internal object DebugPanelSkin {
             font,
             Color(0.84f, 0.86f, 0.90f, 1f)
         ))
+        skin.add("debug-secondary", Label.LabelStyle(
+            font,
+            Color(0.58f, 0.61f, 0.66f, 1f)
+        ))
+        skin.add("debug-tool-selection-row", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color.WHITE
+            up = drawable.tint(Color(0.135f, 0.14f, 0.155f, 0.98f))
+            over = drawable.tint(Color(0.20f, 0.22f, 0.26f, 1f))
+            down = drawable.tint(Color(0.09f, 0.25f, 0.38f, 1f))
+            checked = drawable.tint(Color(0.10f, 0.34f, 0.54f, 1f))
+            checkedOver = drawable.tint(Color(0.12f, 0.42f, 0.64f, 1f))
+            disabled = drawable.tint(Color(0.10f, 0.10f, 0.12f, 1f))
+        })
         skin.add("debug-toggle", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color(0.88f, 0.88f, 0.90f, 1f)
