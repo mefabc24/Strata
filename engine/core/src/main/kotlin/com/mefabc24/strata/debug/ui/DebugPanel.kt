@@ -313,20 +313,22 @@ internal class DebugPanel(
             buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.BUILD, "Selection") {
-                    responsiveGrid(130f, maximumColumns = 2) {
-                        buildEntries.forEach { entry ->
-                            selectableButton(
-                                entry.displayName(),
-                                entry,
-                                checkNotNull(buildSelection)
-                            ).previewOnHover(
-                                entry,
-                                DebugContentKind.OBJECT,
-                                entry.displayName(),
-                                entry.selectionVisual.texture
+                    actor(DebugToolSelectionList(
+                        items = buildEntries.map { entry ->
+                            val footprint = entry.create().footprint
+                            DebugToolSelectionItem(
+                                value = entry,
+                                displayName = entry.displayName(),
+                                texture = entry.selectionVisual.texture,
+                                secondaryText = "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
+                                trailingText = footprint.dimensionsText()
                             )
-                        }
-                    }.cell { fillAvailableX() }
+                        },
+                        selectionGroup = checkNotNull(buildSelection),
+                        skin = ui.skin,
+                        searchHint = "Search objects...",
+                        onLayoutChanged = ::invalidateToolFlyoutLayout
+                    )).cell { fillAvailableX() }
                 }
                 toolStatus(DebugToolMode.BUILD)
             }
@@ -1918,3 +1920,9 @@ private fun String.toDisplayName() = replace('_', ' ').replace('-', ' ')
     .lowercase().replaceFirstChar(Char::titlecase)
 private fun kotlin.reflect.KClass<*>.displayName() = simpleName?.toDisplayName() ?: toString()
 private fun ObjectEntry.displayName() = type.displayName()
+
+private fun com.mefabc24.strata.world.Footprint.dimensionsText(): String {
+    val width = offsets.maxOf { it.x } - offsets.minOf { it.x } + 1
+    val height = offsets.maxOf { it.y } - offsets.minOf { it.y } + 1
+    return "$width × $height"
+}
