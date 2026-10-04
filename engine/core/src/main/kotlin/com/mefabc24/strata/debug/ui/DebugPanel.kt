@@ -105,12 +105,14 @@ internal class DebugPanel(
     private lateinit var overlayPaintControls: StrataColumn
     private lateinit var spawnControls: StrataColumn
     private lateinit var inspectControls: StrataColumn
+    private lateinit var moveControls: StrataColumn
     private lateinit var pathControls: StrataColumn
+    private lateinit var cameraControls: StrataColumn
     private lateinit var inspectorRows: DebugDiagnosticTable
     private lateinit var pickingRows: DebugDiagnosticTable
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
-    private lateinit var contextRows: DebugDiagnosticTable
+    private val toolStatusRows = mutableMapOf<DebugToolMode, DebugDiagnosticTable>()
     private lateinit var previewName: Label
     private lateinit var previewImage: Image
     private lateinit var previewPopover: StrataPopover
@@ -283,16 +285,6 @@ internal class DebugPanel(
                 buildingDebugSettings = true
                 buildToolSettings()
                 buildingDebugSettings = false
-                column(spacing = 0f) {
-                    defaults().fillAvailableX()
-                    separator()
-                    label("STATUS").cell {
-                        height(28f)
-                        padLeft(8f)
-                        left()
-                    }
-                    contextRows = diagnosticTable()
-                }
             }.cell {
                 grow()
                 minHeight(0f)
@@ -334,19 +326,22 @@ internal class DebugPanel(
                         }
                     }.cell { fillAvailableX() }
                 }
+                toolStatus(DebugToolMode.BUILD)
             }
             deleteControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
-                toolSection("Delete brush")
-                brushSizeStepper("Brush size", { settings.delete.brushSize }) {
-                    settings.delete.brushSize = it
+                toolSettingsExpander("Brush") {
+                    brushSizeStepper("Brush size", { settings.delete.brushSize }) {
+                        settings.delete.brushSize = it
+                    }
+                    simpleToggle("Drag deletion", { settings.delete.dragEnabled }) {
+                        settings.delete.dragEnabled = it
+                    }
+                    simpleToggle("Show affected area", { settings.delete.showBrushPreview }) {
+                        settings.delete.showBrushPreview = it
+                    }
                 }
-                simpleToggle("Drag deletion", { settings.delete.dragEnabled }) {
-                    settings.delete.dragEnabled = it
-                }
-                simpleToggle("Show affected area", { settings.delete.showBrushPreview }) {
-                    settings.delete.showBrushPreview = it
-                }
+                toolStatus(DebugToolMode.DELETE)
             }
             paintControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
@@ -400,6 +395,7 @@ internal class DebugPanel(
                         }.cell { fillAvailableX() }
                     }
                 }
+                toolStatus(DebugToolMode.PAINT)
             }
             spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
@@ -417,6 +413,7 @@ internal class DebugPanel(
                         }
                     }.cell { fillAvailableX() }
                 }
+                toolStatus(DebugToolMode.SPAWN)
             }
             inspectControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
@@ -456,7 +453,7 @@ internal class DebugPanel(
                     )
                 }
                 }
-                toolSettingsExpander("Visualization") {
+                toolSettingsExpander("Visualization", expanded = false) {
                 settingGroupLabel("Tile")
                 toggleRows(
                     toggle("Selected tile", { settings.inspect.showTile }) {
@@ -494,6 +491,11 @@ internal class DebugPanel(
                     }
                 )
                 }
+                toolStatus(DebugToolMode.INSPECT)
+            }
+            moveControls = column(spacing = 0f) {
+                defaults().fillAvailableX()
+                toolStatus(DebugToolMode.MOVE)
             }
             pathControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
@@ -571,7 +573,7 @@ internal class DebugPanel(
                         128f
                     ) { settings.pathfinding.maximumRejectedTransitions = it.toInt() }
                 }
-                toolSettingsExpander("Diagnostic search") {
+                toolSettingsExpander("Diagnostic search", expanded = false) {
                     compactActions(
                         "Start" to { pathfinding.startDiagnosticSearch() },
                         "Step" to { pathfinding.stepDiagnosticSearch() }
@@ -589,7 +591,7 @@ internal class DebugPanel(
                         1f
                     ) { settings.pathfinding.automaticIterationsPerUpdate = it.toInt() }
                 }
-                toolSettingsExpander("Traversal") {
+                toolSettingsExpander("Traversal", expanded = false) {
                     simpleToggle(
                         "Consume reached nodes",
                         { settings.pathfinding.consumeReachedWaypoints }
@@ -607,6 +609,34 @@ internal class DebugPanel(
                         }
                     }
                 }
+                toolStatus(DebugToolMode.PATHFINDING)
+            }
+            cameraControls = column(spacing = 0f) {
+                defaults().fillAvailableX()
+                toolSettingsExpander("Movement") {
+                    simpleToggle(
+                        "Disable restrictions",
+                        { settings.camera.disableRestrictions }
+                    ) { settings.camera.disableRestrictions = it }
+                }
+                toolSettingsExpander("Visualization") {
+                    simpleToggle(
+                        "World visualization",
+                        { settings.camera.enabled }
+                    ) { settings.camera.enabled = it }
+                    toggleRows(
+                        toggle("Visible area", { settings.camera.showVisibleArea }) {
+                            settings.camera.showVisibleArea = it
+                        },
+                        toggle("World bounds", { settings.camera.showWorldBounds }) {
+                            settings.camera.showWorldBounds = it
+                        },
+                        toggle("Clamp bounds", { settings.camera.showClampBounds }) {
+                            settings.camera.showClampBounds = it
+                        }
+                    )
+                }
+                toolStatus(DebugToolMode.FREE_CAMERA)
             }
         }.cell { fillAvailableX() }
     }
@@ -1143,20 +1173,6 @@ internal class DebugPanel(
         settingToggleRow(text, read, write)
     }
 
-    private fun StrataColumn.toolSection(text: String) {
-        row(
-            padding = StrataInsets.symmetric(horizontal = 8f, vertical = 3f)
-        ) {
-            label(text).cell { growX(); left() }
-        }.apply {
-            background = ui.skin.get(
-                "debug-expander",
-                StrataExpanderStyle::class.java
-            ).headerBackground
-        }.cell { fillAvailableX(); height(30f) }
-        separator()
-    }
-
     private fun StrataColumn.settingGroupLabel(text: String) {
         row(
             padding = StrataInsets.symmetric(horizontal = 6f, vertical = 2f)
@@ -1210,6 +1226,12 @@ internal class DebugPanel(
         onExpandedChanged = { invalidateToolFlyoutLayout() },
         configure = configure
     )
+
+    private fun StrataColumn.toolStatus(mode: DebugToolMode) {
+        toolSettingsExpander("Status") {
+            toolStatusRows[mode] = diagnosticTable()
+        }
+    }
 
     private fun invalidateToolFlyoutLayout() {
         if (!::toolFlyoutScroll.isInitialized) return
@@ -1587,7 +1609,9 @@ internal class DebugPanel(
         paintControls.isVisible = displayedMode == DebugToolMode.PAINT
         spawnControls.isVisible = displayedMode == DebugToolMode.SPAWN
         inspectControls.isVisible = displayedMode == DebugToolMode.INSPECT
+        moveControls.isVisible = displayedMode == DebugToolMode.MOVE
         pathControls.isVisible = displayedMode == DebugToolMode.PATHFINDING
+        cameraControls.isVisible = displayedMode == DebugToolMode.FREE_CAMERA
 
         overlayPaintControls.isVisible =
             displayedMode == DebugToolMode.PAINT &&
@@ -1682,7 +1706,6 @@ internal class DebugPanel(
     private fun syncContextFooter() {
         val displayedMode = toolRailState.settingsMode
         if (displayedMode == null) {
-            contextRows.show(emptyList())
             return
         }
         val status = debugContextStatus(
@@ -1709,7 +1732,7 @@ internal class DebugPanel(
                 movePreview = settings.worldState.movePreview
             )
         )
-        contextRows.show(status?.rows.orEmpty())
+        toolStatusRows[displayedMode]?.show(status?.rows.orEmpty())
     }
 
     private fun inspectionSummary(): String? = when (val selected = inspector.selection) {
