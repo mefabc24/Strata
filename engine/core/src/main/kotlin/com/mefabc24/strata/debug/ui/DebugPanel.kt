@@ -326,7 +326,7 @@ internal class DebugPanel(
                                 details = listOf(
                                     "Footprint" to footprint.dimensionsText(),
                                     "Occupied" to "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
-                                    "Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px",
+                                    "Sprite" to "${texture.regionWidth} x ${texture.regionHeight} px",
                                     "Frames" to visual.sprite.frameCount.toString()
                                 )
                             ))
@@ -449,10 +449,10 @@ internal class DebugPanel(
                                 displayName = entry.type.displayName(),
                                 texture = texture,
                                 details = buildList {
-                                    add("Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px")
+                                    add("Sprite" to "${texture.regionWidth} x ${texture.regionHeight} px")
                                     add("Frames" to visual.sprite.frameCount.toString())
                                     if (visual.width != null && visual.height != null) {
-                                        add("Size" to "${visual.width} × ${visual.height}")
+                                        add("Size" to "${visual.width} x ${visual.height}")
                                     }
                                     add("Scale" to visual.scale.toString())
                                 }
@@ -1977,5 +1977,5 @@ private fun ObjectEntry.displayName() = type.displayName()
 private fun com.mefabc24.strata.world.Footprint.dimensionsText(): String {
     val width = offsets.maxOf { it.x } - offsets.minOf { it.x } + 1
     val height = offsets.maxOf { it.y } - offsets.minOf { it.y } + 1
-    return "$width × $height"
+    return "$width x $height"
 }

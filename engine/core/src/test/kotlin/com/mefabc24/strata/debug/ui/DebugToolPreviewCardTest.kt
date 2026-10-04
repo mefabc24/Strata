@@ -23,9 +23,9 @@ class DebugToolPreviewCardTest {
             key = "house",
             displayName = "House",
             texture = TextureRegion(),
-            details = listOf("Footprint" to "2 × 2")
+            details = listOf("Footprint" to "2 x 2")
         ))
-        assertEquals(listOf("House", "Footprint", "2 × 2"), preview.texts())
+        assertEquals(listOf("House", "Footprint", "2 x 2"), preview.texts())
 
         preview.show(DebugToolPreview(
             key = "villa",
