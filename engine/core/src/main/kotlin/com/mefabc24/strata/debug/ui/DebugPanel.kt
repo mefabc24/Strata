@@ -1319,7 +1319,9 @@ internal class DebugPanel(
 
     private fun StrataColumn.toolStatus(mode: DebugToolMode) {
         toolSettingsExpander(mode, "Status") {
-            toolStatusRows[mode] = diagnosticTable()
+            toolStatusRows[mode] = diagnosticTable().apply {
+                pad(4f, 9f, 4f, 9f)
+            }
         }
     }
 
