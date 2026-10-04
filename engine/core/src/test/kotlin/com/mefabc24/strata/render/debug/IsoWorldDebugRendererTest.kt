@@ -58,9 +58,9 @@ class IsoWorldDebugRendererTest {
     }
 
     @Test
-    fun `enabled diagnostics do not resolve visuals unless bounds are shown`() {
-        val objectSettings = DebugObjectSettings().apply { enabled = true }
-        val entitySettings = DebugEntitySettings().apply { enabled = true }
+    fun `diagnostics do not resolve visuals unless bounds are shown`() {
+        val objectSettings = DebugObjectSettings()
+        val entitySettings = DebugEntitySettings()
         val renderer = IsoWorldDebugRenderer(
             projection = IsoProjection(TileGeometry()),
             objectSettings = objectSettings,
@@ -104,14 +104,12 @@ class IsoWorldDebugRendererTest {
     @Test
     fun `shared selected filter limits object and entity visual resolution`() {
         val objectSettings = DebugObjectSettings().apply {
-            enabled = true
             showOccupiedTiles = false
             showOriginTile = false
             showSpriteBounds = true
             occupiedTileFillColor = null
         }
         val entitySettings = DebugEntitySettings().apply {
-            enabled = true
             showCurrentTile = false
             showPosition = false
             showPath = false

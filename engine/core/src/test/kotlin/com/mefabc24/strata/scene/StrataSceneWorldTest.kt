@@ -258,7 +258,7 @@ class StrataSceneWorldTest {
         escapedRendering.objects.offsetY = 999f
         escapedControls.camera.moveUp = 101
         escapedGrid.enabled = false
-        escapedObjects.enabled = true
+        escapedObjects.showOriginTile = true
         escapedEntities.showPath = false
         mutableBindings.clear()
 
@@ -274,7 +274,7 @@ class StrataSceneWorldTest {
         assertSame(scene.debug.objects, spec.debugObjectSettings)
         assertSame(scene.debug.entities, spec.debugEntitySettings)
         assertFalse(spec.debugGridSettings.enabled)
-        assertTrue(spec.debugObjectSettings.enabled)
+        assertTrue(spec.debugObjectSettings.showOriginTile)
         assertFalse(spec.debugEntitySettings.showPath)
         assertEquals(123f, spec.cameraSettings.moveSpeed)
         assertEquals(0.25f, spec.cameraSettings.zoomEdgeAllowance)
