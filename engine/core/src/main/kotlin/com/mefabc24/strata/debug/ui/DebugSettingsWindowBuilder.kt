@@ -338,11 +338,11 @@ internal class DebugSettingsWindowBuilder(
             { it.name.toDisplayName() }
         ) { settings.grid.extent = it }
         toggleRows(
-            toggle("Background", { settings.grid.backgroundColor != null }) { enabled ->
-                settings.grid.backgroundColor = if (enabled) Color(1f, 1f, 1f, 0.2f) else null
+            toggle("Background", { settings.grid.showBackground }) {
+                settings.grid.showBackground = it
             },
-            toggle("Hover background", { settings.grid.hoverBackgroundColor != null }) { enabled ->
-                settings.grid.hoverBackgroundColor = if (enabled) Color(1f, 0f, 0f, 0.5f) else null
+            toggle("Hover background", { settings.grid.showHoverBackground }) {
+                settings.grid.showHoverBackground = it
             }
         )
         boundStepper("Line width", { settings.grid.lineWidth }, 0.25f, 8f, 0.25f) {
@@ -355,10 +355,11 @@ internal class DebugSettingsWindowBuilder(
             settings.grid.hoverColor = settings.grid.hoverColor.apply { a = alpha }
         }
         boundColorAlpha("Background color", { settings.grid.backgroundColor }, 0.2f) { alpha ->
-            settings.grid.backgroundColor?.let { settings.grid.backgroundColor = it.apply { a = alpha } }
+            settings.grid.backgroundColor = settings.grid.backgroundColor.apply { a = alpha }
         }
+
         boundColorAlpha("Hover background", { settings.grid.hoverBackgroundColor }, 0.5f) { alpha ->
-            settings.grid.hoverBackgroundColor?.let { settings.grid.hoverBackgroundColor = it.apply { a = alpha } }
+            settings.grid.hoverBackgroundColor = settings.grid.hoverBackgroundColor.apply { a = alpha }
         }
     }
 
@@ -373,18 +374,16 @@ internal class DebugSettingsWindowBuilder(
             toggle("Sprite bounds", { settings.objects.showSpriteBounds }) {
                 settings.objects.showSpriteBounds = it
             },
-            toggle("Tile fill", { settings.objects.occupiedTileFillColor != null }) { enabled ->
-                settings.objects.occupiedTileFillColor =
-                    if (enabled) Color(0.2f, 0.65f, 1f, 0.18f) else null
+            toggle("Tile fill", { settings.objects.showOccupiedTileFill }) {
+                settings.objects.showOccupiedTileFill = it
             }
         )
         boundStepper("Line width", { settings.objects.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.objects.lineWidth = it
         }
         boundColorAlpha("Fill color", { settings.objects.occupiedTileFillColor }, 0.18f) { alpha ->
-            settings.objects.occupiedTileFillColor?.let {
-                settings.objects.occupiedTileFillColor = it.apply { a = alpha }
-            }
+            settings.objects.occupiedTileFillColor =
+                settings.objects.occupiedTileFillColor.apply { a = alpha }
         }
     }
 
@@ -394,18 +393,16 @@ internal class DebugSettingsWindowBuilder(
             toggle("Position", { settings.entities.showPosition }) { settings.entities.showPosition = it },
             toggle("Direction", { settings.entities.showDirection }) { settings.entities.showDirection = it },
             toggle("Sprite bounds", { settings.entities.showSpriteBounds }) { settings.entities.showSpriteBounds = it },
-            toggle("Tile fill", { settings.entities.currentTileFillColor != null }) { enabled ->
-                settings.entities.currentTileFillColor =
-                    if (enabled) Color(0.3f, 1f, 0.3f, 0.16f) else null
+            toggle("Tile fill", { settings.entities.showCurrentTileFill }) {
+                settings.entities.showCurrentTileFill = it
             }
         )
         boundStepper("Line width", { settings.entities.lineWidth }, 0.25f, 8f, 0.25f) {
             settings.entities.lineWidth = it
         }
         boundColorAlpha("Fill color", { settings.entities.currentTileFillColor }, 0.16f) { alpha ->
-            settings.entities.currentTileFillColor?.let {
-                settings.entities.currentTileFillColor = it.apply { a = alpha }
-            }
+            settings.entities.currentTileFillColor =
+                settings.entities.currentTileFillColor.apply { a = alpha }
         }
         settingsExpander("Movement") {
             toggleRows(
