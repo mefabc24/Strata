@@ -14,14 +14,8 @@ internal object DebugWindowLayout {
         return minOf(DEBUG_WIDTH, availableWidth)
     }
 
-    fun overlayLeftPadding(
-        toolsVisible: Boolean,
-        flyoutVisible: Boolean,
-        flyoutWidth: Float = TOOL_FLYOUT_WIDTH
-    ): Float {
-        require(flyoutWidth.isFinite() && flyoutWidth >= 0f)
-        if (!toolsVisible) return OVERLAY_MARGIN
-        return TOOL_RAIL_MARGIN + TOOL_RAIL_WIDTH + OVERLAY_GAP +
-            if (flyoutVisible) flyoutWidth + OVERLAY_GAP else 0f
+    fun overlayRightPadding(debugVisible: Boolean, debugWidth: Float): Float {
+        require(debugWidth.isFinite() && debugWidth >= 0f)
+        return if (debugVisible) debugWidth + OVERLAY_GAP else OVERLAY_MARGIN
     }
 }

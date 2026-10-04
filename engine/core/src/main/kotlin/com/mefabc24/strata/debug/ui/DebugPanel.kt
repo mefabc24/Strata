@@ -151,6 +151,7 @@ internal class DebugPanel(
         if (!settings.debugWindow.enabled) return
         settings.debugWindow.visible = visible
         syncWindowLayout()
+        syncStatsOverlayPosition()
     }
 
     fun update(delta: Float) {
@@ -1673,19 +1674,16 @@ internal class DebugPanel(
     }
 
     private fun syncStatsOverlayPosition() {
-        val toolsVisible = settings.toolsWindow.enabled && settings.toolsWindow.visible &&
-            ::toolRailActor.isInitialized
+        val debugVisible = settings.debugWindow.enabled && settings.debugWindow.visible &&
+            ::debugPanelActor.isInitialized
+        val availableWidth = ui.stage.viewport.worldWidth
+            .takeIf { it > 0f }
+            ?: Gdx.graphics.width.toFloat()
         statsOverlay.setTopPadding(DebugWindowLayout.OVERLAY_MARGIN)
-        statsOverlay.setLeftPadding(
-            DebugWindowLayout.overlayLeftPadding(
-                toolsVisible = toolsVisible,
-                flyoutVisible = toolsVisible && ::toolFlyoutActor.isInitialized &&
-                    toolFlyoutActor.isVisible,
-                flyoutWidth = if (::toolFlyoutActor.isInitialized) {
-                    toolFlyoutActor.width
-                } else {
-                    DebugWindowLayout.TOOL_FLYOUT_WIDTH
-                }
+        statsOverlay.setRightPadding(
+            DebugWindowLayout.overlayRightPadding(
+                debugVisible = debugVisible,
+                debugWidth = DebugWindowLayout.debugWidth(availableWidth)
             )
         )
     }
