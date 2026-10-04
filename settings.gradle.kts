@@ -5,4 +5,5 @@ rootProject.name = "Strata"
 
 include(":engine:core")
 include(":engine:desktop")
+include(":engine:tools")
 include(":sandbox")

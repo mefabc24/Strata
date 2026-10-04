@@ -157,4 +157,31 @@ class EventBusTest {
             received
         )
     }
+
+    @Test
+    fun `observer receives every published event type`() {
+        val events = EventBus()
+        val observed = mutableListOf<Any>()
+        events.observe(observed::add)
+
+        val first = TestEvent(7)
+        val second = OtherEvent("all")
+        events.publish(first)
+        events.publish(second)
+
+        assertEquals(listOf(first, second), observed)
+    }
+
+    @Test
+    fun `observation preserves exact typed subscription behavior`() {
+        val events = EventBus()
+        val typed = mutableListOf<Int>()
+        events.observe { }
+        events.subscribe<TestEvent> { typed += it.value }
+
+        events.publish(OtherEvent("ignored"))
+        events.publish(TestEvent(9))
+
+        assertEquals(listOf(9), typed)
+    }
 }

@@ -1,9 +1,130 @@
 package com.mefabc24.strata
 
-interface StrataGame {
-    fun create()
-    fun update(delta: Float)
-    fun render()
-    fun dispose()
-    fun resize(width: Int, height: Int)
+/**
+ * Base class for games using a single Strata runtime.
+ *
+ * The game owns its configured [Strata] facade while this base class
+ * coordinates the engine lifecycle around it.
+ */
+abstract class StrataGame {
+
+    /**
+     * Configured Strata runtime owned by this game.
+     *
+     * Configuration should be completed during game construction.
+     */
+    protected abstract val strata: Strata
+
+    /**
+     * Global engine settings exposed to the backend.
+     */
+    val engineSettings: EngineSettings
+        get() = strata.engineSettings
+
+    private var active = false
+
+    /**
+     * Called once after the Strata runtime has been created.
+     */
+    protected open fun onReady() = Unit
+
+    /**
+     * Called after Strata has updated its runtime state with unscaled frame
+     * time.
+     *
+     * Override this for game-owned UI and other real-time work that must
+     * continue while simulation is paused.
+     */
+    protected open fun updateRealTime(realDelta: Float) = Unit
+
+    /**
+     * Called after [updateRealTime] with scaled simulation time.
+     *
+     * [simulationDelta] is zero while paused and otherwise equals real frame
+     * delta multiplied by [Strata.simulation]'s time scale. Game simulation,
+     * including AI and economy systems, should update from this value.
+     */
+    protected open fun updateGame(simulationDelta: Float) = Unit
+
+    /**
+     * Called after Strata has processed a resize.
+     */
+    protected open fun resizeGame(
+        width: Int,
+        height: Int
+    ) = Unit
+
+    /**
+     * Called after the Strata runtime has been disposed.
+     */
+    protected open fun disposeGame() = Unit
+
+    fun create() {
+        check(!active) {
+            "The game has already been created."
+        }
+
+        strata.create()
+        active = true
+
+        try {
+            onReady()
+        } catch (failure: Throwable) {
+            try {
+                strata.dispose()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+
+            try {
+                disposeGame()
+            } catch (cleanupFailure: Throwable) {
+                failure.addSuppressed(cleanupFailure)
+            }
+
+            active = false
+            throw failure
+        }
+    }
+
+    fun update(delta: Float) {
+        val simulationDelta = strata.update(delta)
+        updateRealTime(delta)
+        updateGame(simulationDelta)
+    }
+
+    fun render() {
+        strata.render()
+    }
+
+    fun resize(
+        width: Int,
+        height: Int
+    ) {
+        if (!active) return
+
+        strata.resize(
+            width,
+            height
+        )
+
+        resizeGame(
+            width,
+            height
+        )
+    }
+
+    fun dispose() {
+        if (!active) return
+
+        try {
+            strata.dispose()
+        } finally {
+            try {
+                disposeGame()
+            } finally {
+                active = false
+            }
+        }
+    }
 }

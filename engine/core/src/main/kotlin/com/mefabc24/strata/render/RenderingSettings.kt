@@ -1,6 +1,7 @@
 package com.mefabc24.strata.render
 
 import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
 
 /**
  * Configures the rendering of an isometric world.
@@ -16,22 +17,31 @@ class RenderingSettings(
      * Null enables automatic calculation when the view
      * is created through StrataScene.
      */
-    var maxTerrainSpriteHeight: Float? = null
+    var maxTerrainSpriteHeight: Float? = null,
+
+    /** Scene-wide object visual adjustments. */
+    val objects: ObjectRenderingSettings = ObjectRenderingSettings()
 ) {
 
     fun tileGeometry(configure: TileGeometry.() -> Unit) {
         tileGeometry.apply(configure)
     }
 
+    fun objects(configure: ObjectRenderingSettings.() -> Unit) {
+        objects.apply(configure)
+    }
+
     fun copy(): RenderingSettings {
         return RenderingSettings(
             tileGeometry = tileGeometry.copy(),
-            maxTerrainSpriteHeight = maxTerrainSpriteHeight
+            maxTerrainSpriteHeight = maxTerrainSpriteHeight,
+            objects = objects.copy()
         )
     }
 
     internal fun validate() {
         tileGeometry.validate()
+        objects.validate()
 
         require(
             maxTerrainSpriteHeight == null ||

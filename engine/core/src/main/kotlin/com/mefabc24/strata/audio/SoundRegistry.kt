@@ -5,23 +5,27 @@ import com.mefabc24.strata.assets.StrataAssets
 /**
  * Describes a registered sound.
  */
-data class SoundDefinition<C : Enum<C>>(
+data class SoundDefinition(
     val path: String,
-    val category: C
+    val category: SoundCategoryId
 )
 
 /**
  * Registers game-defined sound IDs and their audio settings.
  *
- * Sound assets are queued automatically during registration.
+ * Sound assets are queued automatically during scene setup registration.
+ * Definitions remain readable after the owning scene closes registration.
  */
-class SoundRegistry<C : Enum<C>> internal constructor(
+class SoundRegistry internal constructor(
     private val queueSound: (String) -> Unit
 ) {
 
     constructor(assets: StrataAssets) : this(assets::queueSound)
 
-    private val definitions = mutableMapOf<SoundId, SoundDefinition<C>>()
+    private val definitions =
+        mutableMapOf<SoundId, SoundDefinition>()
+
+    private var registrationOpen = true
 
     /**
      * Registers a sound and queues its asset for loading.
@@ -29,8 +33,10 @@ class SoundRegistry<C : Enum<C>> internal constructor(
     fun register(
         id: SoundId,
         path: String,
-        category: C
+        category: SoundCategoryId
     ) {
+        checkRegistrationOpen()
+
         require(id !in definitions) {
             "Sound is already registered: $id"
         }
@@ -47,11 +53,21 @@ class SoundRegistry<C : Enum<C>> internal constructor(
         )
     }
 
+    internal fun freeze() {
+        registrationOpen = false
+    }
+
     /**
      * Returns the definition of a registered sound.
      */
-    operator fun get(id: SoundId): SoundDefinition<C> {
+    operator fun get(id: SoundId): SoundDefinition {
         return definitions[id]
             ?: error("Sound is not registered: $id")
+    }
+
+    private fun checkRegistrationOpen() {
+        check(registrationOpen) {
+            "Sound registry registration is already closed."
+        }
     }
 }

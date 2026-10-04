@@ -2,7 +2,6 @@ package com.mefabc24.strata.camera
 
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Rectangle
@@ -11,6 +10,7 @@ import com.badlogic.gdx.math.Vector3
 /**
  * Defines which point remains anchored while zooming.
  */
+@Suppress("unused")
 enum class ZoomAnchor {
     /**
      * Keeps the camera center fixed.
@@ -88,6 +88,14 @@ class CameraController(
             }
         }
 
+    /** Temporarily bypasses world pan bounds and configured zoom limits. */
+    var unrestricted: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!value) refreshZoomBounds()
+        }
+
     private var isDragging = false
     private var dragPointer = -1
     private var activeDragButton = -1
@@ -155,7 +163,7 @@ class CameraController(
 
             camera.unproject(currentMousePosition)
 
-            pan(
+            panBy(
                 lastMousePosition.x - currentMousePosition.x,
                 lastMousePosition.y - currentMousePosition.y
             )
@@ -228,7 +236,7 @@ class CameraController(
         }
 
         if (deltaX != 0f || deltaY != 0f) {
-            pan(deltaX, deltaY)
+            panBy(deltaX, deltaY)
         }
     }
 
@@ -258,11 +266,12 @@ class CameraController(
             camera.unproject(zoomMouseBefore)
         }
 
-        camera.zoom = MathUtils.clamp(
-            camera.zoom + amount * zoomSpeed,
-            minZoom,
-            effectiveMaxZoom()
-        )
+        val requestedZoom = camera.zoom + amount * zoomSpeed
+        camera.zoom = if (unrestricted) {
+            requestedZoom.coerceAtLeast(UNRESTRICTED_MIN_ZOOM)
+        } else {
+            MathUtils.clamp(requestedZoom, minZoom, effectiveMaxZoom())
+        }
 
         camera.update()
 
@@ -277,6 +286,11 @@ class CameraController(
 
             camera.position.x += zoomMouseBefore.x - zoomMouseAfter.x
             camera.position.y += zoomMouseBefore.y - zoomMouseAfter.y
+        }
+
+        if (unrestricted) {
+            camera.update()
+            return
         }
 
         if (camera.zoom >= effectiveMaxZoom()) {
@@ -294,6 +308,10 @@ class CameraController(
      * Reapplies the zoom limits after the camera viewport changes.
      */
     fun refreshZoomBounds() {
+        if (unrestricted) {
+            camera.update()
+            return
+        }
         camera.zoom = MathUtils.clamp(
             camera.zoom,
             minZoom,
@@ -334,8 +352,8 @@ class CameraController(
         camera.update()
     }
 
-    private fun pan(deltaX: Float, deltaY: Float) {
-        if (bounds != null) {
+    internal fun panBy(deltaX: Float, deltaY: Float) {
+        if (!unrestricted && bounds != null) {
             bounds.move(camera, deltaX, deltaY)
         } else {
             camera.position.add(deltaX, deltaY, 0f)
@@ -345,7 +363,15 @@ class CameraController(
     }
 
     private fun applyZoomBounds() {
+        if (unrestricted) {
+            camera.update()
+            return
+        }
         zoomBounds?.clamp(camera)
         camera.update()
+    }
+
+    private companion object {
+        const val UNRESTRICTED_MIN_ZOOM = 0.0001f
     }
 }

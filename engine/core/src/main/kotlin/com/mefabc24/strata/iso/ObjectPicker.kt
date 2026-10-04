@@ -3,8 +3,11 @@ package com.mefabc24.strata.iso
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector3
-import com.mefabc24.strata.render.IsoObjectBounds
-import com.mefabc24.strata.render.ObjectVisual
+import com.mefabc24.strata.render.`object`.IsoObjectBounds
+import com.mefabc24.strata.render.`object`.IsoObjectOrdering
+import com.mefabc24.strata.render.`object`.ObjectRenderingSettings
+import com.mefabc24.strata.render.`object`.ObjectVisual
+import com.mefabc24.strata.render.`object`.ResolvedObjectVisual
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.World
 
@@ -15,8 +18,18 @@ class ObjectPicker(
     private val camera: OrthographicCamera,
     private val projection: IsoProjection,
     private val world: World,
-    private val visualFor: (PlacedObject) -> ObjectVisual?
+    private val visualFor: (PlacedObject) -> ObjectVisual?,
+    private val animationTime: () -> Float = { 0f },
+    private val orderedObjects: (() -> List<PlacedObject>)? = null,
+    objectSettings: ObjectRenderingSettings = ObjectRenderingSettings(),
+    private val resolvedVisualFor: (
+        (PlacedObject, Float) -> ResolvedObjectVisual?
+    )? = null
 ) {
+    private val objectSettings = objectSettings.copy().also {
+        it.validate()
+    }
+
     private val cursor = Vector3()
     private val bounds = Rectangle()
 
@@ -24,44 +37,70 @@ class ObjectPicker(
         cursor.set(screenX, screenY, 0f)
         camera.unproject(cursor)
 
-        val objectsByDepth = world.getObjects().groupBy { placed ->
-            placed.occupiedTiles().maxOf { (x, y) -> x + y }
+        return pickWorld(cursor.x, cursor.y)
+    }
+
+    fun diagnose(screenX: Float, screenY: Float): SpritePickDiagnostic<PlacedObject> {
+        cursor.set(screenX, screenY, 0f)
+        camera.unproject(cursor)
+        var tested: PlacedObject? = null
+        var testedBounds: Rectangle? = null
+        var alphaAccepted: Boolean? = null
+        var pickedBounds: Rectangle? = null
+        var pickedAlphaAccepted: Boolean? = null
+        val picked = pickWorld(cursor.x, cursor.y) { item, itemBounds, accepted ->
+            if (tested == null) {
+                tested = item
+                testedBounds = Rectangle(itemBounds)
+                alphaAccepted = accepted
+            }
+            if (accepted != false) {
+                pickedBounds = Rectangle(itemBounds)
+                pickedAlphaAccepted = accepted
+            }
         }
+        return SpritePickDiagnostic(
+            picked, tested, testedBounds, alphaAccepted,
+            pickedBounds, pickedAlphaAccepted
+        )
+    }
 
-        for (depth in objectsByDepth.keys.sortedDescending()) {
-            val objects = objectsByDepth.getValue(depth)
+    internal fun pickWorld(
+        worldX: Float,
+        worldY: Float,
+        onSpriteTest: ((PlacedObject, Rectangle, Boolean?) -> Unit)? = null
+    ): PlacedObject? {
+        val currentAnimationTime = animationTime()
+        val objects = orderedObjects?.invoke()
+            ?: IsoObjectOrdering.backToFront(
+                objects = world.getObjects(),
+                projection = projection
+            )
 
-            for (placed in objects.asReversed()) {
-                val visual = visualFor(placed) ?: continue
-
-                val elevation = world.getHeight(
-                    placed.x,
-                    placed.y
-                ) ?: 0
-
+        return pickFrontmost(
+            items = objects,
+            worldX = worldX,
+            worldY = worldY,
+            bounds = bounds,
+            visualFor = { placed ->
+                resolvedVisualFor?.invoke(placed, currentAnimationTime)
+                    ?: visualFor(placed)?.let {
+                        ResolvedObjectVisual(it, currentAnimationTime, null)
+                    }
+            },
+            calculateBounds = { placed, visual, result ->
                 IsoObjectBounds.calculate(
                     projection = projection,
                     placed = placed,
                     visual = visual,
-                    result = bounds,
-                    elevation = elevation
+                    result = result,
+                    objectSettings = objectSettings
                 )
-
-                if (!bounds.contains(cursor.x, cursor.y)) {
-                    continue
-                }
-
-                val u = (cursor.x - bounds.x) / bounds.width
-                val v = (cursor.y - bounds.y) / bounds.height
-
-                val alphaMask = visual.alphaMask
-
-                if (alphaMask == null || alphaMask.isSolid(u, v)) {
-                    return placed
-                }
-            }
-        }
-
-        return null
+            },
+            alphaMaskFor = { visual: ResolvedObjectVisual ->
+                visual.frame.alphaMask
+            },
+            onSpriteTest = onSpriteTest
+        )
     }
 }

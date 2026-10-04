@@ -2,9 +2,13 @@ package com.mefabc24.strata.world
 
 class PlacedObject(
     val placeable: Placeable,
-    val x: Int,
-    val y: Int
+    x: Int,
+    y: Int
 ) {
+    var x: Int = x
+        internal set
+    var y: Int = y
+        internal set
     /**
      * Returns the world positions of all tiles occupied by this object.
      */

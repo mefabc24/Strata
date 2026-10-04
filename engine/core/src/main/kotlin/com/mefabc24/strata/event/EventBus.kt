@@ -11,6 +11,7 @@ class EventBus {
 
     private val listeners =
         mutableMapOf<KClass<*>, MutableList<(Any) -> Unit>>()
+    private val observers = mutableListOf<(Any) -> Unit>()
 
     /**
      * Registers a listener for the given event type.
@@ -29,12 +30,21 @@ class EventBus {
      */
     fun publish(event: Any) {
         val eventListeners =
-            listeners[event::class]?.toList()
-                ?: return
+            listeners[event::class]?.toList().orEmpty()
 
         for (listener in eventListeners) {
             listener(event)
         }
+
+        for (observer in observers.toList()) {
+            observer(event)
+        }
+    }
+
+    /** Observes every published event without changing typed subscriptions. */
+    fun observe(observer: (Any) -> Unit): EventSubscription {
+        observers += observer
+        return EventSubscription { observers.remove(observer) }
     }
 
     /**
@@ -42,6 +52,7 @@ class EventBus {
      */
     fun clear() {
         listeners.clear()
+        observers.clear()
     }
 
     @PublishedApi

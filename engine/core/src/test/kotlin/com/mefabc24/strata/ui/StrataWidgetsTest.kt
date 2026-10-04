@@ -1,0 +1,868 @@
+package com.mefabc24.strata.ui
+
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton
+import com.badlogic.gdx.scenes.scene2d.ui.List
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.utils.Array
+import com.mefabc24.strata.testing.TestGdxEnvironment
+import kotlin.test.Test
+import kotlin.test.BeforeTest
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+
+class StrataWidgetsTest {
+
+    @BeforeTest
+    fun installTestEnvironment() {
+        TestGdxEnvironment.install()
+    }
+
+    private enum class Option {
+        FIRST,
+        SECOND
+    }
+
+    @Test
+    fun `dropdown exposes domain values and formatted labels`() {
+        val skin = createSkin()
+        var selected = Option.FIRST
+        val dropdown = StrataDropdown(
+            Option.entries,
+            selected,
+            skin,
+            displayText = { it.name.lowercase() }
+        ) { selected = it }
+
+        try {
+            dropdown.value = Option.SECOND
+
+            assertEquals(Option.SECOND, selected)
+            assertEquals("second", dropdown.selected.toString())
+        } finally {
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `dropdown synchronization does not emit a user change`() {
+        val skin = createSkin()
+        var changes = 0
+        val dropdown = StrataDropdown(
+            Option.entries,
+            Option.FIRST,
+            skin
+        ) { changes++ }
+
+        try {
+            dropdown.sync(Option.SECOND)
+
+            assertEquals(Option.SECOND, dropdown.value)
+            assertEquals(0, changes)
+        } finally {
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `selectable buttons reflect group state`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val first = StrataSelectableButton(
+            text = "First",
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        val second = StrataSelectableButton(
+            text = "Second",
+            value = Option.SECOND,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            assertTrue(first.isChecked)
+            assertFalse(second.isChecked)
+
+            group.select(Option.SECOND)
+
+            assertFalse(first.isChecked)
+            assertTrue(second.isChecked)
+        } finally {
+            first.detach()
+            second.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `required selectable button restores its checked state`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val first = StrataSelectableButton(
+            text = "First",
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            first.isChecked = false
+            first.fire(ChangeListener.ChangeEvent())
+
+            assertEquals(Option.FIRST, group.selected)
+            assertTrue(first.isChecked)
+        } finally {
+            first.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `selectable image buttons reflect group state`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val first = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        val second = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.SECOND,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            assertTrue(first.isChecked)
+            assertFalse(second.isChecked)
+
+            second.isChecked = true
+            second.fire(ChangeListener.ChangeEvent())
+
+            assertEquals(Option.SECOND, group.selected)
+            assertFalse(first.isChecked)
+            assertTrue(second.isChecked)
+        } finally {
+            first.detach()
+            second.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `required selectable image button cannot be unchecked`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val button = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            button.isChecked = false
+            button.fire(ChangeListener.ChangeEvent())
+
+            assertEquals(Option.FIRST, group.selected)
+            assertTrue(button.isChecked)
+        } finally {
+            button.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `optional selectable image button can be unchecked`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries,
+            initialSelection = Option.FIRST,
+            selectionRequired = false
+        )
+
+        val button = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            button.isChecked = false
+            button.fire(ChangeListener.ChangeEvent())
+
+            assertEquals(null, group.selected)
+            assertFalse(button.isChecked)
+        } finally {
+            button.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `disabled selectable image button ignores clicks`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val button = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.SECOND,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            button.isDisabled = true
+            button.clickListener.clicked(InputEvent(), 0f, 0f)
+
+            assertEquals(Option.FIRST, group.selected)
+            assertFalse(button.isChecked)
+        } finally {
+            button.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `detached image button stops reflecting group state`() {
+        val skin = createSkin()
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val button = StrataSelectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.FIRST,
+            selectionGroup = group,
+            skin = skin
+        )
+
+        try {
+            assertTrue(button.isChecked)
+            button.detach()
+            group.select(Option.SECOND)
+
+            assertTrue(button.isChecked)
+        } finally {
+            button.detach()
+            skin.dispose()
+        }
+    }
+
+    @Test
+    fun `momentary button never exposes a checked state change`() {
+        val skin = createSkin()
+        var clicks = 0
+        var changes = 0
+
+        val button = StrataButton(
+            text = "Action",
+            skin = skin,
+            onClick = { clicks++ }
+        )
+
+        button.addListener(
+            object : ChangeListener() {
+                override fun changed(
+                    event: ChangeEvent,
+                    actor: Actor
+                ) {
+                    changes++
+                }
+            }
+        )
+
+        button.listeners.toList()
+            .filterIsInstance<ClickListener>()
+            .forEach {
+                it.clicked(InputEvent(), 0f, 0f)
+            }
+
+        assertEquals(1, clicks)
+        assertEquals(0, changes)
+        assertFalse(button.isChecked)
+
+        skin.dispose()
+    }
+
+    @Test
+    fun `panel pointer blocking can be disabled`() {
+        val skin = Skin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme()
+        )
+
+        val panel = StrataPanel(
+            context = context,
+            styleName = null,
+            spacing = 0f,
+            paddingOverride = null,
+            blocksInput = true
+        )
+
+        val inputListener = panel.listeners
+            .toList()
+            .filterIsInstance<InputListener>()
+            .single()
+
+        assertTrue(
+            inputListener.touchDown(
+                InputEvent(),
+                0f,
+                0f,
+                0,
+                0
+            )
+        )
+
+        assertTrue(
+            inputListener.scrolled(
+                InputEvent(),
+                0f,
+                0f,
+                0f,
+                1f
+            )
+        )
+
+        panel.blocksInput = false
+
+        assertFalse(
+            inputListener.touchDown(
+                InputEvent(),
+                0f,
+                0f,
+                0,
+                0
+            )
+        )
+
+        skin.dispose()
+    }
+
+    @Test
+    fun `row and column preserve their layout semantics`() {
+        val skin = Skin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme(spacing = 0f)
+        )
+
+        val row = StrataRow(
+            context = context,
+            spacing = 0f,
+            padding = StrataInsets.NONE,
+            alignment = 0
+        )
+
+        val column = StrataColumn(
+            context = context,
+            spacing = 0f,
+            padding = StrataInsets.NONE,
+            alignment = 0
+        )
+
+        row.actor(Actor())
+        row.actor(Actor())
+        column.actor(Actor())
+        column.actor(Actor())
+
+        row.pack()
+        column.pack()
+
+        assertEquals(1, row.rows)
+        assertEquals(2, row.columns)
+        assertEquals(2, column.rows)
+        assertEquals(1, column.columns)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `nested layouts and stacks retain ordinary scene2d actors`() {
+        val skin = Skin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme(spacing = 0f)
+        )
+
+        val outer = StrataColumn(
+            context = context,
+            spacing = 0f,
+            padding = StrataInsets.NONE,
+            alignment = 0
+        )
+
+        lateinit var customActor: Actor
+        val nested = outer.column {
+            row {
+                customActor = actor(Actor())
+            }
+        }
+
+        val stack = outer.stack {
+            actor(Actor())
+            column {
+                actor(Actor())
+            }
+        }
+
+        assertSame(outer, nested.parent)
+        assertTrue(customActor.parent is StrataRow)
+        assertEquals(2, stack.children.size)
+        assertSame(outer, stack.parent)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `selection controls created through the layout bind to their group`() {
+        val skin = createSkin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme()
+        )
+
+        val column = StrataColumn(
+            context = context,
+            spacing = 0f,
+            padding = StrataInsets.NONE,
+            alignment = 0
+        )
+
+        val group = StrataSelectionGroup(
+            options = Option.entries
+        )
+
+        val textButton = column.selectableButton(
+            text = "First",
+            value = Option.FIRST,
+            group = group
+        )
+
+        val imageButton = column.selectableImageButton(
+            drawable = BaseDrawable(),
+            value = Option.SECOND,
+            group = group
+        )
+
+        assertTrue(textButton.isChecked)
+        assertFalse(imageButton.isChecked)
+
+        group.select(Option.SECOND)
+
+        assertFalse(textButton.isChecked)
+        assertTrue(imageButton.isChecked)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `layout widgets reject non-finite and unsupported dimensions`() {
+        val skin = Skin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme()
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataColumn(
+                context = context,
+                spacing = Float.NaN,
+                padding = StrataInsets.NONE,
+                alignment = 0
+            )
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataSpacer(spacerWidth = Float.POSITIVE_INFINITY)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataSpacer(spacerHeight = -1f)
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            StrataSeparator(
+                orientation = StrataSeparatorOrientation.HORIZONTAL,
+                style = StrataSeparatorStyle().apply {
+                    drawable = BaseDrawable()
+                    thickness = Float.NEGATIVE_INFINITY
+                }
+            )
+        }
+
+        val panel = StrataPanel(
+            context = context,
+            styleName = null,
+            spacing = 0f,
+            paddingOverride = null,
+            blocksInput = true
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            panel.setStyle(
+                StrataPanelStyle().apply {
+                    padLeft = Float.NaN
+                }
+            )
+        }
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander removes collapsed content from layout`() {
+        val skin = createSkin()
+        val context = StrataUiContext(
+            skin = skin,
+            theme = StrataUiTheme()
+        )
+        val expander = StrataExpander(
+            context = context,
+            title = "Tools",
+            expanded = true,
+            spacing = 6f
+        ) {
+            spacer(height = 40f)
+        }
+
+        val expandedHeight = expander.prefHeight
+        expander.expanded = false
+
+        assertFalse(expander.content.isVisible)
+        assertTrue(expander.prefHeight < expandedHeight)
+        assertEquals(">  Tools", expander.header.text.toString())
+
+        expander.expanded = true
+
+        assertTrue(expander.content.isVisible)
+        assertEquals(expandedHeight, expander.prefHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander header controls remain independent from expanded state`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        lateinit var enabled: StrataToggleButton
+        var enabledChanges = 0
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            headerContent = {
+                enabled = toggleButton("ON", checked = true) {
+                    enabledChanges++
+                }
+            }
+        ) { spacer(height = 20f) }
+
+        assertFalse(expander.expanded)
+        assertTrue(enabled.isChecked)
+        enabled.isChecked = false
+        assertFalse(enabled.isChecked)
+        assertEquals(1, enabledChanges)
+        assertFalse(expander.expanded)
+
+        expander.header.listeners.toList()
+            .filterIsInstance<ClickListener>()
+            .forEach { it.clicked(InputEvent(), 0f, 0f) }
+
+        assertTrue(expander.expanded)
+        assertFalse(enabled.isChecked)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander synchronizes styled header visuals with expansion state`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val collapsedIndicator = BaseDrawable()
+        val expandedIndicator = BaseDrawable()
+        val collapsedBackground = BaseDrawable()
+        val expandedBackground = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "Render order",
+            expanded = false,
+            spacing = 6f,
+            expandedStyle = StrataExpanderStyle().apply {
+                this.collapsedIndicator = collapsedIndicator
+                this.expandedIndicator = expandedIndicator
+                headerBackground = collapsedBackground
+                expandedHeaderBackground = expandedBackground
+            }
+        ) { spacer(height = 20f) }
+
+        val indicator = expander.header.children.first() as Image
+        assertSame(collapsedIndicator, indicator.drawable)
+        assertSame(collapsedBackground, expander.headerRow.background)
+        assertSame(indicator, expander.header.children.first())
+        assertSame(expander.header.label, expander.header.children[1])
+        assertEquals("Render order", expander.header.text.toString())
+
+        expander.expanded = true
+
+        assertSame(expandedIndicator, indicator.drawable)
+        assertSame(expandedBackground, expander.headerRow.background)
+        assertTrue(expander.content.isVisible)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander renders a themed separator directly below its header`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val separator = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = false,
+            spacing = 0f,
+            expandedStyle = StrataExpanderStyle().apply {
+                headerSeparator = separator
+                headerSeparatorThickness = 2f
+                contentSpacing = 0f
+            }
+        ) { spacer(height = 20f) }
+
+        val separatorImage = expander.children[1] as Image
+        assertSame(separator, separatorImage.drawable)
+        assertEquals(2f, expander.getCell(separatorImage).maxHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander applies an explicit header button height`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            headerHeight = 36f
+        ) { spacer(height = 20f) }
+
+        val headerTable = expander.header.parent as Table
+        assertEquals(36f, requireNotNull(headerTable.getCell(expander.header)).maxHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `each nested expander level indents its content`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val style = StrataExpanderStyle().apply { contentIndent = 12f }
+        lateinit var nested: StrataExpander
+        val root = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = true,
+            spacing = 0f,
+            expandedStyle = style
+        ) {
+            nested = expander(
+                title = "Rendering",
+                expanded = true,
+                spacing = 0f,
+                expandedStyle = style
+            ) { spacer(height = 20f) }
+        }
+
+        assertEquals(12f, root.content.padLeft)
+        assertEquals(12f, nested.content.padLeft)
+        assertSame(root.content, nested.parent)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `nested expansion updates the parent preferred height`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        lateinit var nested: StrataExpander
+        val root = StrataExpander(
+            context = context,
+            title = "World",
+            expanded = true,
+            spacing = 0f
+        ) {
+            nested = expander(
+                title = "Rendering",
+                expanded = false,
+                spacing = 0f
+            ) { spacer(height = 48f) }
+        }
+        val collapsedHeight = root.prefHeight
+
+        nested.expanded = true
+
+        assertTrue(root.prefHeight > collapsedHeight)
+        nested.expanded = false
+        assertEquals(collapsedHeight, root.prefHeight)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander applies optional visual treatment only while expanded`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val background = BaseDrawable()
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = false,
+            spacing = 6f,
+            expandedStyle = StrataExpanderStyle(background, StrataInsets.all(8f))
+        ) { spacer(height = 20f) }
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
+
+        expander.expanded = true
+
+        assertSame(background, expander.background)
+        assertEquals(8f, expander.padTop)
+        assertEquals(8f, expander.padLeft)
+
+        expander.expanded = false
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
+        assertEquals(0f, expander.padLeft)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `expander without optional style keeps its existing appearance`() {
+        val skin = createSkin()
+        val context = StrataUiContext(skin, StrataUiTheme())
+        val expander = StrataExpander(
+            context = context,
+            title = "Grid",
+            expanded = true,
+            spacing = 6f
+        ) { spacer(height = 20f) }
+
+        assertNull(expander.background)
+        assertEquals(0f, expander.padTop)
+
+        context.dispose()
+        skin.dispose()
+    }
+
+    @Test
+    fun `toggle synchronization does not report a user change`() {
+        val skin = createSkin()
+        var changes = 0
+        val toggle = StrataToggleButton("Enabled", skin, checked = false) {
+            changes++
+        }
+
+        toggle.syncChecked(true)
+
+        assertTrue(toggle.isChecked)
+        assertEquals(0, changes)
+        skin.dispose()
+    }
+
+    private fun createSkin(): Skin {
+        val font = BitmapFont(
+            BitmapFont.BitmapFontData(),
+            Array<TextureRegion>().apply {
+                add(TextureRegion())
+            },
+            false
+        )
+
+        return Skin().apply {
+            add("font", font)
+            add(
+                "default",
+                TextButton.TextButtonStyle().apply {
+                    this.font = font
+                }
+            )
+
+            add(
+                "default",
+                ImageButton.ImageButtonStyle()
+            )
+
+            val listStyle = List.ListStyle().apply {
+                this.font = font
+                selection = BaseDrawable()
+            }
+            add("default", listStyle)
+            add("default", ScrollPane.ScrollPaneStyle())
+            add(
+                "default",
+                SelectBox.SelectBoxStyle().apply {
+                    this.font = font
+                    scrollStyle = get("default", ScrollPane.ScrollPaneStyle::class.java)
+                    this.listStyle = listStyle
+                }
+            )
+        }
+    }
+}

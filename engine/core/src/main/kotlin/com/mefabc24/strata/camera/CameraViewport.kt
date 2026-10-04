@@ -31,6 +31,9 @@ class CameraViewport(
     private val virtualHeight: Float = 720f,
     private val bounds: CameraBounds? = null
 ) {
+    /** Controls whether resize reapplies the configured camera bounds. */
+    var boundsEnabled: Boolean = true
+
     init {
         require(virtualHeight > 0f && virtualHeight.isFinite())
     }
@@ -64,7 +67,7 @@ class CameraViewport(
         camera.zoom = currentZoom
         camera.position.set(currentX, currentY, 0f)
 
-        bounds?.clamp(camera)
+        if (boundsEnabled) bounds?.clamp(camera)
         camera.update()
     }
 }

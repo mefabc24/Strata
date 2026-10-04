@@ -1,29 +1,67 @@
 package com.mefabc24.strata.ui
 
 import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.mefabc24.strata.screen.ScreenId
+
+internal interface StrataUiNavigation {
+    fun navigate(id: ScreenId, parameters: Any?)
+    fun back(): Boolean
+    fun showOverlay(id: ScreenId, parameters: Any?, blocksInput: Boolean)
+    fun dismissOverlay(): Boolean
+}
 
 /**
- * Provides the root UI layer for a Strata scene.
+ * Provides a Scene2D UI layer and a small Kotlin construction API.
  *
- * The supplied skin is owned by the caller and is not disposed by this class.
+ * Strata owns and disposes [stage]. The supplied [skin] and all resources in
+ * it remain owned by the caller. A scene normally updates, renders, resizes,
+ * and disposes this instance automatically.
  */
-class StrataUi(
-    val skin: Skin
+@Suppress("unused")
+class StrataUi internal constructor(
+    val skin: Skin,
+    val theme: StrataUiTheme,
+    val stage: Stage
 ) : Disposable {
 
-    val stage = Stage(
-        ScreenViewport()
+    constructor(
+        skin: Skin,
+        theme: StrataUiTheme = StrataUiTheme()
+    ) : this(
+        skin = skin,
+        theme = theme,
+        stage = Stage(ScreenViewport())
     )
 
+    private val context = StrataUiContext(
+        skin = skin,
+        theme = theme
+    )
+
+    private var disposed = false
+
+    internal var navigation: StrataUiNavigation? = null
+
     /**
-     * Root layout container for game-specific UI.
+     * Root vertical layout for game-specific UI.
+     *
+     * It fills the stage and aligns content to the top left. It intentionally
+     * does not consume input outside its child controls and panels.
      */
-    val root = Table(skin).apply {
+    val root = StrataColumn(
+        context = context,
+        spacing = theme.spacing,
+        padding = StrataInsets.NONE,
+        alignment = Align.topLeft
+    ).apply {
         setFillParent(true)
     }
 
@@ -37,10 +75,355 @@ class StrataUi(
         stage.addActor(root)
     }
 
+    /** Navigates from a screen-owned UI without exposing libGDX. */
+    fun navigate(id: ScreenId, parameters: Any? = null) {
+        requireNavigation().navigate(id, parameters)
+    }
+
+    fun navigate(id: String, parameters: Any? = null) =
+        navigate(ScreenId(id), parameters)
+
+    /** Returns to the previous screen or dismisses the top overlay. */
+    fun back(): Boolean = requireNavigation().back()
+
+    /** Displays a registered screen above the current presentation. */
+    fun showOverlay(
+        id: ScreenId,
+        parameters: Any? = null,
+        blocksInput: Boolean = true
+    ) {
+        requireNavigation().showOverlay(id, parameters, blocksInput)
+    }
+
+    fun showOverlay(
+        id: String,
+        parameters: Any? = null,
+        blocksInput: Boolean = true
+    ) = showOverlay(ScreenId(id), parameters, blocksInput)
+
+    /** Dismisses the top overlay, if present. */
+    fun dismissOverlay(): Boolean = requireNavigation().dismissOverlay()
+
+    fun <A : Actor> actor(actor: A): A = root.actor(actor)
+
+    fun label(
+        text: String,
+        styleName: String = theme.labelStyle
+    ): Label = root.label(text, styleName)
+
+    fun button(
+        text: String,
+        styleName: String = theme.buttonStyle,
+        onClick: () -> Unit
+    ): StrataButton = root.button(text, styleName, onClick)
+
+    fun toggleButton(
+        text: String,
+        checked: Boolean = false,
+        styleName: String = theme.toggleButtonStyle,
+        onChanged: (Boolean) -> Unit = {}
+    ): StrataToggleButton = root.toggleButton(
+        text = text,
+        checked = checked,
+        styleName = styleName,
+        onChanged = onChanged
+    )
+
+    fun <T> selectableButton(
+        text: String,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableButtonStyle
+    ): StrataSelectableButton<T> = root.selectableButton(
+        text = text,
+        value = value,
+        group = group,
+        styleName = styleName
+    )
+
+    fun imageButton(
+        drawable: Drawable,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton = root.imageButton(
+        drawable = drawable,
+        styleName = styleName,
+        onClick = onClick
+    )
+
+    fun imageButton(
+        resourcePath: String,
+        styleName: String = theme.imageButtonStyle,
+        onClick: () -> Unit
+    ): StrataImageButton = root.imageButton(resourcePath, styleName, onClick)
+
+    /** Displays a classpath image without exposing Scene2D drawables. */
+    fun image(resourcePath: String): StrataImage = root.image(resourcePath)
+
+    fun <T> selectableImageButton(
+        drawable: Drawable,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> = root.selectableImageButton(
+        drawable = drawable,
+        value = value,
+        group = group,
+        styleName = styleName
+    )
+
+    fun <T> selectableImageButton(
+        resourcePath: String,
+        value: T,
+        group: StrataSelectionGroup<T>,
+        styleName: String = theme.selectableImageButtonStyle
+    ): StrataSelectableImageButton<T> = root.selectableImageButton(
+        resourcePath, value, group, styleName
+    )
+
+    fun row(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.left,
+        configure: StrataRow.() -> Unit
+    ): StrataRow = root.row(
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
+    fun row(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataRow.() -> Unit
+    ): StrataRow = root.row(alignment, spacing, padding, configure)
+
+    fun column(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn = root.column(
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
+    fun column(
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataColumn = root.column(alignment, spacing, padding, configure)
+
+    fun grid(
+        columns: Int,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        alignment: Int = Align.topLeft,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid = root.grid(
+        columns = columns,
+        spacing = spacing,
+        padding = padding,
+        alignment = alignment,
+        configure = configure
+    )
+
+    fun grid(
+        columns: Int,
+        alignment: StrataAlignment,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataGrid.() -> Unit
+    ): StrataGrid = root.grid(columns, alignment, spacing, padding, configure)
+
+    fun responsiveGrid(
+        minimumItemWidth: Float = 120f,
+        itemHeight: Float = 38f,
+        spacing: Float = theme.spacing,
+        maximumColumns: Int = 3,
+        configure: StrataResponsiveGrid.() -> Unit
+    ): StrataResponsiveGrid = root.responsiveGrid(
+        minimumItemWidth, itemHeight, spacing, maximumColumns, configure
+    )
+
+    fun scrollColumn(
+        spacing: Float = theme.spacing,
+        padding: StrataInsets = StrataInsets.NONE,
+        configure: StrataColumn.() -> Unit
+    ): StrataScrollPane = root.scrollColumn(spacing, padding, configure)
+
+    fun numericStepper(
+        label: String,
+        value: Float,
+        minimum: Float,
+        maximum: Float,
+        step: Float,
+        decimals: Int = 2,
+        onChanged: (Float) -> Unit
+    ): StrataNumericStepper = root.numericStepper(
+        label, value, minimum, maximum, step, decimals, onChanged
+    )
+
+    fun <T> dropdown(
+        options: Iterable<T>,
+        selected: T,
+        styleName: String = theme.dropdownStyle,
+        displayText: (T) -> String = { it.toString() },
+        onChanged: (T) -> Unit
+    ): StrataDropdown<T> = root.dropdown(
+        options, selected, styleName, displayText, onChanged
+    )
+
+    fun stack(
+        configure: StrataStack.() -> Unit
+    ): StrataStack = root.stack(configure)
+
+    fun expander(
+        title: String,
+        expanded: Boolean = true,
+        spacing: Float = theme.spacing,
+        headerHeight: Float? = null,
+        contentGrowY: Boolean = false,
+        expandedStyle: StrataExpanderStyle? = null,
+        onExpandedChanged: (Boolean) -> Unit = {},
+        headerContent: (StrataRow.() -> Unit)? = null,
+        configure: StrataColumn.() -> Unit
+    ): StrataExpander = root.expander(
+        title = title,
+        expanded = expanded,
+        spacing = spacing,
+        headerHeight = headerHeight,
+        contentGrowY = contentGrowY,
+        expandedStyle = expandedStyle,
+        onExpandedChanged = onExpandedChanged,
+        headerContent = headerContent,
+        configure = configure
+    )
+
+    fun panel(
+        styleName: String? = theme.panelStyle,
+        spacing: Float = theme.spacing,
+        padding: StrataInsets? = null,
+        blocksInput: Boolean = true,
+        configure: StrataPanel.() -> Unit
+    ): StrataPanel = root.panel(
+        styleName = styleName,
+        spacing = spacing,
+        padding = padding,
+        blocksInput = blocksInput,
+        configure = configure
+    )
+
+    fun popover(
+        width: Float,
+        height: Float,
+        styleName: String? = theme.panelStyle,
+        padding: StrataInsets? = null,
+        configure: StrataPanel.() -> Unit
+    ): StrataPopover {
+        checkActive()
+        val content = StrataPanel(
+            context = context,
+            styleName = styleName,
+            spacing = theme.spacing,
+            paddingOverride = padding,
+            blocksInput = false
+        ).apply(configure)
+        return StrataPopover(stage, content, width, height)
+    }
+
+    fun separator(
+        orientation: StrataSeparatorOrientation =
+            StrataSeparatorOrientation.HORIZONTAL,
+        styleName: String = requireNotNull(theme.separatorStyle) {
+            "No separator style is configured in the UI theme."
+        }
+    ): StrataSeparator = root.separator(
+        orientation = orientation,
+        styleName = styleName
+    )
+
+    fun spacer(
+        width: Float = 0f,
+        height: Float = 0f
+    ): StrataSpacer = root.spacer(width, height)
+
+    /**
+     * Creates a required value-based selection group owned by game code.
+     *
+     * Controls built through this UI are detached when the UI is disposed.
+     */
+    fun <T> selectionGroup(
+        options: Iterable<T>,
+        initialSelection: T? = null,
+        onSelectionChanged: ((T) -> Unit)? = null
+    ): StrataSelectionGroup<T> {
+        checkActive()
+
+        val group = StrataSelectionGroup(
+            options = options,
+            initialSelection = initialSelection,
+            selectionRequired = true
+        )
+
+        if (onSelectionChanged != null) {
+            context.own(
+                group.onSelectionChanged { selected ->
+                    onSelectionChanged(
+                        requireNotNull(selected) {
+                            "A required selection group has no selection."
+                        }
+                    )
+                }
+            )
+        }
+
+        return group
+    }
+
+    /**
+     * Creates a value-based selection group that can be cleared.
+     *
+     * The callback receives null when the selection is cleared. Controls
+     * built through this UI are detached when the UI is disposed.
+     */
+    fun <T> optionalSelectionGroup(
+        options: Iterable<T>,
+        initialSelection: T? = null,
+        onSelectionChanged: ((T?) -> Unit)? = null
+    ): StrataSelectionGroup<T> {
+        checkActive()
+
+        val group = StrataSelectionGroup(
+            options = options,
+            initialSelection = initialSelection,
+            selectionRequired = false
+        )
+
+        if (onSelectionChanged != null) {
+            context.own(
+                group.onSelectionChanged(onSelectionChanged)
+            )
+        }
+
+        return group
+    }
+
     /**
      * Updates UI actions and actors.
      */
     fun update(delta: Float) {
+        checkActive()
+
+        require(delta.isFinite() && delta >= 0f) {
+            "UI delta time must be finite and non-negative."
+        }
+
         stage.act(delta)
     }
 
@@ -48,6 +431,7 @@ class StrataUi(
      * Renders the UI.
      */
     fun render() {
+        checkActive()
         stage.draw()
     }
 
@@ -58,6 +442,8 @@ class StrataUi(
         width: Int,
         height: Int
     ) {
+        checkActive()
+
         if (width <= 0 || height <= 0) return
 
         stage.viewport.update(
@@ -73,6 +459,23 @@ class StrataUi(
      * The supplied skin remains owned by the caller.
      */
     override fun dispose() {
+        if (disposed) return
+
+        disposed = true
+        context.dispose()
         stage.dispose()
+    }
+
+    private fun checkActive() {
+        check(!disposed) {
+            "StrataUi has already been disposed."
+        }
+    }
+
+    private fun requireNavigation(): StrataUiNavigation {
+        checkActive()
+        return navigation ?: error(
+            "Navigation is available only to UI owned by a registered screen."
+        )
     }
 }

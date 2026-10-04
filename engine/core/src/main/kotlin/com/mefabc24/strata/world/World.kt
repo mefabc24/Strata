@@ -2,6 +2,13 @@ package com.mefabc24.strata.world
 
 import java.util.Collections
 
+/** Engine-owned reason that a footprint cannot be placed in a world. */
+enum class WorldPlacementFailure {
+    FOOTPRINT_OUTSIDE_WORLD,
+    OCCUPIED_TILE
+}
+
+@Suppress("unused")
 class World(
     val width: Int,
     val height: Int,
@@ -15,30 +22,7 @@ class World(
         Array(width) { x -> createTile(x, y) }
     }
 
-    /**
-     * Terrain elevation for each world coordinate.
-     *
-     * All tiles start at elevation zero.
-     */
-    private val heights = Array(height) {
-        IntArray(width)
-    }
-
-    /**
-     * Highest terrain level currently present in the world.
-     */
-    var maxHeight: Int = 0
-        private set
-
-    /**
-     * Changes whenever terrain elevation is modified.
-     */
-    var heightVersion: Long = 0L
-        private set
-
-    /**
-     * Provides safe terrain elevation modifications.
-     */
+    /** Provides ground terrain modification operations. */
     val terrain = TerrainManipulator(this)
 
     /**
@@ -48,6 +32,16 @@ class World(
      */
     private val overlayLayers = linkedMapOf<String, Array<Array<Tile?>>>()
 
+    private var nonNullOverlayTileCount = 0
+
+    /** Total number of ground tiles in this world. */
+    val groundTileCount: Int
+        get() = width * height
+
+    /** Total number of non-empty tiles across every terrain overlay layer. */
+    val overlayTileCount: Int
+        get() = nonNullOverlayTileCount
+
     /**
      * Returns overlay identifiers in their rendering order.
      */
@@ -56,14 +50,31 @@ class World(
 
     private val objects = linkedSetOf<PlacedObject>()
 
+    private val entities = linkedSetOf<WorldEntity>()
+
+    /** Total number of currently placed objects. */
+    val placedObjectCount: Int
+        get() = objects.size
+
+    /** Total number of currently active world entities. */
+    val entityCount: Int
+        get() = entities.size
+
     /**
      * Changes whenever an object is placed or removed.
      */
     var objectVersion: Long = 0L
         private set
 
+    /** Changes whenever an entity is added or removed. */
+    var entityVersion: Long = 0L
+        private set
+
     private val objectView: Set<PlacedObject> =
         Collections.unmodifiableSet(objects)
+
+    private val entityView: Set<WorldEntity> =
+        Collections.unmodifiableSet(entities)
 
     private val occupiedTiles =
         mutableMapOf<TilePosition, PlacedObject>()
@@ -76,13 +87,7 @@ class World(
         x: Int,
         y: Int
     ): Boolean {
-        return canPlaceObject(
-            PlacedObject(
-                placeable = placeable,
-                x = x,
-                y = y
-            )
-        )
+        return placementFailure(placeable, TilePosition(x, y)) == null
     }
 
     /**
@@ -115,17 +120,70 @@ class World(
         placedObject: PlacedObject
     ): Boolean {
         if (placedObject in objects) return false
+        return placementFailure(
+            placedObject.placeable,
+            TilePosition(placedObject.x, placedObject.y)
+        ) == null
+    }
 
-        val elevation = getHeight(
-            placedObject.x,
-            placedObject.y
-        ) ?: return false
+    /**
+     * Returns the first engine-owned placement failure, or null when the
+     * footprint is inside the world and unoccupied.
+     */
+    fun placementFailure(
+        placeable: Placeable,
+        position: TilePosition
+    ): WorldPlacementFailure? {
+        val occupied = PlacedObject(
+            placeable = placeable,
+            x = position.x,
+            y = position.y
+        ).occupiedTiles()
 
-        return placedObject.occupiedTiles().all { (x, y) ->
-            getTile(x, y) != null &&
-                    getObjectAt(x, y) == null &&
-                    getHeight(x, y) == elevation
+        if (occupied.any { getTile(it) == null }) {
+            return WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD
         }
+        if (occupied.any { getObjectAt(it) != null }) {
+            return WorldPlacementFailure.OCCUPIED_TILE
+        }
+        return null
+    }
+
+    /** Validates relocation while ignoring the object's current footprint. */
+    fun relocationFailure(
+        placedObject: PlacedObject,
+        position: TilePosition
+    ): WorldPlacementFailure? {
+        if (placedObject !in objects) return WorldPlacementFailure.OCCUPIED_TILE
+        val target = PlacedObject(placedObject.placeable, position.x, position.y)
+        if (target.occupiedTiles().any { getTile(it) == null }) {
+            return WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD
+        }
+        if (target.occupiedTiles().any { tile ->
+                getObjectAt(tile)?.let { it !== placedObject } == true
+            }
+        ) {
+            return WorldPlacementFailure.OCCUPIED_TILE
+        }
+        return null
+    }
+
+    /** Atomically relocates an existing placed object. */
+    fun relocate(
+        placedObject: PlacedObject,
+        position: TilePosition
+    ): Boolean {
+        if (relocationFailure(placedObject, position) != null) return false
+        if (placedObject.x == position.x && placedObject.y == position.y) return true
+
+        val previousTiles = placedObject.occupiedTiles()
+        if (previousTiles.any { occupiedTiles[it] !== placedObject }) return false
+        previousTiles.forEach(occupiedTiles::remove)
+        placedObject.x = position.x
+        placedObject.y = position.y
+        placedObject.occupiedTiles().forEach { occupiedTiles[it] = placedObject }
+        objectVersion++
+        return true
     }
 
     /**
@@ -166,8 +224,20 @@ class World(
         return getTile(position.x, position.y)
     }
 
-    fun getHeight(position: TilePosition): Int? {
-        return getHeight(position.x, position.y)
+    /**
+     * Visits every ground tile in row-major order.
+     */
+    fun forEachTile(
+        action: (position: TilePosition, tile: Tile) -> Unit
+    ) {
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                action(
+                    TilePosition(x, y),
+                    tiles[y][x]
+                )
+            }
+        }
     }
 
     fun canPlace(
@@ -202,6 +272,53 @@ class World(
      * Returns a read-only live view of all placed objects.
      */
     fun getObjects(): Set<PlacedObject> = objectView
+
+    /**
+     * Adds an independent entity instance without occupying a world tile.
+     */
+    fun addEntity(
+        entity: Entity,
+        position: EntityPosition,
+        direction: EntityDirection = EntityDirection.SOUTH_EAST
+    ): WorldEntity {
+        val worldEntity = WorldEntity(
+            entity = entity,
+            position = position,
+            initialDirection = direction
+        )
+
+        entities += worldEntity
+        entityVersion++
+        return worldEntity
+    }
+
+    /** Returns a read-only live view of active world entities. */
+    fun getEntities(): Set<WorldEntity> = entityView
+
+    /** Removes an active world entity. */
+    fun removeEntity(entity: WorldEntity): Boolean {
+        if (!entities.remove(entity)) return false
+
+        entityVersion++
+        return true
+    }
+
+    /** Advances active entity routes using the supplied frame delta. */
+    internal fun updateEntities(
+        delta: Float,
+        movementEnabled: (WorldEntity) -> Boolean = { true }
+    ) {
+        entities.forEach { entity ->
+            if (movementEnabled(entity)) entity.updateMovement(delta)
+        }
+    }
+
+    /** Teleports an active entity when its target lies inside this world. */
+    fun teleportEntity(entity: WorldEntity, position: EntityPosition): Boolean {
+        if (entities.none { it === entity } || getTile(position.tile) == null) return false
+        entity.teleport(position)
+        return true
+    }
 
     /**
      * Removes a placed object from the world.
@@ -280,94 +397,6 @@ class World(
     }
 
     /**
-     * Returns the terrain height at the given position.
-     *
-     * Returns null when the position is outside the world.
-     */
-    fun getHeight(x: Int, y: Int): Int? {
-        return heights.getOrNull(y)?.getOrNull(x)
-    }
-
-    /**
-     * Sets the terrain height at the given position.
-     *
-     * Height zero represents the base terrain level.
-     */
-    internal fun setHeight(
-        x: Int,
-        y: Int,
-        level: Int
-    ) {
-        require(x in 0 until width && y in 0 until height) {
-            "Tile position ($x, $y) is outside the world."
-        }
-
-        require(level >= 0) {
-            "Terrain height must not be negative."
-        }
-
-        applyHeightChanges(
-            mapOf(
-                TilePosition(x, y) to level
-            )
-        )
-    }
-
-    /**
-     * Applies a validated terrain elevation change as one operation.
-     */
-    internal fun applyHeightChanges(
-        changes: Map<TilePosition, Int>
-    ) {
-        if (changes.isEmpty()) return
-
-        var changed = false
-        var requiresMaxHeightRefresh = false
-        var highestNewLevel = maxHeight
-
-        for ((position, level) in changes) {
-            val (x, y) = position
-
-            require(x in 0 until width && y in 0 until height)
-            require(level >= 0)
-
-            val previousLevel = heights[y][x]
-
-            if (previousLevel == level) {
-                continue
-            }
-
-            if (
-                previousLevel == maxHeight &&
-                level < previousLevel
-            ) {
-                requiresMaxHeightRefresh = true
-            }
-
-            heights[y][x] = level
-
-            highestNewLevel = maxOf(
-                highestNewLevel,
-                level
-            )
-
-            changed = true
-        }
-
-        if (!changed) return
-
-        maxHeight = if (requiresMaxHeightRefresh) {
-            heights.maxOf { row ->
-                row.maxOrNull() ?: 0
-            }
-        } else {
-            highestNewLevel
-        }
-
-        heightVersion++
-    }
-
-    /**
      * Adds an empty terrain overlay layer.
      *
      * Layers are rendered in their registration order.
@@ -382,7 +411,7 @@ class World(
         }
 
         overlayLayers[id] = Array(height) {
-            arrayOfNulls<Tile>(width)
+            arrayOfNulls(width)
         }
     }
 
@@ -398,6 +427,27 @@ class World(
         val layer = requireOverlayLayer(layerId)
 
         return layer.getOrNull(y)?.getOrNull(x)
+    }
+
+    /**
+     * Visits every cell of an overlay layer in row-major order.
+     *
+     * Empty overlay cells are reported as null.
+     */
+    fun forEachOverlayTile(
+        layerId: String,
+        action: (position: TilePosition, tile: Tile?) -> Unit
+    ) {
+        val layer = requireOverlayLayer(layerId)
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                action(
+                    TilePosition(x, y),
+                    layer[y][x]
+                )
+            }
+        }
     }
 
     /**
@@ -430,8 +480,14 @@ class World(
         }
 
         val layer = requireOverlayLayer(layerId)
-
+        val previousTile = layer[y][x]
         layer[y][x] = tile
+
+        if (previousTile == null && tile != null) {
+            nonNullOverlayTileCount++
+        } else if (previousTile != null && tile == null) {
+            nonNullOverlayTileCount--
+        }
     }
 
     /**

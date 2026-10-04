@@ -1,7 +1,9 @@
 package com.mefabc24.strata.input
 
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.world.PlacedObject
+import com.mefabc24.strata.world.WorldEntity
 
 /**
  * Describes an input event that can trigger a binding.
@@ -38,10 +40,19 @@ sealed interface WorldInputBinding {
 
     val enabled: () -> Boolean
 
-    /**
-     * Picks a ground tile before invoking the action.
-     */
+    /** Picks an existing world tile before invoking the action. */
     class Tile(
+        override val trigger: WorldInputTrigger,
+        override val enabled: () -> Boolean = { true },
+        val action: (x: Int, y: Int) -> Boolean
+    ) : WorldInputBinding
+
+    /**
+     * Picks a logical grid position before invoking the action.
+     *
+     * The position may lie outside the attached world.
+     */
+    class Grid(
         override val trigger: WorldInputTrigger,
         override val enabled: () -> Boolean = { true },
         val action: (x: Int, y: Int) -> Boolean
@@ -55,6 +66,21 @@ sealed interface WorldInputBinding {
         val mode: ObjectPickingMode = ObjectPickingMode.SPRITE_ALPHA,
         override val enabled: () -> Boolean = { true },
         val action: (PlacedObject) -> Boolean
+    ) : WorldInputBinding
+
+    /** Picks a movable world entity through its current sprite. */
+    class Entity(
+        override val trigger: WorldInputTrigger,
+        val mode: EntityPickingMode = EntityPickingMode.SPRITE_ALPHA,
+        override val enabled: () -> Boolean = { true },
+        val action: (WorldEntity) -> Boolean
+    ) : WorldInputBinding
+
+    /** Observes an input event at its screen position without performing a pick. */
+    class Pointer(
+        override val trigger: WorldInputTrigger,
+        override val enabled: () -> Boolean = { true },
+        val action: (screenX: Float, screenY: Float) -> Boolean
     ) : WorldInputBinding
 
     /**

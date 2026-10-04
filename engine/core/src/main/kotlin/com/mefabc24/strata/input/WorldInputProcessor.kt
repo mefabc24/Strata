@@ -3,8 +3,10 @@ package com.mefabc24.strata.input
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputAdapter
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.iso.EntityPickingMode
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.TilePosition
+import com.mefabc24.strata.world.WorldEntity
 
 /**
  * Resolves input bindings and dispatches picked targets to the game.
@@ -16,7 +18,17 @@ class WorldInputProcessor(
         Float,
         Float,
         ObjectPickingMode
-    ) -> PlacedObject?
+    ) -> PlacedObject?,
+    private val pickEntity: (
+        Float,
+        Float,
+        EntityPickingMode
+    ) -> WorldEntity? = { _, _, _ -> null },
+    private val pickGrid: (Float, Float) -> TilePosition = { x, y ->
+        checkNotNull(pickTile(x, y)) {
+            "Grid picking requires a logical grid picker."
+        }
+    }
 ) : InputAdapter() {
 
     private val pressedButtons = mutableMapOf<Int, MutableSet<Int>>()
@@ -95,9 +107,7 @@ class WorldInputProcessor(
     }
 
     override fun keyDown(keycode: Int): Boolean {
-        if (!enabled) return false
-
-        return dispatch(
+        return enabled && dispatch(
             trigger = WorldInputTrigger.KeyDown(keycode),
             screenX = Gdx.input.x.toFloat(),
             screenY = Gdx.input.y.toFloat()
@@ -109,19 +119,26 @@ class WorldInputProcessor(
         screenX: Float,
         screenY: Float
     ): Boolean {
+        val pickedTile by lazy(LazyThreadSafetyMode.NONE) {
+            pickTile(screenX, screenY)
+        }
+        val pickedGrid by lazy(LazyThreadSafetyMode.NONE) {
+            pickGrid(screenX, screenY)
+        }
+
         for (binding in bindings) {
             if (binding.trigger != trigger) continue
             if (!binding.enabled()) continue
 
             val handled = when (binding) {
                 is WorldInputBinding.Tile -> {
-                    val tile = pickTile(screenX, screenY)
-
-                    if (tile != null) {
+                    pickedTile?.let { tile ->
                         binding.action(tile.x, tile.y)
-                    } else {
-                        false
-                    }
+                    } ?: false
+                }
+
+                is WorldInputBinding.Grid -> {
+                    binding.action(pickedGrid.x, pickedGrid.y)
                 }
 
                 is WorldInputBinding.Object -> {
@@ -131,11 +148,21 @@ class WorldInputProcessor(
                         binding.mode
                     )
 
-                    if (placed != null) {
-                        binding.action(placed)
-                    } else {
-                        false
-                    }
+                    placed != null && binding.action(placed)
+                }
+
+                is WorldInputBinding.Entity -> {
+                    val entity = pickEntity(
+                        screenX,
+                        screenY,
+                        binding.mode
+                    )
+
+                    entity != null && binding.action(entity)
+                }
+
+                is WorldInputBinding.Pointer -> {
+                    binding.action(screenX, screenY)
                 }
 
                 is WorldInputBinding.NoPicking -> {

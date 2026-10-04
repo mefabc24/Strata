@@ -1,6 +1,8 @@
 package com.mefabc24.sandbox
 
-enum class SoundCategory {
+import com.mefabc24.strata.audio.SoundCategoryId
+
+enum class SoundCategory : SoundCategoryId {
     UI,
     NPC,
     BUILDING,

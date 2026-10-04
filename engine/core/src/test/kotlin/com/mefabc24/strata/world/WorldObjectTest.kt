@@ -45,6 +45,7 @@ class WorldObjectTest {
         }
 
         assertEquals(1, world.getObjects().size)
+        assertEquals(1, world.placedObjectCount)
     }
 
     @Test
@@ -95,6 +96,7 @@ class WorldObjectTest {
 
         assertSame(terrainBefore, world.getTile(4, 4))
         assertTrue(world.getObjects().isEmpty())
+        assertEquals(0, world.placedObjectCount)
     }
 
     @Test
@@ -305,83 +307,6 @@ class WorldObjectTest {
     }
 
     @Test
-    fun `places an object when its footprint is on the same elevation`() {
-        val world = createWorld()
-
-        val house = createObject(
-            Footprint.square(2),
-            4,
-            4
-        )
-
-        for ((x, y) in house.occupiedTiles()) {
-            world.setHeight(x, y, 1)
-        }
-
-        assertTrue(world.canPlaceObject(house))
-        assertTrue(world.placeObject(house))
-    }
-
-    @Test
-    fun `rejects an object when its footprint spans different elevations`() {
-        val world = createWorld()
-
-        val house = createObject(
-            Footprint.square(2),
-            4,
-            4
-        )
-
-        for ((x, y) in house.occupiedTiles()) {
-            world.setHeight(x, y, 1)
-        }
-
-        world.setHeight(5, 5, 0)
-
-        assertFalse(world.canPlaceObject(house))
-        assertFalse(world.placeObject(house))
-    }
-
-    @Test
-    fun `elevation validation respects footprint origin`() {
-        for (origin in FootprintOrigin.entries) {
-            val world = createWorld()
-
-            val placed = createObject(
-                footprint = Footprint.rectangle(
-                    width = 2,
-                    height = 3,
-                    origin = origin
-                ),
-                x = 4,
-                y = 4
-            )
-
-            for ((x, y) in placed.occupiedTiles()) {
-                world.setHeight(x, y, 1)
-            }
-
-            assertTrue(world.canPlaceObject(placed))
-
-            val differentTile = placed.occupiedTiles()
-                .first {
-                    it != TilePosition(
-                        x = placed.x,
-                        y = placed.y
-                    )
-                }
-
-            world.setHeight(
-                differentTile.x,
-                differentTile.y,
-                2
-            )
-
-            assertFalse(world.canPlaceObject(placed))
-        }
-    }
-
-    @Test
     fun `places object through public placement api`() {
         val world = createWorld()
 
@@ -424,5 +349,154 @@ class WorldObjectTest {
 
         assertTrue(world.remove(placed))
         assertNull(world.getObjectAt(4, 4))
+    }
+
+    @Test
+    fun `relocation atomically moves an object and preserves identity`() {
+        val world = createWorld()
+        val house = requireNotNull(world.place(
+            object : Placeable { override val footprint = Footprint.square(2) },
+            2,
+            2
+        ))
+
+        assertTrue(world.relocate(house, TilePosition(5, 4)))
+
+        assertEquals(5, house.x)
+        assertEquals(4, house.y)
+        assertNull(world.getObjectAt(2, 2))
+        assertNull(world.getObjectAt(3, 3))
+        assertSame(house, world.getObjectAt(5, 4))
+        assertSame(house, world.getObjectAt(6, 5))
+        assertEquals(setOf(house), world.getObjects())
+        assertEquals(2L, world.objectVersion)
+    }
+
+    @Test
+    fun `relocation may overlap the objects own previous footprint`() {
+        val world = createWorld()
+        val house = requireNotNull(world.place(
+            object : Placeable { override val footprint = Footprint.square(3) },
+            2,
+            2
+        ))
+
+        assertNull(world.relocationFailure(house, TilePosition(3, 2)))
+        assertTrue(world.relocate(house, TilePosition(3, 2)))
+
+        assertNull(world.getObjectAt(2, 2))
+        assertSame(house, world.getObjectAt(3, 2))
+        assertSame(house, world.getObjectAt(5, 4))
+    }
+
+    @Test
+    fun `occupied relocation fails without clearing either object`() {
+        val world = createWorld()
+        val footprint = Footprint.square(2)
+        val first = requireNotNull(world.place(
+            object : Placeable { override val footprint = footprint }, 1, 1
+        ))
+        val second = requireNotNull(world.place(
+            object : Placeable { override val footprint = footprint }, 4, 1
+        ))
+        val version = world.objectVersion
+
+        assertEquals(
+            WorldPlacementFailure.OCCUPIED_TILE,
+            world.relocationFailure(first, TilePosition(3, 1))
+        )
+        assertFalse(world.relocate(first, TilePosition(3, 1)))
+
+        assertEquals(version, world.objectVersion)
+        assertSame(first, world.getObjectAt(1, 1))
+        assertSame(first, world.getObjectAt(2, 2))
+        assertSame(second, world.getObjectAt(4, 1))
+        assertSame(second, world.getObjectAt(5, 2))
+    }
+
+    @Test
+    fun `out of bounds relocation fails without changing occupancy`() {
+        val world = createWorld(width = 4, height = 4)
+        val placed = requireNotNull(world.place(
+            object : Placeable { override val footprint = Footprint.square(2) },
+            1,
+            1
+        ))
+
+        assertEquals(
+            WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD,
+            world.relocationFailure(placed, TilePosition(3, 3))
+        )
+        assertFalse(world.relocate(placed, TilePosition(3, 3)))
+
+        assertEquals(TilePosition(1, 1), TilePosition(placed.x, placed.y))
+        assertSame(placed, world.getObjectAt(1, 1))
+        assertSame(placed, world.getObjectAt(2, 2))
+        assertEquals(1L, world.objectVersion)
+    }
+
+    @Test
+    fun `relocating to the same origin is successful without version change`() {
+        val world = createWorld()
+        val placed = requireNotNull(world.place(
+            object : Placeable { override val footprint = Footprint.square(1) },
+            3,
+            4
+        ))
+
+        assertTrue(world.relocate(placed, TilePosition(3, 4)))
+
+        assertEquals(1L, world.objectVersion)
+        assertSame(placed, world.getObjectAt(3, 4))
+    }
+
+    @Test
+    fun `foreign object cannot be relocated into this world`() {
+        val world = createWorld()
+        val foreign = createObject(Footprint.square(1), 2, 2)
+
+        assertEquals(
+            WorldPlacementFailure.OCCUPIED_TILE,
+            world.relocationFailure(foreign, TilePosition(3, 3))
+        )
+        assertFalse(world.relocate(foreign, TilePosition(3, 3)))
+        assertEquals(0L, world.objectVersion)
+    }
+
+    @Test
+    fun `custom origin remains anchored after relocation`() {
+        val world = createWorld()
+        val footprint = Footprint.custom(
+            TileOffset(0, 0),
+            TileOffset(0, 1),
+            TileOffset(1, 1),
+            origin = TileOffset(0, 1)
+        )
+        val placed = requireNotNull(world.place(
+            object : Placeable { override val footprint = footprint },
+            2,
+            2
+        ))
+
+        assertTrue(world.relocate(placed, TilePosition(6, 7)))
+
+        assertEquals(
+            setOf(TilePosition(6, 6), TilePosition(6, 7), TilePosition(7, 7)),
+            placed.occupiedTiles()
+        )
+        assertTrue(placed.occupiedTiles().all { world.getObjectAt(it) === placed })
+    }
+
+    @Test
+    fun `placement failure reports bounds before occupancy`() {
+        val world = createWorld(width = 3, height = 3)
+        val single = object : Placeable { override val footprint = Footprint.square(1) }
+        requireNotNull(world.place(single, 2, 2))
+        val large = object : Placeable { override val footprint = Footprint.square(2) }
+
+        assertEquals(
+            WorldPlacementFailure.FOOTPRINT_OUTSIDE_WORLD,
+            world.placementFailure(large, TilePosition(2, 2))
+        )
     }
 }

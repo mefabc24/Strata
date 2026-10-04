@@ -17,4 +17,17 @@ class CameraControls {
     var keyboardMovementEnabled: Boolean = true
     var mouseDraggingEnabled: Boolean = true
     var zoomEnabled: Boolean = true
+
+    internal fun copy(): CameraControls {
+        return CameraControls().also { copy ->
+            copy.moveUp = moveUp
+            copy.moveDown = moveDown
+            copy.moveLeft = moveLeft
+            copy.moveRight = moveRight
+            copy.dragButton = dragButton
+            copy.keyboardMovementEnabled = keyboardMovementEnabled
+            copy.mouseDraggingEnabled = mouseDraggingEnabled
+            copy.zoomEnabled = zoomEnabled
+        }
+    }
 }

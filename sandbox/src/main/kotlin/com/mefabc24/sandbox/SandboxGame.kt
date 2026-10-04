@@ -2,52 +2,224 @@ package com.mefabc24.sandbox
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.mefabc24.strata.StrataGame
-import com.mefabc24.strata.input.WorldInputBinding
-import com.mefabc24.strata.input.WorldInputTrigger
-import com.mefabc24.strata.iso.ObjectPickingMode
-import com.mefabc24.strata.placement.PlacementController
-import com.mefabc24.strata.render.PlacementPreviewStyle
-import com.mefabc24.strata.scene.StrataScene
+import com.mefabc24.sandbox.registration.registerSandboxEntities
+import com.mefabc24.sandbox.registration.registerSandboxObjects
+import com.mefabc24.sandbox.registration.registerSandboxSounds
+import com.mefabc24.sandbox.registration.registerSandboxTerrain
 import com.mefabc24.strata.world.World
+import com.mefabc24.strata.Strata
+import com.mefabc24.strata.StrataGame
+import com.mefabc24.strata.iso.TileGeometry
+import com.mefabc24.strata.placement.PlacementPreviewBoundsPolicy
+import com.mefabc24.strata.world.WorldId
 
-class SandboxGame : StrataGame {
+class SandboxGame : StrataGame() {
 
-    private lateinit var world: World
-    private lateinit var placementController: PlacementController
-    private lateinit var scene: StrataScene<TerrainType, SoundCategory>
-    private lateinit var painter: SandboxTerrainPainter
-    private lateinit var uiSkin: Skin
-    private lateinit var sandboxUi: SandboxUi
+    override val strata: Strata =
+        Strata().configure {
+            engine {
+                backgroundColor =
+                    Color(0.53f, 0.81f, 0.92f, 1f)
+            }
 
-    private val previewStyle = PlacementPreviewStyle(
-        validColor = Color(0.3f, 0.8f, 1f, 0.7f),
-        invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
-    )
+            scene(
+                terrainDirectory = "tiles",
+                objectDirectory = "objects",
+                entityDirectory = "entities"
+            ) {
+                registrations {
+                    terrain {
+                        registerSandboxTerrain()
+                    }
 
-    // Debug
-    private val worldSize = 50
+                    objects {
+                        registerSandboxObjects()
+                    }
 
-    override fun create() {
-        world = World(worldSize, worldSize) { x, y ->
+                    entities {
+                        registerSandboxEntities()
+                    }
+
+                    sounds {
+                        registerSandboxSounds()
+                    }
+                }
+
+                audio {
+                    masterVolume = 1f
+                    soundVolume = 1f
+                    musicVolume = 1f
+
+                    setCategoryVolume(
+                        SoundCategory.BUILDING,
+                        1f
+                    )
+                }
+
+                debug {
+                    defaultPresetStorage("strata.sandbox.debug")
+
+                    toolsWindow {
+                        enabled = true
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.TAB
+                    }
+
+                    debugWindow {
+                        enabled = true
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.ESCAPE
+                    }
+
+                    performance {
+                        overlayEnabled = false
+                        terminalLoggingEnabled = false
+                        terminalLoggingIntervalSeconds = 2f
+                    }
+
+                    paint {
+                        brushSize = 1
+                        showBrushPreview = true
+                    }
+
+                    delete {
+                        brushSize = 3
+                        dragEnabled = true
+                        showBrushPreview = true
+                    }
+
+                    grid {
+                        enabled = false
+                        color = Color(1f, 1f, 1f, 0.4f)
+                        hoverColor = Color(1f, 0f, 0f, 1f)
+                        lineWidth = 1f
+                        backgroundColor =
+                            Color(1f, 1f, 1f, 0.2f)
+                        hoverBackgroundColor =
+                            Color(1f, 0f, 0f, 0.5f)
+                    }
+
+                    objects {
+                        enabled = false
+                        showOccupiedTiles = true
+                        showOriginTile = true
+                        showSpriteBounds = false
+                        occupiedTileColor =
+                            Color(0.2f, 0.85f, 1f, 1f)
+                        occupiedTileFillColor =
+                            Color(0.2f, 0.65f, 1f, 0.2f)
+                        originTileColor =
+                            Color(1f, 0.35f, 0.2f, 1f)
+                        spriteBoundsColor =
+                            Color(1f, 0.2f, 0.75f, 1f)
+                    }
+
+                    entities {
+                        enabled = false
+                        showCurrentTile = true
+                        showPosition = true
+                        showPath = true
+                        showDirection = false
+                        showSpriteBounds = false
+                        currentTileColor =
+                            Color(0.4f, 1f, 0.3f, 1f)
+                        currentTileFillColor =
+                            Color(0.3f, 1f, 0.3f, 0.18f)
+                        positionColor =
+                            Color(1f, 0.3f, 0.2f, 1f)
+                        pathColor =
+                            Color(1f, 0.85f, 0.2f, 1f)
+                        directionColor =
+                            Color(0.3f, 0.75f, 1f, 1f)
+                        spriteBoundsColor =
+                            Color(1f, 0.3f, 0.9f, 1f)
+                    }
+
+                    onEntitySpawned { entity ->
+                        roaming.control(entity)
+                        strata.events.publish(
+                            SandboxDebugEntitySpawned(
+                                entityType = entity.entity::class.simpleName ?: "Entity",
+                                position = entity.currentTile
+                            )
+                        )
+                    }
+
+                    onObjectsPlaced { placed ->
+                        if (placed.isNotEmpty()) {
+                            playBuildingSound()
+                        }
+                        placed.forEach { objectInWorld ->
+                            strata.events.publish(
+                                SandboxDebugObjectPlaced(
+                                    objectType = objectInWorld.placeable::class.simpleName
+                                        ?: "Object",
+                                    position = com.mefabc24.strata.world.TilePosition(
+                                        objectInWorld.x,
+                                        objectInWorld.y
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
+
+                camera {
+                    zoomEdgeAllowance = 0.3f
+                }
+
+                rendering {
+                    tileGeometry {
+                        width = TILE_GEOMETRY.width
+                        height = TILE_GEOMETRY.height
+                    }
+
+                    objects {
+                        offsetY = 1f
+                    }
+                }
+
+                placement {
+                    preview {
+                        objects {
+                            boundsPolicy = PlacementPreviewBoundsPolicy.ORIGIN_INSIDE
+                            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+                            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+                        }
+                    }
+                }
+
+            }
+        }
+
+    private lateinit var roaming: SandboxRoamingController
+    private lateinit var sandboxWorld: World
+
+    override fun onReady() {
+        sandboxWorld = createSandboxWorld()
+        strata.worlds.register(SANDBOX_WORLD, sandboxWorld, ::terrainFor)
+        strata.worlds.activate(SANDBOX_WORLD)
+
+        roaming = SandboxRoamingController(
+            world = sandboxWorld,
+            isHeld = strata.debug::isEntityHeld
+        )
+    }
+
+    override fun updateGame(simulationDelta: Float) {
+        roaming.update(simulationDelta)
+    }
+
+    private fun createSandboxWorld(): World {
+        val world = World(WORLD_SIZE, WORLD_SIZE) { x, y ->
             val terrain = if (x in 12..18 && y in 12..18) {
                 TerrainType.WATER
             } else {
-                TerrainType.GRASS
+                TerrainType.LOW_GRASS
             }
 
             SandboxTile(terrain)
         }
-
-        // Create a temporary elevated plateau.
-        check(
-            world.terrain.setHeight(
-                xRange = 28..32,
-                yRange = 28..32,
-                level = 1
-            )
-        )
 
         // Create a temporary overlay to verify layered rendering.
         world.addOverlayLayer("demo")
@@ -58,19 +230,10 @@ class SandboxGame : StrataGame {
                     layerId = "demo",
                     x = x,
                     y = y,
-                    tile = SandboxTile(TerrainType.WATER)
+                    tile = SandboxTile(TerrainType.BUSH)
                 )
             }
         }
-
-        placementController = PlacementController(
-            world = world,
-            style = previewStyle
-        ).apply {
-            selectedPlaceable = House()
-        }
-
-        painter = SandboxTerrainPainter(world)
 
         check(
             world.place(
@@ -82,248 +245,24 @@ class SandboxGame : StrataGame {
             "Failed to place test house."
         }
 
-        scene = StrataScene<TerrainType, SoundCategory>(
-            terrainDirectory = "tiles",
-            objectDirectory = "objects"
-        ) {
-            terrain.register(
-                TerrainType.GRASS,
-                sprite = "grass.png"
-            )
-
-            terrain.register(
-                TerrainType.WATER,
-                sprite = "water3.png"
-            )
-
-            terrain.register(
-                TerrainType.SAND,
-                sprite = "flowers.png"
-            )
-
-            objects.register<OakTree>("oak.png") {
-                offsetY = 5f
-            }
-
-            objects.register<House>("house.png")
-
-            sounds.register(
-                id = BuildingSound.PLACE,
-                path = "audio/pop.wav",
-                category = SoundCategory.BUILDING
-            )
-        }
-
-        scene.createView(
-            world = world,
-            terrainFor = { tile ->
-                (tile as SandboxTile).terrain
-            }
-        ) {
-            audio {
-                masterVolume = 1f
-                soundVolume = 1f
-                musicVolume = 1f
-
-                setCategoryVolume(SoundCategory.BUILDING, 1f)
-            }
-
-            debug {
-                performance {
-                    enabled = true
-                    intervalSeconds = 2f
-                }
-            }
-
-            camera {
-                zoomEdgeAllowance = 0.3f
-            }
-
-            rendering {
-                tileGeometry {
-                    width = 32f
-                    height = 32f
-                }
-            }
-
-            controls {
-                gameplay {
-                    bindings = listOf(
-                        // Left click: paint terrain or place an object.
-                        WorldInputBinding.Tile(
-                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.LEFT)
-                        ) { x, y ->
-                            if (painter.enabled) {
-                                painter.beginPaint(x, y)
-                            } else {
-                                val placed = placementController.placeAt(x, y)
-
-                                if (placed != null) {
-                                    println("Object placed at ($x, $y)")
-                                    scene.audio.playSound(BuildingSound.PLACE)
-                                }
-
-                                true
-                            }
-                        },
-
-                        // Continue painting while dragging.
-                        WorldInputBinding.Tile(
-                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                            enabled = { painter.enabled }
-                        ) { x, y ->
-                            painter.dragPaint(x, y)
-                        },
-
-                        // Cancel the stroke if the cursor leaves the world.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-                            enabled = { painter.enabled }
-                        ) {
-                            painter.cancel()
-                            false
-                        },
-
-                        // Finish painting even when released outside the world.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.MouseUp(Input.Buttons.LEFT)
-                        ) {
-                            painter.endPaint()
-                        },
-
-                        // Right click: begin erasing an overlay.
-                        WorldInputBinding.Tile(
-                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                            enabled = {
-                                painter.enabled && painter.layerId != null
-                            }
-                        ) { x, y ->
-                            painter.beginErase(x, y)
-                        },
-
-                        // Continue erasing while dragging.
-                        WorldInputBinding.Tile(
-                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-                            enabled = {
-                                painter.enabled && painter.layerId != null
-                            }
-                        ) { x, y ->
-                            painter.dragErase(x, y)
-                        },
-
-                        // Cancel erasing if the cursor leaves the world.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.MouseDrag(Input.Buttons.RIGHT),
-                            enabled = { painter.enabled }
-                        ) {
-                            painter.cancel()
-                            false
-                        },
-
-                        // Finish erasing even when released outside the world.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.MouseUp(Input.Buttons.RIGHT)
-                        ) {
-                            painter.endErase()
-                        },
-
-                        // Remove objects only outside painting mode.
-                        WorldInputBinding.Object(
-                            trigger = WorldInputTrigger.MouseDown(Input.Buttons.RIGHT),
-                            mode = ObjectPickingMode.SPRITE_OR_FOOTPRINT,
-                            enabled = { !painter.enabled }
-                        ) { placed ->
-                            world.remove(placed)
-                            true
-                        },
-
-                        // Debug: inspect the ground tile.
-                        WorldInputBinding.Tile(
-                            trigger = WorldInputTrigger.KeyDown(Input.Keys.P)
-                        ) { x, y ->
-                            println("Tile at ($x, $y): ${world.getTile(x, y)}")
-                            true
-                        },
-
-                        // Toggle painting mode.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.KeyDown(Input.Keys.T)
-                        ) {
-                            painter.enabled = !painter.enabled
-
-                            println("Terrain painting: ${painter.enabled}")
-                            true
-                        },
-
-                        // Switch between ground and the demo overlay.
-                        WorldInputBinding.NoPicking(
-                            trigger = WorldInputTrigger.KeyDown(Input.Keys.O)
-                        ) {
-                            painter.layerId = if (painter.layerId == null) {
-                                "demo"
-                            } else {
-                                null
-                            }
-
-                            println("Selected layer: ${painter.layerId ?: "ground"}")
-                            true
-                        }
-                    )
-                }
-            }
-        }
-
-        uiSkin = SandboxUi.createSkin()
-
-        val ui = scene.createUi(
-            skin = uiSkin
-        )
-
-        sandboxUi = SandboxUi(
-            ui = ui,
-            painter = painter
-        )
+        return world
     }
 
-    override fun resize(
-        width: Int,
-        height: Int
-    ) {
-        if (!::scene.isInitialized) return
+    private fun terrainFor(tile: com.mefabc24.strata.world.Tile) =
+        (tile as SandboxTile).terrain
 
-        scene.resize(
-            width,
-            height
-        )
+    private fun playBuildingSound() {
+        strata.audio.playSound(BuildingSound.PLACE)
     }
 
-    override fun update(delta: Float) {
-        scene.update(delta)
-
-        placementController.update(
-            scene.view.hoveredTile
+    private companion object {
+        private val TILE_GEOMETRY = TileGeometry(
+            width = 32f,
+            height = 24f
         )
 
-        sandboxUi.sync()
-    }
+        private const val WORLD_SIZE = 50
 
-    override fun render() {
-        scene.render(
-            preview = if (painter.enabled) {
-                null
-            } else {
-                placementController.preview
-            }
-        )
-    }
-
-    override fun dispose() {
-        if (::scene.isInitialized) {
-            scene.dispose()
-        }
-
-        if (::uiSkin.isInitialized) {
-            uiSkin.dispose()
-        }
+        private val SANDBOX_WORLD = WorldId("sandbox")
     }
 }

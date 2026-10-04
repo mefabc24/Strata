@@ -6,6 +6,7 @@ import com.badlogic.gdx.assets.loaders.resolvers.ClasspathFileHandleResolver
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 
@@ -34,6 +35,15 @@ class StrataAssets : Disposable {
         }
 
         manager.load(path, Texture::class.java, parameters)
+    }
+
+    /** Queues a libGDX texture atlas. Atlas paths are scene asset paths. */
+    fun queueAtlas(path: String) {
+        checkActive()
+
+        if (register(path, TextureAtlas::class.java)) {
+            manager.load(path, TextureAtlas::class.java)
+        }
     }
 
     /**
@@ -86,6 +96,10 @@ class StrataAssets : Disposable {
 
     fun region(path: String): TextureRegion {
         return TextureRegion(texture(path))
+    }
+
+    fun atlas(path: String): TextureAtlas {
+        return get(path, TextureAtlas::class.java)
     }
 
     fun sound(path: String): Sound {
