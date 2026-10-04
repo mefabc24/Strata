@@ -286,46 +286,55 @@ internal class DebugPanel(
             buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.BUILD, "Selection") {
-                    actor(DebugToolSelectionList(
-                        items = buildEntries.map { entry ->
-                            val footprint = entry.create().footprint
-                            DebugToolSelectionItem(
-                                value = entry,
-                                displayName = entry.displayName(),
-                                texture = entry.selectionVisual.texture,
-                                secondaryText = "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
-                                trailingText = footprint.dimensionsText()
-                            )
-                        },
-                        selectionGroup = checkNotNull(buildSelection),
-                        skin = ui.skin,
-                        searchHint = "Search objects...",
-                        onLayoutChanged = ::invalidateToolFlyoutLayout
-                    )).cell { fillAvailableX() }
+                    val group = buildSelection
+                    if (group == null) {
+                        emptyToolMessage("No constructible objects registered")
+                    } else {
+                        actor(DebugToolSelectionList(
+                            items = buildEntries.map { entry ->
+                                val footprint = entry.create().footprint
+                                DebugToolSelectionItem(
+                                    value = entry,
+                                    displayName = entry.displayName(),
+                                    texture = entry.selectionVisual.texture,
+                                    secondaryText = "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
+                                    trailingText = footprint.dimensionsText()
+                                )
+                            },
+                            selectionGroup = group,
+                            skin = ui.skin,
+                            searchHint = "Search objects...",
+                            onLayoutChanged = ::invalidateToolFlyoutLayout
+                        )).cell { fillAvailableX() }
+                    }
                 }
                 toolSettingsExpander(DebugToolMode.BUILD, "Preview") {
-                    val preview = DebugToolPreviewCard(ui.skin)
-                    fun updatePreview(entry: ObjectEntry?) {
-                        if (entry == null) return
-                        val footprint = entry.create().footprint
-                        val visual = entry.selectionVisual
-                        val texture = visual.texture
-                        preview.show(DebugToolPreview(
-                            key = entry,
-                            displayName = entry.displayName(),
-                            texture = texture,
-                            details = listOf(
-                                "Footprint" to footprint.dimensionsText(),
-                                "Occupied" to "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
-                                "Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px",
-                                "Frames" to visual.sprite.frameCount.toString()
-                            )
-                        ))
+                    val group = buildSelection
+                    if (group == null) {
+                        emptyToolMessage("Select a registered object to preview it")
+                    } else {
+                        val preview = DebugToolPreviewCard(ui.skin)
+                        fun updatePreview(entry: ObjectEntry?) {
+                            if (entry == null) return
+                            val footprint = entry.create().footprint
+                            val visual = entry.selectionVisual
+                            val texture = visual.texture
+                            preview.show(DebugToolPreview(
+                                key = entry,
+                                displayName = entry.displayName(),
+                                texture = texture,
+                                details = listOf(
+                                    "Footprint" to footprint.dimensionsText(),
+                                    "Occupied" to "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
+                                    "Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px",
+                                    "Frames" to visual.sprite.frameCount.toString()
+                                )
+                            ))
+                        }
+                        actor(preview).cell { fillAvailableX(); height(110f) }
+                        ui.root.context.own(group.onSelectionChanged(::updatePreview))
+                        updatePreview(group.selected)
                     }
-                    actor(preview).cell { fillAvailableX(); height(110f) }
-                    val group = checkNotNull(buildSelection)
-                    ui.root.context.own(group.onSelectionChanged(::updatePreview))
-                    updatePreview(group.selected)
                 }
                 toolStatus(DebugToolMode.BUILD)
             }
@@ -355,20 +364,25 @@ internal class DebugPanel(
                     }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Terrain") {
-                    actor(DebugToolSelectionList(
-                        items = painter.entries.map { entry ->
-                            DebugToolSelectionItem(
-                                value = entry,
-                                displayName = entry.type.toString().toDisplayName(),
-                                texture = entry.selectionTexture
-                            )
-                        },
-                        selectionGroup = checkNotNull(terrainSelection),
-                        skin = ui.skin,
-                        searchHint = "Search terrain...",
-                        showSearch = false,
-                        onLayoutChanged = ::invalidateToolFlyoutLayout
-                    )).cell { fillAvailableX() }
+                    val group = terrainSelection
+                    if (group == null) {
+                        emptyToolMessage("No paintable terrain registered")
+                    } else {
+                        actor(DebugToolSelectionList(
+                            items = painter.entries.map { entry ->
+                                DebugToolSelectionItem(
+                                    value = entry,
+                                    displayName = entry.type.toString().toDisplayName(),
+                                    texture = entry.selectionTexture
+                                )
+                            },
+                            selectionGroup = group,
+                            skin = ui.skin,
+                            searchHint = "Search terrain...",
+                            showSearch = false,
+                            onLayoutChanged = ::invalidateToolFlyoutLayout
+                        )).cell { fillAvailableX() }
+                    }
                 }
                 toolSettingsExpander(DebugToolMode.PAINT, "Target") {
                     selectionSettingRow(
@@ -378,14 +392,15 @@ internal class DebugPanel(
                     ) { it.name.toDisplayName() }
                     overlayPaintControls = column(spacing = 0f) {
                         defaults().fillAvailableX()
-                        val group = checkNotNull(overlaySelection)
-                        boundDropdown(
-                            "Overlay layer",
-                            painter.overlayLayerIds,
-                            { checkNotNull(group.selected) },
-                            String::toDisplayName,
-                            group::select
-                        )
+                        overlaySelection?.let { group ->
+                            boundDropdown(
+                                "Overlay layer",
+                                painter.overlayLayerIds,
+                                { checkNotNull(group.selected) },
+                                String::toDisplayName,
+                                group::select
+                            )
+                        }
                     }
                 }
                 toolStatus(DebugToolMode.PAINT)
@@ -393,51 +408,60 @@ internal class DebugPanel(
             spawnControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
                 toolSettingsExpander(DebugToolMode.SPAWN, "Selection") {
-                    actor(DebugToolSelectionList(
-                        items = spawner.entries.map { entry ->
-                            val visual = entry.selectionVisual
-                            val frames = visual.sprite.frameCount
-                            DebugToolSelectionItem(
-                                value = entry,
-                                displayName = entry.type.displayName(),
-                                texture = visual.texture,
-                                secondaryText = if (frames == 1) {
-                                    "Static sprite"
-                                } else {
-                                    "$frames animation frames"
-                                }
-                            )
-                        },
-                        selectionGroup = checkNotNull(spawnSelection),
-                        skin = ui.skin,
-                        searchHint = "Search entities...",
-                        onLayoutChanged = ::invalidateToolFlyoutLayout
-                    )).cell { fillAvailableX() }
+                    val group = spawnSelection
+                    if (group == null) {
+                        emptyToolMessage("No spawnable entities registered")
+                    } else {
+                        actor(DebugToolSelectionList(
+                            items = spawner.entries.map { entry ->
+                                val visual = entry.selectionVisual
+                                val frames = visual.sprite.frameCount
+                                DebugToolSelectionItem(
+                                    value = entry,
+                                    displayName = entry.type.displayName(),
+                                    texture = visual.texture,
+                                    secondaryText = if (frames == 1) {
+                                        "Static sprite"
+                                    } else {
+                                        "$frames animation frames"
+                                    }
+                                )
+                            },
+                            selectionGroup = group,
+                            skin = ui.skin,
+                            searchHint = "Search entities...",
+                            onLayoutChanged = ::invalidateToolFlyoutLayout
+                        )).cell { fillAvailableX() }
+                    }
                 }
                 toolSettingsExpander(DebugToolMode.SPAWN, "Preview") {
-                    val preview = DebugToolPreviewCard(ui.skin)
-                    fun updatePreview(entry: EntityEntry?) {
-                        if (entry == null) return
-                        val visual = entry.selectionVisual
-                        val texture = visual.texture
-                        preview.show(DebugToolPreview(
-                            key = entry,
-                            displayName = entry.type.displayName(),
-                            texture = texture,
-                            details = buildList {
-                                add("Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px")
-                                add("Frames" to visual.sprite.frameCount.toString())
-                                if (visual.width != null && visual.height != null) {
-                                    add("Size" to "${visual.width} × ${visual.height}")
+                    val group = spawnSelection
+                    if (group == null) {
+                        emptyToolMessage("Select a registered entity to preview it")
+                    } else {
+                        val preview = DebugToolPreviewCard(ui.skin)
+                        fun updatePreview(entry: EntityEntry?) {
+                            if (entry == null) return
+                            val visual = entry.selectionVisual
+                            val texture = visual.texture
+                            preview.show(DebugToolPreview(
+                                key = entry,
+                                displayName = entry.type.displayName(),
+                                texture = texture,
+                                details = buildList {
+                                    add("Sprite" to "${texture.regionWidth} × ${texture.regionHeight} px")
+                                    add("Frames" to visual.sprite.frameCount.toString())
+                                    if (visual.width != null && visual.height != null) {
+                                        add("Size" to "${visual.width} × ${visual.height}")
+                                    }
+                                    add("Scale" to visual.scale.toString())
                                 }
-                                add("Scale" to visual.scale.toString())
-                            }
-                        ))
+                            ))
+                        }
+                        actor(preview).cell { fillAvailableX(); height(110f) }
+                        ui.root.context.own(group.onSelectionChanged(::updatePreview))
+                        updatePreview(group.selected)
                     }
-                    actor(preview).cell { fillAvailableX(); height(110f) }
-                    val group = checkNotNull(spawnSelection)
-                    ui.root.context.own(group.onSelectionChanged(::updatePreview))
-                    updatePreview(group.selected)
                 }
                 toolStatus(DebugToolMode.SPAWN)
             }
@@ -1224,6 +1248,14 @@ internal class DebugPanel(
             label(text, "title").cell { growX(); left() }
         }.applyDebugSettingBackground().cell { fillAvailableX(); height(28f) }
         separator()
+    }
+
+    private fun StrataColumn.emptyToolMessage(text: String) {
+        row(
+            padding = StrataInsets.symmetric(horizontal = 8f, vertical = 4f)
+        ) {
+            wrappingLabel(text)
+        }.applyDebugSettingBackground().cell { fillAvailableX(); minHeight(42f) }
     }
 
     private fun StrataColumn.featureExpander(
