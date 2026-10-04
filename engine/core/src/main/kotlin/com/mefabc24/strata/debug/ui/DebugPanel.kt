@@ -2,17 +2,12 @@ package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Value
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
-import com.badlogic.gdx.utils.Align
-import com.badlogic.gdx.utils.Scaling
 import com.mefabc24.strata.debug.*
 import com.mefabc24.strata.debug.inspector.DebugInspection
 import com.mefabc24.strata.debug.inspector.DebugInspector
@@ -61,7 +56,6 @@ internal class DebugPanel(
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
     private val synchronizers = DebugControlBindings()
-    private val previewState = DebugContentPreviewState()
     private val modes = availableDebugToolModes(
         buildAvailable = tools.buildAvailable && buildEntries.isNotEmpty(),
         paintAvailable = painter.entries.isNotEmpty(),
@@ -113,11 +107,6 @@ internal class DebugPanel(
     private lateinit var cameraRows: DebugDiagnosticTable
     private lateinit var cullingRows: DebugDiagnosticTable
     private val toolStatusRows = mutableMapOf<DebugToolMode, DebugDiagnosticTable>()
-    private lateinit var previewName: Label
-    private lateinit var previewImage: Image
-    private lateinit var previewPopover: StrataPopover
-    private var previewAnchor: Actor? = null
-    private var lastMode = DebugToolMode.NONE
     private var appliedFlyoutMode: DebugToolMode? = null
     private var appliedWindowVisibility: Pair<Boolean, Boolean>? = null
     private var buildingDebugSettings = false
@@ -127,7 +116,6 @@ internal class DebugPanel(
         terrainSelection?.selected?.let { painter.selectedEntry = it }
         spawnSelection?.selected?.let { spawner.selectedEntry = it }
         buildUi()
-        if (settings.toolsWindow.enabled) buildPreview()
         synchronizers += {
             toolButtons.forEach { (mode, button) ->
                 button.selected = tools.mode == mode
@@ -154,7 +142,6 @@ internal class DebugPanel(
         if (!settings.toolsWindow.enabled) return
         settings.toolsWindow.visible = visible
         if (!visible) {
-            hidePreview()
             closeToolSettings()
         }
         syncWindowLayout()
@@ -182,9 +169,6 @@ internal class DebugPanel(
         syncWindowLayout(force = true)
         positionToolFlyout()
         syncStatsOverlayPosition()
-        if (!settings.toolsWindow.enabled) return
-        val anchor = previewAnchor ?: return
-        if (previewState.current != null) previewPopover.showRightOf(toolFlyoutActor, anchor)
     }
 
     private fun buildUi() {
@@ -295,17 +279,6 @@ internal class DebugPanel(
         toolFlyoutActor.remove()
         toolFlyoutActor.isVisible = false
         ui.stage.addActor(toolFlyoutActor)
-    }
-
-    private fun buildPreview() {
-        previewPopover = ui.popover(width = 128f, height = 154f) {
-            defaults().fillAvailableX()
-            previewName = label("").apply {
-                setAlignment(Align.center); setWrap(true)
-            }.cell { height(30f) }
-            previewImage = actor(Image().apply { setScaling(Scaling.fit) })
-                .cell { grow(); fill(); minHeight(96f) }
-        }
     }
 
     private fun StrataColumn.buildToolSettings() {
@@ -1551,48 +1524,17 @@ internal class DebugPanel(
         }
     }
 
-    private fun <A : Actor> A.previewOnHover(
-        key: Any,
-        kind: DebugContentKind,
-        name: String,
-        texture: TextureRegion
-    ): A = onHover(
-        entered = { actor ->
-            showPreview(DebugContentPreview(key, kind, name, texture), actor)
-        },
-        exited = { hidePreview(key) }
-    )
-
-    private fun showPreview(preview: DebugContentPreview, anchor: Actor) {
-        if (!settings.toolsWindow.visible) return
-        previewState.show(preview)
-        previewAnchor = anchor
-        previewName.setText(preview.name)
-        previewImage.drawable = TextureRegionDrawable(preview.texture)
-        previewPopover.showRightOf(toolFlyoutActor, anchor)
-    }
-
-    private fun hidePreview(key: Any? = null) {
-        previewState.hide(key)
-        if (previewState.current == null && ::previewPopover.isInitialized) {
-            previewAnchor = null
-            previewPopover.hide()
-        }
-    }
-
     private fun syncControls() {
         synchronizers.sync()
     }
 
     private fun selectTool(mode: DebugToolMode) {
-        hidePreview()
         tools.select(mode)
         syncControls()
         syncVisibility()
     }
 
     private fun toggleToolSettings(mode: DebugToolMode) {
-        hidePreview()
         toolRailState.toggleSettings(mode)
         syncVisibility()
         positionToolFlyout()
@@ -1700,16 +1642,10 @@ internal class DebugPanel(
 
     private fun syncVisibility() {
         if (!settings.toolsWindow.enabled || !::toolFlyoutActor.isInitialized) return
-        val activeMode = tools.mode
         val displayedMode = toolRailState.settingsMode
 
         val previousMode = appliedFlyoutMode
         val previousOverlayVisibility = overlayPaintControls.isVisible
-
-        if (activeMode != lastMode) {
-            hidePreview()
-            lastMode = activeMode
-        }
 
         buildControls.isVisible = displayedMode == DebugToolMode.BUILD
         deleteControls.isVisible = displayedMode == DebugToolMode.DELETE
