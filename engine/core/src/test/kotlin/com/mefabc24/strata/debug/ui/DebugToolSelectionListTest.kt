@@ -1,10 +1,19 @@
 package com.mefabc24.strata.debug.ui
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.ui.StrataSelectionGroup
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class DebugToolSelectionListTest {
     private val texture = TextureRegion()
@@ -13,6 +22,11 @@ class DebugToolSelectionListTest {
         DebugToolSelectionItem("tree", "Oak Tree", texture),
         DebugToolSelectionItem("villa", "Villa", texture)
     )
+
+    @BeforeTest
+    fun installTestEnvironment() {
+        TestGdxEnvironment.install()
+    }
 
     @Test
     fun `search filters display names without changing registry order`() {
@@ -44,5 +58,37 @@ class DebugToolSelectionListTest {
         assertEquals(227f, debugToolSelectionListHeight(4))
         assertEquals(228f, debugToolSelectionListHeight(40))
         assertFailsWith<IllegalArgumentException> { debugToolSelectionListHeight(-1) }
+    }
+
+    @Test
+    fun `hovered selection list receives mouse wheel scrolling`() {
+        val skin = DebugPanelSkin.create()
+        val values = (1..10).toList()
+        val list = DebugToolSelectionList(
+            items = values.map {
+                DebugToolSelectionItem(it, "Entry $it", texture)
+            },
+            selectionGroup = StrataSelectionGroup(values),
+            skin = skin,
+            searchHint = "Search..."
+        )
+        val stage = Stage()
+        stage.addActor(list)
+        list.setBounds(0f, 0f, 300f, 266f)
+        list.validate()
+        val scroll = list.children.first { it is ScrollPane } as ScrollPane
+        scroll.validate()
+
+        scroll.listeners.filterIsInstance<InputListener>().forEach {
+            it.enter(InputEvent(), 10f, 10f, -1, null)
+        }
+
+        assertSame(scroll, stage.scrollFocus)
+        val before = scroll.scrollY
+        assertTrue(stage.scrolled(0f, 1f))
+        assertNotEquals(before, scroll.scrollY)
+
+        stage.dispose()
+        skin.dispose()
     }
 }
