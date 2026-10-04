@@ -107,7 +107,7 @@ class IsoWorldDebugRendererTest {
             showOccupiedTiles = false
             showOriginTile = false
             showSpriteBounds = true
-            occupiedTileFillColor = null
+            showOccupiedTileFill = false
         }
         val entitySettings = DebugEntitySettings().apply {
             showCurrentTile = false
@@ -115,7 +115,7 @@ class IsoWorldDebugRendererTest {
             showPath = false
             showDirection = false
             showSpriteBounds = true
-            currentTileFillColor = null
+            showCurrentTileFill = false
         }
         val world = World(2, 2) { _, _ -> TestTile }
         val selectedObject = requireNotNull(world.place(TestPlaceable(), 0, 0))

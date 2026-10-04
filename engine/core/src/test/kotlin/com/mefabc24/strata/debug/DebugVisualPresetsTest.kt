@@ -132,4 +132,24 @@ class DebugVisualPresetsTest {
 
         assertFalse(settings.grid.enabled)
     }
+
+    @Test
+    fun `disabling fills preserves configured colors`() {
+        val settings = DebugSettings()
+
+        settings.objects.showOccupiedTileFill = true
+        settings.objects.occupiedTileFillColor =
+            Color(0.2f, 0.5f, 0.8f, 0.35f)
+
+        val expected = settings.objects.occupiedTileFillColor
+
+        settings.objects.showOccupiedTileFill = false
+
+        assertFalse(settings.objects.showOccupiedTileFill)
+        assertEquals(expected, settings.objects.occupiedTileFillColor)
+
+        settings.objects.showOccupiedTileFill = true
+
+        assertEquals(expected, settings.objects.occupiedTileFillColor)
+    }
 }

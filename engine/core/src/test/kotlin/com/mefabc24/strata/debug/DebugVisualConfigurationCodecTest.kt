@@ -62,4 +62,30 @@ class DebugVisualConfigurationCodecTest {
         assertFalse(target.entities.showPath)
         assertFalse(target.entities.hasActiveVisuals)
     }
+
+    @Test
+    fun `legacy nullable fills migrate to independent visibility flags`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """
+        {
+            "version": 3,
+            "values": {
+                "objects.fill": "null:",
+                "entities.fill": "color:0.3,1.0,0.3,0.4",
+                "grid.background": "null:"
+            }
+        }
+        """.trimIndent()
+        )
+
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertFalse(settings.objects.showOccupiedTileFill)
+        assertFalse(settings.grid.showBackground)
+
+        assertTrue(settings.entities.showCurrentTileFill)
+        assertEquals(0.4f, settings.entities.currentTileFillColor.a)
+    }
 }
