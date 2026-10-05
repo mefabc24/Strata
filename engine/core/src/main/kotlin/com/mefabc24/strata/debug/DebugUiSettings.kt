@@ -62,6 +62,15 @@ class DebugPerformanceSettings internal constructor() {
     /** Whether the on-screen performance overlay is visible. */
     var overlayEnabled: Boolean = false
 
+    /** Seconds of rendered time accumulated between performance overlay refreshes. */
+    var overlayRefreshIntervalSeconds: Float = 0.25f
+        set(value) {
+            require(value.isFinite() && value > 0f) {
+                "Performance overlay refresh interval must be finite and greater than zero."
+            }
+            field = value
+        }
+
     /** Whether performance summaries are periodically written to the terminal log. */
     var terminalLoggingEnabled: Boolean
         get() = terminalLogger.enabled

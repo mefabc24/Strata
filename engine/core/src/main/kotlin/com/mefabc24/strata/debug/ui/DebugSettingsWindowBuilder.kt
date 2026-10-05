@@ -90,6 +90,13 @@ internal class DebugSettingsWindowBuilder(
                 )
         }
         performance.settingsExpander("History & logging") {
+                boundStepper(
+                    "Overlay refresh",
+                    { settings.operations.performance.overlayRefreshIntervalSeconds },
+                    0.05f,
+                    5f,
+                    0.05f
+                ) { settings.operations.performance.overlayRefreshIntervalSeconds = it }
                 toggleRows(
                     toggle("Terminal logging", { settings.operations.performance.terminalLoggingEnabled }) {
                         settings.operations.performance.terminalLoggingEnabled = it

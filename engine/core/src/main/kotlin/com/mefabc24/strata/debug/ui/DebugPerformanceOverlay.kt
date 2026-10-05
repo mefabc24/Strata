@@ -110,7 +110,11 @@ internal class DebugStatsOverlay(
         eventMonitorCell.padTop(if (eventMonitor && (performance || worldStats)) 8f else 0f)
         root.invalidateHierarchy()
 
-        val average = performanceState.update(performance, delta)
+        val average = performanceState.update(
+            performance,
+            delta,
+            performanceSettings.overlayRefreshIntervalSeconds
+        )
         if (average != null) {
             val summary = performanceSettings.history.summary(performanceSettings.historyMetric)
             performanceRows.show(
@@ -283,20 +287,21 @@ data class DebugWorldStatsSnapshot(
     }
 }
 
-class DebugPerformanceOverlayState(private val refreshInterval: Float = 0.25f) {
+class DebugPerformanceOverlayState {
     var visible: Boolean = false
         private set
     private var elapsed = 0f
     private var accumulatedFrameMs = 0.0
     private var sampledFrames = 0
 
-    init {
-        require(refreshInterval.isFinite() && refreshInterval > 0f) {
+    fun update(
+        enabled: Boolean,
+        delta: Float,
+        refreshIntervalSeconds: Float = 0.25f
+    ): Double? {
+        require(refreshIntervalSeconds.isFinite() && refreshIntervalSeconds > 0f) {
             "Refresh interval must be finite and greater than zero."
         }
-    }
-
-    fun update(enabled: Boolean, delta: Float): Double? {
         if (!enabled) {
             visible = false
             reset()
@@ -310,7 +315,7 @@ class DebugPerformanceOverlayState(private val refreshInterval: Float = 0.25f) {
         elapsed += delta
         accumulatedFrameMs += delta * 1000.0
         sampledFrames++
-        if (!becameVisible && elapsed < refreshInterval) return null
+        if (!becameVisible && elapsed < refreshIntervalSeconds) return null
         return (accumulatedFrameMs / sampledFrames).also { reset() }
     }
 

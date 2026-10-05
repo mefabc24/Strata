@@ -65,6 +65,7 @@ internal object DebugVisualConfigurationBindings {
     private val bindings = listOf(
         binding("filter", DebugVisualCategory.GENERAL, { it.visuals.filter }, { s, v -> s.visuals.filter = v }),
         binding("performance.overlay", DebugVisualCategory.GENERAL, { it.operations.performance.overlayEnabled }, { s, v -> s.operations.performance.overlayEnabled = v }),
+        binding("performance.overlayInterval", DebugVisualCategory.GENERAL, { it.operations.performance.overlayRefreshIntervalSeconds }, { s, v -> s.operations.performance.overlayRefreshIntervalSeconds = v }),
         binding("grid.enabled", DebugVisualCategory.GRID, { it.visuals.grid.enabled }, { s, v -> s.visuals.grid.enabled = v }),
         binding("grid.layer", DebugVisualCategory.GRID, { it.visuals.grid.renderLayer }, { s, v -> s.visuals.grid.renderLayer = v }),
         binding("grid.extent", DebugVisualCategory.GRID, { it.visuals.grid.extent }, { s, v -> s.visuals.grid.extent = v }),
