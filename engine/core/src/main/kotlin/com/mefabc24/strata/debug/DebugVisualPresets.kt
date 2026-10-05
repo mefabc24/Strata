@@ -27,7 +27,7 @@ class DebugVisualConfiguration internal constructor(
 )
 
 internal object DebugVisualConfigurationBindings {
-    internal const val VERSION = 4
+    internal const val VERSION = 5
 
     private interface Binding {
         val key: String
@@ -128,6 +128,7 @@ internal object DebugVisualConfigurationBindings {
         binding("entities.waypointColor", DebugVisualCategory.ENTITIES, { it.visuals.entities.nextWaypointColor }, { s, v -> s.visuals.entities.nextWaypointColor = v }, colorCopy),
         binding("entities.offsetColor", DebugVisualCategory.ENTITIES, { it.visuals.entities.positionTileOffsetColor }, { s, v -> s.visuals.entities.positionTileOffsetColor = v }, colorCopy),
         binding("entities.boundsColor", DebugVisualCategory.ENTITIES, { it.visuals.entities.spriteBoundsColor }, { s, v -> s.visuals.entities.spriteBoundsColor = v }, colorCopy),
+        binding("picking.enabled", DebugVisualCategory.PICKING, { it.visuals.picking.enabled }, { s, v -> s.visuals.picking.enabled = v }),
         binding("picking.bounds", DebugVisualCategory.PICKING, { it.visuals.picking.showSpriteBounds }, { s, v -> s.visuals.picking.showSpriteBounds = v }),
         binding("picking.cursor", DebugVisualCategory.PICKING, { it.visuals.picking.showCursorHit }, { s, v -> s.visuals.picking.showCursorHit = v }),
         binding("render.mode", DebugVisualCategory.RENDER_ORDER, { it.visuals.renderOrder.mode }, { s, v -> s.visuals.renderOrder.mode = v }),
@@ -178,10 +179,13 @@ internal object DebugVisualConfigurationBindings {
             "Unsupported debug visual configuration version ${configuration.version}."
         }
 
-        val values = if (configuration.version < 4) {
+        var values = if (configuration.version < 4) {
             migrateLegacyFillValues(configuration.values)
         } else {
             configuration.values
+        }
+        if (configuration.version < 5) {
+            values = migratePickingActivation(values)
         }
 
         bindings.forEach { binding ->
@@ -239,6 +243,14 @@ internal object DebugVisualConfigurationBindings {
         )
 
         return migrated
+    }
+
+    private fun migratePickingActivation(values: Map<String, Any?>): Map<String, Any?> {
+        if (values.containsKey("picking.enabled")) return values
+        return values + (
+            "picking.enabled" to
+                (values["picking.bounds"] == true || values["picking.cursor"] == true)
+            )
     }
 
     fun reset(settings: DebugSettings, category: DebugVisualCategory? = null) {

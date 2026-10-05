@@ -736,7 +736,9 @@ internal class IsoAdvancedDebugRenderer(
             shapes.color = PICKING_LOCKED_OUTLINE
             drawTileOutline(target.position)
         }
-        if (!settings.visuals.picking.showSpriteBounds) return
+        if (!settings.visuals.picking.hasActiveVisuals ||
+            !settings.visuals.picking.showSpriteBounds
+        ) return
         targets.hover?.takeUnless { it is PickedTarget.Tile }?.bounds?.let { bounds ->
             shapes.color = PICKING_HOVER_OUTLINE
             drawRect(bounds)
@@ -890,7 +892,9 @@ internal class IsoAdvancedDebugRenderer(
             }
         }
 
-        if (settings.visuals.picking.showCursorHit) {
+        if (settings.visuals.picking.hasActiveVisuals &&
+            settings.visuals.picking.showCursorHit
+        ) {
                 state.cursorWorld?.let { cursor ->
                     shapes.color = Color.YELLOW
                     val radius = 5f * camera.zoom

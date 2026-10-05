@@ -11,8 +11,11 @@ enum class TerrainHeatmapSteps(val colorLevelCount: Int?) {
     STEPS_8(8)
 }
 
-/** Sprite-bound and cursor-hit diagnostics for world picking. */
+/** Activation and visual options for world-picking diagnostics. */
 class DebugPickingSettings {
+    /** Whether Picking diagnostics collect state and render configured visuals. */
+    var enabled: Boolean = false
+
     var showSpriteBounds: Boolean = false
     var showCursorHit: Boolean = false
 }
@@ -123,8 +126,11 @@ class DebugCameraSettings {
     var showClampBounds: Boolean = false
 }
 
-internal val DebugPickingSettings.hasActiveVisuals: Boolean
+internal val DebugPickingSettings.hasConfiguredVisuals: Boolean
     get() = showSpriteBounds || showCursorHit
+
+internal val DebugPickingSettings.hasActiveVisuals: Boolean
+    get() = enabled && hasConfiguredVisuals
 
 internal val DebugRenderOrderSettings.hasActiveVisuals: Boolean
     get() = showLabels || showPriorityLabels || colorByPriority ||

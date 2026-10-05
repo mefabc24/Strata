@@ -67,6 +67,7 @@ internal object DebugPresets {
                 settings.visuals.entities.showSpriteBounds = true
                 settings.visuals.entities.currentTileFillColor = Color(0.3f, 1f, 0.3f, 0.16f)
                 settings.visuals.entities.showCurrentTileFill = true
+                settings.visuals.picking.enabled = true
                 settings.visuals.picking.showSpriteBounds = true
                 settings.visuals.picking.showCursorHit = true
                 settings.visuals.renderOrder.showLabels = true
@@ -109,6 +110,7 @@ internal object DebugPresets {
         settings.visuals.entities.showMovementSpeed = false
         settings.visuals.entities.showPositionTileOffset = false
         settings.visuals.entities.showCurrentTileFill = false
+        settings.visuals.picking.enabled = false
         settings.visuals.picking.showSpriteBounds = false
         settings.visuals.picking.showCursorHit = false
         settings.visuals.renderOrder.showLabels = false

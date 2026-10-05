@@ -418,7 +418,9 @@ internal class DebugRuntime(
             val screenY = Gdx.input.y.toFloat()
             val picking = view.pickingDebugSnapshot(screenX, screenY)
             settings.worldState.hoveredTarget = picking.picked
-            settings.worldState.cursorWorld = if (settings.visuals.picking.showCursorHit) {
+            settings.worldState.cursorWorld = if (
+                pickingVisuals && settings.visuals.picking.showCursorHit
+            ) {
                 view.screenToWorld(screenX, screenY)
             } else {
                 null

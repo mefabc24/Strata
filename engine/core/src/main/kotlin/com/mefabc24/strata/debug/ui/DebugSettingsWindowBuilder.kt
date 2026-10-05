@@ -266,7 +266,12 @@ internal class DebugSettingsWindowBuilder(
         sceneElements.settingsExpander(
                 "Entities"
             ) { buildEntitySettings() }
-        diagnostics.settingsExpander("Picking") {
+        diagnostics.featureExpander(
+            "Picking",
+            { settings.visuals.picking.enabled },
+            { settings.visuals.picking.enabled = it },
+            enabledLabel = "Picking enabled"
+        ) {
             toggleRows(
                 toggle("Sprite bounds", { settings.visuals.picking.showSpriteBounds }) { settings.visuals.picking.showSpriteBounds = it },
                 toggle("Cursor marker", { settings.visuals.picking.showCursorHit }) { settings.visuals.picking.showCursorHit = it }
