@@ -22,6 +22,7 @@ override val strata = Strata().configure {
 
         audio { /* initial volumes */ }
         debug { /* diagnostic settings */ }
+        lighting { /* live ambient and point lighting */ }
         camera { /* camera snapshot */ }
         rendering { /* rendering snapshot */ }
         placement { /* optional controller snapshot */ }
@@ -67,23 +68,48 @@ All volume values must be within `0f..1f`. See [Audio](Audio.md).
 
 ## Debug
 
-`debug {}` configures four live groups: `performance`, `grid`, `objects`, and `entities`. All remain runtime mutable through `strata.debug`. They default to disabled.
+`debug {}` configures five responsibility groups: `ui`, `visuals`, `tools`, `operations`, and `presets`. Debug settings remain live through `strata.debug`; there is no global Debug enable switch.
 
 ```kotlin
 debug {
-    performance {
-        enabled = false
-        intervalSeconds = 2f
+    ui {
+        toolRail { enabled = true }
+        settingsWindow { enabled = true }
     }
-    grid {
-        enabled = false
-        extent = DebugGridExtent.WORLD
-        renderLayer = DebugGridRenderLayer.BELOW_OBJECTS
+    visuals {
+        grid { enabled = true }
+        entities { showPath = true }
+    }
+    operations {
+        performance { terminalLoggingIntervalSeconds = 2f }
+    }
+    presets {
+        storage("my-game.debug")
     }
 }
 ```
 
-See [Debugging](Debugging.md) for every setting.
+The Debug Window and Tool Rail are configured independently for availability and startup visibility. Hiding or disabling their UI does not disable visual or operational Debug features. When preset storage contains a saved DEFAULT, its visual configuration may be applied after the game-defined block; see [Debugging](Debugging.md) for the precise startup lifecycle and defaults.
+
+## Lighting
+
+`lighting {}` operates on the scene's live `Lighting` object. Lighting is disabled by default. Ambient and point-light settings can also change later through `strata.lighting`.
+
+```kotlin
+lighting {
+    enabled = true
+    ambientColor = Color.WHITE
+    ambientIntensity = 0.45f
+    addPointLight(
+        position = EntityPosition(8.5f, 6.5f),
+        radius = 5f,
+        intensity = 1.2f,
+        color = Color(1f, 0.75f, 0.4f, 1f)
+    )
+}
+```
+
+Point-light positions and radii use logical tile-space units. The scene supports up to `Lighting.MAX_POINT_LIGHTS` (16) lights. See [Rendering](Rendering.md).
 
 ## Camera
 
@@ -123,11 +149,17 @@ Including `placement {}` creates a scene-owned `PlacementController` for every r
 
 ```kotlin
 placement {
-    showOutsideWorldPreviews = false
-    previewStyle = PlacementPreviewStyle(
-        validColor = Color(0.35f, 0.75f, 0.3f, 0.7f),
-        invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
-    )
+    preview {
+        objects {
+            boundsPolicy = PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
+            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+        }
+        entities {
+            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+        }
+    }
     validator { placeable, position ->
         canBuildHere(placeable, position)
     }
@@ -164,5 +196,6 @@ Binding lambdas run later, so the Sandbox uses provider lambdas such as `{ tools
 | Camera/rendering/controls | Copied after the scene block | View/controller state can change, not the original settings snapshot |
 | Placement settings | Copied; controller created on attachment | `enabled`, `selectedFactory`, previews, and placement calls |
 | Audio | Live object | Volumes and playback remain mutable |
-| Debug | Live objects passed to debug renderers | All settings remain mutable |
+| Debug | Live settings shared by Debug renderers and runtime | Visual, tool, and operational settings are mutable; UI construction/startup fields apply during scene creation |
+| Lighting | Live scene object | Ambient settings and point lights remain mutable |
 | World | Attached once | Tiles, overlays, objects, and entities remain mutable |

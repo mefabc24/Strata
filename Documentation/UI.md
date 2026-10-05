@@ -39,7 +39,7 @@ column(padding = StrataInsets.all(12f)) {
     }
     expander("Advanced", expanded = false) {
         toggleButton("Show grid") { enabled ->
-            strata.debug.grid.enabled = enabled
+            strata.debug.visuals.grid.enabled = enabled
         }
     }
 }
@@ -121,6 +121,6 @@ Game code may call `group.select(value)` directly. Callbacks fire only on subseq
 
 ## Sandbox boundary
 
-`SandboxUi` is application code. It uses engine primitives to build tool tabs, catalogs from terrain/object registry entries, and live debug controls. Its concrete toolbar, modes, labels, and sync policy are examples, not reusable Strata API.
+The built-in Debug Window and Tool Rail use the same engine UI primitives, but their internal builders, layouts, and synchronization classes are not public game UI API.
 
 See [Input and Picking](Input-and-Picking.md) and [Debugging](Debugging.md).
