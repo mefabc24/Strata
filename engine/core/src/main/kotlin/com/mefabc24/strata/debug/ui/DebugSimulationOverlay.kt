@@ -3,7 +3,6 @@ package com.mefabc24.strata.debug.ui
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.simulation.SimulationController
 import com.mefabc24.strata.ui.StrataButton
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -42,7 +41,7 @@ internal class DebugSimulationOverlay(
         state.step()
     }
     private val resetSpeedButton = StrataButton(
-        "Reset speed",
+        "Reset",
         ui.skin,
         "debug-action-card"
     ) {
@@ -71,26 +70,20 @@ internal class DebugSimulationOverlay(
             ui.theme.selectableButtonStyle
         )
     }
-    private val timingRows = DebugDiagnosticTable(
-        skin = ui.skin,
-        wrapValues = false,
-        keyMinimumWidth = 90f,
-        valueMinimumWidth = 72f
-    ).apply {
-        background = ui.skin.get("debug-setting-row", StrataPanelStyle::class.java).background
-        pad(6f)
-        show(state.timingRows(0f, 0f))
-    }
+    private val realDeltaLabel = Label("", ui.skin)
+    private val simulationDeltaLabel = Label("", ui.skin)
+    private val scaleLabel = Label("", ui.skin)
     private val root = Table().apply {
         setFillParent(true)
         bottom().pad(16f)
         touchable = Touchable.childrenOnly
         isVisible = false
-        add(simulationPanel(ui)).fillX()
+        add(simulationRail(ui))
     }
 
     init {
         ui.stage.addActor(root)
+        updateTimingLabels(state.timing(0f, 0f))
         sync()
     }
 
@@ -130,8 +123,8 @@ internal class DebugSimulationOverlay(
 
         if (refreshElapsed < REFRESH_INTERVAL_SECONDS) return
 
-        timingRows.show(
-            state.timingRows(
+        updateTimingLabels(
+            state.timing(
                 realDelta = accumulatedRealDelta / sampledFrames,
                 simulationDelta = accumulatedSimulationDelta / sampledFrames
             )
@@ -143,15 +136,11 @@ internal class DebugSimulationOverlay(
         sampledFrames = 0
     }
 
-    private fun simulationPanel(ui: StrataUi): Table {
+    private fun simulationRail(ui: StrataUi): Table {
         val panelStyle = ui.skin.get(
             requireNotNull(ui.theme.panelStyle),
             StrataPanelStyle::class.java
         )
-        val settingBackground = ui.skin.get(
-            "debug-setting-row",
-            StrataPanelStyle::class.java
-        ).background
         val separatorStyle = ui.skin.get(
             requireNotNull(ui.theme.separatorStyle),
             StrataSeparatorStyle::class.java
@@ -159,55 +148,59 @@ internal class DebugSimulationOverlay(
 
         return Table(ui.skin).apply {
             background = panelStyle.background
-            pad(
-                panelStyle.padTop,
-                panelStyle.padLeft,
-                panelStyle.padBottom,
-                panelStyle.padRight
-            )
+            pad(4f, 6f, 4f, 6f)
             touchable = Touchable.childrenOnly
 
-            add(Label("SIMULATION", ui.skin, "title").apply {
-                setAlignment(Align.left)
+            add(Label("Simulation", ui.skin, "title").apply {
                 touchable = Touchable.disabled
-            }).growX().fillX().left().padBottom(6f)
-            row()
-            add(StrataSeparator(StrataSeparatorOrientation.HORIZONTAL, separatorStyle))
-                .growX().height(separatorStyle.thickness).padBottom(6f)
-            row()
+            }).padLeft(2f).padRight(2f)
+            verticalSeparator(separatorStyle)
 
-            add(Table(ui.skin).apply {
-                background = settingBackground
-                pad(2f)
-                add(pauseButton).growX().minWidth(116f).height(CONTROL_HEIGHT).padRight(2f)
-                add(stepButton).minWidth(76f).height(CONTROL_HEIGHT)
-            }).growX().fillX()
-            row()
+            add(pauseButton).width(78f).height(CONTROL_HEIGHT).padRight(2f)
+            add(stepButton).width(54f).height(CONTROL_HEIGHT)
+            verticalSeparator(separatorStyle)
 
-            add(Label("SPEED", ui.skin, "title").apply {
-                setAlignment(Align.left)
-                touchable = Touchable.disabled
-            }).growX().fillX().left().padTop(8f).padBottom(4f)
-            row()
-            add(Table(ui.skin).apply {
-                background = settingBackground
-                pad(2f)
-                DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
-                    add(speedButtons.getValue(scale))
-                        .minWidth(52f)
-                        .height(CONTROL_HEIGHT)
-                        .padRight(if (index == speedButtons.size - 1) 0f else 2f)
-                }
-            }).growX().fillX()
-            row()
-            add(resetSpeedButton).growX().fillX().height(CONTROL_HEIGHT).padTop(2f)
-            row()
+            DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
+                add(speedButtons.getValue(scale))
+                    .width(46f)
+                    .height(CONTROL_HEIGHT)
+                    .padRight(if (index == speedButtons.size - 1) 0f else 2f)
+            }
+            verticalSeparator(separatorStyle)
 
-            add(StrataSeparator(StrataSeparatorOrientation.HORIZONTAL, separatorStyle))
-                .growX().height(separatorStyle.thickness).padTop(8f).padBottom(6f)
-            row()
-            add(timingRows).growX().fillX().left()
+            add(resetSpeedButton).width(56f).height(CONTROL_HEIGHT)
+            verticalSeparator(separatorStyle)
+
+            timingValue("Real", realDeltaLabel, ui)
+            timingValue("Sim", simulationDeltaLabel, ui, padLeft = 8f)
+            timingValue("Scale", scaleLabel, ui, padLeft = 8f)
         }
+    }
+
+    private fun Table.verticalSeparator(style: StrataSeparatorStyle) {
+        add(StrataSeparator(StrataSeparatorOrientation.VERTICAL, style))
+            .width(style.thickness)
+            .height(24f)
+            .padLeft(6f)
+            .padRight(6f)
+    }
+
+    private fun Table.timingValue(
+        key: String,
+        value: Label,
+        ui: StrataUi,
+        padLeft: Float = 0f
+    ) {
+        add(Label(key, ui.skin, "debug-secondary").apply {
+            touchable = Touchable.disabled
+        }).padLeft(padLeft).padRight(3f)
+        add(value.apply { touchable = Touchable.disabled })
+    }
+
+    private fun updateTimingLabels(timing: DebugSimulationTiming) {
+        realDeltaLabel.setText(timing.real)
+        simulationDeltaLabel.setText(timing.simulation)
+        scaleLabel.setText(timing.scale)
     }
 
     private fun speedLabel(scale: Float) = when (scale) {
@@ -234,13 +227,13 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
     val selectedTimeScale get() = TIME_SCALES.firstOrNull { it == simulation.timeScale }
 
     /** Formats averaged simulation timing values for the debug overlay. */
-    fun timingRows(
+    fun timing(
         realDelta: Float,
         simulationDelta: Float
-    ): List<DebugDiagnosticRow> = listOf(
-        DebugDiagnosticRow("Real", "${formatMs(realDelta)} ms"),
-        DebugDiagnosticRow("Simulation", "${formatMs(simulationDelta)} ms"),
-        DebugDiagnosticRow("Scale", "${formatScale(simulation.timeScale)}x")
+    ) = DebugSimulationTiming(
+        real = "${formatMs(realDelta)} ms",
+        simulation = "${formatMs(simulationDelta)} ms",
+        scale = "${formatScale(simulation.timeScale)}x"
     )
 
     fun setVisible(visible: Boolean) {
@@ -275,3 +268,9 @@ class DebugSimulationOverlayState(private val simulation: SimulationController) 
         val TIME_SCALES = listOf(0.25f, 0.5f, 1f, 2f, 4f)
     }
 }
+
+data class DebugSimulationTiming(
+    val real: String,
+    val simulation: String,
+    val scale: String
+)
