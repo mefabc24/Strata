@@ -27,9 +27,9 @@ The screen and world lifecycle is covered in [Screens and multiple worlds](Scree
 - [Visuals and Animation](Visuals-and-Animation.md) — static, animated, stateful, and directional visuals
 - [Input and Picking](Input-and-Picking.md) — bindings, event consumption, grid interaction, and pick modes
 - [Camera](Camera.md) — movement, dragging, zoom, bounds, viewports, and resize behavior
-- [Rendering](Rendering.md) — tile geometry, anchoring, scaling, layers, and ordering
+- [Rendering](Rendering.md) — tile geometry, anchoring, priorities, ordering, and lighting
 - [Audio](Audio.md) — sound registration, playback, categories, music, and volume
-- [Debugging](Debugging.md) — performance, grid, object, and entity diagnostics
+- [Debugging](Debugging.md) — Debug UI, presets, diagnostics, tools, and operational services
 - [UI](UI.md) — UI lifecycle, themes, layouts, controls, selection, and input priority
 
 ## Apply and diagnose

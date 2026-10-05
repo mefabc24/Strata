@@ -88,7 +88,7 @@ strata.simulation.resume()
 
 `EngineSettings.backgroundColor` is captured when `StrataEngine` is constructed. Scene camera, rendering, controls, and placement settings are setup-only snapshots copied into each registered world view. Registrations are setup-only.
 
-Audio volumes/category volumes, `DebugSettings`, and `strata.simulation` are runtime mutable. Once attached, `PlacementController.enabled` and `selectedFactory`, `IsoWorldView.worldInputEnabled`, and the exposed `CameraController` runtime values can also change. The `World` is deliberately mutable at runtime.
+Audio volumes/category volumes, `DebugSettings`, `strata.lighting`, and `strata.simulation` are runtime mutable. Debug UI construction and startup visibility are established during scene creation, while visual, tool, and operational settings remain live. Once attached, `PlacementController.enabled` and `selectedFactory`, `IsoWorldView.worldInputEnabled`, and the exposed `CameraController` runtime values can also change. The `World` is deliberately mutable at runtime.
 
 Accessors such as `strata.scene`, `strata.world`, `strata.view`, and `strata.placement` require an active world. `strata.ui` refers to the compatibility UI created by `createUi`; screen UI is lifecycle-managed through `strata.screens`. Calling runtime accessors from the scene configuration lambda fails because runtime operations are unavailable during setup.
 
@@ -98,7 +98,7 @@ The current implementation has several concrete boundaries to design around:
 
 - one `Strata` runtime defines one shared scene with many registered worlds and screens, one displayed world, and a visible screen stack;
 - content registration closes during scene creation, and the built-in scene path loads queued assets synchronously before `onReady()`;
-- pathfinding uses uniform-cost, edge-connected tiles and only the caller's `canEnter` rule;
+- pathfinding defaults to uniform-cost four-way movement but supports eight-way movement, ordered waypoints, and caller-supplied directed edge costs;
 - entities have continuous positions but no footprint, collision, occupancy, or generic AI system;
 - terrain overlay layers can be added and edited, but not removed or reordered through public API;
 - semantic states, gameplay tools, drag-building policy, and controller logic shown in Sandbox remain game-owned;
