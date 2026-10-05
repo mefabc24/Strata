@@ -92,6 +92,21 @@ class DebugPickingSelectionTest {
     }
 
     @Test
+    fun `enabled picking retains selection without configured child visuals`() {
+        val world = World(1, 1) { _, _ -> TestTile }
+        val placed = requireNotNull(world.place(TestObject(), 0, 0))
+        val settings = DebugPickingSettings().apply { enabled = true }
+        val selection = DebugPickingSelection()
+        selection.selectFromClick(PickedTarget.Object(placed, Rectangle()))
+
+        selection.syncEnabled(settings.enabled)
+
+        assertFalse(settings.hasConfiguredVisuals)
+        assertFalse(settings.hasActiveVisuals)
+        assertSame(placed, assertIs<PickedTarget.Object>(selection.lockedTarget).placedObject)
+    }
+
+    @Test
     fun `refresh keeps a moving entity locked while updating its bounds`() {
         val world = World(1, 1) { _, _ -> TestTile }
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
