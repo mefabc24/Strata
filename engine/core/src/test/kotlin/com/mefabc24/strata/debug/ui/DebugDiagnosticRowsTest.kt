@@ -26,6 +26,21 @@ class DebugDiagnosticRowsTest {
     }
 
     @Test
+    fun `empty tile inspection values use the diagnostic placeholder`() {
+        val rows = tileInspectionRows(
+            position = TilePosition(2, 3),
+            terrain = null,
+            overlays = emptyList<Any>(),
+            objectName = null,
+            entityNames = emptyList()
+        )
+
+        assertEquals("-", rows.first { it.key == "Overlays" }.value)
+        assertEquals("-", rows.first { it.key == "Object" }.value)
+        assertEquals("-", rows.first { it.key == "Entities" }.value)
+    }
+
+    @Test
     fun `placement diagnostics explain the current failure`() {
         val rows = placementDiagnosticRows(
             placementAvailable = true,
