@@ -58,9 +58,36 @@ Strata renders visible terrain first, walking isometric depth rows. For each ter
 
 After the terrain pass, placed objects and entities use an isometric back-to-front plan based on logical spatial bounds. Entities use continuous point-like sort positions; placed objects use their footprint extents. Stable fallback keys make ambiguous relationships deterministic. These ordering helpers are internal and are not a game API.
 
+Object and entity sprite settings expose `renderPriority`, which defaults to `0`. Lower priority groups render before higher groups, even when their spatial relationship would imply the reverse. Spatial ordering remains intact inside one priority group. Use priorities for intentional categories such as ground-hugging road objects; use normal footprint/position sorting within a category.
+
+```kotlin
+register<Road>("road.png", factory = ::Road) {
+    renderPriority = -1
+}
+```
+
 Placement previews render after normal objects and entities, in the order supplied by the placement controller. They use the selected object's active visual and tint it with the valid/invalid `PlacementPreviewStyle` color. Animation frame resolution occurs during the render using scene time, game state, and entity direction.
 
 The debug grid may appear above objects or be followed by a redraw of objects/entities/previews for `BELOW_OBJECTS`. Object/entity diagnostics render after the normal world and grid. UI always renders after the world.
+
+## Lighting
+
+Scene lighting is disabled by default, leaving world colors unchanged. When enabled, ambient light and up to 16 point lights shade world sprites. Configure initial values in `lighting {}` and mutate the same live object through `strata.lighting`:
+
+```kotlin
+strata.lighting.enabled = true
+val torch = strata.lighting.addPointLight(
+    position = EntityPosition(10.5f, 8.5f),
+    radius = 4f,
+    intensity = 1f,
+    color = Color(1f, 0.7f, 0.35f, 1f)
+)
+
+torch.position = movingEntity.position
+torch.enabled = false
+```
+
+Point-light position and radius use logical tile-space units. Radius must be finite and positive; ambient and point intensity must be finite and non-negative. Colors are defensively copied. `remove(light)` and `clearPointLights()` manage the scene-owned list.
 
 ## Authoring implications
 
@@ -69,5 +96,6 @@ The debug grid may appear above objects or be followed by a redraw of objects/en
 - Atlas regions for world visuals must be unrotated and untrimmed.
 - Irregular footprints still use their bounding coordinate span for default object sprite width and anchor calculations.
 - Object visual settings never alter collision/occupancy; entity visuals never create a footprint.
+- Render priority is a strict group override; it should not be used to repair incorrect sprite anchors or footprints.
 
 See [Assets](Assets.md), [Visuals and Animation](Visuals-and-Animation.md), and [Debugging](Debugging.md).

@@ -34,7 +34,7 @@ controls {
 }
 ```
 
-It is often cleaner to keep application bindings in a dedicated file, as the Sandbox does in `sandbox/input/SandboxInputBindings.kt`. Provider lambdas let bindings refer to controllers created later in `onReady()` without touching them during configuration.
+It is often cleaner to keep application bindings in a dedicated file. Provider lambdas let bindings refer to controllers created later in `onReady()` without touching them during configuration.
 
 ## Binding kinds
 

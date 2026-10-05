@@ -86,7 +86,7 @@ Frame paths are ordered exactly as supplied. Every prepared frame must have iden
 
 `frameWidth` and `frameHeight` are pixel dimensions. Both full sheet dimensions must divide evenly by the frame dimensions. Frames are read left-to-right, then top-to-bottom. With no `frameCount`, every cell is used; otherwise the positive count may not exceed the available cells.
 
-Directional sheets require one distinct, non-negative row for every `EntityDirection`. Each row must contain exactly `framesPerDirection` columns when that argument is supplied. See [Visuals and Animation](Visuals-and-Animation.md).
+Directional sheets require distinct, non-negative rows for either the four diagonal base directions or all eight `EntityDirection` values. Each row must contain exactly `framesPerDirection` columns when that argument is supplied. See [Visuals and Animation](Visuals-and-Animation.md).
 
 ### Texture atlases
 

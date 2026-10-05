@@ -10,18 +10,26 @@ Strata separates low-level world mutation from interactive placement:
 
 ```kotlin
 placement {
-    showOutsideWorldPreviews = false
-    previewStyle = PlacementPreviewStyle(
-        validColor = Color(0.35f, 0.75f, 0.3f, 0.7f),
-        invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
-    )
+    preview {
+        objects {
+            enabled = true
+            boundsPolicy = PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
+            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+        }
+        entities {
+            enabled = true
+            validColor = Color(0.35f, 0.75f, 0.3f, 0.7f)
+            invalidColor = Color(1f, 0.25f, 0.25f, 0.7f)
+        }
+    }
     validator { placeable, position ->
         gameRules.allowBuild(placeable, position)
     }
 }
 ```
 
-The block is optional. It snapshots `PlacementSettings`; a controller is created for each registered world. The custom validator supplements geometric `World.canPlace` rules.
+The block is optional. It snapshots `PlacementSettings`; a controller is created for each registered world. Object preview settings configure the placement controller and the Debug Move tool. Entity preview settings configure Debug Spawn and Move previews. Both preview types default to enabled with green valid and red invalid tints. The custom validator supplements geometric `World.canPlace` rules.
 
 ## Select and place
 
@@ -42,9 +50,18 @@ Assigning `selectedFactory` immediately creates a separate preview-only instance
 
 ## Hover previews
 
-The scene calls `PlacementController.update(view.hoveredTile)` every frame. With an enabled controller and selected factory, it creates one preview for the hovered in-world tile. `PlacementPreview.valid` combines world occupancy/bounds with the game validator.
+The scene calls `PlacementController.update(view.hoveredTile)` every frame. With an enabled controller and selected factory, it creates one preview for the hovered logical tile when the configured bounds policy allows it. `PlacementPreview.valid` combines world occupancy/bounds with the game validator.
 
-When `showOutsideWorldPreviews` is `false`, any footprint extending outside the finite world is hidden. When it is `true`, the invalid preview may be drawn outside the world; placement still fails because `World.canPlace` cannot be overridden.
+`PlacementPreviewBoundsPolicy` affects visibility only; final placement still requires every footprint tile to be inside the world:
+
+| Policy | Preview visibility |
+| --- | --- |
+| `ALL_TILES_INSIDE` | Every footprint tile must be in-world; this is the default |
+| `ORIGIN_INSIDE` | The placement origin must be in-world |
+| `ANY_TILE_INSIDE` | At least one footprint tile must be in-world |
+| `ALWAYS` | The preview may be fully outside the world |
+
+Disabling object previews suppresses drawing but does not disable validation or placement.
 
 ## Explicit and drag previews
 
@@ -58,7 +75,7 @@ placement.previewAt(
 )
 ```
 
-`previewAt` enters explicit-preview mode, suppressing hover updates until `clearPreviewPositions()`. Duplicate origins after the first are ignored. Valid earlier previews reserve their occupied tiles in the preview calculation, so later conflicting previews are marked invalid without mutating the world.
+`previewAt` enters explicit-preview mode, suppressing hover updates until `clearPreviewPositions()`. Duplicate origins after the first are ignored. Valid earlier previews reserve their occupied tiles in the preview calculation, so later conflicting previews are marked invalid without mutating the world. `previewDiagnostics` is aligned with the previews that are actually shown; `currentDiagnostic` reports the most recently evaluated origin. `diagnose(...)` exposes the same authoritative checks for game UI.
 
 ```kotlin
 val placed: List<PlacedObject> = placement.placeAt(origins)
@@ -67,7 +84,7 @@ placement.clearPreviewPositions()
 
 Batch placement also ignores duplicate origins, proceeds in order, and is non-transactional: successful earlier placements remain if later positions fail.
 
-The Sandbox's `SandboxBuildDragController` is an example of game-side policy. It chooses a rectangle, calculates footprint-aligned origins, calls `previewAt` during a drag, calls batch `placeAt` on release, and always clears explicit mode. It is not part of the engine API.
+A game-side drag controller can choose a rectangle, calculate footprint-aligned origins, call `previewAt` during a drag, call batch `placeAt` on release, and always clear explicit mode. The built-in Debug Build tool follows the same placement-controller boundary.
 
 ## Input policy
 

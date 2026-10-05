@@ -1,6 +1,6 @@
 # Movement and pathfinding
 
-Strata provides a four-neighbor shortest-path query and route following. The game defines traversability and decides when an entity should move.
+Strata provides four-way and eight-way path queries, optional directed movement costs, ordered multi-waypoint routes, diagnostic searches, and route following. The game defines traversability and decides when an entity should move.
 
 ## Find and follow a path
 
@@ -15,6 +15,7 @@ val entity = world.addEntity(
 val path = world.findPath(
     start = entity.currentTile,
     goal = TilePosition(12, 9),
+    movementMode = PathMovementMode.EIGHT_WAY,
     canEnter = { position ->
         val tile = world.getTile(position) as GameTile
         tile.terrain != TerrainType.WATER &&
@@ -31,9 +32,41 @@ if (path != null) {
 
 ## Path query behavior
 
-`findPath` requires in-world start and goal positions. It uses edge-connected neighbors only, uniform cost `1`, and a Manhattan heuristic. The returned shortest path includes both start and goal. If start equals goal, the result is a one-element list, provided `canEnter` accepts it. No route returns `null`.
+`findPath` requires in-world start and goal positions. `FOUR_WAY` is the default and uses orthogonal transitions with cost `1`. `EIGHT_WAY` also uses diagonals with cost `sqrt(2)` and prevents corner cutting by requiring both adjacent orthogonal tiles to be enterable. The returned shortest path includes both start and goal. If start equals goal, the result is a one-element list, provided `canEnter` accepts it. No route returns `null`.
 
-`canEnter` is called for start and goal and as candidates are explored. Pathfinding does not automatically inspect terrain, objects, entities, slopes, or diagonal movement. Encode every game rule in this predicate. Entity positions and reservations are also game concerns.
+`canEnter` is called for start and goal and as candidates are explored. Pathfinding does not automatically inspect terrain, objects, entities, slopes, or reservations. Encode every game rule in this predicate. Entity positions and reservations are also game concerns.
+
+Supply `movementCost` when traversable edges have different costs:
+
+```kotlin
+val path = world.findPath(
+    start = entity.currentTile,
+    goal = destination,
+    movementMode = PathMovementMode.EIGHT_WAY,
+    canEnter = gameRules::canEnter,
+    movementCost = { from, to -> gameRules.movementCost(from, to) }
+)
+```
+
+Each custom cost is the complete cost of that directed edge, including diagonals, and must be finite and positive. Weighted searches use a zero heuristic so arbitrary positive costs remain optimal.
+
+For a route that must visit several points, pass an ordered list:
+
+```kotlin
+val route = world.findPath(
+    waypoints = listOf(start, checkpoint, destination),
+    movementMode = PathMovementMode.EIGHT_WAY,
+    canEnter = gameRules::canEnter
+)
+```
+
+The segments are joined without duplicating boundary waypoints. An empty waypoint list returns an empty path. A one-item list returns that point when it is in-world and enterable.
+
+## Diagnostic searches
+
+`findPathDiagnostic(...)` runs the same search while returning status, total cost, explored positions, node costs and parents, and bounded rejected-transition details. Use it for developer displays; ordinary gameplay usually needs only `findPath`.
+
+`createPathfindingDiagnosticSearch(...)` creates the resumable form used by the Debug Pathfinding tool. `step()` expands at most one node, `advance(iterations)` expands a bounded number, `runToCompletion()` finishes synchronously, and `reset()` restarts with the original inputs. Each call returns an immutable `PathfindingDiagnosticResult` snapshot.
 
 ## Route following
 
@@ -52,16 +85,7 @@ entity.teleport(EntityPosition(4.5f, 6.5f)) // Relocate and cancel.
 
 ## Direction changes
 
-Movement selects the dominant logical axis:
-
-| Motion | Direction |
-| --- | --- |
-| positive `x` | `SOUTH_EAST` |
-| negative `x` | `NORTH_WEST` |
-| positive `y` | `SOUTH_WEST` |
-| negative `y` | `NORTH_EAST` |
-
-When absolute `x` and `y` deltas tie, the `x` direction wins. After route completion, the last direction remains. `face` can change it while stationary.
+Movement converts the current logical velocity to its projected screen direction and chooses one of eight `EntityDirection` sectors. Pure logical `+x`, `-x`, `+y`, and `-y` motion faces `SOUTH_EAST`, `NORTH_WEST`, `SOUTH_WEST`, and `NORTH_EAST`; mixed-axis motion can face the screen-cardinal `NORTH`, `SOUTH`, `EAST`, or `WEST` directions. After route completion, the last direction remains. `face` can change it while stationary.
 
 ## What game AI owns
 

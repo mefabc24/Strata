@@ -69,7 +69,7 @@ registrations {
 
 The type is the registration key. A factory is optional; supplying it makes the `ObjectEntry` constructible and exposes it through `constructibleEntries`. `entry.create()` validates that the factory returned the registered type. The factory does not place the object.
 
-Static files, file animations, sprite sheets, static/animated atlas regions, and stateful visuals are supported. Per-type `ObjectSpriteSettings` provide `offsetX`, `offsetY`, optional world-unit `width`/`height`, and `scale` (default `1f`). See [Assets](Assets.md) and [Visuals and Animation](Visuals-and-Animation.md).
+Static files, file animations, sprite sheets, static/animated atlas regions, and stateful visuals are supported. Per-type `ObjectSpriteSettings` provide `offsetX`, `offsetY`, optional world-unit `width`/`height`, `scale` (default `1f`), and `renderPriority` (default `0`). Lower priorities render before higher priorities; spatial ordering still applies within a priority group. See [Assets](Assets.md), [Visuals and Animation](Visuals-and-Animation.md), and [Rendering](Rendering.md).
 
 Stateful constructible objects must supply a selection visual because a menu has no runtime `PlacedObject` from which to derive state:
 

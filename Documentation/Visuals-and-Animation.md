@@ -87,7 +87,7 @@ flowchart LR
     D --> F[SpriteFrames<br/>current animation frame]
 ```
 
-For direction alone, use `registerDirectional` and define all four directions:
+For direction alone, use `registerDirectional` and define either the four diagonal base directions or all eight directions:
 
 ```kotlin
 registerDirectional<Guard> {
@@ -98,7 +98,7 @@ registerDirectional<Guard> {
 }
 ```
 
-Each direction may use any common static or animated source.
+Each direction may use any common static or animated source. A four-direction registration is valid for all runtime directions: `NORTH`, `EAST`, `SOUTH`, and `WEST` fall back clockwise to `NORTH_EAST`, `SOUTH_EAST`, `SOUTH_WEST`, and `NORTH_WEST`. Define all eight when the art has screen-cardinal facings.
 
 ## Stateful directional sprite sheets
 
@@ -146,9 +146,11 @@ val DIRECTION_ROWS = mapOf(
 )
 ```
 
-`directionRows` must contain every `EntityDirection`, with distinct non-negative rows. Sheet dimensions must divide by frame dimensions. If `framesPerDirection` is supplied, it must equal the number of columns in each row; it does not truncate a longer row.
+`directionRows` must contain either the four diagonal base directions or all eight `EntityDirection` values, with distinct non-negative rows. Sheet dimensions must divide by frame dimensions. If `framesPerDirection` is supplied, it must equal the number of columns in each row; it does not truncate a longer row.
 
-Within `EntityStatefulVisualBuilder.state`, a state may define one non-directional source, four individual directions, or one directional sheet. These forms cannot be mixed in the same state.
+Within `EntityStatefulVisualBuilder.state`, a state may define one non-directional source, four or eight individual directions, or one directional sheet. These forms cannot be mixed in the same state.
+
+`EntitySpriteSettings.representativeDirection` selects a stable facing for menus and Debug Spawn previews. A stateful registration can similarly call `representativeState(...)`; each defaults to the first suitable registered choice when omitted.
 
 ## Registry access caveat
 
