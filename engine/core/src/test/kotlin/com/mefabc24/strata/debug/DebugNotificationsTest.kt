@@ -27,15 +27,26 @@ class DebugNotificationsTest {
     @Test
     fun `every notification position maps to expected overlay alignment`() {
         val expected = mapOf(
+            DebugNotificationPosition.TOP_LEFT to (
+                    DebugOverlayHorizontal.LEFT to DebugOverlayVertical.TOP
+                    ),
             DebugNotificationPosition.TOP_CENTER to (
                     DebugOverlayHorizontal.CENTER to DebugOverlayVertical.TOP
                     ),
-            DebugNotificationPosition.BOTTOM_RIGHT to (
-                    DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.BOTTOM
-                    ),
             DebugNotificationPosition.BOTTOM_LEFT to (
                     DebugOverlayHorizontal.LEFT to DebugOverlayVertical.BOTTOM
+                    ),
+            DebugNotificationPosition.BOTTOM_CENTER to (
+                    DebugOverlayHorizontal.CENTER to DebugOverlayVertical.BOTTOM
+                    ),
+            DebugNotificationPosition.BOTTOM_RIGHT to (
+                    DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.BOTTOM
                     )
+        )
+
+        assertEquals(
+            DebugNotificationPosition.entries.toSet(),
+            expected.keys
         )
 
         expected.forEach { (position, alignment) ->
