@@ -54,8 +54,7 @@ internal class DebugRuntime(
     terrainFor: (Tile) -> TerrainId
 ) {
     private val eventMonitor = DebugEventMonitor(events).apply {
-        enabled = settings.operations.eventBus.enabled
-        paused = !settings.operations.eventBus.captureEnabled
+        captureEnabled = settings.operations.eventBus.captureEnabled
     }
     private val notificationOverlay = DebugNotificationOverlay(ui, settings.operations.notifications)
     private val inspector = DebugInspector(settings.worldState)
@@ -402,8 +401,7 @@ internal class DebugRuntime(
         spawner.update(view.hoveredGridPosition)
         settings.worldState.spawnPreview = spawner.preview
         settings.worldState.brushPreview = brushPreview(world, view.hoveredGridPosition)
-        eventMonitor.enabled = settings.operations.eventBus.enabled
-        eventMonitor.paused = !settings.operations.eventBus.captureEnabled
+        eventMonitor.captureEnabled = settings.operations.eventBus.captureEnabled
         settings.operations.notifications.update(delta)
         notificationOverlay.sync()
 

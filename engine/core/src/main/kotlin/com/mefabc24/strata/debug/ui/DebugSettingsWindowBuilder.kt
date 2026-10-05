@@ -228,8 +228,8 @@ internal class DebugSettingsWindowBuilder(
         }
         diagnostics.featureExpander(
             "Event Bus Monitor",
-            { settings.operations.eventBus.enabled },
-            { settings.operations.eventBus.enabled = it },
+            { settings.operations.eventBus.visible },
+            { settings.operations.eventBus.visible = it },
             enabledLabel = "Monitor visible"
         ) {
             toggleRows(

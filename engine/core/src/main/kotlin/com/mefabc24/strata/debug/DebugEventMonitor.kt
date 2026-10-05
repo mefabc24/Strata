@@ -23,8 +23,8 @@ class DebugEventMonitor(
     private var nextSequence = 1L
     private val subscription: EventSubscription = eventBus.observe(::capture)
 
-    var enabled: Boolean = false
-    var paused: Boolean = false
+    /** Whether published events are appended to [records]. */
+    var captureEnabled: Boolean = false
 
     /** Captured events in oldest-to-newest order. */
     val records: List<DebugEventRecord>
@@ -39,7 +39,7 @@ class DebugEventMonitor(
     }
 
     private fun capture(event: Any) {
-        if (!enabled || paused) return
+        if (!captureEnabled) return
         if (history.size == capacity) history.removeFirst()
         history.addLast(
             DebugEventRecord(

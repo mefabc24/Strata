@@ -213,9 +213,14 @@ class DebugPathfindingSettings : DebugFeatureSettings() {
         }
 }
 
-/** Activation, capture, and presentation options for Event Bus monitoring. */
-class DebugEventMonitorSettings : DebugFeatureSettings() {
-    var captureEnabled: Boolean = true
+/** Visibility, capture, and presentation options for Event Bus monitoring. */
+class DebugEventMonitorSettings {
+    /** Whether the Event Bus Monitor panel is visible. */
+    var visible: Boolean = false
+
+    /** Whether published events are appended to the monitor history. */
+    var captureEnabled: Boolean = false
+
     var maximumVisibleRecords: Int = 8
         set(value) {
             require(value in 1..25) {

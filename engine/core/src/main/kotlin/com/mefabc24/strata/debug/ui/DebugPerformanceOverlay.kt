@@ -94,7 +94,7 @@ internal class DebugStatsOverlay(
     fun update(delta: Float) {
         val performance = performanceEnabled()
         val worldStats = worldStatsEnabled()
-        val eventMonitor = eventSettings.enabled
+        val eventMonitor = eventSettings.visible
         state.sync(performance, worldStats, eventMonitor)
         root.isVisible = state.visible
         performancePanel.isVisible = state.performanceVisible
