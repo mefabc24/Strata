@@ -46,7 +46,10 @@ class DebugConfigurationDslTest {
             }
             operations {
                 performance { terminalLoggingIntervalSeconds = 2f }
-                eventBus { enabled = true }
+                eventBus {
+                    visible = true
+                    captureEnabled = true
+                }
                 notifications { position = DebugNotificationPosition.BOTTOM_RIGHT }
                 disableCameraRestrictions = true
             }
@@ -71,7 +74,8 @@ class DebugConfigurationDslTest {
         assertSame(settings.tools.paint, configuredPaint)
         assertEquals(PathMovementMode.EIGHT_WAY, settings.tools.pathfinding.movementMode)
         assertEquals(2f, settings.operations.performance.terminalLoggingIntervalSeconds)
-        assertTrue(settings.operations.eventBus.enabled)
+        assertTrue(settings.operations.eventBus.visible)
+        assertTrue(settings.operations.eventBus.captureEnabled)
         assertEquals(
             DebugNotificationPosition.BOTTOM_RIGHT,
             settings.operations.notifications.position
@@ -90,13 +94,13 @@ class DebugConfigurationDslTest {
             }
             visuals { objects { showSpriteBounds = true } }
             tools { pathfinding { enabled = true } }
-            operations { eventBus { enabled = true } }
+            operations { eventBus { visible = true } }
         }
 
         assertFalse(settings.ui.toolRail.enabled)
         assertFalse(settings.ui.settingsWindow.enabled)
         assertTrue(settings.visuals.objects.showSpriteBounds)
         assertTrue(settings.tools.pathfinding.enabled)
-        assertTrue(settings.operations.eventBus.enabled)
+        assertTrue(settings.operations.eventBus.visible)
     }
 }

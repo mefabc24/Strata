@@ -76,7 +76,8 @@ class DebugSettingsTest {
         assertFalse(settings.visuals.culling.hasActiveVisuals)
         assertFalse(settings.visuals.camera.hasActiveVisuals)
         assertFalse(settings.operations.worldStats.enabled)
-        assertFalse(settings.operations.eventBus.enabled)
+        assertFalse(settings.operations.eventBus.visible)
+        assertFalse(settings.operations.eventBus.captureEnabled)
         assertFalse(settings.operations.disableCameraRestrictions)
         assertTrue(settings.tools.inspect.showTile)
         assertTrue(settings.tools.inspect.showObjectFootprint)
@@ -309,7 +310,7 @@ class DebugSettingsTest {
         assertTrue(settings.visuals.culling.hasActiveVisuals)
         assertTrue(settings.visuals.camera.hasActiveVisuals)
         assertTrue(settings.operations.worldStats.enabled)
-        assertFalse(settings.operations.eventBus.enabled)
+        assertFalse(settings.operations.eventBus.visible)
         assertTrue(settings.operations.notifications.enabled)
         assertFalse(settings.operations.disableCameraRestrictions)
         assertTrue(settings.visuals.grid.showBackground)
@@ -369,7 +370,7 @@ class DebugSettingsTest {
         assertFalse(settings.visuals.culling.hasActiveVisuals)
         assertFalse(settings.visuals.camera.hasActiveVisuals)
         assertFalse(settings.operations.worldStats.enabled)
-        assertFalse(settings.operations.eventBus.enabled)
+        assertFalse(settings.operations.eventBus.visible)
         assertTrue(settings.operations.notifications.enabled)
         assertFalse(settings.operations.disableCameraRestrictions)
         assertTrue(settings.tools.pathfinding.enabled)
@@ -406,7 +407,7 @@ class DebugSettingsTest {
     fun `every preset preserves operational switches`() {
         DebugPreset.entries.forEach { preset ->
             val settings = DebugSettings().apply {
-                operations.eventBus.enabled = true
+                operations.eventBus.visible = true
                 operations.eventBus.captureEnabled = false
                 operations.notifications.enabled = false
                 operations.disableCameraRestrictions = true
@@ -414,7 +415,7 @@ class DebugSettingsTest {
 
             settings.applyPreset(preset)
 
-            assertTrue(settings.operations.eventBus.enabled, preset.name)
+            assertTrue(settings.operations.eventBus.visible, preset.name)
             assertFalse(settings.operations.eventBus.captureEnabled, preset.name)
             assertFalse(settings.operations.notifications.enabled, preset.name)
             assertTrue(settings.operations.disableCameraRestrictions, preset.name)
