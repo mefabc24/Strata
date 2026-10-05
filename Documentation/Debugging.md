@@ -43,7 +43,10 @@ debug {
 
     operations {
         performance { terminalLoggingIntervalSeconds = 2f }
-        eventBus { enabled = true }
+        eventBus {
+            visible = true
+            captureEnabled = true
+        }
     }
 
     presets {
@@ -97,7 +100,7 @@ strata.debug.applyDefaultVisualConfiguration()
 
 `saveDefaultVisualConfiguration()` captures the current visual configuration, updates the in-memory DEFAULT, and persists it when storage is configured. Without storage it still updates the in-memory DEFAULT for the current run.
 
-DEFAULT captures visual presentation, including the performance overlay, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording, simulation runtime state, Event Bus activation/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
+DEFAULT captures visual presentation, including the performance overlay and its refresh interval, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording, simulation runtime state, Event Bus visibility/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
 
 The old `defaultPresetStorage(...)` helper is not part of the current API. Use `presets { storage(...) }`.
 
@@ -129,6 +132,7 @@ Built-in presets reset the preset-managed visual flags before applying their sel
 ```kotlin
 strata.debug.operations.performance.apply {
     overlayEnabled = true
+    overlayRefreshIntervalSeconds = 0.25f
     terminalLoggingEnabled = true
     terminalLoggingIntervalSeconds = 2f
     historyRecording = true
@@ -137,7 +141,7 @@ strata.debug.operations.performance.apply {
 }
 ```
 
-The overlay, terminal logger, and history recorder are independent. All are disabled by default. The terminal interval defaults to `2f` seconds and the history capacity to 240 samples. Changing `terminalLoggingEnabled` resets the current terminal sample window.
+The overlay, terminal logger, and history recorder are independent. All are disabled by default. The overlay refresh interval defaults to `0.25f` seconds, the terminal interval to `2f` seconds, and the history capacity to 240 samples. Both intervals must be finite and greater than zero. Changing the overlay interval takes effect during the current refresh window without changing frame-statistics collection, history capture, or terminal logging.
 
 Terminal output records completed-world-render metrics and periodically writes a `StrataPerf` libGDX log entry. It reports frame time and FPS, world CPU render time, static and dynamic render-plan work, terrain/object/entity drawn and checked counts, previews, and draw calls. The most recent raw `RenderStats` is readable from `strata.view.renderStats`.
 
@@ -171,7 +175,9 @@ strata.debug.visuals.apply {
 }
 ```
 
-Visual groups with several independent rows do not have generic master switches. In particular, `objects.enabled` and `entities.enabled` do not exist. Enable the object or entity diagnostics you need through their individual `show...` properties. The same granular rule applies to world information, picking, render-order, culling, and camera diagnostics.
+Most visual groups with several independent rows do not have generic master switches. In particular, `objects.enabled` and `entities.enabled` do not exist. Enable the object or entity diagnostics you need through their individual `show...` properties. The same granular rule applies to world information, render-order, culling, and camera diagnostics.
+
+Picking has an explicit `enabled` state because its diagnostics collect hover and selection snapshots. `showSpriteBounds` and `showCursorHit` remain configured when Picking is disabled, but they do not collect or render Picking diagnostics until it is re-enabled. Disabling Picking clears its locked diagnostic selection. Inspect, Build, Move, and other Debug tools continue to use the engine's generic picking independently.
 
 `DebugVisualizationFilter.ALL` is the default shared target filter. Other filter values limit supported object, entity, culling, and render-order diagnostics without changing their individual settings.
 
@@ -199,7 +205,7 @@ All entity `show...` flags default to `false` and line width defaults to `1f`. `
 
 `worldVisibility` hides renderer categories for diagnosis without changing world contents. Ground, overlays, placed objects, entities, and every overlay layer are visible by default. `showAll()` restores normal visibility.
 
-`picking`, `renderOrder`, `culling`, and `camera` diagnostics default to no active visuals. Render-order mode defaults to `CALCULATED`, priority focus to `OFF`, selected priority to `0`, heatmap steps to `PER_TILE`, priority alpha to `0.2f`, and geometry line width to `2f`.
+`picking`, `renderOrder`, `culling`, and `camera` diagnostics default to no active visuals. Picking itself and both Picking child visuals default to disabled. Render-order mode defaults to `CALCULATED`, priority focus to `OFF`, selected priority to `0`, heatmap steps to `PER_TILE`, priority alpha to `0.2f`, and geometry line width to `2f`.
 
 ## Tools
 
@@ -235,9 +241,9 @@ debug {
 
 ## Operational services
 
-Simulation controls, world statistics, and Event Bus monitoring are disabled by default. Simulation's `freezeVisualAnimations` also defaults to `false`. Notifications are enabled by default, retain up to four messages for three seconds each, and appear at `TOP_CENTER`. `disableCameraRestrictions` defaults to `false`.
+Simulation controls, world statistics, and Event Bus monitor visibility are disabled by default. Simulation's `freezeVisualAnimations` also defaults to `false`. Notifications are enabled by default, retain up to four messages for three seconds each, and appear at `TOP_CENTER`. `disableCameraRestrictions` defaults to `false`.
 
-Event Bus settings default to capture enabled when the monitor itself is enabled, eight visible records, and newest-first display. Operational activation and capture state are not restored by DEFAULT.
+Event Bus capture defaults to disabled. `visible` controls only the monitor panel, while `captureEnabled` controls whether published events are appended to the bounded history. Capture can run while the panel is hidden, and changing either setting preserves existing history; the Debug Window's **Clear history** action explicitly removes it. Presentation defaults to eight visible records in newest-first order. Visibility and capture are not restored by DEFAULT.
 
 Debug settings are runtime mutable. Renderers and the Debug runtime read their live settings, so most changes take effect without reattaching a world. UI `enabled` and `visibleOnStartup` values describe scene construction/startup and should be configured in `debug {}`; use the UI shortcuts for runtime visibility.
 
