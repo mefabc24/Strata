@@ -72,6 +72,9 @@ internal class DebugNotificationOverlay(
             DebugNotificationPosition.TOP_CENTER ->
                 root.align(Align.top)
 
+            DebugNotificationPosition.TOP_RIGHT ->
+                root.align(Align.top or Align.right)
+
             DebugNotificationPosition.BOTTOM_CENTER ->
                 root.align(Align.bottom)
 
@@ -125,6 +128,12 @@ internal fun notificationAlignment(
     DebugNotificationPosition.TOP_CENTER ->
         DebugNotificationAlignment(
             DebugOverlayHorizontal.CENTER,
+            DebugOverlayVertical.TOP
+        )
+
+    DebugNotificationPosition.TOP_RIGHT ->
+        DebugNotificationAlignment(
+            DebugOverlayHorizontal.RIGHT,
             DebugOverlayVertical.TOP
         )
 

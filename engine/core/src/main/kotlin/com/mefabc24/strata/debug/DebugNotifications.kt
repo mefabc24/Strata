@@ -2,11 +2,12 @@ package com.mefabc24.strata.debug
 
 enum class DebugNotificationSeverity { INFO, SUCCESS, WARNING, ERROR }
 enum class DebugNotificationPosition {
-    TOP_CENTER,
-    BOTTOM_RIGHT,
-    BOTTOM_LEFT,
     TOP_LEFT,
-    BOTTOM_CENTER
+    TOP_CENTER,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_CENTER,
+    BOTTOM_RIGHT
 }
 
 data class DebugNotification(
