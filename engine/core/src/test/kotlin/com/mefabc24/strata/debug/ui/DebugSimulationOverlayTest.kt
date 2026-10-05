@@ -80,19 +80,19 @@ class DebugSimulationOverlayTest {
     }
 
     @Test
-    fun `timing rows format values consistently`() {
+    fun `inline timing values format consistently`() {
         val simulation = SimulationController().apply {
             timeScale = 1.1f
         }
         val state = DebugSimulationOverlayState(simulation)
 
         assertEquals(
-            listOf(
-                DebugDiagnosticRow("Real", "16.67 ms"),
-                DebugDiagnosticRow("Simulation", "18.33 ms"),
-                DebugDiagnosticRow("Scale", "1.10x")
+            DebugSimulationTiming(
+                real = "16.67 ms",
+                simulation = "18.33 ms",
+                scale = "1.10x"
             ),
-            state.timingRows(0.01667f, 0.01833f)
+            state.timing(0.01667f, 0.01833f)
         )
     }
 }
