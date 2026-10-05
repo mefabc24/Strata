@@ -9,10 +9,13 @@ import com.mefabc24.strata.world.EntityPosition
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.world.PlacedObject
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class WorldRenderPlanTest {
@@ -289,6 +292,79 @@ class WorldRenderPlanTest {
     }
 
     @Test
+    fun `relocating an object refreshes its spatial primitive data`() {
+        val world = world(size = 12)
+        val placed = requireNotNull(world.place(House(), 1, 1))
+        val previous = WorldRenderPlan.prepareStatic(world, projection)
+
+        assertTrue(world.relocate(placed, TilePosition(6, 5)))
+
+        val updated = WorldRenderPlan.updateStatic(previous, world, projection)
+        val primitive = updated.orderedItems
+            .filterIsInstance<WorldObjectPrimitive>()
+            .single { it.placedObject === placed }
+
+        assertEquals(placed.occupiedTiles(), primitive.occupiedTiles)
+        assertEquals(IsoSortVolume(6, 10, 5, 9), primitive.sortVolume)
+        assertTrue(primitive.occupiedTiles.none { it.x < 6 || it.y < 5 })
+    }
+
+    @Test
+    fun `relocating an object from behind to in front changes render order`() {
+        val world = world(size = 8)
+        val rear = requireNotNull(world.place(Tree(), 3, 3))
+        val futureFront = requireNotNull(world.place(Tree(), 1, 1))
+        val previous = WorldRenderPlan.prepareStatic(world, projection)
+
+        assertTrue(
+            previous.orderedItems.indexOfObject(futureFront) <
+                    previous.orderedItems.indexOfObject(rear)
+        )
+        assertTrue(world.relocate(futureFront, TilePosition(4, 4)))
+
+        val updated = WorldRenderPlan.updateStatic(previous, world, projection)
+
+        assertTrue(
+            updated.orderedItems.indexOfObject(rear) <
+                    updated.orderedItems.indexOfObject(futureFront)
+        )
+    }
+
+    @Test
+    fun `final render order does not depend on an objects spawn position`() {
+        val directWorld = world(size = 8)
+        val directRear = requireNotNull(directWorld.place(Tree(), 3, 3))
+        val directFront = requireNotNull(directWorld.place(Tree(), 4, 4))
+        val directPlan = WorldRenderPlan.prepareStatic(directWorld, projection)
+
+        val movedWorld = world(size = 8)
+        val movedRear = requireNotNull(movedWorld.place(Tree(), 3, 3))
+        val movedFront = requireNotNull(movedWorld.place(Tree(), 1, 1))
+        val beforeMove = WorldRenderPlan.prepareStatic(movedWorld, projection)
+        assertTrue(movedWorld.relocate(movedFront, TilePosition(4, 4)))
+        val movedPlan = WorldRenderPlan.updateStatic(beforeMove, movedWorld, projection)
+
+        assertEquals(
+            directPlan.orderedItems.renderSignature(directRear, directFront),
+            movedPlan.orderedItems.renderSignature(movedRear, movedFront)
+        )
+    }
+
+    @Test
+    fun `no-op and failed relocations preserve the static plan`() {
+        val world = world(size = 8)
+        val moving = requireNotNull(world.place(Tree(), 1, 1))
+        requireNotNull(world.place(Tree(), 3, 3))
+        val previous = WorldRenderPlan.prepareStatic(world, projection)
+
+        assertTrue(world.relocate(moving, TilePosition(1, 1)))
+        assertSame(previous, WorldRenderPlan.updateStatic(previous, world, projection))
+
+        assertFalse(world.relocate(moving, TilePosition(3, 3)))
+        assertSame(previous, WorldRenderPlan.updateStatic(previous, world, projection))
+    }
+
+    @Test
     fun `object behind foreground terrain renders before its cell`() {
         val world = world()
         val tree = requireNotNull(world.place(Tree(), 1, 2))
@@ -556,6 +632,21 @@ class WorldRenderPlanTest {
         return indexOfFirst {
             it is WorldEntityPrimitive && it.worldEntity === entity
         }.also { check(it >= 0) }
+    }
+
+    private fun List<WorldRenderPrimitive>.renderSignature(
+        rear: PlacedObject,
+        front: PlacedObject
+    ): List<String> = map { primitive ->
+        when (primitive) {
+            is TerrainCell -> "terrain:${primitive.x},${primitive.y}"
+            is WorldObjectPrimitive -> when (primitive.placedObject) {
+                rear -> "rear"
+                front -> "front"
+                else -> error("Unexpected object in render plan.")
+            }
+            is WorldEntityPrimitive -> error("Unexpected entity in static render plan.")
+        }
     }
 
     private fun world(size: Int = 8): World {

@@ -346,6 +346,63 @@ class RenderDebugSnapshotTest {
         }
     }
 
+    @Test
+    fun `render diagnostics follow relocated object spatial data and order`() {
+        val pixmap = Pixmap(8, 12, Pixmap.Format.RGBA8888)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        val projection = IsoProjection(TileGeometry(32f, 24f))
+        val renderer = IsoWorldRenderer(
+            projection = projection,
+            collectDebugSnapshot = { true }
+        )
+        try {
+            val world = World(8, 8) { _, _ -> TestTile }
+            val rear = requireNotNull(world.place(TestObject(), 3, 3))
+            val futureFront = requireNotNull(world.place(TestObject(), 1, 1))
+            val region = TextureRegion(texture)
+            val visual = ObjectVisual(region)
+            val camera = OrthographicCamera(1000f, 1000f).apply { update() }
+
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                objectVisualFor = { visual }
+            )
+            assertTrue(world.relocate(futureFront, TilePosition(4, 4)))
+            renderer.render(
+                world,
+                camera,
+                { _, _ -> region },
+                objectVisualFor = { visual }
+            )
+
+            val snapshot = requireNotNull(renderer.debugSnapshot)
+            val rearItem = snapshot.items.single { it.placedObject === rear }
+            val frontItem = snapshot.items.single { it.placedObject === futureFront }
+            val frontSort = requireNotNull(frontItem.sort)
+
+            assertTrue(rearItem.index < frontItem.index)
+            assertTrue(requireNotNull(rearItem.actualIndex) < requireNotNull(frontItem.actualIndex))
+            assertEquals(4f, frontSort.minX)
+            assertEquals(5f, frontSort.maxX)
+            assertEquals(4f, frontSort.minY)
+            assertEquals(5f, frontSort.maxY)
+            assertEquals(
+                projection.tileToWorld(5f, 5f).x,
+                frontSort.projectedFrontX
+            )
+            assertEquals(
+                projection.tileToWorld(5f, 5f).y,
+                frontSort.projectedFrontY
+            )
+        } finally {
+            renderer.dispose()
+            texture.dispose()
+        }
+    }
+
     private fun terrainRanks(snapshot: RenderDebugSnapshot): Map<TilePosition, Int> =
         snapshot.items.mapNotNull { item ->
             item.terrain?.let { it.position to it.rank }
