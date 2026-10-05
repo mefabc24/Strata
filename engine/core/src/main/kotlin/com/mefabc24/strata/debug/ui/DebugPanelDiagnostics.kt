@@ -60,7 +60,7 @@ internal class DebugPanelDiagnostics(
         }
         if (settings.ui.settingsWindow.enabled) {
             pickingRows?.show(
-                if (settings.visuals.picking.hasActiveVisuals && view.pickingAvailable) {
+                if (settings.visuals.picking.enabled && view.pickingAvailable) {
                     formatPicking()
                 } else {
                     emptyList()
