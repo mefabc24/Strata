@@ -62,6 +62,22 @@ class DebugPerformanceLoggerTest {
     }
 
     @Test
+    fun `overlay and terminal intervals are independent`() {
+        val performance = DebugPerformanceSettings().apply {
+            overlayRefreshIntervalSeconds = 0.5f
+            terminalLoggingIntervalSeconds = 3f
+        }
+
+        performance.overlayRefreshIntervalSeconds = 0.1f
+        assertEquals(0.1f, performance.overlayRefreshIntervalSeconds)
+        assertEquals(3f, performance.terminalLoggingIntervalSeconds)
+
+        performance.terminalLoggingIntervalSeconds = 1f
+        assertEquals(0.1f, performance.overlayRefreshIntervalSeconds)
+        assertEquals(1f, performance.terminalLoggingIntervalSeconds)
+    }
+
+    @Test
     fun `terminal output remains active when overlay is disabled`() {
         val performance = DebugPerformanceSettings().apply {
             terminalLoggingEnabled = true

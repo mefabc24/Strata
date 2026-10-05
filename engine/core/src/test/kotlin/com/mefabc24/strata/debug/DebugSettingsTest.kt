@@ -25,6 +25,7 @@ class DebugSettingsTest {
         assertFalse(settings.ui.settingsWindow.isVisible)
         assertEquals(Input.Keys.F3, settings.ui.settingsWindow.toggleKey)
         assertFalse(settings.operations.performance.overlayEnabled)
+        assertEquals(0.25f, settings.operations.performance.overlayRefreshIntervalSeconds)
         assertFalse(settings.operations.performance.terminalLoggingEnabled)
         assertFalse(settings.operations.performance.historyRecording)
         assertEquals(240, settings.operations.performance.historyLength)
@@ -255,6 +256,20 @@ class DebugSettingsTest {
         assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
         assertTrue(settings.visuals.culling.hasActiveVisuals)
         assertTrue(settings.visuals.camera.hasActiveVisuals)
+    }
+
+    @Test
+    fun `performance overlay interval requires a finite positive value`() {
+        val performance = DebugPerformanceSettings()
+
+        for (invalid in listOf(0f, -0.1f, Float.NaN, Float.POSITIVE_INFINITY)) {
+            assertFailsWith<IllegalArgumentException> {
+                performance.overlayRefreshIntervalSeconds = invalid
+            }
+        }
+
+        performance.overlayRefreshIntervalSeconds = 0.05f
+        assertEquals(0.05f, performance.overlayRefreshIntervalSeconds)
     }
 
     @Test

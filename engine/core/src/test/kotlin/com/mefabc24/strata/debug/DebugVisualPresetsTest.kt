@@ -22,6 +22,7 @@ class DebugVisualPresetsTest {
             visuals.picking.enabled = true
             visuals.picking.showCursorHit = true
             visuals.renderOrder.showSortVolumes = true
+            operations.performance.overlayRefreshIntervalSeconds = 0.75f
             operations.eventBus.visible = true
             operations.notifications.enabled = true
             operations.notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
@@ -38,6 +39,7 @@ class DebugVisualPresetsTest {
             visuals.picking.enabled = false
             visuals.picking.showCursorHit = false
             visuals.renderOrder.showSortVolumes = false
+            operations.performance.overlayRefreshIntervalSeconds = 0.1f
             operations.eventBus.visible = false
             operations.notifications.enabled = false
             operations.notifications.position = DebugNotificationPosition.TOP_CENTER
@@ -61,6 +63,7 @@ class DebugVisualPresetsTest {
         assertTrue(settings.visuals.picking.enabled)
         assertTrue(settings.visuals.picking.showCursorHit)
         assertTrue(settings.visuals.renderOrder.showSortVolumes)
+        assertEquals(0.75f, settings.operations.performance.overlayRefreshIntervalSeconds)
         assertFalse(settings.operations.eventBus.visible)
         assertFalse(settings.operations.notifications.enabled)
         assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.operations.notifications.position)

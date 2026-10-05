@@ -21,6 +21,25 @@ class DebugPerformanceOverlayTest {
     }
 
     @Test
+    fun `configured interval controls subsequent overlay refreshes`() {
+        val state = DebugPerformanceOverlayState()
+
+        assertEquals(16.0, state.update(true, 0.016f, 0.25f)!!, 0.001)
+        assertNull(state.update(true, 0.1f, 0.25f))
+        assertNull(state.update(true, 0.14f, 0.25f))
+        assertEquals(83.333, state.update(true, 0.01f, 0.25f)!!, 0.001)
+    }
+
+    @Test
+    fun `changing interval affects the active refresh window`() {
+        val state = DebugPerformanceOverlayState()
+
+        state.update(true, 0.016f, 1f)
+        assertNull(state.update(true, 0.1f, 1f))
+        assertEquals(100.0, state.update(true, 0.1f, 0.15f)!!, 0.001)
+    }
+
+    @Test
     fun `snapshot format includes renderer metrics`() {
         val text = DebugPerformanceSnapshot.from(RenderStats(), 60, 16.666).format()
         assertTrue(text.contains("FPS: 60"))
