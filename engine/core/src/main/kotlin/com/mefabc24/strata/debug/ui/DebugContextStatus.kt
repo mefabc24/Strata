@@ -108,7 +108,9 @@ private fun pathStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow> 
     )
     if (result != null) {
         val length = result.path?.size ?: 0
-        val cost = result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) } ?: "—"
+        val cost = debugDiagnosticValue(
+            result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) }
+        )
         rows += DebugDiagnosticRow("Path", "$length tiles, cost $cost")
     }
     return rows

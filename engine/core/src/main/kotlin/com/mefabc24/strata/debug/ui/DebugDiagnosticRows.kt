@@ -17,6 +17,11 @@ import com.mefabc24.strata.world.TilePosition
 import java.util.Locale
 
 data class DebugDiagnosticRow(val key: String, val value: String)
+internal const val EMPTY_DIAGNOSTIC_VALUE = "-"
+
+internal fun debugDiagnosticValue(value: Any?): String =
+    value?.toString() ?: EMPTY_DIAGNOSTIC_VALUE
+
 internal enum class DebugDiagnosticLayoutState { COLLAPSED, EXPANDED }
 
 /** A compact two-column diagnostic view with distinct key and value styles. */
@@ -167,8 +172,14 @@ internal fun pathfindingDiagnosticRows(
     else -> listOf(
         DebugDiagnosticRow("Mode", selectedEntity?.let { "Entity: $it" } ?: "Standalone"),
         DebugDiagnosticRow("Waypoints", result.waypoints.size.toString()),
-        DebugDiagnosticRow("Start", result.start?.let(::formatTilePosition) ?: "—"),
-        DebugDiagnosticRow("Goal", result.goal?.let(::formatTilePosition) ?: "—"),
+        DebugDiagnosticRow(
+            "Start",
+            debugDiagnosticValue(result.start?.let(::formatTilePosition))
+        ),
+        DebugDiagnosticRow(
+            "Goal",
+            debugDiagnosticValue(result.goal?.let(::formatTilePosition))
+        ),
         DebugDiagnosticRow("Result", when (result.status) {
             PathfindingSearchStatus.READY, PathfindingSearchStatus.RUNNING -> "Pending"
             PathfindingSearchStatus.SUCCEEDED -> "Success"
@@ -183,7 +194,9 @@ internal fun pathfindingDiagnosticRows(
         DebugDiagnosticRow("Path length", (result.path?.size ?: 0).toString()),
         DebugDiagnosticRow(
             "Total cost",
-            result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) } ?: "—"
+            debugDiagnosticValue(
+                result.totalCost?.let { String.format(Locale.ROOT, "%.2f", it) }
+            )
         ),
         DebugDiagnosticRow("Explored", result.explored.size.toString()),
         DebugDiagnosticRow("Open set", result.openSetSize.toString()),

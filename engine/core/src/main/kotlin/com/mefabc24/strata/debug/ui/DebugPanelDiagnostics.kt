@@ -26,6 +26,7 @@ import com.mefabc24.strata.terrain.TerrainEntry
 import com.mefabc24.strata.terrain.TerrainId
 import com.mefabc24.strata.ui.StrataSelectionGroup
 import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.TilePosition
 import com.mefabc24.strata.world.World
 import java.util.Locale
 
@@ -93,7 +94,9 @@ internal class DebugPanelDiagnostics(
             "Screen" to "${diagnostics.screen.x.format()}, ${diagnostics.screen.y.format()}",
             "World" to "${diagnostics.world.x.format()}, ${diagnostics.world.y.format()}",
             "Grid" to formatTilePosition(diagnostics.grid),
-            "Tile" to (diagnostics.tile?.let(::formatTilePosition) ?: "â€”"),
+            "Tile" to debugDiagnosticValue(
+                diagnostics.tile?.let(::formatTilePosition)
+            ),
             "Object" to display(diagnostics.placedObject?.placeable?.javaClass?.simpleName),
             "Entity" to display(entityNames.takeIf { it.isNotEmpty() }),
             "Alpha" to alphaText(diagnostics.alphaAccepted),
@@ -235,14 +238,12 @@ internal class DebugPanelDiagnostics(
                 world.getOverlayTile(id, position.x, position.y)?.let { id to terrainFor(it) }
             }
             val tileEntities = world.getEntities().filter { it.currentTile == position }
-            diagnosticRows(
-                "Tile" to formatTilePosition(position),
-                "Terrain" to display(tile?.let(terrainFor)),
-                "Overlays" to display(overlays.takeIf { it.isNotEmpty() }),
-                "Object" to display(world.getObjectAt(position)?.placeable?.javaClass?.simpleName),
-                "Entities" to display(
-                    tileEntities.map { it.entity::class.simpleName }.takeIf { it.isNotEmpty() }
-                )
+            tileInspectionRows(
+                position = position,
+                terrain = tile?.let(terrainFor),
+                overlays = overlays,
+                objectName = world.getObjectAt(position)?.placeable?.javaClass?.simpleName,
+                entityNames = tileEntities.map { it.entity::class.simpleName }
             )
         }
     }
@@ -269,7 +270,21 @@ internal fun diagnosticRows(
     vararg rows: Pair<String, String>
 ): List<DebugDiagnosticRow> = rows.map { (key, value) -> DebugDiagnosticRow(key, value) }
 
-private fun display(value: Any?): String = value?.toString() ?: "â€”"
+internal fun tileInspectionRows(
+    position: TilePosition,
+    terrain: Any?,
+    overlays: List<*>,
+    objectName: String?,
+    entityNames: List<String?>
+): List<DebugDiagnosticRow> = diagnosticRows(
+    "Tile" to formatTilePosition(position),
+    "Terrain" to debugDiagnosticValue(terrain),
+    "Overlays" to debugDiagnosticValue(overlays.takeIf { it.isNotEmpty() }),
+    "Object" to debugDiagnosticValue(objectName),
+    "Entities" to debugDiagnosticValue(entityNames.takeIf { it.isNotEmpty() })
+)
+
+private fun display(value: Any?): String = debugDiagnosticValue(value)
 private fun Float.format() = String.format(Locale.ROOT, "%.2f", this)
 private fun Double.format() = String.format(Locale.ROOT, "%.2f", this)
 private fun String.toDisplayName() = replace('_', ' ').replace('-', ' ')
