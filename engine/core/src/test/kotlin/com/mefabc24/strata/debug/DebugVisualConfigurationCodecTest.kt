@@ -88,4 +88,18 @@ class DebugVisualConfigurationCodecTest {
         assertTrue(settings.visuals.entities.showCurrentTileFill)
         assertEquals(0.4f, settings.visuals.entities.currentTileFillColor.a)
     }
+
+    @Test
+    fun `version four picking children migrate to active picking diagnostics`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """{"version":4,"values":{"picking.cursor":"boolean:true"}}"""
+        )
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertTrue(settings.visuals.picking.enabled)
+        assertTrue(settings.visuals.picking.showCursorHit)
+        assertTrue(settings.visuals.picking.hasActiveVisuals)
+    }
 }

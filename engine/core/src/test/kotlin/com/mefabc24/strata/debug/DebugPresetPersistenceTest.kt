@@ -129,6 +129,7 @@ class DebugPresetPersistenceTest {
     fun `startup default is independent of windows and excludes operational state`() {
         storeDefault(
             DebugSettings().apply {
+                visuals.picking.enabled = true
                 visuals.picking.showCursorHit = true
                 ui.toolRail.enabled = true
                 ui.toolRail.visibleOnStartup = true
@@ -152,6 +153,7 @@ class DebugPresetPersistenceTest {
 
         settings.initializeDefaultVisualConfiguration()
 
+        assertTrue(settings.visuals.picking.enabled)
         assertTrue(settings.visuals.picking.showCursorHit)
         assertFalse(settings.ui.toolRail.enabled)
         assertFalse(settings.ui.toolRail.visibleOnStartup)

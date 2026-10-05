@@ -19,6 +19,8 @@ class DebugVisualPresetsTest {
             visuals.worldVisibility.entitiesVisible = false
             visuals.worldVisibility.setOverlayLayerVisible("roads", false)
             visuals.entities.showMovementTrail = true
+            visuals.picking.enabled = true
+            visuals.picking.showCursorHit = true
             visuals.renderOrder.showSortVolumes = true
             operations.eventBus.enabled = true
             operations.notifications.enabled = true
@@ -33,6 +35,8 @@ class DebugVisualPresetsTest {
             visuals.grid.color = Color.RED
             visuals.worldVisibility.showAll()
             visuals.entities.showMovementTrail = false
+            visuals.picking.enabled = false
+            visuals.picking.showCursorHit = false
             visuals.renderOrder.showSortVolumes = false
             operations.eventBus.enabled = false
             operations.notifications.enabled = false
@@ -54,6 +58,8 @@ class DebugVisualPresetsTest {
         assertFalse(settings.visuals.worldVisibility.entitiesVisible)
         assertFalse(settings.visuals.worldVisibility.isOverlayLayerVisible("roads"))
         assertTrue(settings.visuals.entities.showMovementTrail)
+        assertTrue(settings.visuals.picking.enabled)
+        assertTrue(settings.visuals.picking.showCursorHit)
         assertTrue(settings.visuals.renderOrder.showSortVolumes)
         assertFalse(settings.operations.eventBus.enabled)
         assertFalse(settings.operations.notifications.enabled)
@@ -100,6 +106,7 @@ class DebugVisualPresetsTest {
 
         assertFalse(settings.visuals.grid.enabled)
         assertFalse(settings.visuals.entities.hasActiveVisuals)
+        assertFalse(settings.visuals.picking.enabled)
         assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
         assertTrue(settings.visuals.worldVisibility.entitiesVisible)
         assertTrue(settings.operations.performance.terminalLoggingEnabled)

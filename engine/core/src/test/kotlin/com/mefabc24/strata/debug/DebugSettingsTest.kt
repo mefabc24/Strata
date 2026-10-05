@@ -56,6 +56,7 @@ class DebugSettingsTest {
         assertEquals(5f, settings.visuals.entities.trailHistoryDurationSeconds)
         assertEquals(0.02f, settings.visuals.entities.trailMinimumDistance)
         assertEquals(0.65f, settings.visuals.entities.trailOpacity)
+        assertFalse(settings.visuals.picking.enabled)
         assertFalse(settings.visuals.picking.hasActiveVisuals)
         assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
         assertEquals(RenderOrderDebugMode.CALCULATED, settings.visuals.renderOrder.mode)
@@ -239,6 +240,7 @@ class DebugSettingsTest {
             visuals.worldInfo.showOrigin = true
             visuals.objects.showSpriteBounds = true
             visuals.entities.showDirection = true
+            visuals.picking.enabled = true
             visuals.picking.showCursorHit = true
             visuals.renderOrder.showSortAnchors = true
             visuals.culling.showObjectBounds = true
@@ -252,6 +254,26 @@ class DebugSettingsTest {
         assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
         assertTrue(settings.visuals.culling.hasActiveVisuals)
         assertTrue(settings.visuals.camera.hasActiveVisuals)
+    }
+
+    @Test
+    fun `picking activation preserves configured child visuals`() {
+        val picking = DebugPickingSettings().apply {
+            showSpriteBounds = true
+        }
+
+        assertTrue(picking.hasConfiguredVisuals)
+        assertFalse(picking.hasActiveVisuals)
+
+        picking.enabled = true
+        assertTrue(picking.hasActiveVisuals)
+
+        picking.enabled = false
+        assertTrue(picking.showSpriteBounds)
+        assertFalse(picking.hasActiveVisuals)
+
+        picking.enabled = true
+        assertTrue(picking.hasActiveVisuals)
     }
 
     @Test
@@ -281,6 +303,7 @@ class DebugSettingsTest {
         assertTrue(settings.visuals.worldInfo.showMissingTerrainVisuals)
         assertTrue(settings.visuals.objects.hasActiveVisuals)
         assertTrue(settings.visuals.entities.hasActiveVisuals)
+        assertTrue(settings.visuals.picking.enabled)
         assertTrue(settings.visuals.picking.hasActiveVisuals)
         assertTrue(settings.visuals.renderOrder.hasActiveVisuals)
         assertTrue(settings.visuals.culling.hasActiveVisuals)
@@ -340,6 +363,7 @@ class DebugSettingsTest {
         assertFalse(settings.visuals.objects.showOccupiedTileFill)
         assertFalse(settings.visuals.entities.hasActiveVisuals)
         assertFalse(settings.visuals.entities.showCurrentTileFill)
+        assertFalse(settings.visuals.picking.enabled)
         assertFalse(settings.visuals.picking.hasActiveVisuals)
         assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
         assertFalse(settings.visuals.culling.hasActiveVisuals)

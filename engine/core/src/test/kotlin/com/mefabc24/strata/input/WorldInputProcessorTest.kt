@@ -9,6 +9,8 @@ import com.mefabc24.strata.world.Tile
 import com.mefabc24.strata.world.Footprint
 import com.mefabc24.strata.world.Placeable
 import com.mefabc24.strata.iso.ObjectPickingMode
+import com.mefabc24.strata.debug.DebugPickingSettings
+import com.mefabc24.strata.debug.hasActiveVisuals
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -349,7 +351,11 @@ class WorldInputProcessorTest {
     }
 
     @Test
-    fun `object binding forwards picking mode and picked identity`() {
+    fun `object binding remains available while debug picking diagnostics are disabled`() {
+        val diagnostics = DebugPickingSettings().apply {
+            enabled = false
+            showSpriteBounds = true
+        }
         val world = World(1, 1) { _, _ -> TestTile }
         val placed = requireNotNull(world.place(
             object : Placeable { override val footprint = Footprint.square(1) },
@@ -375,6 +381,7 @@ class WorldInputProcessorTest {
             }
         )
 
+        assertFalse(diagnostics.hasActiveVisuals)
         assertTrue(processor.touchDown(2, 3, 0, Input.Buttons.RIGHT))
         assertEquals(ObjectPickingMode.FOOTPRINT, receivedMode)
         assertTrue(receivedObject)
