@@ -255,6 +255,9 @@ internal object WorldRenderPlan {
     /**
      * Updates an existing static plan after world objects changed.
      *
+     * Relocated objects require a complete rebuild because primitives snapshot
+     * their footprints and the dependency graph is derived from those snapshots.
+     *
      * Existing static ordering is preserved whenever new objects can be inserted
      * without reordering previous objects. If that is not possible, a complete
      * rebuild is used as a correctness fallback.
@@ -269,6 +272,21 @@ internal object WorldRenderPlan {
         metrics?.relationChecks = 0
 
         val currentObjects = world.getObjects()
+
+        val hasRelocatedObject = previous.orderedItems.any { item ->
+            item is WorldObjectPrimitive &&
+                    item.placedObject in currentObjects &&
+                    item.occupiedTiles != item.placedObject.occupiedTiles()
+        }
+
+        if (hasRelocatedObject) {
+            return prepareStatic(
+                world = world,
+                projection = projection,
+                metrics = metrics,
+                objectPriorityFor = objectPriorityFor
+            )
+        }
 
         val removedObjects =
             previous.objects.filterNot(currentObjects::contains)

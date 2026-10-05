@@ -60,9 +60,7 @@ class World(
     val entityCount: Int
         get() = entities.size
 
-    /**
-     * Changes whenever an object is placed or removed.
-     */
+    /** Changes whenever an object is placed, removed, or relocated. */
     var objectVersion: Long = 0L
         private set
 
