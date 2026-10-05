@@ -25,7 +25,7 @@ class DebugEventMonitorTest {
     @Test
     fun `capture off does not collect and does not stop typed dispatch`() {
         val bus = EventBus()
-        val monitor = DebugEventMonitor(bus)
+        val monitor = DebugEventMonitor(bus).apply { captureEnabled = false }
         var dispatched = 0
         bus.subscribe<TestEvent> { dispatched++ }
 
@@ -49,7 +49,7 @@ class DebugEventMonitorTest {
     }
 
     @Test
-    fun `capture defaults to off`() {
+    fun `capture defaults to on`() {
         val bus = EventBus()
         val monitor = DebugEventMonitor(bus)
         var dispatched = 0
@@ -58,7 +58,7 @@ class DebugEventMonitorTest {
         bus.publish(TestEvent(1))
 
         assertEquals(1, dispatched)
-        assertTrue(monitor.records.isEmpty())
+        assertEquals(listOf("TestEvent(value=1)"), monitor.records.map { it.value })
     }
 
     @Test

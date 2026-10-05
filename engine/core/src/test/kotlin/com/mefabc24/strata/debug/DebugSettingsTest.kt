@@ -78,7 +78,7 @@ class DebugSettingsTest {
         assertFalse(settings.visuals.camera.hasActiveVisuals)
         assertFalse(settings.operations.worldStats.enabled)
         assertFalse(settings.operations.eventBus.visible)
-        assertFalse(settings.operations.eventBus.captureEnabled)
+        assertTrue(settings.operations.eventBus.captureEnabled)
         assertFalse(settings.operations.disableCameraRestrictions)
         assertTrue(settings.tools.inspect.showTile)
         assertTrue(settings.tools.inspect.showObjectFootprint)
