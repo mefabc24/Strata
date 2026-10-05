@@ -66,8 +66,14 @@ internal class DebugNotificationOverlay(
         root.clearChildren()
 
         when (position) {
+            DebugNotificationPosition.TOP_LEFT ->
+                root.align(Align.top or Align.left)
+
             DebugNotificationPosition.TOP_CENTER ->
                 root.align(Align.top)
+
+            DebugNotificationPosition.BOTTOM_CENTER ->
+                root.align(Align.bottom)
 
             DebugNotificationPosition.BOTTOM_RIGHT ->
                 root.align(Align.bottom or Align.right)
@@ -110,10 +116,22 @@ internal data class DebugNotificationAlignment(
 internal fun notificationAlignment(
     position: DebugNotificationPosition
 ): DebugNotificationAlignment = when (position) {
+    DebugNotificationPosition.TOP_LEFT ->
+        DebugNotificationAlignment(
+            DebugOverlayHorizontal.LEFT,
+            DebugOverlayVertical.TOP
+        )
+
     DebugNotificationPosition.TOP_CENTER ->
         DebugNotificationAlignment(
             DebugOverlayHorizontal.CENTER,
             DebugOverlayVertical.TOP
+        )
+
+    DebugNotificationPosition.BOTTOM_CENTER ->
+        DebugNotificationAlignment(
+            DebugOverlayHorizontal.CENTER,
+            DebugOverlayVertical.BOTTOM
         )
 
     DebugNotificationPosition.BOTTOM_RIGHT ->
