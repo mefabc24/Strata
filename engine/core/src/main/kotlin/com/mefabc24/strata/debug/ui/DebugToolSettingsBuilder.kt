@@ -111,22 +111,15 @@ internal class DebugToolSettingsBuilder(
                         val preview = DebugToolPreviewCard(ui.skin)
                         fun updatePreview(entry: ObjectEntry?) {
                             if (entry == null) return
-                            val footprint = entry.create().footprint
                             val visual = entry.selectionVisual
-                            val texture = visual.texture
                             preview.show(DebugToolPreview(
                                 key = entry,
                                 displayName = entry.displayName(),
-                                texture = texture,
-                                details = listOf(
-                                    "Footprint" to footprint.dimensionsText(),
-                                    "Occupied" to "${footprint.offsets.size} ${if (footprint.offsets.size == 1) "tile" else "tiles"}",
-                                    "Sprite" to "${texture.regionWidth} x ${texture.regionHeight} px",
-                                    "Frames" to visual.sprite.frameCount.toString()
-                                )
+                                texture = visual.texture,
+                                details = buildObjectPreviewDetails(entry)
                             ))
                         }
-                        actor(preview).cell { fillAvailableX(); height(110f) }
+                        actor(preview).cell { fillAvailableX(); height(130f) }
                         ui.root.context.own(group.onSelectionChanged(::updatePreview))
                         updatePreview(group.selected)
                     }
@@ -800,6 +793,22 @@ private fun String.toDisplayName() = replace('_', ' ').replace('-', ' ')
     .lowercase().replaceFirstChar(Char::titlecase)
 private fun kotlin.reflect.KClass<*>.displayName() = simpleName?.toDisplayName() ?: toString()
 private fun ObjectEntry.displayName() = type.displayName()
+
+internal fun buildObjectPreviewDetails(
+    entry: ObjectEntry
+): List<Pair<String, String>> {
+    val footprint = entry.create().footprint
+    val visual = entry.selectionVisual
+    val texture = visual.texture
+    val occupied = footprint.offsets.size
+    return listOf(
+        "Footprint" to footprint.dimensionsText(),
+        "Occupied" to "$occupied ${if (occupied == 1) "tile" else "tiles"}",
+        "Priority" to entry.settings.renderPriority.toString(),
+        "Sprite" to "${texture.regionWidth} x ${texture.regionHeight} px",
+        "Frames" to visual.sprite.frameCount.toString()
+    )
+}
 
 private fun com.mefabc24.strata.world.Footprint.dimensionsText(): String {
     val width = offsets.maxOf { it.x } - offsets.minOf { it.x } + 1
