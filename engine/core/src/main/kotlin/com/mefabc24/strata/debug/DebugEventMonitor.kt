@@ -24,7 +24,7 @@ class DebugEventMonitor(
     private val subscription: EventSubscription = eventBus.observe(::capture)
 
     /** Whether published events are appended to [records]. */
-    var captureEnabled: Boolean = false
+    var captureEnabled: Boolean = true
 
     /** Captured events in oldest-to-newest order. */
     val records: List<DebugEventRecord>

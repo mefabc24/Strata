@@ -243,7 +243,7 @@ debug {
 
 Simulation controls, world statistics, and Event Bus monitor visibility are disabled by default. Simulation's `freezeVisualAnimations` also defaults to `false`. Notifications are enabled by default, retain up to four messages for three seconds each, and appear at `TOP_CENTER`. `disableCameraRestrictions` defaults to `false`.
 
-Event Bus capture defaults to disabled. `visible` controls only the monitor panel, while `captureEnabled` controls whether published events are appended to the bounded history. Capture can run while the panel is hidden, and changing either setting preserves existing history; the Debug Window's **Clear history** action explicitly removes it. Presentation defaults to eight visible records in newest-first order. Visibility and capture are not restored by DEFAULT.
+Event Bus capture defaults to enabled. `visible` controls only the monitor panel, while `captureEnabled` controls whether published events are appended to the bounded history. Capture can run while the panel is hidden, and changing either setting preserves existing history; the Debug Window's **Clear history** action explicitly removes it. Presentation defaults to eight visible records in newest-first order. Visibility and capture are not restored by DEFAULT.
 
 Debug settings are runtime mutable. Renderers and the Debug runtime read their live settings, so most changes take effect without reattaching a world. UI `enabled` and `visibleOnStartup` values describe scene construction/startup and should be configured in `debug {}`; use the UI shortcuts for runtime visibility.
 

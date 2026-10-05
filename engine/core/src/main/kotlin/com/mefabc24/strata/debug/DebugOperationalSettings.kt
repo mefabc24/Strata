@@ -219,7 +219,7 @@ class DebugEventMonitorSettings {
     var visible: Boolean = false
 
     /** Whether published events are appended to the monitor history. */
-    var captureEnabled: Boolean = false
+    var captureEnabled: Boolean = true
 
     var maximumVisibleRecords: Int = 8
         set(value) {
