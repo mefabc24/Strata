@@ -33,6 +33,9 @@ class DebugNotificationsTest {
             DebugNotificationPosition.TOP_CENTER to (
                     DebugOverlayHorizontal.CENTER to DebugOverlayVertical.TOP
                     ),
+            DebugNotificationPosition.TOP_RIGHT to (
+                    DebugOverlayHorizontal.RIGHT to DebugOverlayVertical.TOP
+                    ),
             DebugNotificationPosition.BOTTOM_LEFT to (
                     DebugOverlayHorizontal.LEFT to DebugOverlayVertical.BOTTOM
                     ),
@@ -45,8 +48,8 @@ class DebugNotificationsTest {
         )
 
         assertEquals(
-            DebugNotificationPosition.entries.toSet(),
-            expected.keys
+            expected.keys.toList(),
+            DebugNotificationPosition.entries
         )
 
         expected.forEach { (position, alignment) ->
