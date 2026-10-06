@@ -100,7 +100,7 @@ strata.debug.applyDefaultVisualConfiguration()
 
 `saveDefaultVisualConfiguration()` captures the current visual configuration, updates the in-memory DEFAULT, and persists it when storage is configured. Without storage it still updates the in-memory DEFAULT for the current run.
 
-DEFAULT captures visual presentation, including the live Performance overlay, Performance History overlay and graph metric, their shared refresh interval, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording and capacity, simulation runtime state, Event Bus visibility/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
+DEFAULT captures visual presentation, including the live Performance overlay, Performance History overlay and its ordered graph metrics, their shared refresh interval, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording and capacity, simulation runtime state, Event Bus visibility/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
 
 The old `defaultPresetStorage(...)` helper is not part of the current API. Use `presets { storage(...) }`.
 
@@ -138,17 +138,38 @@ strata.debug.operations.performance.apply {
     terminalLoggingIntervalSeconds = 2f
     historyRecording = true
     historyLength = 240
-    historyMetric = DebugPerformanceMetric.FRAME_TIME
+    historyGraphMetrics = listOf(
+        DebugPerformanceMetric.FRAME_TIME,
+        DebugPerformanceMetric.ENTITIES_DRAWN
+    )
 }
 ```
 
-The live **Performance** overlay shows only current renderer statistics with a fixed set of rows. The separate **Performance History** overlay shows a graphical line chart, current/average/minimum/maximum milliseconds, sample count, and Recording/Stopped state. Its default position is on the left, above the Simulation rail, with room reserved for the Tool Rail, tool flyout, Debug Window, and live stats stack. On small viewports the chart panel fits the remaining space and clips its contents.
+The live **Performance** overlay shows only current renderer statistics with a fixed set of rows. The separate **Performance History** panel is self-contained: its header shows the Recording/Stopped state with **Start**, **Stop**, and **Clear**, the retained sample count, a list of graphs, **Add graph**, and a history **Length** control. Each graph card selects its metric from the dropdown in its upper-right corner, can be removed while another graph remains, and shows current, average, minimum, and maximum values in the metric's unit. Up to six graphs can be shown; the list scrolls when it is taller than the available space. Its default position is on the left, above the Simulation rail, with room reserved for the Tool Rail, tool flyout, Debug Window, and live stats stack. The panel is placed on whole pixels so its bitmap text stays crisp, and it blocks pointer input to world tools underneath.
 
-Both overlays, terminal logging, and history recording are independently disabled by default. Showing history does not start recording. Recording continues with either overlay hidden; stopping or hiding retains captured samples. Use `clearHistory()` or **Clear performance history** to clear them. `startHistoryRecording()` and `stopHistoryRecording()` remain available, alongside the Debug Window's **History recording** toggle.
+The Debug Window only toggles the panel through **Overlays → Performance history overlay**. **Overlays** also holds the shared **Overlay refresh** interval, and **Terminal logging** holds the terminal output settings.
 
-`historyMetric` selects `FRAME_TIME`, `RENDER_TIME`, `STATIC_PLAN_TIME`, or `DYNAMIC_PLAN_TIME`. The graph uses a zero baseline and rounded upper bounds with headroom; small changes preserve the scale, spikes expand it immediately, and much smaller values let it shrink. Frame time alone includes subtle 60/30 FPS budget lines when they fit the visible range. Pixel-width buckets retain chronological minima/maxima and endpoints, preserving spikes without changing recorded history. Empty history shows **No captured samples** at the same panel size.
+Both overlays, terminal logging, and history recording are independently disabled by default. Showing the panel does not start recording. Recording continues with either overlay hidden; stopping or hiding retains captured samples, and clearing does not change the recording state. `startHistoryRecording()`, `stopHistoryRecording()`, and `clearHistory()` remain available alongside the panel's buttons.
 
-`overlayRefreshIntervalSeconds` defaults to `0.25f` and controls both overlays; history capture still runs every recorded frame. Clear, metric, recording-state, history-capacity, and graph-size changes refresh a visible chart immediately. `terminalLoggingIntervalSeconds` defaults to `2f`. Both intervals must be finite and positive. `historyLength` defaults to 240, accepts 1–16,384 samples, and retains the newest samples when resized.
+Every recorded frame captures all `DebugPerformanceMetric` values on one shared, bounded timeline, so all graphs belong to the same recording session and switching a graph's metric shows that metric's own samples without mixing in the previous metric. Each metric has a `displayName`, a `DebugPerformanceUnit` (`MILLISECONDS`, `FRAMES_PER_SECOND`, or `COUNT`), a `label` such as `Frame time (ms)` or `Entities drawn (count)`, and `format(value)`. All values come from the existing `RenderStats` and frame time:
+
+| Metric | Unit | Source |
+|---|---|---|
+| `FRAME_TIME` | ms | Frame delta |
+| `FRAMES_PER_SECOND` | FPS | Instantaneous `1 / frame delta`; zero for a zero-length frame |
+| `RENDER_TIME`, `STATIC_PLAN_TIME`, `DYNAMIC_PLAN_TIME` | ms | World CPU render and render-plan timings |
+| `DRAW_CALLS` | count | World batch render calls |
+| `GROUND_DRAWN`, `GROUND_TOTAL` | count | Ground terrain sprites drawn / ground tiles in the world |
+| `OVERLAYS_DRAWN`, `OVERLAYS_TOTAL` | count | Overlay terrain sprites drawn / non-empty overlay tiles |
+| `TERRAIN_CHECKED` | count | Ground and overlay terrain candidates visited by culling |
+| `OBJECTS_DRAWN`, `OBJECTS_CHECKED`, `OBJECTS_TOTAL` | count | Placed objects drawn / culling candidates / in the world |
+| `ENTITIES_DRAWN`, `ENTITIES_CHECKED`, `ENTITIES_TOTAL` | count | Entities drawn / culling candidates / in the world |
+| `PREVIEWS_DRAWN` | count | Placement previews drawn |
+| `STATIC_PLAN_UPDATES`, `STATIC_PLAN_CHECKS` | count | Static render-plan updates and relation checks |
+
+`historyGraphMetrics` accepts one to six metrics, top to bottom; changing it never clears captured history. Graphs use a zero baseline and rounded upper bounds with headroom; small changes preserve the scale, spikes expand it immediately, and much smaller values let it shrink. Changing a graph's metric restarts its scale. Frame time and frame rate include subtle 60/30 FPS budget lines when they fit the visible range, and large counts use compact `k`/`M` axis labels. Pixel-width buckets retain chronological minima/maxima and endpoints, preserving spikes without changing recorded history. Empty history shows **No captured samples** at the same graph size.
+
+`overlayRefreshIntervalSeconds` defaults to `0.25f` and controls both overlays; history capture still runs every recorded frame. Clear, graph, metric, recording-state, history-capacity, and graph-size changes refresh a visible chart immediately. `terminalLoggingIntervalSeconds` defaults to `2f`. Both intervals must be finite and positive. `historyLength` defaults to 240, accepts 1–16,384 samples per metric, and retains the newest samples when resized.
 
 Terminal output records completed-world-render metrics and periodically writes a `StrataPerf` libGDX log entry. It reports frame time and FPS, world CPU render time, static and dynamic render-plan work, terrain/object/entity drawn and checked counts, previews, and draw calls. The most recent raw `RenderStats` is readable from `strata.view.renderStats`.
 
