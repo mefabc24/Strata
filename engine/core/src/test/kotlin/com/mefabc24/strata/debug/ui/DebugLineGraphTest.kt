@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack
 import com.mefabc24.strata.debug.DebugPerformanceMetric
+import com.mefabc24.strata.debug.DebugPerformanceUnit
 import com.mefabc24.strata.testing.TestGdxEnvironment
 import com.mefabc24.strata.testing.defaultValue
 import com.mefabc24.strata.testing.proxy
@@ -24,6 +25,56 @@ class DebugLineGraphTest {
         assertEquals("1.0", performanceGraphAxisLabel(1.0, 1.0))
         assertEquals("0.5", performanceGraphAxisLabel(0.5, 1.0))
         assertEquals("200", performanceGraphAxisLabel(200.0, 200.0))
+    }
+
+    @Test
+    fun `axis labels follow the metric unit and keep large counts compact`() {
+        val count = DebugPerformanceUnit.COUNT
+        assertEquals("2", performanceGraphAxisLabel(2.0, 2.0, count))
+        assertEquals("1", performanceGraphAxisLabel(1.0, 2.0, count))
+        assertEquals("2.5", performanceGraphAxisLabel(2.5, 5.0, count))
+        assertEquals("500", performanceGraphAxisLabel(500.0, 1_000.0, count))
+        assertEquals("20k", performanceGraphAxisLabel(20_000.0, 20_000.0, count))
+        assertEquals("25k", performanceGraphAxisLabel(25_000.0, 50_000.0, count))
+        assertEquals("2M", performanceGraphAxisLabel(2_000_000.0, 2_000_000.0, count))
+        assertEquals("2.5M", performanceGraphAxisLabel(2_500_000.0, 5_000_000.0, count))
+        assertEquals("60.0", performanceGraphAxisLabel(60.0, 10.0, DebugPerformanceUnit.FRAMES_PER_SECOND))
+        assertEquals("100", performanceGraphAxisLabel(100.0, 100.0, DebugPerformanceUnit.FRAMES_PER_SECOND))
+    }
+
+    @Test
+    fun `frame rate and count graphs draw within the same batch lifecycle`() {
+        TestGdxEnvironment.install()
+        val skin = DebugPanelSkin.create()
+        val ui = StrataUi(skin, DebugPanelSkin.theme())
+        val style = skin.get("debug-secondary", Label.LabelStyle::class.java)
+        var lineDraws = 0
+        val calls = mutableListOf<String>()
+        val batch = proxy(Batch::class.java) { _, method, arguments ->
+            calls += method.name
+            if (method.name == "draw" && arguments!!.size == 10) lineDraws++
+            defaultValue(method.returnType)
+        }
+        try {
+            val graph = DebugLineGraph(TextureRegion(skin.get("debug-white", Texture::class.java)),
+                skin.get("title", Label.LabelStyle::class.java).fontColor, style)
+            ui.stage.addActor(graph)
+            graph.setBounds(20f, 20f, 440f, 180f)
+            for (metric in listOf(DebugPerformanceMetric.FRAMES_PER_SECOND, DebugPerformanceMetric.ENTITIES_DRAWN)) {
+                lineDraws = 0
+                val data = DebugPerformanceGraphData().apply {
+                    update(3, 380, metric.unit.minimumGraphRange) { 40.0 + it * 10 }
+                }
+                graph.show(data, metric)
+                graph.draw(batch, 1f)
+                assertEquals(2, lineDraws, metric.name)
+                assertTrue("begin" !in calls && "end" !in calls)
+                assertNull(ScissorStack.peekScissors())
+            }
+        } finally {
+            ui.dispose()
+            skin.dispose()
+        }
     }
 
     @Test

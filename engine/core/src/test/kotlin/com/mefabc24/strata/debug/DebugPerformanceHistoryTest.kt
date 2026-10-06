@@ -25,8 +25,41 @@ class DebugPerformanceHistoryTest {
             DebugPerformanceSummary(3, 3.0, 2.0, 4.0),
             history.summary(DebugPerformanceMetric.RENDER_TIME)
         )
-        assertEquals(0.2, history.summary(DebugPerformanceMetric.STATIC_PLAN_TIME)!!.minimumMs)
-        assertEquals(2.0, history.summary(DebugPerformanceMetric.DYNAMIC_PLAN_TIME)!!.maximumMs)
+        assertEquals(0.2, history.summary(DebugPerformanceMetric.STATIC_PLAN_TIME)!!.minimum)
+        assertEquals(2.0, history.summary(DebugPerformanceMetric.DYNAMIC_PLAN_TIME)!!.maximum)
+    }
+
+    @Test
+    fun `every frame captures count and rate metrics on the shared bounded timeline`() {
+        val history = DebugPerformanceHistory(2).apply { recording = true }
+        listOf(10 to 0.010f, 20 to 0.020f, 40 to 0.025f).forEach { (entities, frameSeconds) ->
+            history.record(
+                RenderStats().apply {
+                    entitiesDrawn = entities
+                    entitiesTotal = 50
+                    drawCalls = entities / 10
+                },
+                frameSeconds
+            )
+        }
+
+        assertEquals(2, history.size)
+        assertContentEquals(doubleArrayOf(20.0, 40.0), history.samples(DebugPerformanceMetric.ENTITIES_DRAWN))
+        assertContentEquals(doubleArrayOf(50.0, 50.0), history.samples(DebugPerformanceMetric.ENTITIES_TOTAL))
+        assertContentEquals(doubleArrayOf(2.0, 4.0), history.samples(DebugPerformanceMetric.DRAW_CALLS))
+        val rates = history.samples(DebugPerformanceMetric.FRAMES_PER_SECOND)
+        assertEquals(50.0, rates[0], 0.001)
+        assertEquals(40.0, rates[1], 0.001)
+        assertEquals(
+            DebugPerformanceSummary(2, 30.0, 20.0, 40.0),
+            history.summary(DebugPerformanceMetric.ENTITIES_DRAWN)
+        )
+        DebugPerformanceMetric.entries.forEach { metric ->
+            assertEquals(2, history.samples(metric).size, metric.name)
+        }
+        history.capacity = 1
+        assertContentEquals(doubleArrayOf(40.0), history.samples(DebugPerformanceMetric.ENTITIES_DRAWN))
+        assertEquals(40.0, history.samples(DebugPerformanceMetric.FRAMES_PER_SECOND)[0], 0.001)
     }
 
     @Test
@@ -56,7 +89,7 @@ class DebugPerformanceHistoryTest {
         record(history, render = 9.0)
 
         assertEquals(1, history.size)
-        assertEquals(2.0, history.summary(DebugPerformanceMetric.RENDER_TIME)?.averageMs)
+        assertEquals(2.0, history.summary(DebugPerformanceMetric.RENDER_TIME)?.average)
 
         history.clear()
         assertEquals(0, history.size)

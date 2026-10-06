@@ -45,7 +45,7 @@ class DebugPerformanceHistoryOverlayTest {
         settings.historyOverlayEnabled = true
         assertTrue(state.update(0f, 100))
         assertEquals(2, state.graph.sampleCount)
-        assertEquals(9.0, state.graph.currentMs)
+        assertEquals(9.0, state.graph.current)
         settings.historyOverlayEnabled = false
         state.update(1f, 100)
         settings.record(stats(4.0), 0.018f)
@@ -54,7 +54,7 @@ class DebugPerformanceHistoryOverlayTest {
         settings.historyOverlayEnabled = true
         assertTrue(state.update(0f, 100))
         assertEquals(3, state.graph.sampleCount)
-        assertEquals(4.0, state.graph.currentMs)
+        assertEquals(4.0, state.graph.current)
         assertFalse(state.recording)
     }
 
@@ -68,7 +68,7 @@ class DebugPerformanceHistoryOverlayTest {
         val state = DebugPerformanceHistoryOverlayState(settings)
         settings.record(stats(3.0), 0.02f)
         assertTrue(state.update(0f, 100))
-        assertEquals(20.0, state.graph.currentMs!!, 0.001)
+        assertEquals(20.0, state.graph.current!!, 0.001)
         for ((metric, value) in listOf(
             DebugPerformanceMetric.RENDER_TIME to 3.0,
             DebugPerformanceMetric.STATIC_PLAN_TIME to 1.5,
@@ -76,7 +76,7 @@ class DebugPerformanceHistoryOverlayTest {
         )) {
             settings.historyMetric = metric
             assertTrue(state.update(0f, 100))
-            assertEquals(value, state.graph.currentMs)
+            assertEquals(value, state.graph.current)
         }
         settings.historyMetric = DebugPerformanceMetric.RENDER_TIME
         settings.record(stats(6.0), 0.02f)

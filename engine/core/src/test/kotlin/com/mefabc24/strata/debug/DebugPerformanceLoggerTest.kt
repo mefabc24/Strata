@@ -132,7 +132,7 @@ class DebugPerformanceLoggerTest {
         assertEquals(1, performance.history.size)
         assertEquals(3.0, performance.history.summary(
             DebugPerformanceMetric.RENDER_TIME
-        )?.averageMs)
+        )?.average)
 
         performance.clearHistory()
         assertEquals(0, performance.history.size)
