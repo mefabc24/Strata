@@ -1,8 +1,15 @@
 package com.mefabc24.strata.debug.ui
 
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.mefabc24.strata.debug.DebugPerformanceMetric
 import com.mefabc24.strata.debug.DebugPerformanceSettings
 import com.mefabc24.strata.render.RenderStats
+import com.mefabc24.strata.testing.TestGdxEnvironment
+import com.mefabc24.strata.ui.StrataUi
+import kotlin.math.floor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -110,6 +117,41 @@ class DebugPerformanceHistoryOverlayTest {
         assertEquals(5, state.graph.sampleCount)
         assertTrue(state.update(0f, 80))
     }
+
+    @Test
+    fun `panel text renders at native font scale on whole pixel bounds`() {
+        TestGdxEnvironment.install()
+        val skin = DebugPanelSkin.create()
+        val ui = StrataUi(skin, DebugPanelSkin.theme())
+        val settings = DebugPerformanceSettings().apply {
+            historyOverlayEnabled = true
+            historyRecording = true
+        }
+        try {
+            val overlay = DebugPerformanceHistoryOverlay(ui, settings)
+            settings.record(stats(2.0), 0.016f)
+            overlay.position(1280f, 720f, left = 86.4f, rightEdge = 903.7f, bottom = 70.5f)
+            overlay.update(0f)
+            val panel = ui.stage.root.findActor<Table>("debug-performance-history")
+            for (value in listOf(panel.x, panel.y, panel.width, panel.height)) {
+                assertEquals(floor(value), value, "Panel bounds must stay on whole pixels")
+            }
+            assertTrue(panel.x >= 86.4f && panel.y >= 70.5f)
+            assertTrue(panel.x + panel.width <= 903.7f - DebugWindowLayout.OVERLAY_GAP)
+            val labels = descendants(panel).filterIsInstance<Label>()
+            assertTrue(labels.any { it.text.startsWith("Avg") })
+            labels.forEach { label ->
+                assertEquals(1f, label.fontScaleX, "${label.text} must not resample the bitmap font")
+                assertEquals(1f, label.fontScaleY, "${label.text} must not resample the bitmap font")
+            }
+        } finally {
+            ui.dispose()
+            skin.dispose()
+        }
+    }
+
+    private fun descendants(actor: Actor): List<Actor> = listOf(actor) +
+        if (actor is Group) actor.children.flatMap(::descendants) else emptyList()
 
     private fun stats(value: Double) = RenderStats().apply {
         cpuRenderMs = value
