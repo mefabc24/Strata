@@ -91,31 +91,6 @@ internal class DebugSettingsWindowBuilder(
                         settings.operations.worldStats.enabled = it
                     }
                 )
-        }
-        performance.settingsExpander("History & logging") {
-                toggleRows(
-                    toggle("History recording", { settings.operations.performance.historyRecording }) {
-                        settings.operations.performance.historyRecording = it
-                    }
-                )
-                boundStepper(
-                    "History length",
-                    { settings.operations.performance.historyLength.toFloat() },
-                    1f,
-                    16_384f,
-                    10f
-                ) { settings.operations.performance.historyLength = it.toInt() }
-                boundDropdown(
-                    "Graph metric",
-                    DebugPerformanceMetric.entries,
-                    { settings.operations.performance.historyGraphMetrics.first() },
-                    { it.displayName }
-                ) { metric ->
-                    settings.operations.performance.historyGraphs.graphs.first().metric = metric
-                }
-                compactAction("Clear performance history") {
-                    settings.operations.performance.clearHistory()
-                }
                 boundStepper(
                     "Overlay refresh",
                     { settings.operations.performance.overlayRefreshIntervalSeconds },
@@ -123,11 +98,13 @@ internal class DebugSettingsWindowBuilder(
                     5f,
                     0.05f
                 ) { settings.operations.performance.overlayRefreshIntervalSeconds = it }
-                toggleRows(
-                    toggle("Terminal logging", { settings.operations.performance.terminalLoggingEnabled }) {
-                        settings.operations.performance.terminalLoggingEnabled = it
-                    }
-                )
+        }
+        // Performance History recording, graphs, and length are controlled inside its own panel.
+        performance.featureExpander(
+            "Terminal logging",
+            { settings.operations.performance.terminalLoggingEnabled },
+            { settings.operations.performance.terminalLoggingEnabled = it }
+        ) {
                 boundStepper(
                     "Terminal interval",
                     { settings.operations.performance.terminalLoggingIntervalSeconds },
