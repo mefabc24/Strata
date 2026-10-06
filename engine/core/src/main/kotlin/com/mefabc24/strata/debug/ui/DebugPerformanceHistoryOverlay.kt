@@ -9,7 +9,6 @@ import com.mefabc24.strata.debug.DebugPerformanceMetric
 import com.mefabc24.strata.debug.DebugPerformanceSettings
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataUi
-import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -71,17 +70,16 @@ internal class DebugPerformanceHistoryOverlay(ui: StrataUi, private val settings
         val refreshed = state.update(delta, graph.plotWidth.toInt())
         panel.isVisible = state.visible
         if (!refreshed) return
-        metric.setText("${settings.historyMetric.name.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase() }} (ms)")
-        graph.show(state.graph, settings.historyMetric)
+        val shown = settings.historyMetric
+        metric.setText(shown.label)
+        graph.show(state.graph, shown)
         summary.setText(state.graph.summary?.let {
-            "Avg ${ms(it.averageMs)} ms    Min ${ms(it.minimumMs)} ms    Max ${ms(it.maximumMs)} ms"
-        } ?: "Avg -- ms    Min -- ms    Max -- ms")
-        current.setText("Current ${state.graph.currentMs?.let(::ms) ?: "--"} ms")
+            "Avg ${shown.format(it.average)}    Min ${shown.format(it.minimum)}    Max ${shown.format(it.maximum)}"
+        } ?: "Avg --    Min --    Max --")
+        current.setText("Current ${state.graph.current?.let(shown::format) ?: "--"}")
         samples.setText("Samples ${state.graph.sampleCount}")
         recording.setText(if (state.recording) "Recording" else "Stopped")
     }
-
-    private fun ms(value: Double) = String.format(Locale.ROOT, "%.2f", value)
 }
 
 /** Refresh policy and graph data are independent of both capture and live stats visibility. */
@@ -112,7 +110,10 @@ internal class DebugPerformanceHistoryOverlayState(private val settings: DebugPe
         if (!forced && elapsed < settings.overlayRefreshIntervalSeconds) return false
         // Metrics have different magnitudes; do not inherit another metric's axis hysteresis.
         if (metricChanged) graph = DebugPerformanceGraphData()
-        graph.update(settings.history.size, plotWidth) { settings.history.sampleAt(settings.historyMetric, it) }
+        val metric = settings.historyMetric
+        graph.update(settings.history.size, plotWidth, metric.unit.minimumGraphRange) {
+            settings.history.sampleAt(metric, it)
+        }
         displayedMetric = settings.historyMetric
         displayedRevision = settings.history.structureRevision
         displayedWidth = plotWidth

@@ -19,21 +19,26 @@ internal class DebugPerformanceGraphData {
         private set
     var summary: DebugPerformanceSummary? = null
         private set
-    var currentMs: Double? = null
+    var current: Double? = null
         private set
 
     fun sampleIndex(point: Int): Int = indices[point]
     fun value(point: Int): Double = values[point]
 
-    /** Reads the complete series once; only bucket extrema become plotted points. */
-    fun update(count: Int, plotWidth: Int, sampleAt: (Int) -> Double) {
+    /**
+     * Reads the complete series once; only bucket extrema become plotted points.
+     *
+     * [minimumRange] is the smallest upper bound, in the series' unit, used for idle or zero series.
+     */
+    fun update(count: Int, plotWidth: Int, minimumRange: Double = 0.1, sampleAt: (Int) -> Double) {
         require(count >= 0)
+        require(minimumRange.isFinite() && minimumRange > 0.0)
         sampleCount = count
         pointCount = 0
         if (count == 0) {
             summary = null
-            currentMs = null
-            maximumY = 1.0
+            current = null
+            maximumY = maxOf(1.0, minimumRange)
             return
         }
         val buckets = maxOf(1, plotWidth / 2)
@@ -92,16 +97,16 @@ internal class DebugPerformanceGraphData {
                     emit(index, value)
                 }
             }
-            currentMs = value
+            current = value
         }
         summary = DebugPerformanceSummary(count, sum / count, minimum, maximum)
-        val desired = niceUpperBound(maximum)
+        val desired = niceUpperBound(maximum, minimumRange)
         // Below 30%, even a 2-to-5 scale step cannot oscillate near its headroom boundary.
         if (desired > maximumY || maximum < maximumY * 0.30) maximumY = desired
     }
 
-    private fun niceUpperBound(maximum: Double): Double {
-        val target = maxOf(0.1, maximum * 1.1)
+    private fun niceUpperBound(maximum: Double, minimumRange: Double): Double {
+        val target = maxOf(minimumRange, maximum * 1.1)
         val magnitude = 10.0.pow(floor(log10(target)))
         val fraction = target / magnitude
         val step = when {

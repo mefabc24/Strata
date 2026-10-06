@@ -9,8 +9,10 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.mefabc24.strata.debug.DebugPerformanceMetric
+import com.mefabc24.strata.debug.DebugPerformanceUnit
 import java.util.Locale
 import kotlin.math.atan2
+import kotlin.math.floor
 import kotlin.math.hypot
 
 /** Lines are textured quads in the stage's existing batch; no renderer or batch restart. */
@@ -28,6 +30,7 @@ internal class DebugLineGraph(
     private val emptyText = GlyphLayout(labelStyle.font, "No captured samples")
     private var upperLabel = "1"
     private var middleLabel = "0.5"
+    private var zeroLabel = "0 ms"
     val plotWidth: Float get() = maxOf(1f, width - LEFT - RIGHT)
     private val plotHeight: Float get() = maxOf(1f, height - BOTTOM - TOP)
 
@@ -36,8 +39,9 @@ internal class DebugLineGraph(
     fun show(data: DebugPerformanceGraphData, metric: DebugPerformanceMetric) {
         this.data = data
         this.metric = metric
-        upperLabel = performanceGraphAxisLabel(data.maximumY, data.maximumY)
-        middleLabel = performanceGraphAxisLabel(data.maximumY / 2, data.maximumY)
+        upperLabel = performanceGraphAxisLabel(data.maximumY, data.maximumY, metric.unit)
+        middleLabel = performanceGraphAxisLabel(data.maximumY / 2, data.maximumY, metric.unit)
+        zeroLabel = if (metric.unit.symbol.isEmpty()) "0" else "0 ${metric.unit.symbol}"
         invalidate()
     }
 
@@ -79,7 +83,7 @@ internal class DebugLineGraph(
             font.setColor(labelStyle.fontColor.r, labelStyle.fontColor.g, labelStyle.fontColor.b, alpha)
             font.draw(batch, upperLabel, x + 2, y + BOTTOM + plotHeight)
             font.draw(batch, middleLabel, x + 2, y + BOTTOM + plotHeight / 2 + font.capHeight / 2)
-            font.draw(batch, "0 ms", x + 2, y + BOTTOM + font.capHeight)
+            font.draw(batch, zeroLabel, x + 2, y + BOTTOM + font.capHeight)
 
             // Flush on either side of the scissor, preserving the Scene2D batch lifecycle.
             batch.flush()
@@ -90,11 +94,22 @@ internal class DebugLineGraph(
                         font.draw(batch, emptyText, x + LEFT + (plotWidth - emptyText.width) / 2,
                             y + BOTTOM + (plotHeight + emptyText.height) / 2)
                     } else {
-                        if (metric == DebugPerformanceMetric.FRAME_TIME) {
-                            val labelSpacing = (1000.0 / 60 / graph.maximumY).toFloat() * plotHeight
-                            reference(batch, graph, 1000.0 / 60, "60 FPS", alpha,
-                                labelSpacing >= font.lineHeight + 3f)
-                            reference(batch, graph, 1000.0 / 30, "30 FPS", alpha)
+                        val budgets = when (metric) {
+                            DebugPerformanceMetric.FRAME_TIME -> FRAME_TIME_BUDGETS
+                            DebugPerformanceMetric.FRAMES_PER_SECOND -> FRAME_RATE_BUDGETS
+                            else -> null
+                        }
+                        if (budgets != null) {
+                            // Ascending lines; a label is skipped when it would overlap the one below.
+                            var labelledY = 0f
+                            for (budget in budgets.values.indices) {
+                                val value = budgets.values[budget]
+                                val lineY = (value / graph.maximumY).toFloat() * plotHeight
+                                val showLabel = lineY - labelledY >= font.lineHeight + 3f
+                                if (reference(batch, graph, value, budgets.labels[budget], alpha, showLabel)) {
+                                    labelledY = lineY
+                                }
+                            }
                         }
                         batch.setColor(lineColor.r, lineColor.g, lineColor.b, alpha)
                         if (graph.pointCount == 1) {
@@ -118,11 +133,12 @@ internal class DebugLineGraph(
         }
     }
 
+    /** Draws a budget line inside the range; returns whether its label was drawn. */
     private fun reference(
         batch: Batch, graph: DebugPerformanceGraphData, value: Double, text: String,
-        alpha: Float, showLabel: Boolean = true
-    ) {
-        if (value >= graph.maximumY) return
+        alpha: Float, showLabel: Boolean
+    ): Boolean {
+        if (value >= graph.maximumY) return false
         val lineY = BOTTOM + (value / graph.maximumY).toFloat() * plotHeight
         batch.setColor(lineColor.r, lineColor.g, lineColor.b, alpha * 0.25f)
         rect(batch, LEFT, lineY, plotWidth, 1f)
@@ -130,6 +146,7 @@ internal class DebugLineGraph(
             labelStyle.font.setColor(lineColor.r, lineColor.g, lineColor.b, alpha * 0.65f)
             labelStyle.font.draw(batch, text, x + LEFT + plotWidth - 52f, y + lineY + labelStyle.font.capHeight + 3f)
         }
+        return showLabel
     }
 
     private fun pointX(graph: DebugPerformanceGraphData, point: Int): Float = LEFT +
@@ -147,12 +164,29 @@ internal class DebugLineGraph(
         const val RIGHT = 8f
         const val BOTTOM = 8f
         const val TOP = 8f
+        val FRAME_TIME_BUDGETS = Budgets(doubleArrayOf(1000.0 / 60, 1000.0 / 30), arrayOf("60 FPS", "30 FPS"))
+        val FRAME_RATE_BUDGETS = Budgets(doubleArrayOf(30.0, 60.0), arrayOf("30 FPS", "60 FPS"))
     }
+
+    /** Frame-budget reference lines in ascending value order. */
+    private class Budgets(val values: DoubleArray, val labels: Array<String>)
 }
 
-internal fun performanceGraphAxisLabel(value: Double, upperBound: Double): String =
-    String.format(Locale.ROOT, when {
+internal fun performanceGraphAxisLabel(
+    value: Double,
+    upperBound: Double,
+    unit: DebugPerformanceUnit = DebugPerformanceUnit.MILLISECONDS
+): String = when {
+    // Large counts stay within the fixed axis gutter.
+    upperBound >= 1_000_000 -> compactAxisValue(value / 1_000_000, "M")
+    upperBound >= 10_000 -> compactAxisValue(value / 1_000, "k")
+    unit == DebugPerformanceUnit.COUNT -> String.format(Locale.ROOT, if (value == floor(value)) "%.0f" else "%.1f", value)
+    else -> String.format(Locale.ROOT, when {
         upperBound >= 20 -> "%.0f"
         upperBound >= 1 -> "%.1f"
         else -> "%.2f"
     }, value)
+}
+
+private fun compactAxisValue(value: Double, suffix: String): String =
+    String.format(Locale.ROOT, if (value == floor(value)) "%.0f%s" else "%.1f%s", value, suffix)
