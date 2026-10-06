@@ -56,6 +56,8 @@ internal object DebugVisualConfigurationCodec {
                 )
             } else if (version == 1 && entry.name in LEGACY_FEATURE_GATES) {
                 values[entry.name] = decodeValue(entry.asString(), false)
+            } else if (version < 7 && entry.name == DebugVisualConfigurationBindings.LEGACY_HISTORY_METRIC) {
+                values[entry.name] = decodeValue(entry.asString(), DebugPerformanceMetric.FRAME_TIME)
             }
 
             entry = entry.next
@@ -73,19 +75,8 @@ internal object DebugVisualConfigurationCodec {
             "color:${value.r},${value.g},${value.b},${value.a}"
         }
         is Enum<*> -> "enum:${value.name}"
-        is Set<*> -> {
-            val array = JsonValue(JsonValue.ValueType.array)
-
-            value.forEach { element ->
-                require(element is String) {
-                    "Debug configuration sets must contain strings."
-                }
-
-                array.addChild(JsonValue(element))
-            }
-
-            "set:${array.toJson(JsonWriter.OutputType.json)}"
-        }
+        is Set<*> -> "set:${encodeStrings(value, "sets")}"
+        is List<*> -> "list:${encodeStrings(value, "lists")}"
 
         else -> error(
             "Unsupported debug setting type: ${value::class.simpleName}"
@@ -126,21 +117,37 @@ internal object DebugVisualConfigurationCodec {
                     .first { (it as Enum<*>).name == value }
             }
 
-            "set" -> {
-                val array = JsonReader().parse(value)
-                val result = mutableSetOf<String>()
-
-                var item = array.child
-                while (item != null) {
-                    result += item.asString()
-                    item = item.next
-                }
-
-                result
-            }
+            "set" -> decodeStrings(value).toMutableSet()
+            "list" -> decodeStrings(value)
 
             else -> error("Unsupported debug value type: $type")
         }
+    }
+
+    private fun encodeStrings(values: Collection<*>, kind: String): String {
+        val array = JsonValue(JsonValue.ValueType.array)
+
+        values.forEach { element ->
+            require(element is String) {
+                "Debug configuration $kind must contain strings."
+            }
+
+            array.addChild(JsonValue(element))
+        }
+
+        return array.toJson(JsonWriter.OutputType.json)
+    }
+
+    private fun decodeStrings(json: String): List<String> {
+        val result = mutableListOf<String>()
+
+        var item = JsonReader().parse(json).child
+        while (item != null) {
+            result += item.asString()
+            item = item.next
+        }
+
+        return result
     }
 
     private val LEGACY_FEATURE_GATES = setOf(

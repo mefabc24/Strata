@@ -108,9 +108,11 @@ internal class DebugSettingsWindowBuilder(
                 boundDropdown(
                     "Graph metric",
                     DebugPerformanceMetric.entries,
-                    { settings.operations.performance.historyMetric },
-                    { it.name.toDisplayName() }
-                ) { settings.operations.performance.historyMetric = it }
+                    { settings.operations.performance.historyGraphMetrics.first() },
+                    { it.displayName }
+                ) { metric ->
+                    settings.operations.performance.historyGraphs.graphs.first().metric = metric
+                }
                 compactAction("Clear performance history") {
                     settings.operations.performance.clearHistory()
                 }

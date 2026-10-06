@@ -94,8 +94,17 @@ class DebugPerformanceSettings internal constructor() {
         get() = history.recording
         set(value) { history.recording = value }
 
-    /** Metric shown by the performance history graph. */
-    var historyMetric: DebugPerformanceMetric = DebugPerformanceMetric.FRAME_TIME
+    internal val historyGraphs = DebugPerformanceHistoryGraphs()
+
+    /**
+     * Metrics shown by the Performance History graphs, top to bottom.
+     *
+     * Accepts one to six metrics; every graph reads the same recording, so changing this never
+     * clears or restarts captured history.
+     */
+    var historyGraphMetrics: List<DebugPerformanceMetric>
+        get() = historyGraphs.metrics
+        set(value) { historyGraphs.metrics = value }
 
     fun startHistoryRecording() {
         history.recording = true

@@ -70,7 +70,7 @@ internal class DebugPerformanceHistoryOverlay(ui: StrataUi, private val settings
         val refreshed = state.update(delta, graph.plotWidth.toInt())
         panel.isVisible = state.visible
         if (!refreshed) return
-        val shown = settings.historyMetric
+        val shown = settings.historyGraphMetrics.first()
         metric.setText(shown.label)
         graph.show(state.graph, shown)
         summary.setText(state.graph.summary?.let {
@@ -103,18 +103,18 @@ internal class DebugPerformanceHistoryOverlayState(private val settings: DebugPe
             return false
         }
         elapsed += delta
-        val metricChanged = displayedMetric != settings.historyMetric
+        val metric = settings.historyGraphs.graphs.first().metric
+        val metricChanged = displayedMetric != metric
         val forced = !visible || metricChanged || recording != settings.historyRecording ||
             displayedRevision != settings.history.structureRevision || displayedWidth != plotWidth
         visible = true
         if (!forced && elapsed < settings.overlayRefreshIntervalSeconds) return false
         // Metrics have different magnitudes; do not inherit another metric's axis hysteresis.
         if (metricChanged) graph = DebugPerformanceGraphData()
-        val metric = settings.historyMetric
         graph.update(settings.history.size, plotWidth, metric.unit.minimumGraphRange) {
             settings.history.sampleAt(metric, it)
         }
-        displayedMetric = settings.historyMetric
+        displayedMetric = metric
         displayedRevision = settings.history.structureRevision
         displayedWidth = plotWidth
         recording = settings.historyRecording

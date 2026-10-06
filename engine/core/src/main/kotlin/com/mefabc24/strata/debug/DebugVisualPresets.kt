@@ -27,7 +27,11 @@ class DebugVisualConfiguration internal constructor(
 )
 
 internal object DebugVisualConfigurationBindings {
-    internal const val VERSION = 6
+    internal const val VERSION = 7
+
+    /** Single graph metric saved before Performance History supported several graphs. */
+    internal const val LEGACY_HISTORY_METRIC = "performance.historyMetric"
+    private const val HISTORY_GRAPHS = "performance.historyGraphs"
 
     private interface Binding {
         val key: String
@@ -61,12 +65,13 @@ internal object DebugVisualConfigurationBindings {
 
     private val colorCopy: (Color) -> Color = { it.cpy() }
     private val setCopy: (Set<String>) -> Set<String> = { it.toSet() }
+    private val listCopy: (List<String>) -> List<String> = { it.toList() }
 
     private val bindings = listOf(
         binding("filter", DebugVisualCategory.GENERAL, { it.visuals.filter }, { s, v -> s.visuals.filter = v }),
         binding("performance.overlay", DebugVisualCategory.GENERAL, { it.operations.performance.overlayEnabled }, { s, v -> s.operations.performance.overlayEnabled = v }),
         binding("performance.historyOverlay", DebugVisualCategory.GENERAL, { it.operations.performance.historyOverlayEnabled }, { s, v -> s.operations.performance.historyOverlayEnabled = v }),
-        binding("performance.historyMetric", DebugVisualCategory.GENERAL, { it.operations.performance.historyMetric }, { s, v -> s.operations.performance.historyMetric = v }),
+        binding(HISTORY_GRAPHS, DebugVisualCategory.GENERAL, { it.operations.performance.historyGraphMetrics.map(DebugPerformanceMetric::name) }, { s, v -> s.operations.performance.historyGraphMetrics = historyGraphMetrics(v) }, listCopy),
         binding("performance.overlayInterval", DebugVisualCategory.GENERAL, { it.operations.performance.overlayRefreshIntervalSeconds }, { s, v -> s.operations.performance.overlayRefreshIntervalSeconds = v }),
         binding("grid.enabled", DebugVisualCategory.GRID, { it.visuals.grid.enabled }, { s, v -> s.visuals.grid.enabled = v }),
         binding("grid.layer", DebugVisualCategory.GRID, { it.visuals.grid.renderLayer }, { s, v -> s.visuals.grid.renderLayer = v }),
@@ -190,6 +195,9 @@ internal object DebugVisualConfigurationBindings {
         if (configuration.version < 5) {
             values = migratePickingActivation(values)
         }
+        if (configuration.version < 7) {
+            values = migrateHistoryGraphs(values)
+        }
 
         bindings.forEach { binding ->
             if (values.containsKey(binding.key)) {
@@ -255,6 +263,17 @@ internal object DebugVisualConfigurationBindings {
                 (values["picking.bounds"] == true || values["picking.cursor"] == true)
             )
     }
+
+    private fun migrateHistoryGraphs(values: Map<String, Any?>): Map<String, Any?> {
+        val metric = values[LEGACY_HISTORY_METRIC] as? DebugPerformanceMetric ?: return values
+        return values - LEGACY_HISTORY_METRIC + (HISTORY_GRAPHS to listOf(metric.name))
+    }
+
+    /** Ignores metrics this engine version no longer knows instead of rejecting the whole configuration. */
+    private fun historyGraphMetrics(names: List<String>): List<DebugPerformanceMetric> = names
+        .mapNotNull { name -> DebugPerformanceMetric.entries.firstOrNull { it.name == name } }
+        .take(DebugPerformanceHistoryGraphs.MAXIMUM_GRAPHS)
+        .ifEmpty { listOf(DebugPerformanceMetric.FRAME_TIME) }
 
     fun reset(settings: DebugSettings, category: DebugVisualCategory? = null) {
         val defaults = DebugSettings()
