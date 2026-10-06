@@ -36,8 +36,8 @@ internal class DebugLineGraph(
     fun show(data: DebugPerformanceGraphData, metric: DebugPerformanceMetric) {
         this.data = data
         this.metric = metric
-        upperLabel = format(data.maximumY)
-        middleLabel = format(data.maximumY / 2)
+        upperLabel = performanceGraphAxisLabel(data.maximumY, data.maximumY)
+        middleLabel = performanceGraphAxisLabel(data.maximumY / 2, data.maximumY)
         invalidate()
     }
 
@@ -91,7 +91,9 @@ internal class DebugLineGraph(
                             y + BOTTOM + (plotHeight + emptyText.height) / 2)
                     } else {
                         if (metric == DebugPerformanceMetric.FRAME_TIME) {
-                            reference(batch, graph, 1000.0 / 60, "60 FPS", alpha)
+                            val labelSpacing = (1000.0 / 60 / graph.maximumY).toFloat() * plotHeight
+                            reference(batch, graph, 1000.0 / 60, "60 FPS", alpha,
+                                labelSpacing >= font.lineHeight + 3f)
                             reference(batch, graph, 1000.0 / 30, "30 FPS", alpha)
                         }
                         batch.setColor(lineColor.r, lineColor.g, lineColor.b, alpha)
@@ -116,13 +118,18 @@ internal class DebugLineGraph(
         }
     }
 
-    private fun reference(batch: Batch, graph: DebugPerformanceGraphData, value: Double, text: String, alpha: Float) {
+    private fun reference(
+        batch: Batch, graph: DebugPerformanceGraphData, value: Double, text: String,
+        alpha: Float, showLabel: Boolean = true
+    ) {
         if (value >= graph.maximumY) return
         val lineY = BOTTOM + (value / graph.maximumY).toFloat() * plotHeight
         batch.setColor(lineColor.r, lineColor.g, lineColor.b, alpha * 0.25f)
         rect(batch, LEFT, lineY, plotWidth, 1f)
-        labelStyle.font.setColor(lineColor.r, lineColor.g, lineColor.b, alpha * 0.65f)
-        labelStyle.font.draw(batch, text, x + LEFT + plotWidth - 52f, y + lineY + labelStyle.font.capHeight + 3f)
+        if (showLabel) {
+            labelStyle.font.setColor(lineColor.r, lineColor.g, lineColor.b, alpha * 0.65f)
+            labelStyle.font.draw(batch, text, x + LEFT + plotWidth - 52f, y + lineY + labelStyle.font.capHeight + 3f)
+        }
     }
 
     private fun pointX(graph: DebugPerformanceGraphData, point: Int): Float = LEFT +
@@ -135,8 +142,6 @@ internal class DebugLineGraph(
     private fun rect(batch: Batch, left: Float, bottom: Float, w: Float, h: Float) =
         batch.draw(pixel, x + left, y + bottom, w, h)
 
-    private fun format(value: Double): String = String.format(Locale.ROOT, if (value >= 10) "%.0f" else "%.1f", value)
-
     private companion object {
         const val LEFT = 52f
         const val RIGHT = 8f
@@ -144,3 +149,10 @@ internal class DebugLineGraph(
         const val TOP = 8f
     }
 }
+
+internal fun performanceGraphAxisLabel(value: Double, upperBound: Double): String =
+    String.format(Locale.ROOT, when {
+        upperBound >= 20 -> "%.0f"
+        upperBound >= 1 -> "%.1f"
+        else -> "%.2f"
+    }, value)

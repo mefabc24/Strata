@@ -96,8 +96,8 @@ internal class DebugPerformanceGraphData {
         }
         summary = DebugPerformanceSummary(count, sum / count, minimum, maximum)
         val desired = niceUpperBound(maximum)
-        // Expand immediately, but shrink only when the data uses less than 35% of the range.
-        if (desired > maximumY || maximum < maximumY * 0.35) maximumY = desired
+        // Below 30%, even a 2-to-5 scale step cannot oscillate near its headroom boundary.
+        if (desired > maximumY || maximum < maximumY * 0.30) maximumY = desired
     }
 
     private fun niceUpperBound(maximum: Double): Double {
