@@ -100,7 +100,7 @@ strata.debug.applyDefaultVisualConfiguration()
 
 `saveDefaultVisualConfiguration()` captures the current visual configuration, updates the in-memory DEFAULT, and persists it when storage is configured. Without storage it still updates the in-memory DEFAULT for the current run.
 
-DEFAULT captures visual presentation, including the performance overlay and its refresh interval, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording, simulation runtime state, Event Bus visibility/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
+DEFAULT captures visual presentation, including the live Performance overlay, Performance History overlay and graph metric, their shared refresh interval, world statistics overlay, Event Monitor presentation, and notification position. It deliberately excludes UI availability/visibility, tool settings and selection, terminal logging, performance history recording and capacity, simulation runtime state, Event Bus visibility/capture state, notification activation and queue contents, camera restriction overrides, entity freeze state, and other operational state.
 
 The old `defaultPresetStorage(...)` helper is not part of the current API. Use `presets { storage(...) }`.
 
@@ -132,6 +132,7 @@ Built-in presets reset the preset-managed visual flags before applying their sel
 ```kotlin
 strata.debug.operations.performance.apply {
     overlayEnabled = true
+    historyOverlayEnabled = true
     overlayRefreshIntervalSeconds = 0.25f
     terminalLoggingEnabled = true
     terminalLoggingIntervalSeconds = 2f
@@ -141,7 +142,13 @@ strata.debug.operations.performance.apply {
 }
 ```
 
-The overlay, terminal logger, and history recorder are independent. All are disabled by default. The overlay refresh interval defaults to `0.25f` seconds, the terminal interval to `2f` seconds, and the history capacity to 240 samples. Both intervals must be finite and greater than zero. Changing the overlay interval takes effect during the current refresh window without changing frame-statistics collection, history capture, or terminal logging.
+The live **Performance** overlay shows only current renderer statistics with a fixed set of rows. The separate **Performance History** overlay shows a graphical line chart, current/average/minimum/maximum milliseconds, sample count, and Recording/Stopped state. Its default position is on the left, above the Simulation rail, with room reserved for the Tool Rail, tool flyout, Debug Window, and live stats stack. On small viewports the chart panel fits the remaining space and clips its contents.
+
+Both overlays, terminal logging, and history recording are independently disabled by default. Showing history does not start recording. Recording continues with either overlay hidden; stopping or hiding retains captured samples. Use `clearHistory()` or **Clear performance history** to clear them. `startHistoryRecording()` and `stopHistoryRecording()` remain available, alongside the Debug Window's **History recording** toggle.
+
+`historyMetric` selects `FRAME_TIME`, `RENDER_TIME`, `STATIC_PLAN_TIME`, or `DYNAMIC_PLAN_TIME`. The graph uses a zero baseline and rounded upper bounds with headroom; small changes preserve the scale, spikes expand it immediately, and much smaller values let it shrink. Frame time alone includes subtle 60/30 FPS budget lines when they fit the visible range. Pixel-width buckets retain chronological minima/maxima and endpoints, preserving spikes without changing recorded history. Empty history shows **No captured samples** at the same panel size.
+
+`overlayRefreshIntervalSeconds` defaults to `0.25f` and controls both overlays; history capture still runs every recorded frame. Clear, metric, recording-state, history-capacity, and graph-size changes refresh a visible chart immediately. `terminalLoggingIntervalSeconds` defaults to `2f`. Both intervals must be finite and positive. `historyLength` defaults to 240, accepts 1–16,384 samples, and retains the newest samples when resized.
 
 Terminal output records completed-world-render metrics and periodically writes a `StrataPerf` libGDX log entry. It reports frame time and FPS, world CPU render time, static and dynamic render-plan work, terrain/object/entity drawn and checked counts, previews, and draw calls. The most recent raw `RenderStats` is readable from `strata.view.renderStats`.
 
