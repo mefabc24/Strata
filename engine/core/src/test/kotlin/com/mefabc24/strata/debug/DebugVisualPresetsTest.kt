@@ -28,20 +28,26 @@ class DebugVisualPresetsTest {
     fun `history graph presentation persists without restoring capture state`() {
         val settings = DebugSettings()
         val performance = settings.operations.performance
+        val graphs = listOf(
+            DebugPerformanceMetric.DYNAMIC_PLAN_TIME,
+            DebugPerformanceMetric.FRAMES_PER_SECOND,
+            DebugPerformanceMetric.ENTITIES_DRAWN
+        )
         performance.historyOverlayEnabled = true
-        performance.historyMetric = DebugPerformanceMetric.DYNAMIC_PLAN_TIME
+        performance.historyGraphMetrics = graphs
         val saved = DebugVisualConfigurationCodec.encode(settings.captureVisualConfiguration())
         performance.historyOverlayEnabled = false
-        performance.historyMetric = DebugPerformanceMetric.FRAME_TIME
+        performance.historyGraphMetrics = listOf(DebugPerformanceMetric.FRAME_TIME)
         performance.historyRecording = true
         performance.historyLength = 1024
         settings.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(saved))
         assertTrue(performance.historyOverlayEnabled)
-        assertEquals(DebugPerformanceMetric.DYNAMIC_PLAN_TIME, performance.historyMetric)
+        assertEquals(graphs, performance.historyGraphMetrics)
         assertTrue(performance.historyRecording)
         assertEquals(1024, performance.historyLength)
         settings.resetVisualConfiguration()
         assertFalse(performance.historyOverlayEnabled)
+        assertEquals(listOf(DebugPerformanceMetric.FRAME_TIME), performance.historyGraphMetrics)
         assertTrue(performance.historyRecording)
     }
 

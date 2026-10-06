@@ -9,6 +9,62 @@ import kotlin.test.assertTrue
 class DebugVisualConfigurationCodecTest {
 
     @Test
+    fun `ordered history graph metrics survive json round trip`() {
+        val graphs = listOf(
+            DebugPerformanceMetric.ENTITIES_DRAWN,
+            DebugPerformanceMetric.FRAME_TIME,
+            DebugPerformanceMetric.ENTITIES_DRAWN
+        )
+        val original = DebugSettings().apply { operations.performance.historyGraphMetrics = graphs }
+        val json = DebugVisualConfigurationCodec.encode(original.captureVisualConfiguration())
+        assertTrue(json.contains("performance.historyGraphs"))
+
+        val target = DebugSettings()
+        target.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(json))
+
+        assertEquals(graphs, target.operations.performance.historyGraphMetrics)
+    }
+
+    @Test
+    fun `version six single history metric becomes the only graph`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """{"version":6,"values":{"performance.historyMetric":"enum:STATIC_PLAN_TIME"}}"""
+        )
+        val settings = DebugSettings().apply {
+            operations.performance.historyGraphMetrics = listOf(
+                DebugPerformanceMetric.FRAME_TIME,
+                DebugPerformanceMetric.DRAW_CALLS
+            )
+        }
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertEquals(
+            listOf(DebugPerformanceMetric.STATIC_PLAN_TIME),
+            settings.operations.performance.historyGraphMetrics
+        )
+    }
+
+    @Test
+    fun `unknown graph metrics are ignored without rejecting the configuration`() {
+        val decoded = DebugVisualConfigurationCodec.decode(
+            """{"version":7,"values":{"grid.enabled":"boolean:true",""" +
+                """"performance.historyGraphs":"list:[\"REMOVED_METRIC\",\"DRAW_CALLS\"]"}}"""
+        )
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(decoded)
+
+        assertTrue(settings.visuals.grid.enabled)
+        assertEquals(listOf(DebugPerformanceMetric.DRAW_CALLS), settings.operations.performance.historyGraphMetrics)
+
+        settings.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(
+            """{"version":7,"values":{"performance.historyGraphs":"list:[\"REMOVED_METRIC\"]"}}"""
+        ))
+        assertEquals(listOf(DebugPerformanceMetric.FRAME_TIME), settings.operations.performance.historyGraphMetrics)
+    }
+
+    @Test
     fun `visual configuration survives json round trip`() {
         val original = DebugSettings().apply {
             visuals.grid.enabled = true

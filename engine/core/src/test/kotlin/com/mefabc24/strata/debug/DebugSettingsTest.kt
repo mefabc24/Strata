@@ -29,7 +29,7 @@ class DebugSettingsTest {
         assertFalse(settings.operations.performance.terminalLoggingEnabled)
         assertFalse(settings.operations.performance.historyRecording)
         assertEquals(240, settings.operations.performance.historyLength)
-        assertEquals(DebugPerformanceMetric.FRAME_TIME, settings.operations.performance.historyMetric)
+        assertEquals(listOf(DebugPerformanceMetric.FRAME_TIME), settings.operations.performance.historyGraphMetrics)
         assertFalse(settings.operations.simulation.enabled)
         assertFalse(settings.operations.simulation.freezeVisualAnimations)
         assertFalse(settings.visuals.grid.enabled)

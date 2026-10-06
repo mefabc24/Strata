@@ -42,7 +42,7 @@ class DebugPerformanceOverlayTest {
             settings.record(RenderStats(), 0.016f)
             overlay.update(0.25f)
             assertEquals(initial, labels(ui.stage.root))
-            settings.historyMetric = DebugPerformanceMetric.STATIC_PLAN_TIME
+            settings.historyGraphMetrics = listOf(DebugPerformanceMetric.STATIC_PLAN_TIME)
             settings.stopHistoryRecording()
             overlay.update(0.25f)
             assertEquals(initial, labels(ui.stage.root))

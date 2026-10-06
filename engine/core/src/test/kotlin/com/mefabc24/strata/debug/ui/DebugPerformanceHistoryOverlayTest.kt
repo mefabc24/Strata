@@ -41,7 +41,7 @@ class DebugPerformanceHistoryOverlayTest {
         settings.record(stats(1.0), 0.016f)
         state.update(1f, 100)
         settings.record(stats(9.0), 0.017f)
-        settings.historyMetric = DebugPerformanceMetric.RENDER_TIME
+        settings.historyGraphMetrics = listOf(DebugPerformanceMetric.RENDER_TIME)
         settings.historyOverlayEnabled = true
         assertTrue(state.update(0f, 100))
         assertEquals(2, state.graph.sampleCount)
@@ -74,11 +74,11 @@ class DebugPerformanceHistoryOverlayTest {
             DebugPerformanceMetric.STATIC_PLAN_TIME to 1.5,
             DebugPerformanceMetric.DYNAMIC_PLAN_TIME to 0.75
         )) {
-            settings.historyMetric = metric
+            settings.historyGraphMetrics = listOf(metric)
             assertTrue(state.update(0f, 100))
             assertEquals(value, state.graph.current)
         }
-        settings.historyMetric = DebugPerformanceMetric.RENDER_TIME
+        settings.historyGraphMetrics = listOf(DebugPerformanceMetric.RENDER_TIME)
         settings.record(stats(6.0), 0.02f)
         settings.record(stats(9.0), 0.02f)
         settings.historyLength = 2
