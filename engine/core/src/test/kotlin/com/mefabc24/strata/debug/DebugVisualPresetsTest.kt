@@ -10,6 +10,27 @@ import kotlin.test.assertTrue
 
 class DebugVisualPresetsTest {
     @Test
+    fun `history graph presentation persists without restoring capture state`() {
+        val settings = DebugSettings()
+        val performance = settings.operations.performance
+        performance.historyOverlayEnabled = true
+        performance.historyMetric = DebugPerformanceMetric.DYNAMIC_PLAN_TIME
+        val saved = DebugVisualConfigurationCodec.encode(settings.captureVisualConfiguration())
+        performance.historyOverlayEnabled = false
+        performance.historyMetric = DebugPerformanceMetric.FRAME_TIME
+        performance.historyRecording = true
+        performance.historyLength = 1024
+        settings.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(saved))
+        assertTrue(performance.historyOverlayEnabled)
+        assertEquals(DebugPerformanceMetric.DYNAMIC_PLAN_TIME, performance.historyMetric)
+        assertTrue(performance.historyRecording)
+        assertEquals(1024, performance.historyLength)
+        settings.resetVisualConfiguration()
+        assertFalse(performance.historyOverlayEnabled)
+        assertTrue(performance.historyRecording)
+    }
+
+    @Test
     fun `custom configuration restores visual settings and preserves operational state`() {
         val settings = DebugSettings().apply {
             visuals.filter = DebugVisualizationFilter.HOVERED
