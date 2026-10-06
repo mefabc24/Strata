@@ -179,8 +179,9 @@ internal class DebugPanel(
         positionToolFlyout()
         syncStatsOverlayPosition()
         syncDiagnostics()
-        syncPerformanceHistoryPosition()
+        // Update first so graphs added or removed this frame are measured before positioning.
         performanceHistoryOverlay.update(delta)
+        syncPerformanceHistoryPosition()
     }
 
     fun resized() {
