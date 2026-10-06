@@ -92,6 +92,14 @@ internal class DebugSimulationOverlay(
         sync()
     }
 
+    /** Keeps separately positioned charts above the bottom Simulation rail. */
+    fun topEdge(): Float {
+        if (!state.visible) return DebugWindowLayout.OVERLAY_MARGIN
+        root.validate()
+        val rail = root.children.first()
+        return rail.y + rail.height + DebugWindowLayout.OVERLAY_GAP
+    }
+
     fun sync() {
         root.isVisible = state.visible
 

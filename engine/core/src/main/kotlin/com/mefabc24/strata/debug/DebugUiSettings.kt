@@ -62,7 +62,10 @@ class DebugPerformanceSettings internal constructor() {
     /** Whether the on-screen performance overlay is visible. */
     var overlayEnabled: Boolean = false
 
-    /** Seconds of rendered time accumulated between performance overlay refreshes. */
+    /** Shows captured history without starting or stopping recording. */
+    var historyOverlayEnabled: Boolean = false
+
+    /** Seconds of rendered time between live statistics and history graph refreshes. */
     var overlayRefreshIntervalSeconds: Float = 0.25f
         set(value) {
             require(value.isFinite() && value > 0f) {

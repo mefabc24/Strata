@@ -47,6 +47,7 @@ internal class DebugPanel(
         { settings.operations.worldStats.enabled }, world, placement, eventMonitor, settings.operations.eventBus
     )
     private val simulationOverlay = DebugSimulationOverlay(ui, simulation)
+    private val performanceHistoryOverlay = DebugPerformanceHistoryOverlay(ui, settings.operations.performance)
     private val synchronizers = DebugControlBindings()
     private val modes = availableDebugToolModes(
         buildAvailable = tools.buildAvailable && buildEntries.isNotEmpty(),
@@ -178,6 +179,8 @@ internal class DebugPanel(
         positionToolFlyout()
         syncStatsOverlayPosition()
         syncDiagnostics()
+        syncPerformanceHistoryPosition()
+        performanceHistoryOverlay.update(delta)
     }
 
     fun resized() {
@@ -462,6 +465,30 @@ internal class DebugPanel(
             cameraRows = if (::cameraRows.isInitialized) cameraRows else null,
             cullingRows = if (::cullingRows.isInitialized) cullingRows else null,
             toolStatusRows = toolStatusRows
+        )
+    }
+
+    private fun syncPerformanceHistoryPosition() {
+        if (!settings.operations.performance.historyOverlayEnabled) return
+        val viewportWidth = ui.stage.viewport.worldWidth
+        val viewportHeight = ui.stage.viewport.worldHeight
+        val toolsVisible = settings.ui.toolRail.enabled && settings.ui.toolRail.isVisible &&
+            ::toolRailActor.isInitialized
+        var left = DebugWindowLayout.OVERLAY_MARGIN
+        if (toolsVisible) {
+            left = DebugWindowLayout.TOOL_RAIL_MARGIN + DebugWindowLayout.TOOL_RAIL_WIDTH +
+                DebugWindowLayout.OVERLAY_GAP
+            if (::toolFlyoutActor.isInitialized && toolFlyoutActor.isVisible) {
+                left = maxOf(left, toolFlyoutActor.x + toolFlyoutActor.width + DebugWindowLayout.OVERLAY_GAP)
+            }
+        }
+        val debugVisible = settings.ui.settingsWindow.enabled && settings.ui.settingsWindow.isVisible &&
+            ::debugPanelActor.isInitialized
+        val rightEdge = viewportWidth - DebugWindowLayout.overlayRightPadding(
+            debugVisible, DebugWindowLayout.debugWidth(viewportWidth)
+        )
+        performanceHistoryOverlay.position(
+            viewportWidth, viewportHeight, left, statsOverlay.leftEdge(rightEdge), simulationOverlay.topEdge()
         )
     }
 

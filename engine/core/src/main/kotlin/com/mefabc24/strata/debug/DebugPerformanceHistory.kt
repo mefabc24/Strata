@@ -29,6 +29,10 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
 
     var recording: Boolean = false
 
+    /** Changes that should update a visible graph immediately, outside its refresh timer. */
+    internal var structureRevision: Long = 0
+        private set
+
     init {
         require(initialCapacity in 1..16_384) {
             "Performance history length must be between 1 and 16384."
@@ -61,6 +65,14 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
     fun clear() {
         writeIndex = 0
         size = 0
+        structureRevision++
+    }
+
+    /** Allocation-free chronological access for visualization; underlying history is retained. */
+    internal fun sampleAt(metric: DebugPerformanceMetric, index: Int): Double {
+        require(index in 0 until size)
+        val first = Math.floorMod(writeIndex - size, capacity)
+        return values(metric)[(first + index) % capacity]
     }
 
     fun summary(metric: DebugPerformanceMetric): DebugPerformanceSummary? {
@@ -112,6 +124,7 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
         dynamicPlans.copyInto(dynamicPlanMs)
         size = retained
         writeIndex = retained % newCapacity
+        structureRevision++
     }
 
     private fun newest(source: DoubleArray, count: Int): DoubleArray {
@@ -139,20 +152,3 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
     }
 }
 
-internal fun performanceSparkline(values: DoubleArray): String {
-    if (values.isEmpty()) return "No captured samples"
-    val minimum = values.minOrNull() ?: 0.0
-    val maximum = values.maxOrNull() ?: minimum
-    val range = maximum - minimum
-    return buildString(values.size) {
-        values.forEach { value ->
-            val level = if (range <= 0.0) 0 else {
-                (((value - minimum) / range) * (SPARKLINE_LEVELS.lastIndex)).toInt()
-                    .coerceIn(0, SPARKLINE_LEVELS.lastIndex)
-            }
-            append(SPARKLINE_LEVELS[level])
-        }
-    }
-}
-
-private const val SPARKLINE_LEVELS = "._-~=+*#"
