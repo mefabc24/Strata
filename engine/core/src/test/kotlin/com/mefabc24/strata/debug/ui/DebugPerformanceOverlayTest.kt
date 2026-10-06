@@ -1,6 +1,18 @@
 package com.mefabc24.strata.debug.ui
 
 import com.mefabc24.strata.render.RenderStats
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.mefabc24.strata.debug.DebugEventMonitor
+import com.mefabc24.strata.debug.DebugEventMonitorSettings
+import com.mefabc24.strata.debug.DebugPerformanceMetric
+import com.mefabc24.strata.debug.DebugPerformanceSettings
+import com.mefabc24.strata.event.EventBus
+import com.mefabc24.strata.testing.TestGdxEnvironment
+import com.mefabc24.strata.ui.StrataUi
+import com.mefabc24.strata.world.Tile
+import com.mefabc24.strata.world.World
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -8,6 +20,48 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DebugPerformanceOverlayTest {
+    @Test
+    fun `live overlay keeps only live rows through history state changes`() {
+        TestGdxEnvironment.install()
+        val skin = DebugPanelSkin.create()
+        val ui = StrataUi(skin, DebugPanelSkin.theme())
+        val settings = DebugPerformanceSettings().apply { overlayEnabled = true }
+        val monitor = DebugEventMonitor(EventBus())
+        try {
+            val overlay = DebugStatsOverlay(
+                ui, { RenderStats() }, settings, { settings.overlayEnabled }, { false },
+                World(1, 1) { _, _ -> object : Tile {} }, null,
+                monitor, DebugEventMonitorSettings(), { 60 }
+            )
+            overlay.update(0.016f)
+            val initial = labels(ui.stage)
+            assertTrue("FPS" in initial)
+            assertFalse(initial.any { it.contains("History") || it.contains("Capture") || it.contains("Samples") })
+            settings.startHistoryRecording()
+            settings.historyOverlayEnabled = true
+            settings.record(RenderStats(), 0.016f)
+            overlay.update(0.25f)
+            assertEquals(initial, labels(ui.stage))
+            settings.historyMetric = DebugPerformanceMetric.STATIC_PLAN_TIME
+            settings.stopHistoryRecording()
+            overlay.update(0.25f)
+            assertEquals(initial, labels(ui.stage))
+            settings.clearHistory()
+            overlay.update(0.25f)
+            assertEquals(initial, labels(ui.stage))
+        } finally {
+            monitor.dispose()
+            ui.dispose()
+            skin.dispose()
+        }
+    }
+
+    private fun labels(actor: Actor): List<String> = when (actor) {
+        is Label -> listOf(actor.text.toString()).filter { it.isNotEmpty() && !it.endsWith(" ms") }
+        is Group -> actor.children.flatMap(::labels)
+        else -> emptyList()
+    }
+
     @Test
     fun `visibility and sampling state follow enabled setting`() {
         val state = DebugPerformanceOverlayState()

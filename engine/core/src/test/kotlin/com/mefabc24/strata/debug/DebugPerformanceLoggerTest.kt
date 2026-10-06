@@ -90,6 +90,7 @@ class DebugPerformanceLoggerTest {
         performance.record(RenderStats(), 0.01f)
 
         assertFalse(performance.overlayEnabled)
+        assertFalse(performance.historyOverlayEnabled)
         assertTrue(performance.terminalLoggingEnabled)
         assertEquals(1, logs.size)
     }

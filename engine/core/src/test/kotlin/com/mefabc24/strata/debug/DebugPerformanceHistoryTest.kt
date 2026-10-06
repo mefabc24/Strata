@@ -64,9 +64,7 @@ class DebugPerformanceHistoryTest {
     }
 
     @Test
-    fun `history limits and graph snapshots are deterministic`() {
-        assertEquals(".~#", performanceSparkline(doubleArrayOf(1.0, 2.0, 3.0)))
-        assertEquals("...", performanceSparkline(doubleArrayOf(2.0, 2.0, 2.0)))
+    fun `history limits reject invalid capacities and sample counts`() {
         assertFailsWith<IllegalArgumentException> { DebugPerformanceHistory(0) }
         val history = DebugPerformanceHistory()
         assertFailsWith<IllegalArgumentException> { history.capacity = 0 }
