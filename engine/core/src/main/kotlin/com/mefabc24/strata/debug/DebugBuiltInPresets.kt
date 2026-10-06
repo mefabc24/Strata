@@ -44,6 +44,7 @@ internal object DebugPresets {
             }
             DebugPreset.EVERYTHING -> {
                 settings.operations.performance.overlayEnabled = true
+                settings.operations.performance.historyOverlayEnabled = true
                 settings.operations.simulation.enabled = true
                 settings.visuals.grid.enabled = true
                 settings.visuals.grid.showBackground = true
@@ -84,6 +85,7 @@ internal object DebugPresets {
 
     private fun disableVisuals(settings: DebugSettings) {
         settings.operations.performance.overlayEnabled = false
+        settings.operations.performance.historyOverlayEnabled = false
         settings.operations.simulation.enabled = false
         settings.visuals.grid.enabled = false
         settings.visuals.grid.showBackground = false
