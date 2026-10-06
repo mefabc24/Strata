@@ -34,21 +34,21 @@ class DebugPerformanceOverlayTest {
                 monitor, DebugEventMonitorSettings(), { 60 }
             )
             overlay.update(0.016f)
-            val initial = labels(ui.stage)
+            val initial = labels(ui.stage.root)
             assertTrue("FPS" in initial)
             assertFalse(initial.any { it.contains("History") || it.contains("Capture") || it.contains("Samples") })
             settings.startHistoryRecording()
             settings.historyOverlayEnabled = true
             settings.record(RenderStats(), 0.016f)
             overlay.update(0.25f)
-            assertEquals(initial, labels(ui.stage))
+            assertEquals(initial, labels(ui.stage.root))
             settings.historyMetric = DebugPerformanceMetric.STATIC_PLAN_TIME
             settings.stopHistoryRecording()
             overlay.update(0.25f)
-            assertEquals(initial, labels(ui.stage))
+            assertEquals(initial, labels(ui.stage.root))
             settings.clearHistory()
             overlay.update(0.25f)
-            assertEquals(initial, labels(ui.stage))
+            assertEquals(initial, labels(ui.stage.root))
         } finally {
             monitor.dispose()
             ui.dispose()
