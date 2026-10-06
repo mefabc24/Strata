@@ -10,6 +10,8 @@ import com.mefabc24.strata.debug.DebugPerformanceSettings
 import com.mefabc24.strata.ui.StrataPanelStyle
 import com.mefabc24.strata.ui.StrataUi
 import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /** A separately positioned panel; never contributes to the live stats stack's height. */
 internal class DebugPerformanceHistoryOverlay(ui: StrataUi, private val settings: DebugPerformanceSettings) {
@@ -47,16 +49,17 @@ internal class DebugPerformanceHistoryOverlay(ui: StrataUi, private val settings
     }
 
     init {
-        summary.setFontScale(0.9f)
         ui.stage.addActor(panel)
     }
 
     /** Occupied insets come from the actual Debug Window, rail, and live overlay layout. */
     fun position(viewportWidth: Float, viewportHeight: Float, left: Float, rightEdge: Float, bottom: Float) {
-        val width = minOf(480f, maxOf(0f, rightEdge - left - DebugWindowLayout.OVERLAY_GAP))
-        val height = minOf(320f, maxOf(0f, viewportHeight - bottom - DebugWindowLayout.OVERLAY_MARGIN))
-        val x = left.coerceIn(0f, viewportWidth)
-        val y = bottom.coerceIn(0f, viewportHeight)
+        // Clipping makes the panel a transform group: its origin offsets every glyph after the font cache
+        // has snapped them locally, so bounds must stay on whole pixels for the bitmap font to stay crisp.
+        val x = ceil(left).coerceIn(0f, floor(viewportWidth))
+        val y = ceil(bottom).coerceIn(0f, floor(viewportHeight))
+        val width = minOf(480f, maxOf(0f, floor(rightEdge - DebugWindowLayout.OVERLAY_GAP) - x))
+        val height = minOf(320f, maxOf(0f, floor(viewportHeight - DebugWindowLayout.OVERLAY_MARGIN) - y))
         if (panel.x != x || panel.y != y || panel.width != width || panel.height != height) {
             panel.setBounds(x, y, width, height)
             panel.invalidate()
