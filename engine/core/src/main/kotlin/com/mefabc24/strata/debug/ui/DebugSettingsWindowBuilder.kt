@@ -84,12 +84,36 @@ internal class DebugSettingsWindowBuilder(
                     toggle("Performance overlay", { settings.operations.performance.overlayEnabled }) {
                         settings.operations.performance.overlayEnabled = it
                     },
+                    toggle("Performance history overlay", { settings.operations.performance.historyOverlayEnabled }) {
+                        settings.operations.performance.historyOverlayEnabled = it
+                    },
                     toggle("World stats overlay", { settings.operations.worldStats.enabled }) {
                         settings.operations.worldStats.enabled = it
                     }
                 )
         }
         performance.settingsExpander("History & logging") {
+                toggleRows(
+                    toggle("History recording", { settings.operations.performance.historyRecording }) {
+                        settings.operations.performance.historyRecording = it
+                    }
+                )
+                boundStepper(
+                    "History length",
+                    { settings.operations.performance.historyLength.toFloat() },
+                    1f,
+                    16_384f,
+                    10f
+                ) { settings.operations.performance.historyLength = it.toInt() }
+                boundDropdown(
+                    "Graph metric",
+                    DebugPerformanceMetric.entries,
+                    { settings.operations.performance.historyMetric },
+                    { it.name.toDisplayName() }
+                ) { settings.operations.performance.historyMetric = it }
+                compactAction("Clear performance history") {
+                    settings.operations.performance.clearHistory()
+                }
                 boundStepper(
                     "Overlay refresh",
                     { settings.operations.performance.overlayRefreshIntervalSeconds },
@@ -109,24 +133,6 @@ internal class DebugSettingsWindowBuilder(
                     30f,
                     0.25f
                 ) { settings.operations.performance.terminalLoggingIntervalSeconds = it }
-                boundStepper(
-                    "History length",
-                    { settings.operations.performance.historyLength.toFloat() },
-                    30f,
-                    2000f,
-                    10f
-                ) { settings.operations.performance.historyLength = it.toInt() }
-                boundDropdown(
-                    "Graph metric",
-                    DebugPerformanceMetric.entries,
-                    { settings.operations.performance.historyMetric },
-                    { it.name.toDisplayName() }
-                ) { settings.operations.performance.historyMetric = it }
-                compactActions(
-                    "Start" to { settings.operations.performance.startHistoryRecording() },
-                    "Stop" to { settings.operations.performance.stopHistoryRecording() },
-                    "Clear" to { settings.operations.performance.clearHistory() }
-                )
         }
         simulationSettings.settingToggleRow(
             "Simulation enabled",
