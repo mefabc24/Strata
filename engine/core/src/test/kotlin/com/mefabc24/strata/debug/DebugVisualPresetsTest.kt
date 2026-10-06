@@ -10,6 +10,21 @@ import kotlin.test.assertTrue
 
 class DebugVisualPresetsTest {
     @Test
+    fun `built in presets manage graph visibility without changing recording or history`() {
+        val settings = DebugSettings()
+        val performance = settings.operations.performance
+        settings.applyPreset(DebugPreset.EVERYTHING)
+        assertTrue(performance.historyOverlayEnabled)
+        assertFalse(performance.historyRecording)
+        performance.historyRecording = true
+        performance.record(com.mefabc24.strata.render.RenderStats(), 0.016f)
+        settings.applyPreset(DebugPreset.OFF)
+        assertFalse(performance.historyOverlayEnabled)
+        assertTrue(performance.historyRecording)
+        assertEquals(1, performance.history.size)
+    }
+
+    @Test
     fun `history graph presentation persists without restoring capture state`() {
         val settings = DebugSettings()
         val performance = settings.operations.performance
