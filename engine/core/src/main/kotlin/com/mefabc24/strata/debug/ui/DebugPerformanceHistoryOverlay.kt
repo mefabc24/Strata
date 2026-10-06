@@ -43,6 +43,7 @@ internal class DebugPerformanceHistoryOverlay(
     private val recordingDrawable: Drawable = ui.skin.newDrawable("debug-white", RECORDING_COLOR)
     private val stoppedDrawable: Drawable = ui.skin.newDrawable("debug-white", STOPPED_COLOR)
     private val cards = mutableMapOf<DebugPerformanceHistoryGraph, GraphCard>()
+    private var shownGraphs: List<DebugPerformanceGraphState>? = null
 
     private val recordingIndicator = Image(stoppedDrawable)
     private val recordingLabel = Label("Stopped", ui.skin).apply { color = STOPPED_TEXT_COLOR }
@@ -125,7 +126,8 @@ internal class DebugPerformanceHistoryOverlay(
         val refreshed = state.update(delta, plotWidth)
         panel.isVisible = state.visible
         if (!state.visible) return
-        if (state.graphs.size != cards.size || state.graphs.any { it.graph !in cards }) rebuildCards()
+        // The state replaces its list only when graphs are added or removed.
+        if (state.graphs !== shownGraphs) rebuildCards()
         syncControls()
         if (!refreshed) return
         state.graphs.forEach { cards.getValue(it.graph).show(it) }
@@ -138,10 +140,13 @@ internal class DebugPerformanceHistoryOverlay(
     private fun rebuildCards() {
         cards.keys.retainAll(state.graphs.map { it.graph }.toSet())
         graphList.clearChildren()
+        val removable = settings.historyGraphs.canRemove
         state.graphs.forEach { graphState ->
             val card = cards.getOrPut(graphState.graph) { GraphCard(graphState.graph) }
+            card.removeButton.isDisabled = !removable
             graphList.actor(card.root).cell { fillAvailableX() }
         }
+        shownGraphs = state.graphs
         panel.invalidateHierarchy()
     }
 
@@ -152,8 +157,6 @@ internal class DebugPerformanceHistoryOverlay(
         stopButton.isDisabled = !recording
         clearButton.isDisabled = settings.history.size == 0
         addButton.isDisabled = !settings.historyGraphs.canAdd
-        val removable = settings.historyGraphs.canRemove
-        cards.values.forEach { it.removeButton.isDisabled = !removable }
         lengthStepper.sync(settings.historyLength.toFloat())
     }
 
