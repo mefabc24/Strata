@@ -18,6 +18,15 @@ import kotlin.test.assertTrue
 
 class DebugLineGraphTest {
     @Test
+    fun `axis labels distinguish small timing ranges`() {
+        assertEquals("0.10", performanceGraphAxisLabel(0.1, 0.1))
+        assertEquals("0.05", performanceGraphAxisLabel(0.05, 0.1))
+        assertEquals("1.0", performanceGraphAxisLabel(1.0, 1.0))
+        assertEquals("0.5", performanceGraphAxisLabel(0.5, 1.0))
+        assertEquals("200", performanceGraphAxisLabel(200.0, 200.0))
+    }
+
+    @Test
     fun `line drawing clips and preserves the stage batch lifecycle and shared font`() {
         TestGdxEnvironment.install()
         val skin = DebugPanelSkin.create()

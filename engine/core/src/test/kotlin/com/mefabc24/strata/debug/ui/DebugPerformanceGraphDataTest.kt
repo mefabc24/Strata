@@ -78,6 +78,19 @@ class DebugPerformanceGraphDataTest {
     }
 
     @Test
+    fun `range does not oscillate across a headroom boundary`() {
+        val graph = graph(doubleArrayOf(17.0))
+        graph.update(1, 100) { 18.3 }
+        val expanded = graph.maximumY
+        repeat(4) {
+            graph.update(1, 100) { 17.0 }
+            assertEquals(expanded, graph.maximumY)
+            graph.update(1, 100) { 18.3 }
+            assertEquals(expanded, graph.maximumY)
+        }
+    }
+
+    @Test
     fun `range is stable for small changes expands for spikes and recovers`() {
         val graph = graph(doubleArrayOf(16.0, 17.0))
         val upper = graph.maximumY
