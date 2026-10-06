@@ -141,6 +141,10 @@ internal class DebugSimulationOverlay(
             requireNotNull(ui.theme.panelStyle),
             StrataPanelStyle::class.java
         )
+        val statsBackground = ui.skin.get(
+            "debug-setting-row",
+            StrataPanelStyle::class.java
+        ).background
         val separatorStyle = ui.skin.get(
             requireNotNull(ui.theme.separatorStyle),
             StrataSeparatorStyle::class.java
@@ -151,29 +155,47 @@ internal class DebugSimulationOverlay(
             pad(4f, 6f, 4f, 6f)
             touchable = Touchable.childrenOnly
 
-            add(Label("Simulation", ui.skin, "title").apply {
+            add(Table(ui.skin).apply {
+                touchable = Touchable.childrenOnly
+
+                add(Label("Simulation", ui.skin, "title").apply {
+                    touchable = Touchable.disabled
+                }).padLeft(2f).padRight(2f)
+                verticalSeparator(separatorStyle)
+
+                add(pauseButton).width(78f).height(CONTROL_HEIGHT).padRight(2f)
+                add(stepButton).width(54f).height(CONTROL_HEIGHT)
+                verticalSeparator(separatorStyle)
+
+                DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
+                    add(speedButtons.getValue(scale))
+                        .width(46f)
+                        .height(CONTROL_HEIGHT)
+                        .padRight(if (index == speedButtons.size - 1) 0f else 2f)
+                }
+                verticalSeparator(separatorStyle)
+
+                add(resetSpeedButton).width(56f).height(CONTROL_HEIGHT)
+            }).left()
+            row()
+
+            add(StrataSeparator(StrataSeparatorOrientation.HORIZONTAL, separatorStyle))
+                .growX()
+                .height(separatorStyle.thickness)
+                .padTop(3f)
+            row()
+
+            add(Table(ui.skin).apply {
+                background = statsBackground
+                pad(2f, 6f, 2f, 6f)
                 touchable = Touchable.disabled
-            }).padLeft(2f).padRight(2f)
-            verticalSeparator(separatorStyle)
 
-            add(pauseButton).width(78f).height(CONTROL_HEIGHT).padRight(2f)
-            add(stepButton).width(54f).height(CONTROL_HEIGHT)
-            verticalSeparator(separatorStyle)
-
-            DebugSimulationOverlayState.TIME_SCALES.forEachIndexed { index, scale ->
-                add(speedButtons.getValue(scale))
-                    .width(46f)
-                    .height(CONTROL_HEIGHT)
-                    .padRight(if (index == speedButtons.size - 1) 0f else 2f)
-            }
-            verticalSeparator(separatorStyle)
-
-            add(resetSpeedButton).width(56f).height(CONTROL_HEIGHT)
-            verticalSeparator(separatorStyle)
-
-            timingValue("Real", realDeltaLabel, ui)
-            timingValue("Sim", simulationDeltaLabel, ui, padLeft = 8f)
-            timingValue("Scale", scaleLabel, ui, padLeft = 8f)
+                timingValue("Real", realDeltaLabel, ui)
+                statsSeparator(separatorStyle)
+                timingValue("Simulation", simulationDeltaLabel, ui)
+                statsSeparator(separatorStyle)
+                timingValue("Scale", scaleLabel, ui)
+            }).growX().fillX().height(STATS_HEIGHT)
         }
     }
 
@@ -185,16 +207,27 @@ internal class DebugSimulationOverlay(
             .padRight(6f)
     }
 
+    private fun Table.statsSeparator(style: StrataSeparatorStyle) {
+        add(StrataSeparator(StrataSeparatorOrientation.VERTICAL, style))
+            .width(style.thickness)
+            .height(14f)
+            .padLeft(10f)
+            .padRight(10f)
+    }
+
     private fun Table.timingValue(
         key: String,
         value: Label,
-        ui: StrataUi,
-        padLeft: Float = 0f
+        ui: StrataUi
     ) {
         add(Label(key, ui.skin, "debug-secondary").apply {
             touchable = Touchable.disabled
-        }).padLeft(padLeft).padRight(3f)
-        add(value.apply { touchable = Touchable.disabled })
+            setFontScale(STATS_FONT_SCALE)
+        }).padRight(4f)
+        add(value.apply {
+            touchable = Touchable.disabled
+            setFontScale(STATS_FONT_SCALE)
+        })
     }
 
     private fun updateTimingLabels(timing: DebugSimulationTiming) {
@@ -214,6 +247,8 @@ internal class DebugSimulationOverlay(
 
     private companion object {
         const val CONTROL_HEIGHT = 32f
+        const val STATS_HEIGHT = 22f
+        const val STATS_FONT_SCALE = 0.9f
         const val REFRESH_INTERVAL_SECONDS = 0.25f
     }
 }
