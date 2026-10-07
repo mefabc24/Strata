@@ -4,6 +4,7 @@ Strata separates low-level world mutation from interactive placement:
 
 - `World.place` validates a concrete `Placeable` and mutates the world.
 - `PlacementController` manages a selected factory, hover or explicit previews, additional validation, and placement calls.
+- `TilePathResolver` and `TilePathSelection` select logical tile chains independently of objects and worlds.
 - Game code decides tool modes, drag policy, selection UI, sounds, and what to do after a successful placement.
 
 ## Enable placement for a scene
@@ -85,6 +86,33 @@ placement.clearPreviewPositions()
 Batch placement also ignores duplicate origins, proceeds in order, and is non-transactional: successful earlier placements remain if later positions fail.
 
 A game-side drag controller can choose a rectangle, calculate footprint-aligned origins, call `previewAt` during a drag, call batch `placeAt` on release, and always clear explicit mode. The built-in Debug Build tool follows the same placement-controller boundary.
+
+## Direct tile paths
+
+`DirectTilePathResolver.resolve(start, end)` selects an eight-connected grid line
+with both endpoints included. It uses Bresenham rasterization with canonical
+tie-breaking: reversing endpoints reverses the same chain. It does not route
+around obstacles or clip to world bounds. Unlike `World.findPath`, this API
+answers which tiles the user is drawing, independently of traversal rules.
+
+```kotlin
+val selection = TilePathSelection() // optionally supply a TilePathResolver
+selection.start(TilePosition(2, 2))
+selection.addWaypoint(TilePosition(6, 4))
+selection.addWaypoint(TilePosition(8, 8))
+selection.previewTo(TilePosition(10, 9))
+val livePath: List<TilePosition> = selection.positions
+val finishedPath: List<TilePosition> = selection.finish()
+```
+
+Confirmed segments are cached; cursor changes resolve only the segment from the
+latest waypoint. Shared junctions occur once. Nonconsecutive revisits remain in
+the logical chain; the placement pipeline deduplicates origins before creating
+objects. Lists are read-only snapshots. `cancel()` and `clear()` discard all
+selection state; `finish()` returns the combined path and also returns to idle.
+`previewTo(null)` removes only the unfinished segment. There is no waypoint limit.
+Custom resolvers must return ordered endpoints and an eight-connected chain
+without consecutive duplicates. Alternative routing remains separate from selection.
 
 ## Input policy
 
