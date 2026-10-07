@@ -113,7 +113,7 @@ class DebugToolRailTest {
     fun `configurable tools expose concise ordered flyout sections`() {
         assertEquals(emptyList(), debugToolFlyoutSectionTitles(DebugToolMode.NONE))
         assertEquals(
-            listOf("Selection", "Preview", "Status"),
+            listOf("Gesture", "Selection", "Preview", "Status"),
             debugToolFlyoutSectionTitles(DebugToolMode.BUILD)
         )
         assertEquals(
