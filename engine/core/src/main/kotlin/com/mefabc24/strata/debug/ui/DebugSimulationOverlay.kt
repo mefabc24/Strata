@@ -230,11 +230,10 @@ internal class DebugSimulationOverlay(
     ) {
         add(Label(key, ui.skin, "debug-secondary").apply {
             touchable = Touchable.disabled
-            setFontScale(STATS_FONT_SCALE)
         }).padRight(4f)
+
         add(value.apply {
             touchable = Touchable.disabled
-            setFontScale(STATS_FONT_SCALE)
         })
     }
 
