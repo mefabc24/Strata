@@ -2,6 +2,10 @@
 
 Strata is a Kotlin/libGDX engine layer for finite isometric worlds. It provides multi-world registration, screen navigation and overlays, terrain and layered world rendering, multi-tile object placement, movable entities and pathfinding, input and pixel-aware picking, camera controls, audio, debugging, and a high-level Kotlin UI API. Games retain ownership of their worlds, content types, rules, AI, and semantic states.
 
+Placement supports single objects, rectangular dragging, and direct tile paths
+with multiple waypoints through the same validation and preview pipeline. See
+[Placement](Documentation/Placement.md) for the generic path-selection API.
+
 The repository currently targets JDK 21, Kotlin 2.4.0, and libGDX 1.14.2.
 
 ## Modules

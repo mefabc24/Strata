@@ -1,5 +1,9 @@
 # Movement and pathfinding
 
+For direct tile chains drawn by a user, see [Placement](Placement.md).
+`TilePathResolver` selects logical tiles without traversal constraints; the A*
+queries below route through a world under caller-supplied traversal rules.
+
 Strata provides four-way and eight-way path queries, optional directed movement costs, ordered multi-waypoint routes, diagnostic searches, and route following. The game defines traversability and decides when an entity should move.
 
 ## Find and follow a path

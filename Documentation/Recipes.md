@@ -142,6 +142,10 @@ strata.placement.enabled = true
 
 Omitting `placement {}` means `strata.placement` is unavailable. The validator cannot override world bounds or occupancy.
 
+For connected chains, use `strata.placement.path.begin(start)`, `addWaypoint(point)`,
+`update(cursorGridPosition)`, and `finish()`. See [Placement](Placement.md) for
+preview policies and cancellation; `TilePathSelection` also works without objects.
+
 ## 9. Register an entity
 
 Maps the game-owned type to a static bottom-centered sprite.

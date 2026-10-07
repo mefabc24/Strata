@@ -22,6 +22,10 @@ override fun onReady() {
 
 The game owns each logical `World`. Strata creates and owns one view and optional placement controller for every registration. Those presentation objects are retained while inactive, which preserves camera state and avoids rebuilding render resources on a switch.
 
+Unfinished placement paths and their previews are cancelled when switching away
+from or deactivating a world, and when its registration is removed or disposed.
+The selected placement factory remains available on returning to that world.
+
 Use `activate` to display a world directly:
 
 ```kotlin

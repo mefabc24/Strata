@@ -114,6 +114,40 @@ selection state; `finish()` returns the combined path and also returns to idle.
 Custom resolvers must return ordered endpoints and an eight-connected chain
 without consecutive duplicates. Alternative routing remains separate from selection.
 
+## Path placement and previews
+
+Each placement controller owns `path: PathPlacementController`. It reuses the
+same explicit preview calculation and batch placement as rectangular dragging:
+
+```kotlin
+placement.selectedFactory = ::Marker // a game-owned Placeable
+val path = placement.path
+path.begin(TilePosition(2, 2))
+path.addWaypoint(TilePosition(6, 4))
+path.addWaypoint(TilePosition(8, 8))
+path.update(cursorGridPosition)
+val logicalPath = path.positions
+val placed = path.finish() // uses the same cached logical path as the preview
+```
+
+`update` revalidates the complete preview, including confirmed segments, while
+only resolving the unfinished segment. Bounds visibility, footprint reservations,
+occupancy, colors, preview enablement, and external validation remain the normal
+placement rules. Invalid origins are skipped in order, exactly as for batch
+placement; there is no all-or-nothing policy. Large footprints can conflict with
+neighboring origins and are validated rather than changing the selected path.
+
+`finish(end)` can update the last endpoint before placement. `finish()`, `cancel()`,
+and `clear()` clear path state and explicit previews. Changing the selected factory,
+disabling placement, calling `clearPreviewPositions()`, starting explicit previews
+or another placement operation, or deactivating the world cancels the active path.
+Games should also cancel when leaving their path tool. Assign `path.resolver` to
+use another resolver; this cancels any current selection.
+
+Preview and placement share logical origins, but placement always rechecks the
+current world and validator. Selected factories should produce consistent
+footprints and validators should avoid side effects so previews can predict results.
+
 ## Input policy
 
 Interactive placement normally combines a `Tile` mouse-down binding with `Grid` drag/up bindings. `Tile` ensures the gesture begins inside the world. `Grid` lets the game finish or update a drag even when the pointer leaves it. Tool controllers should cancel explicit previews when leaving build mode.

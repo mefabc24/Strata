@@ -18,7 +18,7 @@ The screen and world lifecycle is covered in [Screens and multiple worlds](Scree
 - [World and Coordinates](World-and-Coordinates.md) — `World`, `TilePosition`, `EntityPosition`, bounds, and projection
 - [Terrain](Terrain.md) — game tile data, terrain registrations, changes, and overlays
 - [Objects](Objects.md) — `Placeable`, footprints, `PlacedObject`, registration, and world mutation
-- [Placement](Placement.md) — interactive previews, validation, and placement policy
+- [Placement](Placement.md) — interactive previews, direct multi-waypoint paths, validation, and placement policy
 - [Entities](Entities.md) — game entities and engine-owned `WorldEntity` state
 - [Movement and Pathfinding](Movement-and-Pathfinding.md) — path queries, waypoints, movement, and game AI
 
