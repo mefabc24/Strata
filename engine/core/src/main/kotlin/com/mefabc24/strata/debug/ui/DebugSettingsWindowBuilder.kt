@@ -114,7 +114,7 @@ internal class DebugSettingsWindowBuilder(
                 ) { settings.operations.performance.terminalLoggingIntervalSeconds = it }
         }
         simulationSettings.settingToggleRow(
-            "Simulation enabled",
+            "Show controls",
             { settings.operations.simulation.enabled },
             { settings.operations.simulation.enabled = it }
         )
