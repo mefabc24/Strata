@@ -237,6 +237,17 @@ All entity `show...` flags default to `false` and line width defaults to `1f`. `
 
 ## Tools
 
+Build defaults to its existing rectangular left-drag/release gesture (a click
+places one object). Right-click Build in the Tool Rail to open settings; **Gesture**
+offers **Rectangle** and **Path**. Path uses left-click to start/add waypoints,
+cursor movement for live previews, Enter to place, and Escape or **Cancel path**
+to cancel. Right-click world-object removal is available in both shapes.
+Selection and shape changes, leaving Build, hiding the Tool Rail, or disabling
+world picking cancel an unfinished path. Escape cancels a path before acting as
+a configured Debug Window shortcut. The separate rail **Path** tool is A*
+pathfinding, not path placement. Build uses the normal placement validator and
+ordered batch policy, skipping invalid origins. See the [Sandbox demo](../sandbox/README.md).
+
 Paint and Delete share odd square brush sizes from 1 through 9. Both default to size 1, affected-area previews on, and tile borders off. Delete dragging defaults to enabled.
 
 ```kotlin

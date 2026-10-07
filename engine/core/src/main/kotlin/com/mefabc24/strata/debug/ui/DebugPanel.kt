@@ -157,6 +157,7 @@ internal class DebugPanel(
         if (!settings.ui.toolRail.enabled) return
         settings.ui.toolRail.isVisible = visible
         if (!visible) {
+            tools.cancelBuildPath()
             closeToolSettings()
         }
         syncWindowLayout()
@@ -494,4 +495,3 @@ internal class DebugPanel(
     }
 
 }
-

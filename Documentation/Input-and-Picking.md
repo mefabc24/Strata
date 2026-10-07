@@ -124,6 +124,11 @@ Set `strata.view.worldInputEnabled = false` to disable all world bindings. This 
 
 ## Direct picking
 
+The Sandbox Build tool also supports a **Path** gesture: left-click starts or
+adds a waypoint, movement previews the unfinished segment, Enter places, and
+Escape cancels. It preserves right-click removal and the rectangular gesture.
+See the [Sandbox demo](../sandbox/README.md) and [Placement](Placement.md).
+
 The attached view exposes:
 
 ```kotlin

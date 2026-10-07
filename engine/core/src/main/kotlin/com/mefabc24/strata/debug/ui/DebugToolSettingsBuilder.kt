@@ -80,6 +80,17 @@ internal class DebugToolSettingsBuilder(
         stack {
             buildControls = column(spacing = 0f) {
                 defaults().fillAvailableX()
+                toolSettingsExpander(DebugToolMode.BUILD, "Gesture") {
+                    boundDropdown(
+                        "Shape", DebugBuildShape.entries, { tools.buildShape },
+                        { it.name.toDisplayName() }
+                    ) { tools.buildShape = it }
+                    label("Rectangle: left-drag, release to place.").cell { pad(6f); left() }
+                    label("Path: left-click start / add waypoint.").cell { pad(6f); left() }
+                    label("Move to preview; Enter places; Esc cancels.").cell { pad(6f); left() }
+                    label("Right-click removes in both shapes.").cell { pad(6f); left() }
+                    compactAction("Cancel path") { tools.cancelBuildPath() }
+                }
                 toolSettingsExpander(DebugToolMode.BUILD, "Selection") {
                     val group = buildSelection
                     if (group == null) {

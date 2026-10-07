@@ -139,6 +139,8 @@ internal class DebugPanelDiagnostics(
                 placementDiagnostic = placement?.currentDiagnostic,
                 buildDragging = tools.buildDragging,
                 buildPreviewCount = tools.buildPreviewCount,
+                buildPathActive = tools.buildPathActive,
+                buildWaypointCount = placement?.path?.waypoints?.size ?: 0,
                 paintTerrain = terrainSelection?.selected?.type?.toString()?.toDisplayName(),
                 paintLayer = when (painter.target) {
                     DebugPaintTarget.GROUND -> "Ground"

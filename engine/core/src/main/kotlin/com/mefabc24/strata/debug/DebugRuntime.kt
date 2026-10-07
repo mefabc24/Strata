@@ -8,6 +8,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.mefabc24.strata.debug.inspector.DebugInspector
 import com.mefabc24.strata.debug.tools.DebugBuildDragController
+import com.mefabc24.strata.debug.tools.debugBuildBindings
 import com.mefabc24.strata.debug.tools.DebugBrush
 import com.mefabc24.strata.debug.tools.DebugBrushPreview
 import com.mefabc24.strata.debug.tools.DebugBrushPreviewKind
@@ -131,6 +132,7 @@ internal class DebugRuntime(
     private val toggleProcessor = object : InputAdapter() {
         override fun keyDown(keycode: Int): Boolean {
             return when {
+                keycode == Input.Keys.ESCAPE && tools.cancelBuildPath() -> true
                 settings.ui.toolRail.enabled && keycode == settings.ui.toolRail.toggleKey -> {
                     panel.setToolsWindowVisible(!settings.ui.toolRail.isVisible)
                     true
@@ -269,37 +271,20 @@ internal class DebugRuntime(
             WorldInputTrigger.MouseUp(Input.Buttons.RIGHT),
             { tools.mode == DebugToolMode.PAINT }
         ) { painter.endErase() },
-        WorldInputBinding.Tile(
-            WorldInputTrigger.MouseDown(Input.Buttons.LEFT),
-            { tools.mode == DebugToolMode.BUILD }
-        ) { x, y -> buildDrag?.begin(TilePosition(x, y)) ?: false },
-        WorldInputBinding.Grid(
-            WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
-            { tools.mode == DebugToolMode.BUILD }
-        ) { x, y -> buildDrag?.dragTo(TilePosition(x, y)) ?: false },
-        WorldInputBinding.Grid(
-            WorldInputTrigger.MouseUp(Input.Buttons.LEFT),
-            { tools.mode == DebugToolMode.BUILD }
-        ) { x, y ->
-            val drag = buildDrag ?: return@Grid false
-            if (!drag.active) false else {
-                val diagnostic = placement?.currentDiagnostic
-                val placed = drag.finish(TilePosition(x, y))
-                if (placed.isNotEmpty()) {
-                    settings.tools.objectsPlacedCallback?.invoke(placed)
-                    settings.notify(
-                        DebugActionMessages.placedObjects(placed.size),
-                        DebugNotificationSeverity.SUCCESS
-                    )
-                } else {
-                    settings.notify(
-                        DebugActionMessages.placementRejected(diagnostic?.reason),
-                        DebugNotificationSeverity.WARNING
-                    )
-                }
-                true
+        *debugBuildBindings(tools, placement) { placed, diagnostic ->
+            if (placed.isNotEmpty()) {
+                settings.tools.objectsPlacedCallback?.invoke(placed)
+                settings.notify(
+                    DebugActionMessages.placedObjects(placed.size),
+                    DebugNotificationSeverity.SUCCESS
+                )
+            } else {
+                settings.notify(
+                    DebugActionMessages.placementRejected(diagnostic?.reason),
+                    DebugNotificationSeverity.WARNING
+                )
             }
-        },
+        }.toTypedArray(),
         WorldInputBinding.Grid(
             WorldInputTrigger.MouseDrag(Input.Buttons.LEFT),
             { tools.mode == DebugToolMode.MOVE }
@@ -391,6 +376,8 @@ internal class DebugRuntime(
 
     fun update(delta: Float, simulationDelta: Float = delta) {
         debugWorldInputProcessor.enabled = view.pickingAvailable
+        if (!view.pickingAvailable) tools.cancelBuildPath()
+        tools.updateBuild(view.hoveredGridPosition)
         syncCameraRestrictions()
         settings.worldState.entityTrails.update(
             entities = world.getEntities(),

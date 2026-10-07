@@ -65,7 +65,7 @@ class SandboxGame : StrataGame() {
                     ui {
                         toolRail {
                             enabled = true
-                            visibleOnStartup = false
+                            visibleOnStartup = true
                             toggleKey = Input.Keys.TAB
                         }
 

@@ -38,7 +38,7 @@ internal fun debugToolRailLabel(mode: DebugToolMode): String = when (mode) {
 
 internal fun debugToolFlyoutSectionTitles(mode: DebugToolMode): List<String> = when (mode) {
     DebugToolMode.NONE -> emptyList()
-    DebugToolMode.BUILD -> listOf("Selection", "Preview", "Status")
+    DebugToolMode.BUILD -> listOf("Gesture", "Selection", "Preview", "Status")
     DebugToolMode.DELETE -> listOf("Brush", "Status")
     DebugToolMode.PAINT -> listOf("Brush", "Terrain", "Target", "Status")
     DebugToolMode.SPAWN -> listOf("Selection", "Preview", "Status")

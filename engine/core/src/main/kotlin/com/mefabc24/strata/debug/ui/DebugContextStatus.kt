@@ -19,6 +19,8 @@ internal data class DebugContextInputs(
     val placementDiagnostic: PlacementDiagnostic? = null,
     val buildDragging: Boolean = false,
     val buildPreviewCount: Int = 0,
+    val buildPathActive: Boolean = false,
+    val buildWaypointCount: Int = 0,
     val paintTerrain: String? = null,
     val paintLayer: String? = null,
     val spawnEntity: String? = null,
@@ -73,6 +75,8 @@ private fun buildStatusRows(input: DebugContextInputs): List<DebugDiagnosticRow>
     )
     val status = when {
         !input.placementAvailable -> "Placement unavailable"
+        input.buildPathActive ->
+            "Path: ${input.buildWaypointCount} waypoints, ${input.buildPreviewCount} origins; Enter places, Esc cancels"
         input.buildDragging -> {
             val count = input.buildPreviewCount
             val base = "Dragging $count ${if (count == 1) "placement" else "placements"}"

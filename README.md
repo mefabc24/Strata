@@ -21,6 +21,9 @@ Run the Sandbox with:
 ./gradlew :sandbox:run
 ```
 
+The [Sandbox placement demo](sandbox/README.md) explains single, rectangular,
+and multi-waypoint path placement controls in the Build tool.
+
 ## Documentation
 
 Start with the [documentation guide](Documentation/README.md), or go directly to [Getting Started](Documentation/Getting-Started.md) to configure dependencies, resources, a minimal `StrataGame`, a visible `World`, and the desktop launcher.
