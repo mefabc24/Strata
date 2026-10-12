@@ -25,7 +25,7 @@ class DebugToolRailTest {
     }
 
     @Test
-    fun `left and right clicks remain independent`() {
+    fun `right click selects and opens settings while left click only selects`() {
         val selected = mutableListOf<DebugToolMode>()
         val settings = mutableListOf<DebugToolMode>()
         val skin = skin()
@@ -35,11 +35,11 @@ class DebugToolRailTest {
         val listener = button.listeners.filterIsInstance<InputListener>().single()
 
         click(listener, button, Input.Buttons.RIGHT)
-        assertEquals(emptyList(), selected)
+        assertEquals(listOf(DebugToolMode.PAINT), selected)
         assertEquals(listOf(DebugToolMode.PAINT), settings)
 
         click(listener, button, Input.Buttons.LEFT)
-        assertEquals(listOf(DebugToolMode.PAINT), selected)
+        assertEquals(listOf(DebugToolMode.PAINT, DebugToolMode.PAINT), selected)
         assertEquals(listOf(DebugToolMode.PAINT), settings)
         skin.dispose()
     }
@@ -57,6 +57,21 @@ class DebugToolRailTest {
         )
         assertNull(state.toggleSettings(DebugToolMode.PATHFINDING))
         assertNull(state.toggleSettings(DebugToolMode.NONE))
+    }
+
+    @Test
+    fun `active tool changes close settings without coupling right click state`() {
+        val state = DebugToolRailState(
+            setOf(DebugToolMode.PAINT, DebugToolMode.PATHFINDING),
+            activeMode = DebugToolMode.PAINT
+        )
+
+        assertEquals(DebugToolMode.PATHFINDING, state.toggleSettings(DebugToolMode.PATHFINDING))
+        assertFalse(state.syncActiveTool(DebugToolMode.PAINT))
+        assertEquals(DebugToolMode.PATHFINDING, state.settingsMode)
+
+        assertTrue(state.syncActiveTool(DebugToolMode.MOVE))
+        assertNull(state.settingsMode)
     }
 
     @Test
@@ -92,6 +107,42 @@ class DebugToolRailTest {
     fun `long tool names use compact rail labels`() {
         assertEquals("Camera", debugToolRailLabel(DebugToolMode.FREE_CAMERA))
         assertEquals("Inspect", debugToolRailLabel(DebugToolMode.INSPECT))
+    }
+
+    @Test
+    fun `configurable tools expose concise ordered flyout sections`() {
+        assertEquals(emptyList(), debugToolFlyoutSectionTitles(DebugToolMode.NONE))
+        assertEquals(
+            listOf("Gesture", "Selection", "Preview", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.BUILD)
+        )
+        assertEquals(
+            listOf("Brush", "Terrain", "Target", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.PAINT)
+        )
+        assertEquals(
+            listOf("Selection", "Preview", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.SPAWN)
+        )
+        assertEquals(
+            listOf("Search", "Visualization", "Diagnostic search", "Traversal", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.PATHFINDING)
+        )
+        assertEquals(
+            listOf("Movement", "Visualization", "Status"),
+            debugToolFlyoutSectionTitles(DebugToolMode.FREE_CAMERA)
+        )
+    }
+
+    @Test
+    fun `every configurable flyout has unique sections ending in status`() {
+        DebugToolMode.entries.filterNot { it == DebugToolMode.NONE }.forEach { mode ->
+            val sections = debugToolFlyoutSectionTitles(mode)
+
+            assertTrue(sections.isNotEmpty(), "$mode should expose settings content")
+            assertEquals(sections.distinct(), sections, "$mode section names should be unique")
+            assertEquals("Status", sections.last(), "$mode should finish with contextual status")
+        }
     }
 
     @Test

@@ -10,7 +10,6 @@ import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.debug.DebugEventMonitor
 import com.mefabc24.strata.debug.DebugEventMonitorSettings
 import com.mefabc24.strata.debug.DebugPerformanceSettings
-import com.mefabc24.strata.debug.performanceSparkline
 import com.mefabc24.strata.render.RenderStats
 import com.mefabc24.strata.placement.PlacementController
 import com.mefabc24.strata.ui.StrataPanelStyle
@@ -34,13 +33,7 @@ internal class DebugStatsOverlay(
     private val state = DebugStatsOverlayState()
     private val performanceRows = statsRows(ui)
     private val worldRows = statsRows(ui)
-    private val performanceGraph = Label("No captured samples", ui.skin).apply {
-        setAlignment(Align.left)
-        touchable = Touchable.disabled
-    }
-    private val performancePanel = statsPanel(
-        "PERFORMANCE", performanceRows, ui, performanceGraph
-    )
+    private val performancePanel = statsPanel("PERFORMANCE", performanceRows, ui)
     private val worldPanel = statsPanel("WORLD", worldRows, ui)
     private val eventMonitorPanel = DebugEventMonitorOverlay(ui, eventMonitor, eventSettings)
     private val performanceCell: Cell<Table>
@@ -49,12 +42,13 @@ internal class DebugStatsOverlay(
     private var worldElapsed = 0f
     private val root = Table()
     private var topPadding = Float.NaN
-    private var leftPadding = Float.NaN
+    private var rightPadding = Float.NaN
+    private var appliedVisibility = -1
 
     init {
         root.apply {
             setFillParent(true)
-            top().left()
+            top().right()
             pad(16f)
             touchable = Touchable.childrenOnly
             isVisible = false
@@ -73,7 +67,7 @@ internal class DebugStatsOverlay(
         ui.stage.addActor(root)
     }
 
-    /** Keeps the left overlay stack below a visible tools window. */
+    /** Applies the shared top margin to the live stats stack. */
     fun setTopPadding(padding: Float) {
         require(padding.isFinite() && padding >= 0f)
         if (padding == topPadding) return
@@ -82,68 +76,47 @@ internal class DebugStatsOverlay(
         root.invalidateHierarchy()
     }
 
-    /** Keeps the left overlay stack clear of the tool rail and its flyout. */
-    fun setLeftPadding(padding: Float) {
+    /** Keeps the right overlay stack clear of the debug settings window. */
+    fun setRightPadding(padding: Float) {
         require(padding.isFinite() && padding >= 0f)
-        if (padding == leftPadding) return
-        leftPadding = padding
-        root.padLeft(padding)
+        if (padding == rightPadding) return
+        rightPadding = padding
+        root.padRight(padding)
         root.invalidateHierarchy()
     }
 
     fun update(delta: Float) {
         val performance = performanceEnabled()
         val worldStats = worldStatsEnabled()
-        val eventMonitor = eventSettings.enabled
+        val eventMonitor = eventSettings.visible
         state.sync(performance, worldStats, eventMonitor)
         root.isVisible = state.visible
         performancePanel.isVisible = state.performanceVisible
         worldPanel.isVisible = state.worldVisible
         eventMonitorPanel.panel.isVisible = state.eventMonitorVisible
-        if (performance) performanceCell.height(Value.prefHeight)
-        else performanceCell.height(0f)
-        if (worldStats) worldCell.height(Value.prefHeight)
-        else worldCell.height(0f)
-        if (eventMonitor) eventMonitorCell.height(Value.prefHeight)
-        else eventMonitorCell.height(0f)
-        worldCell.padTop(if (performance && worldStats) 8f else 0f)
-        eventMonitorCell.padTop(if (eventMonitor && (performance || worldStats)) 8f else 0f)
-        root.invalidateHierarchy()
+        val visibility = (if (performance) 1 else 0) or (if (worldStats) 2 else 0) or (if (eventMonitor) 4 else 0)
+        if (appliedVisibility != visibility) {
+            performanceCell.height(if (performance) Value.prefHeight else Value.Fixed.valueOf(0f))
+            worldCell.height(if (worldStats) Value.prefHeight else Value.Fixed.valueOf(0f))
+            eventMonitorCell.height(if (eventMonitor) Value.prefHeight else Value.Fixed.valueOf(0f))
+            worldCell.padTop(if (performance && worldStats) 8f else 0f)
+            eventMonitorCell.padTop(if (eventMonitor && (performance || worldStats)) 8f else 0f)
+            root.invalidateHierarchy()
+            appliedVisibility = visibility
+        }
 
-        val average = performanceState.update(performance, delta)
+        val average = performanceState.update(
+            performance,
+            delta,
+            performanceSettings.overlayRefreshIntervalSeconds
+        )
         if (average != null) {
-            val summary = performanceSettings.history.summary(performanceSettings.historyMetric)
             performanceRows.show(
-                buildList {
-                    addAll(DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).rows())
-                    add(DebugDiagnosticRow(
-                        "Capture",
-                        if (performanceSettings.historyRecording) "Recording" else "Stopped"
-                    ))
-                    add(DebugDiagnosticRow(
-                        "History metric",
-                        performanceSettings.historyMetric.name.replace('_', ' ').lowercase()
-                    ))
-                    add(DebugDiagnosticRow("Samples", performanceSettings.history.size.toString()))
-                    summary?.let {
-                        add(DebugDiagnosticRow("History avg", "${ms(it.averageMs)} ms"))
-                        add(DebugDiagnosticRow("History min", "${ms(it.minimumMs)} ms"))
-                        add(DebugDiagnosticRow("History max", "${ms(it.maximumMs)} ms"))
-                    }
-                }
-            )
-            performanceGraph.setText(
-                performanceSparkline(
-                    performanceSettings.history.samples(
-                        performanceSettings.historyMetric,
-                        maximumSamples = 48
-                    )
-                )
+                DebugPerformanceSnapshot.from(stats(), framesPerSecond(), average).rows()
             )
         }
         if (!performance) {
             performanceRows.show(emptyList())
-            performanceGraph.setText("")
         }
 
         if (!worldStats) {
@@ -160,6 +133,17 @@ internal class DebugStatsOverlay(
         }
         if (eventMonitor) eventMonitorPanel.sync()
     }
+
+    /** Left edge of the shared stack in stage coordinates, for independent overlays. */
+    fun leftEdge(default: Float): Float {
+        if (!state.visible) return default
+        root.validate()
+        var left = default
+        if (performancePanel.isVisible) left = minOf(left, performancePanel.x)
+        if (worldPanel.isVisible) left = minOf(left, worldPanel.x)
+        if (eventMonitorPanel.panel.isVisible) left = minOf(left, eventMonitorPanel.panel.x)
+        return left
+    }
 }
 
 private fun statsRows(ui: StrataUi): DebugDiagnosticTable = DebugDiagnosticTable(
@@ -172,8 +156,7 @@ private fun statsRows(ui: StrataUi): DebugDiagnosticTable = DebugDiagnosticTable
 private fun statsPanel(
     title: String,
     rows: DebugDiagnosticTable,
-    ui: StrataUi,
-    footer: com.badlogic.gdx.scenes.scene2d.Actor? = null
+    ui: StrataUi
 ): Table = Table(ui.skin).apply {
     background = ui.skin.get(
         requireNotNull(ui.theme.panelStyle),
@@ -187,13 +170,7 @@ private fun statsPanel(
     }).growX().fillX().left().padBottom(6f)
     row()
     add(rows).growX().fillX().left()
-    footer?.let {
-        row()
-        add(it).growX().fillX().left().padTop(6f)
-    }
 }
-
-private fun ms(value: Double) = String.format(Locale.ROOT, "%.2f", value)
 
 /** Visibility model for independently enabled sections in the shared overlay. */
 class DebugStatsOverlayState {
@@ -283,20 +260,21 @@ data class DebugWorldStatsSnapshot(
     }
 }
 
-class DebugPerformanceOverlayState(private val refreshInterval: Float = 0.25f) {
+class DebugPerformanceOverlayState {
     var visible: Boolean = false
         private set
     private var elapsed = 0f
     private var accumulatedFrameMs = 0.0
     private var sampledFrames = 0
 
-    init {
-        require(refreshInterval.isFinite() && refreshInterval > 0f) {
+    fun update(
+        enabled: Boolean,
+        delta: Float,
+        refreshIntervalSeconds: Float = 0.25f
+    ): Double? {
+        require(refreshIntervalSeconds.isFinite() && refreshIntervalSeconds > 0f) {
             "Refresh interval must be finite and greater than zero."
         }
-    }
-
-    fun update(enabled: Boolean, delta: Float): Double? {
         if (!enabled) {
             visible = false
             reset()
@@ -310,7 +288,7 @@ class DebugPerformanceOverlayState(private val refreshInterval: Float = 0.25f) {
         elapsed += delta
         accumulatedFrameMs += delta * 1000.0
         sampledFrames++
-        if (!becameVisible && elapsed < refreshInterval) return null
+        if (!becameVisible && elapsed < refreshIntervalSeconds) return null
         return (accumulatedFrameMs / sampledFrames).also { reset() }
     }
 
@@ -345,10 +323,8 @@ data class DebugPerformanceSnapshot(
         add(DebugDiagnosticRow("Frame", "${ms(averageFrameMs)} ms"))
         add(DebugDiagnosticRow("Render", "${ms(renderMs)} ms"))
         add(DebugDiagnosticRow("Plan", "${ms(dynamicPlanMs)} ms"))
-        if (staticPlanUpdates > 0) {
-            add(DebugDiagnosticRow("Static plan", "${ms(staticPlanMs)} ms"))
-            add(DebugDiagnosticRow("Static updates", staticPlanUpdates.toString()))
-        }
+        add(DebugDiagnosticRow("Static plan", "${ms(staticPlanMs)} ms"))
+        add(DebugDiagnosticRow("Static updates", staticPlanUpdates.toString()))
         add(DebugDiagnosticRow("Draw calls", drawCalls.toString()))
         add(DebugDiagnosticRow("Ground", "$groundTerrainDrawn/$groundTerrainTotal"))
         add(DebugDiagnosticRow("Overlays", "$overlayTerrainDrawn/$overlayTerrainTotal"))

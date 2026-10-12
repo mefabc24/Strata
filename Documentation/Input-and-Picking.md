@@ -34,7 +34,7 @@ controls {
 }
 ```
 
-It is often cleaner to keep application bindings in a dedicated file, as the Sandbox does in `sandbox/input/SandboxInputBindings.kt`. Provider lambdas let bindings refer to controllers created later in `onReady()` without touching them during configuration.
+It is often cleaner to keep application bindings in a dedicated file. Provider lambdas let bindings refer to controllers created later in `onReady()` without touching them during configuration.
 
 ## Binding kinds
 
@@ -123,6 +123,11 @@ This lets a sprite-level entity selection run before a tile action on the same l
 Set `strata.view.worldInputEnabled = false` to disable all world bindings. This clears tracked mouse-button state. Camera input is a separate processor; disable it through `strata.view.cameraController.enabled` or its control flags if needed.
 
 ## Direct picking
+
+The Sandbox Build tool also supports a **Path** gesture: left-click starts or
+adds a waypoint, movement previews the unfinished segment, Enter places, and
+Escape cancels. It preserves right-click removal and the rectangular gesture.
+See the [Sandbox demo](../sandbox/README.md) and [Placement](Placement.md).
 
 The attached view exposes:
 

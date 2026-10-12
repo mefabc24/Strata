@@ -115,8 +115,10 @@ class StrataSceneUiTest {
                 terrain { register(Terrain.GRASS, "com/badlogic/gdx/utils/lsans-15.png") }
             }
             debug {
-                toolsWindow { enabled = true; toggleKey = Input.Keys.F2 }
-                debugWindow { enabled = true; toggleKey = Input.Keys.F3 }
+                ui {
+                    toolRail { enabled = true; toggleKey = Input.Keys.F2 }
+                    settingsWindow { enabled = true; toggleKey = Input.Keys.F3 }
+                }
             }
         })
 
@@ -125,17 +127,17 @@ class StrataSceneUiTest {
             terrainFor = { Terrain.GRASS }
         )
         assertTrue(inputState.inputProcessor === scene.input.processor)
-        assertFalse(scene.debug.toolsWindow.visible)
-        assertFalse(scene.debug.debugWindow.visible)
+        assertFalse(scene.debug.ui.toolRail.isVisible)
+        assertFalse(scene.debug.ui.settingsWindow.isVisible)
         assertTrue(scene.input.processor.keyDown(Input.Keys.F2))
-        assertTrue(scene.debug.toolsWindow.visible)
-        assertFalse(scene.debug.debugWindow.visible)
+        assertTrue(scene.debug.ui.toolRail.isVisible)
+        assertFalse(scene.debug.ui.settingsWindow.isVisible)
         assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
-        assertTrue(scene.debug.toolsWindow.visible)
-        assertTrue(scene.debug.debugWindow.visible)
+        assertTrue(scene.debug.ui.toolRail.isVisible)
+        assertTrue(scene.debug.ui.settingsWindow.isVisible)
         assertTrue(scene.input.processor.keyDown(Input.Keys.F2))
-        assertFalse(scene.debug.toolsWindow.visible)
-        assertTrue(scene.debug.debugWindow.visible)
+        assertFalse(scene.debug.ui.toolRail.isVisible)
+        assertTrue(scene.debug.ui.settingsWindow.isVisible)
 
         scene.update(0.1f)
         scene.render()
@@ -159,11 +161,13 @@ class StrataSceneUiTest {
                 terrain { register(Terrain.GRASS, "com/badlogic/gdx/utils/lsans-15.png") }
             }
             debug {
-                toolsWindow { enabled = false }
-                debugWindow {
-                    enabled = true
-                    visibleOnStartup = false
-                    toggleKey = Input.Keys.F3
+                ui {
+                    toolRail { enabled = false }
+                    settingsWindow {
+                        enabled = true
+                        visibleOnStartup = false
+                        toggleKey = Input.Keys.F3
+                    }
                 }
             }
         })
@@ -173,10 +177,10 @@ class StrataSceneUiTest {
             terrainFor = { Terrain.GRASS }
         )
 
-        assertFalse(scene.debug.toolsWindow.visible)
-        assertFalse(scene.debug.debugWindow.visible)
+        assertFalse(scene.debug.ui.toolRail.isVisible)
+        assertFalse(scene.debug.ui.settingsWindow.isVisible)
         assertTrue(scene.input.processor.keyDown(Input.Keys.F3))
-        assertTrue(scene.debug.debugWindow.visible)
+        assertTrue(scene.debug.ui.settingsWindow.isVisible)
         assertTrue(inputState.inputProcessor === scene.input.processor)
 
         scene.update(0.1f)

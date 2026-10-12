@@ -101,6 +101,20 @@ internal object DebugPanelSkin {
             font,
             Color(0.84f, 0.86f, 0.90f, 1f)
         ))
+        skin.add("debug-secondary", Label.LabelStyle(
+            font,
+            Color(0.58f, 0.61f, 0.66f, 1f)
+        ))
+        skin.add("debug-tool-selection-row", TextButton.TextButtonStyle().apply {
+            this.font = font
+            fontColor = Color.WHITE
+            up = drawable.tint(Color(0.135f, 0.14f, 0.155f, 0.98f))
+            over = drawable.tint(Color(0.20f, 0.22f, 0.26f, 1f))
+            down = drawable.tint(Color(0.09f, 0.25f, 0.38f, 1f))
+            checked = drawable.tint(Color(0.10f, 0.34f, 0.54f, 1f))
+            checkedOver = drawable.tint(Color(0.12f, 0.42f, 0.64f, 1f))
+            disabled = drawable.tint(Color(0.10f, 0.10f, 0.12f, 1f))
+        })
         skin.add("debug-toggle", TextButton.TextButtonStyle().apply {
             this.font = font
             fontColor = Color(0.88f, 0.88f, 0.90f, 1f)
@@ -186,6 +200,14 @@ internal object DebugPanelSkin {
             StrataPanelStyle::class.java
         )
         skin.add(
+            "debug-tool-preview",
+            StrataPanelStyle(
+                background = drawable.tint(Color(0.115f, 0.12f, 0.135f, 0.98f)),
+                padding = StrataInsets.NONE
+            ),
+            StrataPanelStyle::class.java
+        )
+        skin.add(
             "debug-tool-rail-button",
             DebugToolRailButtonStyle(
                 normal = drawable.tint(Color(0.07f, 0.075f, 0.085f, 0.98f)),
@@ -246,6 +268,28 @@ internal object DebugPanelSkin {
                 collapsedIndicator = collapsedChevron
                 expandedIndicator = expandedChevron
                 contentIndent = 12f
+                indicatorSize = 9f
+                headerPadLeft = 8f
+                headerPadRight = 6f
+                indicatorSpacing = 5f
+                contentSpacing = 0f
+                headerSeparator = drawable.tint(Color(0.25f, 0.26f, 0.29f, 0.85f))
+                headerSeparatorThickness = 1f
+            },
+            StrataExpanderStyle::class.java
+        )
+        skin.add(
+            "debug-tool-expander",
+            StrataExpanderStyle(
+                background = null,
+                padding = StrataInsets.NONE
+            ).apply {
+                headerButtonStyle = "debug-expander-header"
+                headerBackground = drawable.tint(Color(0.055f, 0.058f, 0.066f, 1f))
+                expandedHeaderBackground = drawable.tint(Color(0.085f, 0.09f, 0.105f, 1f))
+                collapsedIndicator = collapsedChevron
+                expandedIndicator = expandedChevron
+                contentIndent = 0f
                 indicatorSize = 9f
                 headerPadLeft = 8f
                 headerPadRight = 6f

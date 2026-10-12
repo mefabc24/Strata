@@ -36,9 +36,24 @@ internal fun debugToolRailLabel(mode: DebugToolMode): String = when (mode) {
     else -> mode.displayName
 }
 
+internal fun debugToolFlyoutSectionTitles(mode: DebugToolMode): List<String> = when (mode) {
+    DebugToolMode.NONE -> emptyList()
+    DebugToolMode.BUILD -> listOf("Gesture", "Selection", "Preview", "Status")
+    DebugToolMode.DELETE -> listOf("Brush", "Status")
+    DebugToolMode.PAINT -> listOf("Brush", "Terrain", "Target", "Status")
+    DebugToolMode.SPAWN -> listOf("Selection", "Preview", "Status")
+    DebugToolMode.INSPECT -> listOf("Selection", "Entity control", "Visualization", "Status")
+    DebugToolMode.MOVE -> listOf("Status")
+    DebugToolMode.PATHFINDING ->
+        listOf("Search", "Visualization", "Diagnostic search", "Traversal", "Status")
+    DebugToolMode.FREE_CAMERA -> listOf("Movement", "Visualization", "Status")
+}
+
 internal class DebugToolRailState(
-    private val configurableModes: Set<DebugToolMode>
+    private val configurableModes: Set<DebugToolMode>,
+    activeMode: DebugToolMode = DebugToolMode.NONE
 ) {
+    private var activeMode = activeMode
     var settingsMode: DebugToolMode? = null
         private set
 
@@ -53,6 +68,13 @@ internal class DebugToolRailState(
 
     fun closeSettings() {
         settingsMode = null
+    }
+
+    fun syncActiveTool(mode: DebugToolMode): Boolean {
+        if (mode == activeMode) return false
+        activeMode = mode
+        closeSettings()
+        return true
     }
 }
 
@@ -126,7 +148,11 @@ internal class DebugToolRailButton(
                 if (!accepted) return
                 when (button) {
                     Input.Buttons.LEFT -> onSelected(mode)
-                    Input.Buttons.RIGHT -> onSettingsRequested(mode)
+
+                    Input.Buttons.RIGHT -> {
+                        onSelected(mode)
+                        onSettingsRequested(mode)
+                    }
                 }
             }
 

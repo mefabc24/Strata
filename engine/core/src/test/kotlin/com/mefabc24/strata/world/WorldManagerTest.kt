@@ -289,6 +289,43 @@ class WorldManagerTest {
         assertFailsWith<IllegalStateException> { manager.remove("city") }
     }
 
+    @Test
+    fun `world switching deactivation removal and disposal cancel unfinished placement paths`() {
+        val placements = mutableMapOf<WorldId, com.mefabc24.strata.placement.PlacementController>()
+        val manager = WorldManager(
+            createRuntime = { id, world, terrainFor ->
+                val placement = com.mefabc24.strata.placement.PlacementController(world).apply {
+                    selectedFactory = { object : Placeable { override val footprint = Footprint.square(1) } }
+                }
+                placements[id] = placement
+                WorldRuntime(id, world, terrainFor, RecordingView(), placement)
+            },
+            activationChanged = { _, _ -> }
+        )
+        manager.register("first", world()) { Terrain.GRASS }
+        manager.register("second", world()) { Terrain.GRASS }
+        manager.activate("first")
+        val first = placements.getValue(WorldId("first"))
+        val factory = first.selectedFactory
+        first.path.begin(TilePosition(1, 1))
+        manager.activate("second")
+        assertFalse(first.path.active)
+        assertTrue(first.previews.isEmpty())
+        assertSame(factory, first.selectedFactory)
+        manager.activate("first")
+        assertTrue(first.path.begin(TilePosition(2, 2)))
+        manager.deactivate()
+        assertFalse(first.path.active)
+        first.path.begin(TilePosition(3, 3))
+        manager.remove("first")
+        assertFalse(first.path.active)
+        val second = placements.getValue(WorldId("second"))
+        second.path.begin(TilePosition(1, 1))
+        manager.dispose()
+        assertFalse(second.path.active)
+        assertTrue(second.previews.isEmpty())
+    }
+
     private fun manager(
         views: MutableMap<WorldId, RecordingView> = mutableMapOf(),
         activations: MutableList<Pair<WorldId?, WorldId?>> = mutableListOf()

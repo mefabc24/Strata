@@ -18,7 +18,7 @@ The screen and world lifecycle is covered in [Screens and multiple worlds](Scree
 - [World and Coordinates](World-and-Coordinates.md) — `World`, `TilePosition`, `EntityPosition`, bounds, and projection
 - [Terrain](Terrain.md) — game tile data, terrain registrations, changes, and overlays
 - [Objects](Objects.md) — `Placeable`, footprints, `PlacedObject`, registration, and world mutation
-- [Placement](Placement.md) — interactive previews, validation, and placement policy
+- [Placement](Placement.md) — interactive previews, direct multi-waypoint paths, validation, and placement policy
 - [Entities](Entities.md) — game entities and engine-owned `WorldEntity` state
 - [Movement and Pathfinding](Movement-and-Pathfinding.md) — path queries, waypoints, movement, and game AI
 
@@ -27,9 +27,9 @@ The screen and world lifecycle is covered in [Screens and multiple worlds](Scree
 - [Visuals and Animation](Visuals-and-Animation.md) — static, animated, stateful, and directional visuals
 - [Input and Picking](Input-and-Picking.md) — bindings, event consumption, grid interaction, and pick modes
 - [Camera](Camera.md) — movement, dragging, zoom, bounds, viewports, and resize behavior
-- [Rendering](Rendering.md) — tile geometry, anchoring, scaling, layers, and ordering
+- [Rendering](Rendering.md) — tile geometry, anchoring, priorities, ordering, and lighting
 - [Audio](Audio.md) — sound registration, playback, categories, music, and volume
-- [Debugging](Debugging.md) — performance, grid, object, and entity diagnostics
+- [Debugging](Debugging.md) — Debug UI, presets, diagnostics, tools, and operational services
 - [UI](UI.md) — UI lifecycle, themes, layouts, controls, selection, and input priority
 
 ## Apply and diagnose

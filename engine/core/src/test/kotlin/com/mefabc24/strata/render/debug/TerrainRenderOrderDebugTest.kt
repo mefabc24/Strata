@@ -169,7 +169,6 @@ class TerrainRenderOrderDebugTest {
     fun `render order layers remain independently configurable`() {
         for (mask in 0..7) {
             val settings = DebugRenderOrderSettings().apply {
-                enabled = true
                 showLabels = mask and 1 != 0
                 showTerrainIndices = mask and 2 != 0
                 showTerrainHeatmap = mask and 4 != 0
@@ -213,7 +212,7 @@ class TerrainRenderOrderDebugTest {
 
     @Test
     fun `priority and sort geometry layers remain independently configurable`() {
-        val settings = DebugRenderOrderSettings().apply { enabled = true }
+        val settings = DebugRenderOrderSettings()
         val setters = listOf<(Boolean) -> Unit>(
             { settings.showPriorityLabels = it },
             { settings.colorByPriority = it },

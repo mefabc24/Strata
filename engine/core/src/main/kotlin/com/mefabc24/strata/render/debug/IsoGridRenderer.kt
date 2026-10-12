@@ -72,9 +72,9 @@ class IsoGridRenderer(
             GL20.GL_ONE_MINUS_SRC_ALPHA
         )
 
-        settings.backgroundColor?.let { color ->
+        if (settings.showBackground) {
             shapes.begin(ShapeRenderer.ShapeType.Filled)
-            shapes.color = color
+            shapes.color = settings.backgroundColor
 
             forEachTile(tileRange) { x, y ->
                 val position = projection.tileToWorld(x, y)
@@ -91,7 +91,7 @@ class IsoGridRenderer(
         if (
             hoveredTile != null &&
             hoveredTile in tileRange &&
-            settings.hoverBackgroundColor != null
+            settings.showHoverBackground
         ) {
             val position = projection.tileToWorld(
                 hoveredTile.x,

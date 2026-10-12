@@ -33,6 +33,7 @@ class DebugPanelSkinTest {
     fun `debug expander style provides integrated state visuals`() {
         val skin = DebugPanelSkin.create()
         val style = skin.get("debug-expander", StrataExpanderStyle::class.java)
+        val toolStyle = skin.get("debug-tool-expander", StrataExpanderStyle::class.java)
 
         assertEquals("debug-expander-header", style.headerButtonStyle)
         assertNotNull(style.headerBackground)
@@ -45,6 +46,9 @@ class DebugPanelSkinTest {
         assertNotNull(style.headerSeparator)
         assertEquals(1f, style.headerSeparatorThickness)
         assertNull(style.background)
+        assertEquals(0f, toolStyle.contentIndent)
+        assertEquals(style.headerButtonStyle, toolStyle.headerButtonStyle)
+        assertNotNull(toolStyle.headerSeparator)
 
         val settingRow = skin.get("debug-setting-row", StrataPanelStyle::class.java)
         assertNotNull(settingRow.background)

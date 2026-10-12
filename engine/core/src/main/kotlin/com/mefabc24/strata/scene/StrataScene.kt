@@ -371,9 +371,9 @@ class StrataScene private constructor(
                 controlsSettings = controlsSnapshot.copy(),
                 renderingSettings = renderingSnapshot,
                 lighting = lighting,
-                debugGridSettings = debug.grid,
-                debugObjectSettings = debug.objects,
-                debugEntitySettings = debug.entities,
+                debugGridSettings = debug.visuals.grid,
+                debugObjectSettings = debug.visuals.objects,
+                debugEntitySettings = debug.visuals.entities,
                 debugSettings = debug
             )
         )
@@ -403,7 +403,7 @@ class StrataScene private constructor(
         sceneInput.replaceWorldProcessor(next?.view?.inputProcessor)
         if (next != null) installInputIfNeeded()
 
-        if (next != null && (debug.toolsWindow.enabled || debug.debugWindow.enabled)) {
+        if (next != null && (debug.ui.toolRail.enabled || debug.ui.settingsWindow.enabled)) {
             attachDebugRuntime(next)
         }
     }
@@ -600,7 +600,7 @@ class StrataScene private constructor(
 
         worldManager.render()
         worldManager.activeRuntime?.view?.let { view ->
-            debug.performance.record(
+            debug.operations.performance.record(
                 stats = view.renderStats,
                 delta = Gdx.graphics.deltaTime
             )

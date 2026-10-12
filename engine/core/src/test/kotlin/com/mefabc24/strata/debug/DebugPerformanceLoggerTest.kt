@@ -62,6 +62,22 @@ class DebugPerformanceLoggerTest {
     }
 
     @Test
+    fun `overlay and terminal intervals are independent`() {
+        val performance = DebugPerformanceSettings().apply {
+            overlayRefreshIntervalSeconds = 0.5f
+            terminalLoggingIntervalSeconds = 3f
+        }
+
+        performance.overlayRefreshIntervalSeconds = 0.1f
+        assertEquals(0.1f, performance.overlayRefreshIntervalSeconds)
+        assertEquals(3f, performance.terminalLoggingIntervalSeconds)
+
+        performance.terminalLoggingIntervalSeconds = 1f
+        assertEquals(0.1f, performance.overlayRefreshIntervalSeconds)
+        assertEquals(1f, performance.terminalLoggingIntervalSeconds)
+    }
+
+    @Test
     fun `terminal output remains active when overlay is disabled`() {
         val performance = DebugPerformanceSettings().apply {
             terminalLoggingEnabled = true
@@ -74,6 +90,7 @@ class DebugPerformanceLoggerTest {
         performance.record(RenderStats(), 0.01f)
 
         assertFalse(performance.overlayEnabled)
+        assertFalse(performance.historyOverlayEnabled)
         assertTrue(performance.terminalLoggingEnabled)
         assertEquals(1, logs.size)
     }
@@ -115,7 +132,7 @@ class DebugPerformanceLoggerTest {
         assertEquals(1, performance.history.size)
         assertEquals(3.0, performance.history.summary(
             DebugPerformanceMetric.RENDER_TIME
-        )?.averageMs)
+        )?.average)
 
         performance.clearHistory()
         assertEquals(0, performance.history.size)

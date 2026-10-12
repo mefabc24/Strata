@@ -23,7 +23,7 @@ class DebugPathfindingToolTest {
 
     @Test
     fun `consume reached waypoints defaults to enabled`() {
-        assertTrue(DebugSettings().pathfinding.consumeReachedWaypoints)
+        assertTrue(DebugSettings().tools.pathfinding.consumeReachedWaypoints)
     }
 
     @Test
@@ -85,7 +85,7 @@ class DebugPathfindingToolTest {
         val tool = DebugPathfindingTool(
             world = world(),
             state = settings.worldState,
-            movementMode = { settings.pathfinding.movementMode }
+            movementMode = { settings.tools.pathfinding.movementMode }
         )
         val start = TilePosition(0, 0)
         val goal = TilePosition(2, 2)
@@ -96,7 +96,7 @@ class DebugPathfindingToolTest {
         assertEquals(4f, tool.result?.totalCost)
 
         tool.clear()
-        settings.pathfinding.movementMode = PathMovementMode.EIGHT_WAY
+        settings.tools.pathfinding.movementMode = PathMovementMode.EIGHT_WAY
         tool.click(start)
         tool.click(goal)
 
@@ -111,13 +111,13 @@ class DebugPathfindingToolTest {
     @Test
     fun `entity assigned multi waypoint route uses selected movement mode`() {
         val settings = DebugSettings().apply {
-            pathfinding.movementMode = PathMovementMode.EIGHT_WAY
+            tools.pathfinding.movementMode = PathMovementMode.EIGHT_WAY
         }
         val world = world()
         val tool = DebugPathfindingTool(
             world = world,
             state = settings.worldState,
-            movementMode = { settings.pathfinding.movementMode }
+            movementMode = { settings.tools.pathfinding.movementMode }
         )
         val entity = world.addEntity(TestEntity, EntityPosition(0.5f, 0.5f))
 

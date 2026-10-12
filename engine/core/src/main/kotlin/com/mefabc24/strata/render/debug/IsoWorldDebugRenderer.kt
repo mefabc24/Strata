@@ -67,7 +67,7 @@ internal class IsoWorldDebugRenderer(
                 entitySettings.showMovementVector ||
                 entitySettings.showNextWaypoint ||
                 entitySettings.showPositionTileOffset ||
-                entitySettings.currentTileFillColor != null
+                entitySettings.showCurrentTileFill
             )
         val drawEntityLabels = entitySettings.showMovementSpeed
         if (!drawObjects && !drawEntityShapes && !drawEntityLabels) return
@@ -106,8 +106,8 @@ internal class IsoWorldDebugRenderer(
     ) {
         val objectFill = objectSettings.occupiedTileFillColor
         val entityFill = entitySettings.currentTileFillColor
-        val hasObjectFill = drawObjects && objectFill != null
-        val hasEntityFill = drawEntities && entityFill != null
+        val hasObjectFill = drawObjects && objectSettings.showOccupiedTileFill
+        val hasEntityFill = drawEntities && entitySettings.showCurrentTileFill
         val hasPositionMarkers = drawEntities && entitySettings.showPosition
         val hasNextWaypointMarkers = drawEntities && entitySettings.showNextWaypoint
         if (!hasObjectFill && !hasEntityFill && !hasPositionMarkers &&

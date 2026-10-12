@@ -10,120 +10,198 @@ import kotlin.test.assertTrue
 
 class DebugVisualPresetsTest {
     @Test
+    fun `built in presets manage graph visibility without changing recording or history`() {
+        val settings = DebugSettings()
+        val performance = settings.operations.performance
+        settings.applyPreset(DebugPreset.EVERYTHING)
+        assertTrue(performance.historyOverlayEnabled)
+        assertFalse(performance.historyRecording)
+        performance.historyRecording = true
+        performance.record(com.mefabc24.strata.render.RenderStats(), 0.016f)
+        settings.applyPreset(DebugPreset.OFF)
+        assertFalse(performance.historyOverlayEnabled)
+        assertTrue(performance.historyRecording)
+        assertEquals(1, performance.history.size)
+    }
+
+    @Test
+    fun `history graph presentation persists without restoring capture state`() {
+        val settings = DebugSettings()
+        val performance = settings.operations.performance
+        val graphs = listOf(
+            DebugPerformanceMetric.DYNAMIC_PLAN_TIME,
+            DebugPerformanceMetric.FRAMES_PER_SECOND,
+            DebugPerformanceMetric.ENTITIES_DRAWN
+        )
+        performance.historyOverlayEnabled = true
+        performance.historyGraphMetrics = graphs
+        val saved = DebugVisualConfigurationCodec.encode(settings.captureVisualConfiguration())
+        performance.historyOverlayEnabled = false
+        performance.historyGraphMetrics = listOf(DebugPerformanceMetric.FRAME_TIME)
+        performance.historyRecording = true
+        performance.historyLength = 1024
+        settings.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(saved))
+        assertTrue(performance.historyOverlayEnabled)
+        assertEquals(graphs, performance.historyGraphMetrics)
+        assertTrue(performance.historyRecording)
+        assertEquals(1024, performance.historyLength)
+        settings.resetVisualConfiguration()
+        assertFalse(performance.historyOverlayEnabled)
+        assertEquals(listOf(DebugPerformanceMetric.FRAME_TIME), performance.historyGraphMetrics)
+        assertTrue(performance.historyRecording)
+    }
+
+    @Test
     fun `custom configuration restores visual settings and preserves operational state`() {
         val settings = DebugSettings().apply {
-            visualizationFilter = DebugVisualizationFilter.HOVERED
-            grid.enabled = true
-            grid.lineWidth = 3f
-            grid.color = Color.CYAN
-            worldVisibility.entitiesVisible = false
-            worldVisibility.setOverlayLayerVisible("roads", false)
-            entities.showMovementTrail = true
-            renderOrder.showSortVolumes = true
-            notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
+            visuals.filter = DebugVisualizationFilter.HOVERED
+            visuals.grid.enabled = true
+            visuals.grid.lineWidth = 3f
+            visuals.grid.color = Color.CYAN
+            visuals.worldVisibility.entitiesVisible = false
+            visuals.worldVisibility.setOverlayLayerVisible("roads", false)
+            visuals.entities.showMovementTrail = true
+            visuals.picking.enabled = true
+            visuals.picking.showCursorHit = true
+            visuals.renderOrder.showSortVolumes = true
+            operations.performance.overlayRefreshIntervalSeconds = 0.75f
+            operations.eventBus.visible = true
+            operations.notifications.enabled = true
+            operations.notifications.position = DebugNotificationPosition.BOTTOM_RIGHT
         }
         val captured = settings.captureVisualConfiguration()
 
         settings.apply {
-            visualizationFilter = DebugVisualizationFilter.ALL
-            grid.enabled = false
-            grid.lineWidth = 1f
-            grid.color = Color.RED
-            worldVisibility.showAll()
-            entities.showMovementTrail = false
-            renderOrder.showSortVolumes = false
-            notifications.position = DebugNotificationPosition.TOP_CENTER
-            performance.terminalLoggingEnabled = true
-            performance.historyRecording = true
-            simulation.freezeVisualAnimations = true
-            camera.disableRestrictions = true
-            inspect.showEntityPath = false
-            pathfinding.showFinalPath = false
+            visuals.filter = DebugVisualizationFilter.ALL
+            visuals.grid.enabled = false
+            visuals.grid.lineWidth = 1f
+            visuals.grid.color = Color.RED
+            visuals.worldVisibility.showAll()
+            visuals.entities.showMovementTrail = false
+            visuals.picking.enabled = false
+            visuals.picking.showCursorHit = false
+            visuals.renderOrder.showSortVolumes = false
+            operations.performance.overlayRefreshIntervalSeconds = 0.1f
+            operations.eventBus.visible = false
+            operations.notifications.enabled = false
+            operations.notifications.position = DebugNotificationPosition.TOP_CENTER
+            operations.performance.terminalLoggingEnabled = true
+            operations.performance.historyRecording = true
+            operations.simulation.freezeVisualAnimations = true
+            operations.disableCameraRestrictions = true
+            tools.inspect.showEntityPath = false
+            tools.pathfinding.showFinalPath = false
         }
 
         settings.applyVisualConfiguration(captured)
 
-        assertEquals(DebugVisualizationFilter.HOVERED, settings.visualizationFilter)
-        assertTrue(settings.grid.enabled)
-        assertEquals(3f, settings.grid.lineWidth)
-        assertEquals(Color.CYAN, settings.grid.color)
-        assertFalse(settings.worldVisibility.entitiesVisible)
-        assertFalse(settings.worldVisibility.isOverlayLayerVisible("roads"))
-        assertTrue(settings.entities.showMovementTrail)
-        assertTrue(settings.renderOrder.showSortVolumes)
-        assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.notifications.position)
+        assertEquals(DebugVisualizationFilter.HOVERED, settings.visuals.filter)
+        assertTrue(settings.visuals.grid.enabled)
+        assertEquals(3f, settings.visuals.grid.lineWidth)
+        assertEquals(Color.CYAN, settings.visuals.grid.color)
+        assertFalse(settings.visuals.worldVisibility.entitiesVisible)
+        assertFalse(settings.visuals.worldVisibility.isOverlayLayerVisible("roads"))
+        assertTrue(settings.visuals.entities.showMovementTrail)
+        assertTrue(settings.visuals.picking.enabled)
+        assertTrue(settings.visuals.picking.showCursorHit)
+        assertTrue(settings.visuals.renderOrder.showSortVolumes)
+        assertEquals(0.75f, settings.operations.performance.overlayRefreshIntervalSeconds)
+        assertFalse(settings.operations.eventBus.visible)
+        assertFalse(settings.operations.notifications.enabled)
+        assertEquals(DebugNotificationPosition.BOTTOM_RIGHT, settings.operations.notifications.position)
 
-        assertTrue(settings.performance.terminalLoggingEnabled)
-        assertTrue(settings.performance.historyRecording)
-        assertTrue(settings.simulation.freezeVisualAnimations)
-        assertTrue(settings.camera.disableRestrictions)
-        assertFalse(settings.inspect.showEntityPath)
-        assertFalse(settings.pathfinding.showFinalPath)
+        assertTrue(settings.operations.performance.terminalLoggingEnabled)
+        assertTrue(settings.operations.performance.historyRecording)
+        assertTrue(settings.operations.simulation.freezeVisualAnimations)
+        assertTrue(settings.operations.disableCameraRestrictions)
+        assertFalse(settings.tools.inspect.showEntityPath)
+        assertFalse(settings.tools.pathfinding.showFinalPath)
     }
 
     @Test
     fun `category reset changes only that visual category`() {
         val settings = DebugSettings().apply {
-            grid.enabled = true
-            grid.lineWidth = 4f
-            entities.enabled = true
-            entities.showPath = false
-            performance.terminalLoggingEnabled = true
+            visuals.grid.enabled = true
+            visuals.grid.lineWidth = 4f
+            visuals.entities.showCurrentTile = true
+            visuals.entities.showPath = false
+            operations.performance.terminalLoggingEnabled = true
         }
 
         settings.resetVisualCategory(DebugVisualCategory.GRID)
 
-        assertFalse(settings.grid.enabled)
-        assertEquals(1f, settings.grid.lineWidth)
-        assertTrue(settings.entities.enabled)
-        assertFalse(settings.entities.showPath)
-        assertTrue(settings.performance.terminalLoggingEnabled)
+        assertFalse(settings.visuals.grid.enabled)
+        assertEquals(1f, settings.visuals.grid.lineWidth)
+        assertTrue(settings.visuals.entities.showCurrentTile)
+        assertFalse(settings.visuals.entities.showPath)
+        assertTrue(settings.operations.performance.terminalLoggingEnabled)
     }
 
     @Test
     fun `reset all visual settings preserves operational settings`() {
         val settings = DebugSettings().apply {
             applyPreset(DebugPreset.EVERYTHING)
-            performance.terminalLoggingEnabled = true
-            camera.disableRestrictions = true
-            simulation.freezeVisualAnimations = true
-            inspect.showTile = false
+            operations.performance.terminalLoggingEnabled = true
+            operations.disableCameraRestrictions = true
+            operations.simulation.freezeVisualAnimations = true
+            tools.inspect.showTile = false
         }
 
         settings.resetVisualConfiguration()
 
-        assertFalse(settings.grid.enabled)
-        assertFalse(settings.entities.enabled)
-        assertFalse(settings.renderOrder.enabled)
-        assertTrue(settings.worldVisibility.entitiesVisible)
-        assertTrue(settings.performance.terminalLoggingEnabled)
-        assertTrue(settings.camera.disableRestrictions)
-        assertTrue(settings.simulation.freezeVisualAnimations)
-        assertFalse(settings.inspect.showTile)
+        assertFalse(settings.visuals.grid.enabled)
+        assertFalse(settings.visuals.entities.hasActiveVisuals)
+        assertFalse(settings.visuals.picking.enabled)
+        assertFalse(settings.visuals.renderOrder.hasActiveVisuals)
+        assertTrue(settings.visuals.worldVisibility.entitiesVisible)
+        assertTrue(settings.operations.performance.terminalLoggingEnabled)
+        assertTrue(settings.operations.disableCameraRestrictions)
+        assertTrue(settings.operations.simulation.freezeVisualAnimations)
+        assertFalse(settings.tools.inspect.showTile)
     }
 
     @Test
     fun `saving default replaces the previous visual configuration`() {
         val settings = DebugSettings()
 
-        settings.grid.enabled = true
-        settings.grid.lineWidth = 3f
+        settings.visuals.grid.enabled = true
+        settings.visuals.grid.lineWidth = 3f
         settings.saveDefaultVisualConfiguration()
 
-        settings.grid.enabled = false
-        settings.grid.lineWidth = 1f
+        settings.visuals.grid.enabled = false
+        settings.visuals.grid.lineWidth = 1f
 
         settings.applyDefaultVisualConfiguration()
 
-        assertTrue(settings.grid.enabled)
-        assertEquals(3f, settings.grid.lineWidth)
+        assertTrue(settings.visuals.grid.enabled)
+        assertEquals(3f, settings.visuals.grid.lineWidth)
 
-        settings.grid.enabled = false
+        settings.visuals.grid.enabled = false
         settings.saveDefaultVisualConfiguration()
 
-        settings.grid.enabled = true
+        settings.visuals.grid.enabled = true
         settings.applyDefaultVisualConfiguration()
 
-        assertFalse(settings.grid.enabled)
+        assertFalse(settings.visuals.grid.enabled)
+    }
+
+    @Test
+    fun `disabling fills preserves configured colors`() {
+        val settings = DebugSettings()
+
+        settings.visuals.objects.showOccupiedTileFill = true
+        settings.visuals.objects.occupiedTileFillColor =
+            Color(0.2f, 0.5f, 0.8f, 0.35f)
+
+        val expected = settings.visuals.objects.occupiedTileFillColor
+
+        settings.visuals.objects.showOccupiedTileFill = false
+
+        assertFalse(settings.visuals.objects.showOccupiedTileFill)
+        assertEquals(expected, settings.visuals.objects.occupiedTileFillColor)
+
+        settings.visuals.objects.showOccupiedTileFill = true
+
+        assertEquals(expected, settings.visuals.objects.occupiedTileFillColor)
     }
 }

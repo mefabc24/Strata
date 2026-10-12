@@ -9,17 +9,73 @@ import kotlin.test.assertTrue
 class DebugVisualConfigurationCodecTest {
 
     @Test
+    fun `ordered history graph metrics survive json round trip`() {
+        val graphs = listOf(
+            DebugPerformanceMetric.ENTITIES_DRAWN,
+            DebugPerformanceMetric.FRAME_TIME,
+            DebugPerformanceMetric.ENTITIES_DRAWN
+        )
+        val original = DebugSettings().apply { operations.performance.historyGraphMetrics = graphs }
+        val json = DebugVisualConfigurationCodec.encode(original.captureVisualConfiguration())
+        assertTrue(json.contains("performance.historyGraphs"))
+
+        val target = DebugSettings()
+        target.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(json))
+
+        assertEquals(graphs, target.operations.performance.historyGraphMetrics)
+    }
+
+    @Test
+    fun `version six single history metric becomes the only graph`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """{"version":6,"values":{"performance.historyMetric":"enum:STATIC_PLAN_TIME"}}"""
+        )
+        val settings = DebugSettings().apply {
+            operations.performance.historyGraphMetrics = listOf(
+                DebugPerformanceMetric.FRAME_TIME,
+                DebugPerformanceMetric.DRAW_CALLS
+            )
+        }
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertEquals(
+            listOf(DebugPerformanceMetric.STATIC_PLAN_TIME),
+            settings.operations.performance.historyGraphMetrics
+        )
+    }
+
+    @Test
+    fun `unknown graph metrics are ignored without rejecting the configuration`() {
+        val decoded = DebugVisualConfigurationCodec.decode(
+            """{"version":7,"values":{"grid.enabled":"boolean:true",""" +
+                """"performance.historyGraphs":"list:[\"REMOVED_METRIC\",\"DRAW_CALLS\"]"}}"""
+        )
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(decoded)
+
+        assertTrue(settings.visuals.grid.enabled)
+        assertEquals(listOf(DebugPerformanceMetric.DRAW_CALLS), settings.operations.performance.historyGraphMetrics)
+
+        settings.applyVisualConfiguration(DebugVisualConfigurationCodec.decode(
+            """{"version":7,"values":{"performance.historyGraphs":"list:[\"REMOVED_METRIC\"]"}}"""
+        ))
+        assertEquals(listOf(DebugPerformanceMetric.FRAME_TIME), settings.operations.performance.historyGraphMetrics)
+    }
+
+    @Test
     fun `visual configuration survives json round trip`() {
         val original = DebugSettings().apply {
-            grid.enabled = true
-            grid.lineWidth = 3f
-            grid.color = Color.CYAN
+            visuals.grid.enabled = true
+            visuals.grid.lineWidth = 3f
+            visuals.grid.color = Color.CYAN
 
-            entities.showPath = true
+            visuals.entities.showPath = true
 
-            visualizationFilter = DebugVisualizationFilter.HOVERED
+            visuals.filter = DebugVisualizationFilter.HOVERED
 
-            worldVisibility.setOverlayLayerVisible(
+            visuals.worldVisibility.setOverlayLayerVisible(
                 "roads",
                 false
             )
@@ -34,19 +90,19 @@ class DebugVisualConfigurationCodecTest {
         val target = DebugSettings()
         target.applyVisualConfiguration(restored)
 
-        assertTrue(target.grid.enabled)
-        assertEquals(3f, target.grid.lineWidth)
-        assertEquals(Color.CYAN, target.grid.color)
+        assertTrue(target.visuals.grid.enabled)
+        assertEquals(3f, target.visuals.grid.lineWidth)
+        assertEquals(Color.CYAN, target.visuals.grid.color)
 
-        assertTrue(target.entities.showPath)
+        assertTrue(target.visuals.entities.showPath)
 
         assertEquals(
             DebugVisualizationFilter.HOVERED,
-            target.visualizationFilter
+            target.visuals.filter
         )
 
         assertFalse(
-            target.worldVisibility.isOverlayLayerVisible("roads")
+            target.visuals.worldVisibility.isOverlayLayerVisible("roads")
         )
     }
 
@@ -59,7 +115,47 @@ class DebugVisualConfigurationCodecTest {
 
         target.applyVisualConfiguration(legacy)
 
-        assertFalse(target.entities.showPath)
-        assertFalse(target.entities.hasActiveVisuals)
+        assertFalse(target.visuals.entities.showPath)
+        assertFalse(target.visuals.entities.hasActiveVisuals)
+    }
+
+    @Test
+    fun `legacy nullable fills migrate to independent visibility flags`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """
+        {
+            "version": 3,
+            "values": {
+                "objects.fill": "null:",
+                "entities.fill": "color:0.3,1.0,0.3,0.4",
+                "grid.background": "null:"
+            }
+        }
+        """.trimIndent()
+        )
+
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertFalse(settings.visuals.objects.showOccupiedTileFill)
+        assertFalse(settings.visuals.grid.showBackground)
+
+        assertTrue(settings.visuals.entities.showCurrentTileFill)
+        assertEquals(0.4f, settings.visuals.entities.currentTileFillColor.a)
+    }
+
+    @Test
+    fun `version four picking children migrate to active picking diagnostics`() {
+        val legacy = DebugVisualConfigurationCodec.decode(
+            """{"version":4,"values":{"picking.cursor":"boolean:true"}}"""
+        )
+        val settings = DebugSettings()
+
+        settings.applyVisualConfiguration(legacy)
+
+        assertTrue(settings.visuals.picking.enabled)
+        assertTrue(settings.visuals.picking.showCursorHit)
+        assertTrue(settings.visuals.picking.hasActiveVisuals)
     }
 }

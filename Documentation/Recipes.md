@@ -125,7 +125,11 @@ Creates a placement controller at world attachment and selects a factory at runt
 ```kotlin
 // Scene setup
 placement {
-    showOutsideWorldPreviews = false
+    preview {
+        objects {
+            boundsPolicy = PlacementPreviewBoundsPolicy.ALL_TILES_INSIDE
+        }
+    }
     validator { placeable, position ->
         gameRules.allowBuild(placeable, position)
     }
@@ -137,6 +141,10 @@ strata.placement.enabled = true
 ```
 
 Omitting `placement {}` means `strata.placement` is unavailable. The validator cannot override world bounds or occupancy.
+
+For connected chains, use `strata.placement.path.begin(start)`, `addWaypoint(point)`,
+`update(cursorGridPosition)`, and `finish()`. See [Placement](Placement.md) for
+preview policies and cancellation; `TilePathSelection` also works without objects.
 
 ## 9. Register an entity
 
@@ -172,12 +180,13 @@ val wolf = world.addEntity(
 
 ## 11. Move an entity with pathfinding
 
-Finds a four-neighbor route and follows it at two logical tiles per second.
+Finds an eight-way route and follows it at two logical tiles per second.
 
 ```kotlin
 val path = world.findPath(
     start = wolf.currentTile,
     goal = TilePosition(15, 10),
+    movementMode = PathMovementMode.EIGHT_WAY,
     canEnter = { position ->
         world.getObjectAt(position) == null
     }
@@ -236,7 +245,7 @@ registerDirectional<Wolf> {
 }
 ```
 
-Every direction is required. `framesPerDirection` must match the number of sheet columns.
+The four diagonal base directions shown here are a complete registration; screen-cardinal runtime directions use their documented fallback. Alternatively, map all eight directions. `framesPerDirection` must match the number of sheet columns.
 
 ## 14. Handle tile input
 
@@ -324,7 +333,7 @@ The nullable handle can later be passed to `stopSound`.
 Shows the logical grid above the normal world.
 
 ```kotlin
-strata.debug.grid.apply {
+strata.debug.visuals.grid.apply {
     enabled = true
     extent = DebugGridExtent.VISIBLE
     renderLayer = DebugGridRenderLayer.ABOVE_OBJECTS
@@ -339,15 +348,13 @@ strata.debug.grid.apply {
 Shows footprint/origin diagnostics and entity route state.
 
 ```kotlin
-strata.debug.objects.apply {
-    enabled = true
+strata.debug.visuals.objects.apply {
     showOccupiedTiles = true
     showOriginTile = true
     showSpriteBounds = true
 }
 
-strata.debug.entities.apply {
-    enabled = true
+strata.debug.visuals.entities.apply {
     showCurrentTile = true
     showPosition = true
     showPath = true
@@ -356,4 +363,4 @@ strata.debug.entities.apply {
 }
 ```
 
-These settings are live; no world reattachment is required.
+These granular settings are live; object and entity diagnostic groups have no separate master `enabled` property, and no world reattachment is required.

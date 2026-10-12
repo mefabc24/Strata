@@ -112,8 +112,8 @@ class IsoWorldViewAnimationTest {
     @Test
     fun `global visual freeze does not consume simulation delta`() {
         val settings = DebugSettings().apply {
-            simulation.enabled = true
-            simulation.freezeVisualAnimations = true
+            operations.simulation.enabled = true
+            operations.simulation.freezeVisualAnimations = true
         }
         val view = IsoWorldView(
             world = World(1, 1) { _, _ -> TestTile() },
@@ -125,12 +125,12 @@ class IsoWorldViewAnimationTest {
             view.update(realDelta = 0.25f, simulationDelta = 1f)
             assertEquals(0f, view.animationTime)
 
-            settings.simulation.freezeVisualAnimations = false
+            settings.operations.simulation.freezeVisualAnimations = false
             view.update(realDelta = 0.25f, simulationDelta = 0.5f)
             assertEquals(0.5f, view.animationTime)
 
-            settings.simulation.freezeVisualAnimations = true
-            settings.simulation.enabled = false
+            settings.operations.simulation.freezeVisualAnimations = true
+            settings.operations.simulation.enabled = false
             view.update(realDelta = 0.25f, simulationDelta = 0.5f)
             assertEquals(1f, view.animationTime)
         } finally {

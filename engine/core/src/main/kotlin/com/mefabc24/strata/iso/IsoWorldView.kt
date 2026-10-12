@@ -143,6 +143,15 @@ class IsoWorldView(
     internal var hoveredGridPosition: TilePosition? = null
         private set
 
+    private var viewportValid =
+        Gdx.graphics.width > 0 && Gdx.graphics.height > 0
+
+    internal val pickingAvailable: Boolean
+        get() = viewportValid &&
+            Gdx.graphics.width > 0 && Gdx.graphics.height > 0
+
+    private var requestedWorldInputEnabled = true
+
     var animationTime: Float = 0f
         private set
 
@@ -159,17 +168,17 @@ class IsoWorldView(
         lighting = lighting,
         collectDebugSnapshot = {
             debugSettings?.let { settings ->
-                settings.picking.hasActiveVisuals ||
-                        settings.renderOrder.hasActiveVisuals ||
-                        settings.culling.hasActiveVisuals ||
-                        settings.visualizationFilter == DebugVisualizationFilter.VISIBLE &&
-                        (settings.objects.hasActiveVisuals || settings.entities.hasActiveVisuals) ||
+                settings.visuals.picking.hasActiveVisuals ||
+                        settings.visuals.renderOrder.hasActiveVisuals ||
+                        settings.visuals.culling.hasActiveVisuals ||
+                        settings.visuals.filter == DebugVisualizationFilter.VISIBLE &&
+                        (settings.visuals.objects.hasActiveVisuals || settings.visuals.entities.hasActiveVisuals) ||
                         settings.worldState.inspectionHighlightVisible
             } ?: false
         },
         objectPriorityFor = objectPriorityFor,
         entityPriorityFor = entityPriorityFor,
-        visibility = debugSettings?.worldVisibility
+        visibility = debugSettings?.visuals?.worldVisibility
             ?: com.mefabc24.strata.debug.DebugWorldVisibilitySettings()
     )
 
@@ -225,7 +234,7 @@ class IsoWorldView(
             debugSettings?.entityFreezeState?.resolveAnimation(
                 entity = entity,
                 animationTime = time,
-                freezeAnimation = debugSettings.inspect.freezeEntityAnimation,
+                freezeAnimation = debugSettings.tools.inspect.freezeEntityAnimation,
                 resolve = resolve
             ) ?: resolve(time)
         }
@@ -346,9 +355,10 @@ class IsoWorldView(
      * Controls whether world input bindings are processed.
      */
     var worldInputEnabled: Boolean
-        get() = worldInputProcessor.enabled
+        get() = requestedWorldInputEnabled
         set(value) {
-            worldInputProcessor.enabled = value
+            requestedWorldInputEnabled = value
+            syncWorldInputAvailability()
         }
 
     val inputProcessor = InputMultiplexer(
@@ -390,7 +400,7 @@ class IsoWorldView(
             "Simulation delta must be finite and non-negative."
         }
 
-        val freezeVisualAnimations = debugSettings?.simulation?.let {
+        val freezeVisualAnimations = debugSettings?.operations?.simulation?.let {
             it.enabled && it.freezeVisualAnimations
         } == true
         if (!freezeVisualAnimations) {
@@ -398,12 +408,17 @@ class IsoWorldView(
         }
         cameraController.update(realDelta)
 
-        hoveredGridPosition = tilePicker.pickGrid(
-            Gdx.input.x.toFloat(),
-            Gdx.input.y.toFloat()
-        )
-        hoveredTile = hoveredGridPosition?.takeIf { position ->
-            world.getTile(position) != null
+        syncWorldInputAvailability()
+        if (pickingAvailable) {
+            hoveredGridPosition = tilePicker.pickGrid(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat()
+            )
+            hoveredTile = hoveredGridPosition?.takeIf { position ->
+                world.getTile(position) != null
+            }
+        } else {
+            clearHoverState()
         }
     }
 
@@ -464,7 +479,7 @@ class IsoWorldView(
             }
         }
 
-        val visualizationFilter = debugSettings?.visualizationFilter
+        val visualizationFilter = debugSettings?.visuals?.filter
             ?: DebugVisualizationFilter.ALL
         debugFilterContext.update(
             inspection = debugSettings?.worldState?.inspection,
@@ -486,12 +501,12 @@ class IsoWorldView(
             val state = settings.worldState
             val inspectionActive = state.inspectionHighlightVisible &&
                 state.inspection != null
-            val pathActive = settings.pathfinding.enabled &&
+            val pathActive = settings.tools.pathfinding.enabled &&
                 (state.pathfindingWaypoints.isNotEmpty() || state.pathfinding != null)
             val active = inspectionActive || pathActive ||
-                settings.picking.hasActiveVisuals ||
-                settings.renderOrder.hasActiveVisuals || settings.culling.hasActiveVisuals ||
-                settings.camera.hasActiveVisuals || settings.worldInfo.hasActiveVisuals ||
+                settings.visuals.picking.hasActiveVisuals ||
+                settings.visuals.renderOrder.hasActiveVisuals || settings.visuals.culling.hasActiveVisuals ||
+                settings.visuals.camera.hasActiveVisuals || settings.visuals.worldInfo.hasActiveVisuals ||
                 state.movePreview?.visible == true
                 || state.brushPreview != null
             if (active) {
@@ -509,10 +524,28 @@ class IsoWorldView(
     }
 
     fun resize(width: Int, height: Int) {
-        if (width <= 0 || height <= 0) return
+        viewportValid = width > 0 && height > 0
+        if (!viewportValid) {
+            clearHoverState()
+            syncWorldInputAvailability()
+            return
+        }
 
         viewport.resize(width, height)
         cameraController.refreshZoomBounds()
+        syncWorldInputAvailability()
+    }
+
+    private fun clearHoverState() {
+        hoveredGridPosition = null
+        hoveredTile = null
+    }
+
+    private fun syncWorldInputAvailability() {
+        val enabled = requestedWorldInputEnabled && pickingAvailable
+        if (worldInputProcessor.enabled != enabled) {
+            worldInputProcessor.enabled = enabled
+        }
     }
 
     internal fun setDebugCameraRestrictionsDisabled(disabled: Boolean) {
@@ -522,11 +555,15 @@ class IsoWorldView(
 
     /** Returns the world tile at the given screen position, or null. */
     fun pickTile(screenX: Float, screenY: Float): TilePosition? {
+        if (!pickingAvailable) return null
         return tilePicker.pick(screenX, screenY)
     }
 
     /** Returns the logical grid position at the given screen position. */
     fun pickGrid(screenX: Float, screenY: Float): TilePosition {
+        check(pickingAvailable) {
+            "Grid picking is unavailable while the viewport is invalid."
+        }
         return tilePicker.pickGrid(screenX, screenY)
     }
 
@@ -538,6 +575,7 @@ class IsoWorldView(
         screenY: Float,
         mode: ObjectPickingMode = ObjectPickingMode.SPRITE_ALPHA
     ): PlacedObject? {
+        if (!pickingAvailable) return null
         return when (mode) {
             ObjectPickingMode.FOOTPRINT -> {
                 val tile = tilePicker.pick(screenX, screenY)
@@ -568,6 +606,7 @@ class IsoWorldView(
         screenY: Float,
         mode: EntityPickingMode = EntityPickingMode.SPRITE_ALPHA
     ): WorldEntity? {
+        if (!pickingAvailable) return null
         return when (mode) {
             EntityPickingMode.SPRITE_ALPHA -> entityPicker.pick(screenX, screenY)
             EntityPickingMode.NONE -> null
@@ -600,6 +639,9 @@ class IsoWorldView(
         screenX: Float,
         screenY: Float
     ): PickingDebugSnapshot {
+        check(pickingAvailable) {
+            "Picking diagnostics are unavailable while the viewport is invalid."
+        }
         val objectResult = objectPicker.diagnose(screenX, screenY)
         val entityResult = entityPicker.diagnose(screenX, screenY)
         val picked = pickingTarget(
@@ -615,6 +657,9 @@ class IsoWorldView(
 
     /** Projects screen coordinates into the renderer's world plane. */
     fun screenToWorld(screenX: Float, screenY: Float): Vector2 {
+        check(pickingAvailable) {
+            "Screen projection is unavailable while the viewport is invalid."
+        }
         val point = camera.unproject(Vector3(screenX, screenY, 0f))
         return Vector2(point.x, point.y)
     }

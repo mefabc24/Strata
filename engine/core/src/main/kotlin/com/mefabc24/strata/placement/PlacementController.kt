@@ -56,10 +56,14 @@ class PlacementController(
         it.boundsPolicy = previewBoundsPolicy
     }
     internal val entityPreviewSettings = entityPreviewSettings.copy()
+
+    /** Interactive tile chains sharing this controller's selection and validation. */
+    val path = PathPlacementController(this)
+
     /**
      * Controls preview generation and placement operations.
      *
-     * Disabling placement clears previews while retaining
+     * Disabling placement cancels the active path and clears previews while retaining
      * the selected factory.
      */
     var enabled: Boolean = true
@@ -78,7 +82,7 @@ class PlacementController(
      * Creates a new placeable for each placement operation.
      *
      * Assigning a factory also creates a separate instance used
-     * exclusively for placement previews.
+     * exclusively for placement previews. Changing the factory cancels the active path.
      */
     var selectedFactory: (() -> Placeable)? = null
         set(value) {
@@ -164,9 +168,15 @@ class PlacementController(
      *
      * Duplicate positions are ignored after their first occurrence. Valid
      * previews reserve their occupied tiles so later previews can report
-     * conflicts without modifying the world.
+     * conflicts without modifying the world. Starting explicit previews cancels
+     * any active path selection.
      */
     fun previewAt(positions: Iterable<TilePosition>) {
+        path.cancel()
+        previewPathAt(positions)
+    }
+
+    internal fun previewPathAt(positions: Iterable<TilePosition>) {
         if (!enabled) {
             clearPreviewPositions()
             return
@@ -230,9 +240,11 @@ class PlacementController(
     }
 
     /**
-     * Exits explicit preview mode. Hover previews resume on the next update.
+     * Cancels path selection and exits explicit preview mode.
+     * Hover previews resume on the next update.
      */
     fun clearPreviewPositions() {
+        path.clearSelection()
         explicitPreviewPositionsActive = false
         previews = emptyList()
         previewDiagnostics = emptyList()
@@ -242,11 +254,13 @@ class PlacementController(
     /**
      * Creates and places a new object at the given position.
      *
-     * Returns the placed object on success, or null otherwise.
+     * Returns the placed object on success, or null otherwise. Starting this
+     * operation cancels any active path selection.
      */
     fun placeAt(
         position: TilePosition
     ): PlacedObject? {
+        path.cancel()
         if (!enabled) return null
 
         val create =
@@ -283,11 +297,13 @@ class PlacementController(
      * Places fresh objects at arbitrary origins in requested order.
      *
      * Duplicate positions are ignored after their first occurrence. The
-     * operation is intentionally sequential and non-transactional.
+     * operation is intentionally sequential and non-transactional: invalid
+     * origins are skipped. Starting it cancels any active path selection.
      */
     fun placeAt(
         positions: Iterable<TilePosition>
     ): List<PlacedObject> {
+        path.cancel()
         if (!enabled) return emptyList()
 
         val create = selectedFactory ?: return emptyList()

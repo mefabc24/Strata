@@ -49,6 +49,18 @@ class DebugContextStatusTest {
     }
 
     @Test
+    fun `build path status exposes waypoints origins and completion controls`() {
+        val path = requireNotNull(debugContextStatus(DebugContextInputs(
+            mode = DebugToolMode.BUILD,
+            buildPathActive = true,
+            buildWaypointCount = 3,
+            buildPreviewCount = 12
+        )))
+        assertEquals("Path: 3 waypoints, 12 origins; Enter places, Esc cancels",
+            path.rows.first { it.key == "Status" }.value)
+    }
+
+    @Test
     fun `paint spawn and inspect modes expose concise context`() {
         val paint = requireNotNull(debugContextStatus(DebugContextInputs(
             DebugToolMode.PAINT,

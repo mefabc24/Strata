@@ -81,7 +81,7 @@ class DebugEntityFreezeStateTest {
 
     @Test
     fun `freeze animation option defaults to enabled`() {
-        assertTrue(DebugSettings().inspect.freezeEntityAnimation)
+        assertTrue(DebugSettings().tools.inspect.freezeEntityAnimation)
     }
 
     @Test

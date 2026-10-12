@@ -22,7 +22,7 @@
 
 **Likely cause:** `directionRows` omits a direction, repeats a row, uses a negative/out-of-range row, or `framesPerDirection` differs from the sheet's column count.
 
-**Fix:** Map all four `EntityDirection` values to distinct valid rows. Make the image width exactly `frameWidth × framesPerDirection`.
+**Fix:** Map either the four diagonal base directions or all eight `EntityDirection` values to distinct valid rows. Make the image width exactly `frameWidth × framesPerDirection`.
 
 ## An atlas visual fails or picks incorrectly
 
@@ -92,9 +92,9 @@
 
 **Symptom:** `findPath` returns `null`.
 
-**Likely cause:** `canEnter` rejects start or goal, every four-neighbor route is blocked, or game rules accidentally treat traversable tiles as blocked.
+**Likely cause:** `canEnter` rejects start or goal, every transition allowed by the selected movement mode is blocked, or game rules accidentally treat traversable tiles as blocked.
 
-**Fix:** Test start/goal predicates first and inspect the four edge-connected neighbors. The current pathfinder does not use diagonals or infer terrain/object rules.
+**Fix:** Test start/goal predicates first, inspect the selected `PathMovementMode`, and remember that eight-way movement rejects diagonal corner cutting. The pathfinder does not infer terrain/object rules.
 
 ## An entity does not move
 

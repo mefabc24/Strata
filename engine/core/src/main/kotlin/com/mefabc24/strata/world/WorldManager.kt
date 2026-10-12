@@ -39,6 +39,7 @@ internal data class WorldRuntime(
  * controller are created once, retained while inactive, and disposed when the
  * registration is removed or the runtime ends. Retaining the view preserves
  * camera and presentation state across switches.
+ * An unfinished placement path is cancelled when its world is deactivated.
  */
 @Suppress("unused")
 class WorldManager internal constructor(
@@ -111,6 +112,7 @@ class WorldManager internal constructor(
         if (previous === next) return next.world
 
         activationChanged(previous, next)
+        previous?.placement?.path?.cancel()
         activeId = id
         return next.world
     }
@@ -122,6 +124,7 @@ class WorldManager internal constructor(
         checkActive()
         val previous = activeRuntime ?: return
         activationChanged(previous, null)
+        previous.placement?.path?.cancel()
         activeId = null
     }
 
@@ -135,6 +138,7 @@ class WorldManager internal constructor(
         val runtime = entries[id] ?: return null
         if (activeId == id) deactivate()
         entries.remove(id)
+        runtime.placement?.path?.cancel()
         runtime.view.dispose()
         return runtime.world
     }
@@ -180,7 +184,10 @@ class WorldManager internal constructor(
         val previous = activeRuntime
         if (previous != null) activationChanged(previous, null)
         activeId = null
-        entries.values.toList().asReversed().forEach { it.view.dispose() }
+        entries.values.toList().asReversed().forEach {
+            it.placement?.path?.cancel()
+            it.view.dispose()
+        }
         entries.clear()
     }
 

@@ -211,21 +211,25 @@ class StrataSceneWorldTest {
             }
 
             debug {
-                performance {
-                    terminalLoggingIntervalSeconds = 3f
+                operations {
+                    performance {
+                        terminalLoggingIntervalSeconds = 3f
+                    }
                 }
 
-                grid {
-                    enabled = true
-                    escapedGrid = this
-                }
+                visuals {
+                    grid {
+                        enabled = true
+                        escapedGrid = this
+                    }
 
-                objects {
-                    escapedObjects = this
-                }
+                    objects {
+                        escapedObjects = this
+                    }
 
-                entities {
-                    escapedEntities = this
+                    entities {
+                        escapedEntities = this
+                    }
                 }
             }
 
@@ -258,7 +262,7 @@ class StrataSceneWorldTest {
         escapedRendering.objects.offsetY = 999f
         escapedControls.camera.moveUp = 101
         escapedGrid.enabled = false
-        escapedObjects.enabled = true
+        escapedObjects.showOriginTile = true
         escapedEntities.showPath = false
         mutableBindings.clear()
 
@@ -269,12 +273,12 @@ class StrataSceneWorldTest {
 
         assertSame(world, scene.world)
         assertEquals(0.75f, scene.audio.masterVolume)
-        assertEquals(3f, scene.debug.performance.terminalLoggingIntervalSeconds)
-        assertSame(scene.debug.grid, spec.debugGridSettings)
-        assertSame(scene.debug.objects, spec.debugObjectSettings)
-        assertSame(scene.debug.entities, spec.debugEntitySettings)
+        assertEquals(3f, scene.debug.operations.performance.terminalLoggingIntervalSeconds)
+        assertSame(scene.debug.visuals.grid, spec.debugGridSettings)
+        assertSame(scene.debug.visuals.objects, spec.debugObjectSettings)
+        assertSame(scene.debug.visuals.entities, spec.debugEntitySettings)
         assertFalse(spec.debugGridSettings.enabled)
-        assertTrue(spec.debugObjectSettings.enabled)
+        assertTrue(spec.debugObjectSettings.showOriginTile)
         assertFalse(spec.debugEntitySettings.showPath)
         assertEquals(123f, spec.cameraSettings.moveSpeed)
         assertEquals(0.25f, spec.cameraSettings.zoomEdgeAllowance)
