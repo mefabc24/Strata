@@ -90,18 +90,18 @@ class SandboxGame : StrataGame() {
                         }
 
                         objects {
-                            showOccupiedTiles = true
-                            showOriginTile = true
-                            showOccupiedTileFill = true
+                            showOccupiedTiles = false
+                            showOriginTile = false
+                            showOccupiedTileFill = false
                             occupiedTileFillColor =
                                 Color(0.2f, 0.65f, 1f, 0.2f)
                         }
 
                         entities {
-                            showCurrentTile = true
-                            showPosition = true
-                            showPath = true
-                            showCurrentTileFill = true
+                            showCurrentTile = false
+                            showPosition = false
+                            showPath = false
+                            showCurrentTileFill = false
                             currentTileFillColor =
                                 Color(0.3f, 1f, 0.3f, 0.18f)
                         }
