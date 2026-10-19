@@ -11,10 +11,10 @@ data class DebugPerformanceSummary(
 )
 
 /**
- * Bounded allocation-free recorder for per-frame performance measurements.
+ * Rolling live history for per-frame performance measurements.
  *
- * Every [DebugPerformanceMetric] is captured for each recorded frame, so all metrics share one
- * chronological timeline and any metric can be inspected without starting a separate recording.
+ * Every [DebugPerformanceMetric] is sampled once per frame. The same values also feed an optional
+ * full [recordingData] session; [capacity] only limits the live history.
  */
 class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
     private var columns = Array(METRICS.size) { DoubleArray(initialCapacity) }
@@ -23,7 +23,18 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
     var size: Int = 0
         private set
 
+    /** Current or most recently completed session; replaced by Start and removed by Clear. */
+    var recordingData: DebugPerformanceRecording? = null
+        private set
+
+    /** Starts a fresh session when set to true; false finalizes it without pausing live history. */
     var recording: Boolean = false
+        set(value) {
+            if (value) recordingData = DebugPerformanceRecording()
+            else recordingData?.finish()
+            field = value
+            structureRevision++
+        }
 
     /** Changes that should update a visible graph immediately, outside its refresh timer. */
     internal var structureRevision: Long = 0
@@ -46,20 +57,22 @@ class DebugPerformanceHistory internal constructor(initialCapacity: Int = 240) {
         }
 
     internal fun record(stats: RenderStats, frameDelta: Float) {
-        if (!recording) return
         require(frameDelta.isFinite() && frameDelta >= 0f) {
             "Performance frame delta must be finite and non-negative."
         }
         for (metric in METRICS.indices) {
             columns[metric][writeIndex] = METRICS[metric].sample(stats, frameDelta)
         }
+        if (recording) recordingData?.append(columns, writeIndex, frameDelta)
         writeIndex = (writeIndex + 1) % capacity
         if (size < capacity) size++
     }
 
+    /** Clears both timelines, starting an empty session if recording is still active. */
     fun clear() {
         writeIndex = 0
         size = 0
+        recordingData = if (recording) DebugPerformanceRecording() else null
         structureRevision++
     }
 

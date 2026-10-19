@@ -5,7 +5,7 @@ internal class DebugPerformanceHistoryGraph(metric: DebugPerformanceMetric) {
     var metric: DebugPerformanceMetric = metric
 }
 
-/** Ordered graphs of the Performance History panel; every graph reads the same shared recording. */
+/** Ordered graphs of the Performance History panel, shared by live and recorded views. */
 internal class DebugPerformanceHistoryGraphs {
     private val entries = mutableListOf(DebugPerformanceHistoryGraph(DebugPerformanceMetric.FRAME_TIME))
 

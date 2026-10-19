@@ -57,12 +57,13 @@ class DebugUiComponentSettings internal constructor(
 /** Independent output controls for shared renderer performance metrics. */
 class DebugPerformanceSettings internal constructor() {
     private val terminalLogger = DebugPerformanceLogger()
+    /** Rolling live samples and the independent explicit recording session. */
     val history = DebugPerformanceHistory()
 
     /** Whether the on-screen performance overlay is visible. */
     var overlayEnabled: Boolean = false
 
-    /** Shows captured history without starting or stopping recording. */
+    /** Shows rolling live history without starting or stopping recording. */
     var historyOverlayEnabled: Boolean = false
 
     /** Seconds of rendered time between live statistics and history graph refreshes. */
@@ -84,12 +85,12 @@ class DebugPerformanceSettings internal constructor() {
         get() = terminalLogger.intervalSeconds
         set(value) { terminalLogger.intervalSeconds = value }
 
-    /** Number of samples retained in performance history. */
+    /** Number of recent live samples retained; never limits an explicit recording. */
     var historyLength: Int
         get() = history.capacity
         set(value) { history.capacity = value }
 
-    /** Whether renderer metrics are currently added to performance history. */
+    /** Whether an explicit session is capturing frames; live history always continues updating. */
     var historyRecording: Boolean
         get() = history.recording
         set(value) { history.recording = value }
@@ -99,21 +100,24 @@ class DebugPerformanceSettings internal constructor() {
     /**
      * Metrics shown by the Performance History graphs, top to bottom.
      *
-     * Accepts one to six metrics; every graph reads the same recording, so changing this never
-     * clears or restarts captured history.
+     * Accepts one to six metrics; all metrics are captured regardless of graph selection, so changing
+     * this never clears or restarts live history or an explicit recording.
      */
     var historyGraphMetrics: List<DebugPerformanceMetric>
         get() = historyGraphs.metrics
         set(value) { historyGraphs.metrics = value }
 
+    /** Starts a fresh full recording, replacing the previous session without clearing live history. */
     fun startHistoryRecording() {
         history.recording = true
     }
 
+    /** Finalizes the full recording while live history continues updating. */
     fun stopHistoryRecording() {
         history.recording = false
     }
 
+    /** Clears both histories without changing whether recording is active. */
     fun clearHistory() {
         history.clear()
     }
