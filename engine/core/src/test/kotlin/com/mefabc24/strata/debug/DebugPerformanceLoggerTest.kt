@@ -129,8 +129,10 @@ class DebugPerformanceLoggerTest {
         performance.stopHistoryRecording()
         performance.overlayEnabled = true
         performance.record(stats(renderMs = 9.0), 0.02f)
-        assertEquals(1, performance.history.size)
-        assertEquals(3.0, performance.history.summary(
+        assertEquals(2, performance.history.size)
+        assertEquals(6.0, performance.history.summary(DebugPerformanceMetric.RENDER_TIME)?.average)
+        assertEquals(1, performance.history.recordingData!!.size)
+        assertEquals(3.0, performance.history.recordingData!!.summary(
             DebugPerformanceMetric.RENDER_TIME
         )?.average)
 

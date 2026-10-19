@@ -36,7 +36,7 @@ class DebugPerformanceHistoryOverlayTest {
     }
 
     @Test
-    fun `hidden recording accumulates and stopped recording retains history`() {
+    fun `hidden recording accumulates and stop preserves recording while live history continues`() {
         val settings = DebugPerformanceSettings().apply { historyRecording = true }
         val state = DebugPerformanceHistoryOverlayState(settings)
         settings.record(stats(1.0), 0.016f)
@@ -54,8 +54,10 @@ class DebugPerformanceHistoryOverlayTest {
         settings.record(stats(100.0), 0.1f)
         settings.historyOverlayEnabled = true
         assertTrue(state.update(0f, 100))
-        assertEquals(3, state.graphs.single().data.sampleCount)
-        assertEquals(4.0, state.graphs.single().data.current)
+        assertEquals(4, state.graphs.single().data.sampleCount)
+        assertEquals(100.0, state.graphs.single().data.current)
+        assertEquals(3, settings.history.recordingData!!.size)
+        assertEquals(4.0, settings.history.recordingData!!.samples(DebugPerformanceMetric.RENDER_TIME).last())
         assertFalse(state.recording)
     }
 

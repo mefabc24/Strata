@@ -82,18 +82,21 @@ class DebugPerformanceHistoryTest {
     }
 
     @Test
-    fun `stopping capture retains samples and clear resets aggregates`() {
+    fun `stopping capture retains recording while live history continues and clear resets aggregates`() {
         val history = DebugPerformanceHistory(4).apply { recording = true }
         record(history, render = 2.0)
         history.recording = false
         record(history, render = 9.0)
 
-        assertEquals(1, history.size)
-        assertEquals(2.0, history.summary(DebugPerformanceMetric.RENDER_TIME)?.average)
+        assertEquals(2, history.size)
+        assertEquals(5.5, history.summary(DebugPerformanceMetric.RENDER_TIME)?.average)
+        assertEquals(1, history.recordingData!!.size)
+        assertEquals(2.0, history.recordingData!!.summary(DebugPerformanceMetric.RENDER_TIME)?.average)
 
         history.clear()
         assertEquals(0, history.size)
         assertNull(history.summary(DebugPerformanceMetric.RENDER_TIME))
+        assertNull(history.recordingData)
     }
 
     @Test

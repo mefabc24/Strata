@@ -62,20 +62,22 @@ class DebugPerformanceHistoryPanelTest {
         assertTrue(button("Start").isDisabled)
         assertFalse(button("Stop").isDisabled)
         assertFalse(button("Clear").isDisabled)
-        assertTrue(labels().contains("Samples 2 / 240"))
+        assertTrue(labels().contains("Live 2 / 240"))
+        assertTrue(labels().contains("Recorded 2 | 0.03 s"))
 
         button("Stop").onClick()
         settings.record(RenderStats(), 0.016f)
         refresh()
         assertFalse(settings.historyRecording)
         assertEquals("Stopped", recordingText())
-        assertEquals(2, settings.history.size, "Stopping retains captured samples")
+        assertEquals(3, settings.history.size, "Live samples continue after Stop")
+        assertEquals(2, settings.history.recordingData!!.size, "Stopping retains the recording")
 
         button("Clear").onClick()
         refresh()
         assertEquals(0, settings.history.size)
         assertFalse(settings.historyRecording, "Clearing does not start recording")
-        assertTrue(labels().contains("Samples 0 / 240"))
+        assertTrue(labels().contains("Live 0 / 240"))
         assertTrue(button("Clear").isDisabled)
     }
 
@@ -140,11 +142,50 @@ class DebugPerformanceHistoryPanelTest {
         repeat(5) { settings.record(RenderStats(), 0.016f) }
         refresh()
         assertEquals(2, settings.history.size)
-        assertTrue(labels().contains("Samples 2 / 2"))
+        assertTrue(labels().contains("Live 2 / 2"))
+        assertEquals(5, settings.history.recordingData!!.size)
 
         settings.historyLength = 1_000
         refresh()
         assertEquals(1_000f, stepper.value)
+    }
+
+    @Test
+    fun `view recording shows full session duration and endpoints using the same graph card`() {
+        assertTrue(button("View recording").isDisabled)
+        settings.historyLength = 2
+        button("Start").onClick()
+        repeat(5) { settings.record(RenderStats().apply { cpuRenderMs = it + 1.0 }, 0.2f) }
+        refresh()
+        assertTrue(button("View recording").isDisabled)
+        button("Stop").onClick()
+        refresh()
+        assertFalse(button("View recording").isDisabled)
+        val line = descendants(panel()).filterIsInstance<DebugLineGraph>().single()
+        button("View recording").onClick()
+        refresh()
+
+        assertTrue(labels().contains("Recording Overview"))
+        assertTrue(labels().contains("Samples 5"))
+        assertTrue(labels().contains("Duration 1.00 s"))
+        assertTrue(labels().contains("Start (sample 1)"))
+        assertTrue(labels().contains("End (sample 5)"))
+        assertTrue(labels().contains("Last"))
+        assertFalse(descendants(panel()).filterIsInstance<StrataNumericStepper>().single().isVisible)
+        assertTrue(line === descendants(panel()).filterIsInstance<DebugLineGraph>().single())
+
+        button("Back to live").onClick()
+        refresh()
+        assertTrue(labels().contains("Performance History"))
+        assertTrue(labels().contains("Live 2 / 2"))
+        assertTrue(descendants(panel()).filterIsInstance<StrataNumericStepper>().single().isVisible)
+        button("View recording").onClick()
+        refresh()
+        button("Clear").onClick()
+        refresh()
+        assertTrue(labels().contains("Performance History"))
+        assertTrue(button("View recording").isDisabled)
+        assertTrue(labels().contains("No recording"))
     }
 
     @Test
