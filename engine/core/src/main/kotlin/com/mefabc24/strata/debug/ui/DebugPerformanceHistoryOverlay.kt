@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Align
 import com.mefabc24.strata.debug.DebugPerformanceHistory
 import com.mefabc24.strata.debug.DebugPerformanceHistoryGraph
 import com.mefabc24.strata.debug.DebugPerformanceMetric
+import com.mefabc24.strata.debug.DebugPerformanceRecording
 import com.mefabc24.strata.debug.DebugPerformanceSettings
 import com.mefabc24.strata.ui.StrataButton
 import com.mefabc24.strata.ui.StrataColumn
@@ -23,6 +24,7 @@ import com.mefabc24.strata.ui.StrataUi
 import com.mefabc24.strata.ui.cell
 import com.mefabc24.strata.ui.fillAvailable
 import com.mefabc24.strata.ui.fillAvailableX
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -46,11 +48,16 @@ internal class DebugPerformanceHistoryOverlay(
     private var shownGraphs: List<DebugPerformanceGraphState>? = null
 
     private val recordingIndicator = Image(stoppedDrawable)
+    private val title = Label("Performance History", ui.skin, "title")
     private val recordingLabel = Label("Stopped", ui.skin).apply { color = STOPPED_TEXT_COLOR }
-    private val samplesLabel = Label("", ui.skin, "debug-secondary").apply { setAlignment(Align.right) }
+    private val samplesLabel = Label("", ui.skin, "debug-secondary")
+    private val recordingInfoLabel = Label("", ui.skin, "debug-secondary").apply { setAlignment(Align.right) }
     private val startButton = actionButton("Start") { settings.startHistoryRecording() }
     private val stopButton = actionButton("Stop") { settings.stopHistoryRecording() }
     private val clearButton = actionButton("Clear") { settings.clearHistory() }
+    private val viewButton = actionButton("View recording") {
+        if (state.viewingRecording) state.showLive() else state.showRecording()
+    }
     private val addButton = actionButton("Add graph") {
         if (settings.historyGraphs.canAdd) settings.historyGraphs.add()
     }
@@ -81,7 +88,7 @@ internal class DebugPerformanceHistoryOverlay(
         // Clip the complete panel on narrow viewports; the graph list scrolls when it is too tall.
         setClip(true)
         row(spacing = SPACING) {
-            label("Performance History", "title").cell { growX(); left() }
+            actor(title).cell { growX(); left() }
             actor(recordingIndicator).cell { size(INDICATOR_SIZE) }
             actor(recordingLabel)
         }.cell { fillAvailableX(); height(HEADER_HEIGHT) }
@@ -89,8 +96,12 @@ internal class DebugPerformanceHistoryOverlay(
             actor(startButton).cell { width(56f); height(CONTROL_HEIGHT) }
             actor(stopButton).cell { width(56f); height(CONTROL_HEIGHT) }
             actor(clearButton).cell { width(56f); height(CONTROL_HEIGHT) }
-            actor(samplesLabel).cell { growX(); right() }
+            actor(viewButton).cell { expandX(); right(); width(116f); height(CONTROL_HEIGHT) }
         }.cell { fillAvailableX(); height(CONTROL_HEIGHT) }
+        row(spacing = SPACING) {
+            actor(samplesLabel).cell { growX(); left() }
+            actor(recordingInfoLabel).cell { right() }
+        }.cell { fillAvailableX() }
         scrollColumn(spacing = SPACING) {
             graphList = this
         }.cell { fillAvailable(); minHeight(0f) }
@@ -131,10 +142,19 @@ internal class DebugPerformanceHistoryOverlay(
         syncControls()
         if (!refreshed) return
         state.graphs.forEach { cards.getValue(it.graph).show(it) }
+        title.setText(if (state.viewingRecording) "Recording Overview" else "Performance History")
         recordingIndicator.drawable = if (state.recording) recordingDrawable else stoppedDrawable
         recordingLabel.setText(if (state.recording) "Recording" else "Stopped")
         recordingLabel.color = if (state.recording) RECORDING_COLOR else STOPPED_TEXT_COLOR
-        samplesLabel.setText("Samples ${settings.history.size} / ${settings.history.capacity}")
+        val recording = settings.history.recordingData
+        if (state.viewingRecording && recording != null) {
+            samplesLabel.setText("Samples ${recording.size}")
+            recordingInfoLabel.setText(String.format(Locale.ROOT, "Duration %.2f s", recording.durationSeconds))
+        } else {
+            samplesLabel.setText("Live ${settings.history.size} / ${settings.history.capacity}")
+            recordingInfoLabel.setText(if (recording == null) "No recording" else
+                String.format(Locale.ROOT, "Recorded %d | %.2f s", recording.size, recording.durationSeconds))
+        }
     }
 
     private fun rebuildCards() {
@@ -155,8 +175,11 @@ internal class DebugPerformanceHistoryOverlay(
         val recording = settings.historyRecording
         startButton.isDisabled = recording
         stopButton.isDisabled = !recording
-        clearButton.isDisabled = settings.history.size == 0
+        clearButton.isDisabled = settings.history.size == 0 && (settings.history.recordingData?.size ?: 0) == 0
+        viewButton.isDisabled = !state.canViewRecording
+        viewButton.setText(if (state.viewingRecording) "Back to live" else "View recording")
         addButton.isDisabled = !settings.historyGraphs.canAdd
+        lengthStepper.isVisible = !state.viewingRecording
         lengthStepper.sync(settings.historyLength.toFloat())
     }
 
@@ -179,6 +202,9 @@ internal class DebugPerformanceHistoryOverlay(
             if (settings.historyGraphs.canRemove) settings.historyGraphs.remove(graph)
         }
         val lineGraph = DebugLineGraph(pixel, lineColor, axisStyle)
+        private val currentKey = Label("Current", ui.skin, "debug-secondary")
+        private val firstSample = Label("Oldest", ui.skin, "debug-secondary")
+        private val lastSample = Label("Newest", ui.skin, "debug-secondary")
         private val current = Label("--", ui.skin)
         private val average = Label("--", ui.skin)
         private val minimum = Label("--", ui.skin)
@@ -197,7 +223,14 @@ internal class DebugPerformanceHistoryOverlay(
             row()
             add(Table(ui.skin).apply {
                 touchable = Touchable.disabled
-                statistic("Current", current)
+                add(firstSample).expandX().left().padLeft(52f)
+                add(lastSample).right().padRight(8f)
+            }).growX()
+            row()
+            add(Table(ui.skin).apply {
+                touchable = Touchable.disabled
+                add(currentKey).padRight(4f)
+                add(current).expandX().uniformX().left()
                 statistic("Avg", average)
                 statistic("Min", minimum)
                 statistic("Max", maximum)
@@ -206,10 +239,15 @@ internal class DebugPerformanceHistoryOverlay(
 
         fun show(state: DebugPerformanceGraphState) {
             val metric = state.graph.metric
+            val recorded = this@DebugPerformanceHistoryOverlay.state.viewingRecording
             metricSelector.sync(metric)
             title.setText(metric.label)
             lineGraph.show(state.data, metric)
             current.setText(state.data.current?.let(metric::format) ?: "--")
+            currentKey.setText(if (recorded) "Last" else "Current")
+            firstSample.setText(if (recorded) "Start (sample 1)" else "Oldest")
+            lastSample.setText(if (recorded)
+                "End (sample ${state.data.sampleCount})" else "Newest")
             val summary = state.data.summary
             average.setText(summary?.let { metric.format(it.average) } ?: "--")
             minimum.setText(summary?.let { metric.format(it.minimum) } ?: "--")
@@ -242,6 +280,19 @@ internal class DebugPerformanceHistoryOverlayState(private val settings: DebugPe
         private set
     var recording = false
         private set
+    var viewingRecording = false
+        private set
+
+    val canViewRecording: Boolean
+        get() = settings.history.recordingData?.let { it.isComplete && it.size > 0 } == true
+
+    fun showRecording() {
+        if (canViewRecording) viewingRecording = true
+    }
+
+    fun showLive() {
+        viewingRecording = false
+    }
 
     /** Views of the configured graphs in panel order; each survives other graphs' addition or removal. */
     var graphs: List<DebugPerformanceGraphState> = emptyList()
@@ -250,6 +301,7 @@ internal class DebugPerformanceHistoryOverlayState(private val settings: DebugPe
     private var displayedGraphsRevision = -1L
     private var displayedRevision = -1L
     private var displayedWidth = -1
+    private var displayedRecording: DebugPerformanceRecording? = null
 
     fun update(delta: Float, plotWidth: Int): Boolean {
         require(delta.isFinite() && delta >= 0f)
@@ -258,14 +310,18 @@ internal class DebugPerformanceHistoryOverlayState(private val settings: DebugPe
             elapsed = 0f
             return false
         }
+        if (!canViewRecording) viewingRecording = false
+        val recordingData = if (viewingRecording) settings.history.recordingData else null
         elapsed += delta
         val graphsChanged = syncGraphs()
         val forced = !visible || graphsChanged || graphs.any { it.metricChanged } ||
             recording != settings.historyRecording ||
+            displayedRecording !== recordingData ||
             displayedRevision != settings.history.structureRevision || displayedWidth != plotWidth
         visible = true
-        if (!forced && elapsed < settings.overlayRefreshIntervalSeconds) return false
-        graphs.forEach { it.refresh(settings.history, plotWidth) }
+        if (!forced && (viewingRecording || elapsed < settings.overlayRefreshIntervalSeconds)) return false
+        graphs.forEach { it.refresh(settings.history, plotWidth, recordingData) }
+        displayedRecording = recordingData
         displayedRevision = settings.history.structureRevision
         displayedWidth = plotWidth
         recording = settings.historyRecording
@@ -295,11 +351,18 @@ internal class DebugPerformanceGraphState(val graph: DebugPerformanceHistoryGrap
     val metricChanged: Boolean
         get() = metric != graph.metric
 
-    fun refresh(history: DebugPerformanceHistory, plotWidth: Int) {
+    private var recordingSource: DebugPerformanceRecording? = null
+
+    fun refresh(history: DebugPerformanceHistory, plotWidth: Int, recording: DebugPerformanceRecording? = null) {
         val selected = graph.metric
         // Metrics have different magnitudes; never inherit another metric's axis hysteresis.
-        if (selected != metric) data = DebugPerformanceGraphData()
-        data.update(history.size, plotWidth, selected.unit.minimumGraphRange) { history.sampleAt(selected, it) }
+        if (selected != metric || recordingSource !== recording) data = DebugPerformanceGraphData()
+        if (recording == null) {
+            data.update(history.size, plotWidth, selected.unit.minimumGraphRange) { history.sampleAt(selected, it) }
+        } else {
+            data.update(recording.size, plotWidth, selected.unit.minimumGraphRange) { recording.sampleAt(selected, it) }
+        }
+        recordingSource = recording
         metric = selected
     }
 }
